@@ -113,3 +113,23 @@ test('a restored NPC shot updates its saved combat report without runtime callba
   assert.equal(restored.civilianTraffic.retaliations[0].hits,1);assert.equal(record.hits,0);
   assert.ok(restored.destroyedAsteroids.includes(rock.slotId));
 });
+
+test('registered mining capabilities govern player equipment and civilian job commands',async()=>{
+  const {window,state}=await fleet(),rock={slotId:90004,demo:true,x:state.x+50,y:state.y,size:50,region:'Local Field'};
+  window.nativeSolAsteroids.placements.push(rock);state.miningTool=true;state.devMode=true;
+  window.nativeShipDefinitions.register(state.shipType,{capabilities:{canMine:false}});
+  window.nativeShipDefinitions.register(state.civilianTraffic.ships[0].shipType,{capabilities:{canMine:false}});
+  window.nativeAsteroidCombat.select(rock);
+  assert.equal(window.nativeAsteroidCombat.mine(state,{x:state.x,y:state.y}).ok,false);
+  assert.equal(window.nativeCivilianTraffic.startMiningDemo(state,{force:true,theft:false}),false);
+  assert.equal(state.miningOperation,undefined);assert.equal(state.minedAsteroids.length,0);
+});
+
+test('player and NPC mining use one idempotent asteroid completion and ore entitlement',async()=>{
+  const {window,state}=await fleet(),rock={slotId:90005,x:0,y:0,size:50};window.nativeSolAsteroids.placements.push(rock);
+  const first=window.nativeAsteroidCombat.completeMining(state,rock);
+  assert.equal(first.ok,true);assert.equal(first.oreMask,15);
+  const completed=JSON.stringify(state);
+  assert.equal(window.nativeAsteroidCombat.completeMining(state,rock.slotId).ok,false);
+  assert.equal(JSON.stringify(state),completed);
+});

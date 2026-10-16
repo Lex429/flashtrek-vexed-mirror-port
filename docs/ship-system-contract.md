@@ -138,6 +138,11 @@ simulation advance, including when artwork finishes loading later. Drawing a
 wreck never emits its debris. Mining completion and ore awards likewise happen
 in simulation, never in a paint function.
 
+Player and civilian mining share `asteroid-combat.completeMining` and its
+`miningTiming` constants. Completion is idempotent: a second caller cannot create
+another ore entitlement. Ship `canMine` capabilities govern equipment and job
+commands; controllers retain the decision to mine and what to do with collected ore.
+
 ## Adding a ship, weapon or AI role
 
 1. Add the native ship row, preserved artwork/catalog frames and artwork profile
@@ -199,7 +204,7 @@ restoration and completion run in simulation, including without a render pass.
 
 The pre-migration commit `b3d190d` passed its original 29 Node tests and browser
 smoke checks with source served from that exact commit. The migrated game passes
-71 Node tests. These include all native definitions across role profiles, job
+73 Node tests. These include all native definitions across role profiles, job
 progression without rendering, old-clock migrations, owned recharge, collateral
 damage, moving contact surfaces and restored shots.
 

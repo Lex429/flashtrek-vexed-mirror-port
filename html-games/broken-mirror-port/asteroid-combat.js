@@ -11,6 +11,7 @@
   const orePosition=(rock,index,mined=false)=>{const [dx,dy]=(mined?[[-.1144,-.1144],[.1144,-.1144],[-.1144,.1144],[.1144,.1144]]:[[0,-.172],[-.172,.095],[.172,.095]])[index]||[0,0];return{x:rock.x+dx*rock.size,y:rock.y+dy*rock.size};};
   const oreShieldRadius=rock=>rock.size*.36;
   const weaponVisual=weapon=>window.nativeCombatShots.weaponVisual(weapon);
+  const miningTiming=Object.freeze({cutSeconds:7.15,animationSeconds:8.5,transportSeconds:4.5});
   function select(rock){if(targetId!==rock.slotId)selectedAt=now();targetId=rock.slotId;return rock;}
   function deselect(){targetId=null;}
   function autoTarget(state,ship,{cx,cy,zoom,w,h}){
@@ -119,6 +120,11 @@
     if(!rock||gone(state,rock.slotId))return {ok:false,destroyed:false};
     finishRock(state,rock,false,onFinish);return {ok:true,destroyed:true};
   }
+  function completeMining(state,rockOrId,onFinish){
+    const rock=typeof rockOrId==='object'?rockOrId:placements().find(entry=>entry.slotId===rockOrId);
+    if(!rock||gone(state,rock.slotId))return {ok:false};
+    finishRock(state,rock,true,onFinish);return {ok:true,rock,oreMask:state.asteroidOreDrops[rock.slotId]};
+  }
   function hit(state,id,damage,impact=null,onFinish){
     const rock=placements().find(entry=>entry.slotId===id);
     if(!rock||gone(state,id))return {ok:false,destroyed:false};
@@ -145,6 +151,7 @@
     const rock=target();
     if(!rock||gone(state,rock.slotId))return{ok:false,error:'Target an intact asteroid to mine.'};
     if(window.nativeCivilianTraffic?.isMiningRock(state,rock.slotId))return{ok:false,error:'A civilian miner is working this asteroid.'};
+    if(window.nativeShipDefinitions.get(state.shipType,'player').capabilities.canMine===false)return{ok:false,error:'This ship cannot use mining equipment.'};
     if(!state.miningTool)return{ok:false,error:'Buy the mining laser at a planet shop first.'};
     if(mining)return{ok:false,error:'Mining already in progress.'};
     if(distance(rock,ship)>360)return{ok:false,error:'Move within 360 units of the asteroid to mine.'};
@@ -197,11 +204,11 @@
     }
     if(mining){
       const age=time-mining.born;
-      if(age>=7150&&!mining.finished){
+      if(age>=miningTiming.cutSeconds*1000&&!mining.finished){
         mining.finished=true;if(state.miningOperation)state.miningOperation.finished=true;
-        finishRock(state,mining.rock,true,mining.onFinish);
+        completeMining(state,mining.rock,mining.onFinish);
       }
-      if(age>=8500){mining=null;delete state.miningOperation;}
+      if(age>=miningTiming.animationSeconds*1000){mining=null;delete state.miningOperation;}
     }
     for(const burst of [...bursts]){
       const t=(time-burst.born)/1000;
@@ -266,5 +273,5 @@
     for(const field of collectionFields){const fade=1-clamp((now-field.born-1800)/500,0,1);drawOreShieldRing(ctx,cx+field.rock.x-ship.x,cy+field.rock.y-ship.y,oreShieldRadius(field.rock),zoom,fade);}
     for(const entry of collections)drawOreTransport(ctx,entry,{ship,cx,cy,now});
   }
-  window.nativeAsteroidCombat={select,deselect,autoTarget,clear,collect,collectField,fire,hit,destroy,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
+  window.nativeAsteroidCombat={select,deselect,autoTarget,clear,collect,collectField,fire,hit,destroy,completeMining,miningTiming,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
 })();
