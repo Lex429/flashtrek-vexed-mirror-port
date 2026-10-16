@@ -1,0 +1,261 @@
+[
+  {
+    "id": 272,
+    "name": "Earth Starbase",
+    "kind": "structure",
+    "group": "Space Stations",
+    "file": "structures/272.png",
+    "damageFrames": ["structures/272.png", "structures/272-light.png", "structures/272-heavy.png", "structures/272-severe.png"],
+    "width": 1271,
+    "height": 1238,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 274,
+    "name": "Earth Research",
+    "kind": "structure",
+    "group": "Business & Civic",
+    "file": "structures/274.png",
+    "damageFrames": ["structures/274.png", "structures/274-light.png", "structures/274-heavy.png", "structures/274-severe.png"],
+    "width": 1254,
+    "height": 1254,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 276,
+    "name": "Vulcan University",
+    "kind": "structure",
+    "group": "Business & Civic",
+    "file": "structures/276.png",
+    "damageFrames": ["structures/276.png", "structures/276-light.png", "structures/276-heavy-halfbreak.png", "structures/276-severe-halfbreak.png"],
+    "width": 1264,
+    "height": 1244,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 278,
+    "name": "Earth Heavy Shipyard",
+    "kind": "structure",
+    "group": "Shipyards",
+    "file": "structures/278.png",
+    "damageFrames": ["structures/278.png", "structures/278-light.png", "structures/278-heavy.png", "structures/278-severe.png"],
+    "width": 1107,
+    "height": 1421,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 280,
+    "name": "Earth Shipyard",
+    "kind": "structure",
+    "group": "Shipyards",
+    "file": "structures/280.png",
+    "damageFrames": ["structures/280.png", "structures/280-light.png", "structures/280-heavy.png", "structures/280-severe.png"],
+    "width": 1254,
+    "height": 1254,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 282,
+    "name": "Trade Station",
+    "kind": "structure",
+    "group": "Business & Civic",
+    "file": "structures/282.png",
+    "damageFrames": ["structures/282.png", "structures/282-light.png", "structures/282-heavy.png", "structures/282-severe.png"],
+    "width": 1475,
+    "height": 1067,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 284,
+    "name": "Bar",
+    "kind": "structure",
+    "group": "Business & Civic",
+    "file": "structures/284.png",
+    "damageFrames": ["structures/284.png", "structures/284-light.png", "structures/284-heavy.png", "structures/284-severe.png"],
+    "width": 1254,
+    "height": 1254,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 286,
+    "name": "Delpin Waterpark",
+    "kind": "structure",
+    "group": "Business & Civic",
+    "file": "structures/286.png",
+    "damageFrames": ["structures/286.png", "structures/286-light.png", "structures/286-heavy.png", "structures/286-severe.png"],
+    "width": 1254,
+    "height": 1254,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 288,
+    "name": "Ore Station",
+    "kind": "structure",
+    "group": "Business & Civic",
+    "file": "structures/288.png",
+    "damageFrames": ["structures/288.png", "structures/288-light.png", "structures/288-heavy.png", "structures/288-severe.png"],
+    "width": 1160,
+    "height": 1355,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 290,
+    "name": "Klingon Starbase",
+    "kind": "structure",
+    "group": "Space Stations",
+    "file": "structures/290.png",
+    "damageFrames": ["structures/290.png", "structures/290-light.png", "structures/290-heavy.png", "structures/290-severe.png"],
+    "width": 1237,
+    "height": 1272,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 292,
+    "name": "Klingon Shipyard",
+    "kind": "structure",
+    "group": "Shipyards",
+    "file": "structures/292.png",
+    "damageFrames": ["structures/292.png", "structures/292-light.png", "structures/292-heavy.png", "structures/292-severe.png"],
+    "width": 1647,
+    "height": 955,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 294,
+    "name": "Klingon Heavy Shipyard",
+    "kind": "structure",
+    "group": "Shipyards",
+    "file": "structures/294.png",
+    "damageFrames": ["structures/294.png", "structures/294-light.png", "structures/294-heavy.png", "structures/294-severe.png"],
+    "width": 1762,
+    "height": 893,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 296,
+    "name": "Dyson Sphere",
+    "kind": "structure",
+    "group": "Special Facilities",
+    "file": "structures/296.png",
+    "width": 1254,
+    "height": 1254,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 298,
+    "name": "Maintenance Station",
+    "kind": "structure",
+    "group": "Business & Civic",
+    "file": "structures/298.png",
+    "damageFrames": ["structures/298.png", "structures/298-light.png", "structures/298-heavy.png", "structures/298-severe.png"],
+    "width": 1404,
+    "height": 1120,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 300,
+    "name": "Habitat Station",
+    "kind": "structure",
+    "group": "Business & Civic",
+    "file": "structures/300.png",
+    "damageFrames": ["structures/300.png", "structures/300-light.png", "structures/300-heavy.png", "structures/300-severe.png"],
+    "width": 1254,
+    "height": 1254,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 302,
+    "name": "Wormhole Generator",
+    "kind": "structure",
+    "group": "Special Facilities",
+    "file": "structures/302.png",
+    "width": 1085,
+    "height": 1450,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 303,
+    "name": "Wormhole Portal",
+    "kind": "structure",
+    "group": "Special Facilities",
+    "file": "structures/303.png",
+    "width": 1254,
+    "height": 1254,
+    "source": "Wormhole portal artwork"
+  },
+  {
+    "id": 305,
+    "name": "Defense Platform",
+    "kind": "structure",
+    "group": "Defense Platforms & Turrets",
+    "file": "structures/305.png",
+    "damageFrames": ["structures/305.png", "structures/305-light.png", "structures/305-heavy.png", "structures/305-severe.png"],
+    "width": 1295,
+    "height": 1215,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 307,
+    "name": "Advanced Defense Platform",
+    "kind": "structure",
+    "group": "Defense Platforms & Turrets",
+    "file": "structures/307.png",
+    "damageFrames": ["structures/307.png", "structures/307-light.png", "structures/307-heavy.png", "structures/307-severe.png"],
+    "width": 1292,
+    "height": 1218,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 309,
+    "name": "Cardassian Starbase",
+    "kind": "structure",
+    "group": "Space Stations",
+    "file": "structures/309.png",
+    "damageFrames": ["structures/309.png", "structures/309-light.png", "structures/309-heavy.png", "structures/309-severe.png"],
+    "width": 1231,
+    "height": 1278,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 311,
+    "name": "Subspace Comm Station",
+    "kind": "structure",
+    "group": "Business & Civic",
+    "file": "structures/311.png",
+    "damageFrames": ["structures/311.png", "structures/311-light.png", "structures/311-heavy.png", "structures/311-severe.png"],
+    "width": 1034,
+    "height": 1520,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 313,
+    "name": "Romulan Starbase",
+    "kind": "structure",
+    "group": "Space Stations",
+    "file": "structures/313.png",
+    "damageFrames": ["structures/313.png", "structures/313-light.png", "structures/313-heavy.png", "structures/313-severe.png"],
+    "width": 1290,
+    "height": 1219,
+    "source": "Upgraded station artwork"
+  },
+  {
+    "id": 400,
+    "name": "Pulse Turret",
+    "kind": "turret",
+    "group": "Defense Platforms & Turrets",
+    "file": "weapon-icon-remastered-11.png",
+    "source": "Equipment icon preview",
+    "width": 256,
+    "height": 256
+  },
+  {
+    "id": 401,
+    "name": "Disruptor Turret",
+    "kind": "turret",
+    "group": "Defense Platforms & Turrets",
+    "file": "weapon-icon-remastered-12.png",
+    "source": "Equipment icon preview",
+    "width": 256,
+    "height": 256
+  }
+]
