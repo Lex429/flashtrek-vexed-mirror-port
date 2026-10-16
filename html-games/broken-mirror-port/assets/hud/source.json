@@ -1,0 +1,38 @@
+{
+  "source": "site/html-games/flashtrek-broken-mirror/BROKENMIRROR.swf",
+  "sha256": "79ea21c47c8252d69a896c1565d1741900a02241bff779ff7304d47047b43565",
+  "icons": [
+    {
+      "file": "resourceIcon0.svg",
+      "symbol": "resourceIcon0",
+      "character": 1710,
+      "frame": 1
+    },
+    {
+      "file": "resourceIcon1.svg",
+      "symbol": "resourceIcon1",
+      "character": 1711,
+      "frame": 1
+    },
+    {
+      "file": "resourceIcon2.svg",
+      "symbol": "resourceIcon2",
+      "character": 1712,
+      "frame": 1
+    }
+  ],
+  "weapon": {
+    "file": "weapon1.svg",
+    "character": 576,
+    "frame": 106,
+    "scale": 0.3
+  },
+  "font": {
+    "file": "Arial-bold.ttf",
+    "character": 834
+  },
+  "layout": [
+    "source/vexed-mirror/scripts/frame_154/DoAction.as:2421",
+    "source/vexed-mirror/weapon-hud.as"
+  ]
+}
