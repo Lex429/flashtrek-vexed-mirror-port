@@ -74,6 +74,18 @@
     const anchor=flight.anchor?.(ship.system),pose=ship.position&&anchor?{x:ship.position.x-anchor.x,y:ship.position.y-anchor.y}:{x:ship.x,y:ship.y};
     return nameOf(ship.system)+(label?' · '+label:'')+' · '+Math.round(pose.x)+', '+Math.round(pose.y)+' u';
   }
+  function tradeStock(ship,task,cargo){
+    const good=task?.requirements?.good??task?.good??cargo?.good;
+    if(!Number.isInteger(good))return null;
+    const read=place=>{
+      if(!place)return null;
+      const system=Number(place.system),port=system===1?Number(place.port):0;
+      const stock=system===1?lastState.solEconomy?.ports?.[port]:lastState.civilianTraffic?.life?.markets?.[system+':'+port]?.stock;
+      return Number.isFinite(stock?.[good])?{system,port,tons:stock[good]}:null;
+    };
+    return {good,name:window.nativeSolEconomy?.goods?.[good]||'Good '+good,
+      origin:read(task?.origin||ship.origin),destination:read(task?.destination||ship.destination)};
+  }
   function report(ship,authoritativeDetails=false){
     if(!ship)return null;
     const authoritative=authoritativeDetails&&ship.category==='civilian'?window.nativeNpcLives?.inspect?.(lastState,ship.id):null;
@@ -87,7 +99,7 @@
     const data={id:ship.id,name:ship.name,category:ship.category,role:ship.role,faction:ship.faction,system:ship.system,location:authoritative?.location||ship.location,detail:authoritative?.detail||ship.detail,
       position:ship.position&&{...ship.position},galaxy:ship.position&&{...ship.position},local:{...local,heading:journey?.galaxyFrom&&journey?.galaxyTo?Math.atan2(journey.galaxyTo.y-journey.galaxyFrom.y,journey.galaxyTo.x-journey.galaxyFrom.x):ship.heading},
       homeBase:ship.homeBase,origin:ship.origin,destination:ship.destination,route:ship.route,eta:ship.eta,
-      task,journey,cargo,credits:authoritative?.credits??ship.entity.credits??ship.credits,
+      task,journey,cargo,tradeStock:tradeStock(ship,task,cargo),credits:authoritative?.credits??ship.entity.credits??ship.credits,
       hull:authoritative?.condition?.hull??authoritative?.hull??ship.entity.hull??ship.hull,shields:authoritative?.condition?.shields??authoritative?.shields??ship.entity.shields??ship.shields,equipment:authoritative?.equipment??ship.equipment,
       events:authoritative?.events||ship.events,nextActionAt:authoritative?.nextActionAt??ship.nextActionAt};
     // Inspection consumers receive values, never mutable saved inventory/task references.
@@ -135,6 +147,8 @@
       if(data.eta!==undefined)detail(table,'ETA',Math.max(0,Math.ceil(num(data.eta)))+' sim s');
     }
     detail(table,'Cargo',cargoText(data.cargo)+(ship.entity.oreHold?' · '+ship.entity.oreHold+' t ore':''));
+    if(data.tradeStock?.origin)detail(table,'Source stock',data.tradeStock.origin.tons+' t '+data.tradeStock.name);
+    if(data.tradeStock?.destination)detail(table,'Destination stock',data.tradeStock.destination.tons+' t '+data.tradeStock.name);
     detail(table,'Credits',Math.round(data.credits).toLocaleString());detail(table,'Condition',Math.round(data.hull)+' hull · '+Math.round(data.shields)+' shields');
     detail(table,'Equipment',Array.isArray(data.equipment)?data.equipment.join(', ')||'None':data.equipment?.slots?.filter(Boolean).join(', ')||'Owned loadout');
     detail(table,'Next action',data.nextActionAt===null?'Unscheduled':Math.max(0,Math.ceil(data.nextActionAt-time()))+' sim s');

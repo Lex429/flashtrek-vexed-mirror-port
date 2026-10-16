@@ -107,3 +107,19 @@ test('tug markers project the shared leg between collection refreshes without ch
   const result=f.api.snapshot();assert.equal(result.view.center.x,110);assert.equal(result.view.center.y,220);
   assert.equal(JSON.stringify(tug),before,'projection samples only a temporary pose');
 });
+
+test('selected delivery stock audit reads real current inventories without creating a market',()=>{
+  const f=setup();
+  f.state.solEconomy={ports:{3:[180]}};
+  f.state.civilianTraffic={life:{markets:{'2:0':{stock:[12]}}}};
+  f.civilian.task={kind:'freight',origin:{system:1,port:3},destination:{system:2,port:0},requirements:{good:0,tons:4}};
+  f.window.nativeNpcLives.market=()=>{throw Error('Inspection must not create a market');};
+  const before=JSON.stringify(f.state);f.api.setActive(true,f.state);f.api.select(2);
+  let report=f.api.snapshot().ships.find(ship=>ship.id===2);
+  assert.equal(report.tradeStock.origin.tons,180);assert.equal(report.tradeStock.destination.tons,12);
+  assert.equal(JSON.stringify(f.state),before);
+  f.state.solEconomy.ports[3][0]-=4;f.state.civilianTraffic.life.markets['2:0'].stock[0]+=4;
+  report=f.api.snapshot().ships.find(ship=>ship.id===2);
+  assert.equal(report.tradeStock.origin.tons,176);assert.equal(report.tradeStock.destination.tons,16);
+  report.tradeStock.origin.tons=0;assert.equal(f.state.solEconomy.ports[3][0],176);
+});

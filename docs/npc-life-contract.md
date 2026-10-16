@@ -208,6 +208,8 @@ not add a ship, stock or credits. If already delivering, it continues that job.
 
 1. Select Meridian in the inspector. Record its task ID, cargo good/tons, source
    market stock and destination stock. Use **Track ship** and **Local positions**.
+   The inspector's **Source stock** and **Destination stock** fields read those
+   real market inventories directly, including outside Sol's player retail UI.
 2. Choose **DEV: inspect locally** to observe loading/departure. Reopen Dev tools
    and the galaxy inspector to track transit and inspect it during travel and
    after arrival. The task ID stays the same through system travel and docking.

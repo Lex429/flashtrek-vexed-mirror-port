@@ -59,7 +59,9 @@ HELPERS = r"""() => {
   t.stocks=()=>{const s=nativeNpcDev.getState(),ship=t.ship(),task=ship.task,source=nativeNpcLives.market(s,task.origin.system,task.origin.port),destination=nativeNpcLives.market(s,task.destination.system,task.destination.port),g=task.requirements.good;
     return {source:source.stock[g],destination:destination.stock[g],sourceCredits:source.credits,destinationCredits:destination.credits,reserved:source.reserved[g],shipCredits:ship.credits};};
   t.checkMap=()=>{const s=nativeNpcDev.getState(),ship=t.ship(),expected=nativeNpcLives.galaxyPosition(s,ship),snapshot=nativeGalaxyOverview.snapshot(s),row=snapshot.ships.find(row=>row.id===ship.id);
-    check(row,'Selected ship missing from map');near(row.position.x,expected.x,'Map galaxy X');near(row.position.y,expected.y,'Map galaxy Y');return copy(row);};
+    check(row,'Selected ship missing from map');near(row.position.x,expected.x,'Map galaxy X');near(row.position.y,expected.y,'Map galaxy Y');
+    if(ship.task?.requirements?.good!==undefined){const stock=t.stocks();near(row.tradeStock.origin.tons,stock.source,'Inspector source inventory');near(row.tradeStock.destination.tons,stock.destination,'Inspector destination inventory');}
+    return copy(row);};
   t.drawLocal=()=>{
     const s=nativeNpcDev.getState(),ship=t.ship(),point=nativeNpcLives.galaxyPosition(s,ship),anchor=nativeManualFlight.anchor(s.system),effects=nativeShipEffects,painted=[];
     window.nativeShipEffects={...effects,paintShip(ctx,descriptor,...args){if(descriptor.id===ship.id)painted.push({x:descriptor.x,y:descriptor.y});return effects.paintShip(ctx,descriptor,...args);}};
