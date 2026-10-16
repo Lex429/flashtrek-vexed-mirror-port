@@ -8,7 +8,7 @@
   canvas.setAttribute('role', 'button');
   canvas.setAttribute('aria-label', 'Local flight radar');
   canvas.tabIndex = 0;
-  canvas.title = 'Double-click to open local navigation';
+  canvas.title = 'Double-click to open map [M]';
   const stage = document.getElementById('game');
   stage.append(canvas);
   const footer = document.querySelector('body > footer');
@@ -41,43 +41,63 @@
     image.src = `startup/factions/faction-${index + 1}.png`;
     return image;
   });
-  const centerX = 80, centerY = 57;
+  const centerX = 80, centerY = 57, unitsPerPixel = 25;
   let lastLabel = '';
   let hitMarkers = [];
   let lastState = null;
+  let clickTimer;
 
   function pointedMarker(event) {
     const bounds = canvas.getBoundingClientRect();
     const x = (event.clientX - bounds.left) * 160 / bounds.width;
     const y = (event.clientY - bounds.top) * 120 / bounds.height;
-    return hitMarkers.map(marker => ({marker, distance:Math.hypot(marker.x-x, marker.y-y)})).filter(entry => entry.distance <= 7).sort((a,b) => a.distance-b.distance)[0]?.marker;
+    return hitMarkers.map(marker => ({marker, distance:Math.hypot(marker.x-x, marker.y-y)})).filter(entry => entry.distance <= 5).sort((a,b) => a.distance-b.distance)[0]?.marker;
   }
   canvas.addEventListener('pointermove', event => {
     const marker = pointedMarker(event);
     canvas.style.cursor = marker ? 'pointer' : 'zoom-in';
-    canvas.title = marker ? `Click to select ${marker.name}; double-click to open navigation` : 'Double-click to open local navigation';
+    canvas.title = marker ? `Click to ${marker.kind === 'planet' ? 'select' : 'target'} ${marker.name}; double-click to open map [M]` : 'Double-click to open map [M]';
   });
   canvas.addEventListener('click', event => {
+    clearTimeout(clickTimer);
+    if (event.detail > 1) return;
     const marker = pointedMarker(event);
     if (!marker) return;
-    window.nativeManualFlight?.clearTracking?.();
-    if (lastState?.system === 1) window.vexedSolFlight?.setTarget(marker.id);
+    clickTimer = setTimeout(() => {
+      if (canvas.hidden) return;
+      if (marker.kind === 'planet') {
+        window.nativeManualFlight?.clearTracking?.();
+        if (lastState?.system === 1) window.vexedSolFlight?.setTarget(marker.id);
+      } else {
+        window.nativeAsteroidCombat?.deselect();
+        window.nativeSolEconomy?.select(marker.kind === 'tug' ? marker.id : null);
+        window.nativeCivilianTraffic?.select(marker.kind === 'civilian' ? marker.id : null);
+        document.getElementById('space').focus({preventScroll:true});
+      }
+    }, 300);
   });
+  function openMap() {
+    clearTimeout(clickTimer);
+    document.getElementById('mapBtn').click();
+  }
   canvas.addEventListener('dblclick', event => {
     event.preventDefault();
-    document.getElementById('systemBtn').click();
+    openMap();
   });
   canvas.addEventListener('keydown', event => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
-    document.getElementById('systemBtn').click();
+    openMap();
   });
 
+  function radarPoint(x, y) {
+    const dx = x / unitsPerPixel, dy = y / unitsPerPixel;
+    const scale = Math.min(1, 69 / Math.max(.001, Math.abs(dx)), 35 / Math.max(.001, Math.abs(dy)));
+    return {x:centerX + dx * scale, y:centerY + dy * scale, edge:scale < 1};
+  }
+
   function marker(x, y, selected, id, name) {
-    const dx = x / 75, dy = y / 75;
-    const px = Math.max(10, Math.min(150, centerX + dx));
-    const py = Math.max(21, Math.min(94, centerY + dy));
-    const edge = px !== centerX + dx || py !== centerY + dy;
+    const {x:px, y:py, edge} = radarPoint(x, y);
     ctx.beginPath();
     ctx.arc(px, py, selected ? 3.6 : edge ? 2.9 : 2.5, 0, Math.PI * 2);
     ctx.fillStyle = selected ? '#f3d77e' : edge ? '#b9d9ed' : '#e9f5ff';
@@ -85,7 +105,32 @@
     ctx.lineWidth = 1;
     ctx.strokeStyle = selected ? '#fff4c6' : '#78b6d3';
     ctx.stroke();
-    if (id !== undefined) hitMarkers.push({x:px, y:py, id, name});
+    if (id !== undefined) hitMarkers.push({x:px, y:py, id, name, kind:'planet'});
+  }
+
+  function shipMarker(contact, player, selected) {
+    const dx = contact.x - player.x, dy = contact.y - player.y;
+    const point = radarPoint(dx, dy);
+    ctx.save();
+    ctx.translate(point.x, point.y);
+    if (selected) {
+      ctx.strokeStyle = '#ffdc78';
+      ctx.lineWidth = 1.1;
+      ctx.strokeRect(-5, -5, 10, 10);
+    }
+    ctx.rotate(Number(contact.heading) || 0);
+    ctx.fillStyle = selected ? '#ffdc78' : '#82e5bd';
+    ctx.strokeStyle = '#061a29';
+    ctx.lineWidth = .7;
+    ctx.beginPath();
+    ctx.moveTo(3.5, 0);
+    ctx.lineTo(-2.5, -2.5);
+    ctx.lineTo(-1.3, 0);
+    ctx.lineTo(-2.5, 2.5);
+    ctx.closePath();
+    ctx.fill();ctx.stroke();
+    ctx.restore();
+    hitMarkers.push({...point, id:contact.id, name:contact.name, kind:contact.kind});
   }
 
   function routeLine(dx, dy) {
@@ -102,16 +147,16 @@
     ctx.restore();
   }
 
-  function destinationArrow(dx, dy) {
+  function destinationArrow(dx, dy, combatTarget = false) {
     if (Math.hypot(dx, dy) < 1) return;
     const scale = Math.min(64 / Math.abs(dx || .001), 31 / Math.abs(dy || .001));
     ctx.save();
     ctx.translate(centerX + dx * scale, centerY + dy * scale);
     ctx.rotate(Math.atan2(dy, dx));
-    ctx.shadowColor = '#72e6f5';
+    ctx.shadowColor = combatTarget ? '#ffce5e' : '#72e6f5';
     ctx.shadowBlur = 7;
-    ctx.fillStyle = '#9af0f8';
-    ctx.strokeStyle = '#e2ffff';
+    ctx.fillStyle = combatTarget ? '#ffdc78' : '#9af0f8';
+    ctx.strokeStyle = combatTarget ? '#fff3c8' : '#e2ffff';
     ctx.lineWidth = .8;
     ctx.beginPath();
     ctx.moveTo(7, 0);
@@ -133,23 +178,23 @@
     ctx.shadowColor = '#5cdeef';
     ctx.shadowBlur = 7;
     ctx.beginPath();
-    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
     ctx.rotate((Number(angle) || 0) + Math.PI / 2);
     ctx.fillStyle = '#edffff';
     ctx.beginPath();
-    ctx.moveTo(0, -8);
-    ctx.lineTo(5.2, 6);
-    ctx.lineTo(0, 2.5);
-    ctx.lineTo(-5.2, 6);
+    ctx.moveTo(0, -4);
+    ctx.lineTo(2.7, 3);
+    ctx.lineTo(0, 1.2);
+    ctx.lineTo(-2.7, 3);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
     ctx.font = '700 7px system-ui';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#a6f1fa';
-    ctx.fillText('YOU', centerX, centerY + 20);
+    ctx.fillText('YOU', centerX, centerY + 14);
     ctx.textAlign = 'left';
   }
 
@@ -201,16 +246,26 @@
     ctx.stroke();
     const cruiseBody = state.localCruise && window.vexedSolFlight?.bodies.find(body => body.id === Number(state.localCruise.to));
     const manual = !cruiseBody && window.nativeManualFlight?.guidance(state);
+    const player = state.system === 1 ? window.vexedSolFlight.shipPosition(state) : state;
+    const tugTarget = state.system === 1 ? window.nativeSolEconomy?.target(state) : null;
+    const civilianTarget = window.nativeCivilianTraffic?.target(state);
+    const shipTarget = tugTarget || civilianTarget;
+    const targetKind = tugTarget ? 'tug' : 'civilian';
+    const contacts = [
+      ...(state.system === 1 ? state.solEconomy?.freighters || [] : []).filter(ship => ship.phase !== 'destroyed').map(ship => ({...ship, name:`Tug II #${ship.id + 1}`, kind:'tug'})),
+      ...(window.nativeCivilianTraffic?.localShips(state) || []).map(ship => ({...ship, kind:'civilian'}))
+    ].filter(ship => Number.isFinite(ship.x) && Number.isFinite(ship.y));
+    const nearby = contacts.filter(ship => shipTarget && ship.kind === targetKind && ship.id === shipTarget.id || !radarPoint(ship.x-player.x, ship.y-player.y).edge);
     ctx.font = '600 7px system-ui';
     ctx.fillStyle = '#91d1df';
-    ctx.fillText(cruiseBody ? `CRUISE TO ${cruiseBody.name.toUpperCase()}` : manual ? `TRACK ${manual.name.toUpperCase()}` : 'LOCAL RADAR', 10, 14, 110);
+    ctx.fillText(cruiseBody ? `CRUISE TO ${cruiseBody.name.toUpperCase()}` : manual ? `TRACK ${manual.name.toUpperCase()}` : `LOCAL RADAR · ${nearby.length} SHIPS`, 10, 14, 110);
 
     const faction = Math.max(0, Math.min(7, Number(state.faction) || 0));
 
     let target;
     let contactCount = 0;
     if (state.system === 1 && window.vexedSolFlight) {
-      const ship = window.vexedSolFlight.shipPosition(state);
+      const ship = player;
       for (const body of window.vexedSolFlight.bodies) {
         const x = body.x - 220 - ship.x, y = body.y + 75 - ship.y;
         const selected = !manual && body.id === window.vexedSolFlight.targetId;
@@ -225,7 +280,7 @@
         .slice(0,5);
       ctx.save();ctx.fillStyle='#b5bdc4';ctx.strokeStyle='#638394';ctx.lineWidth=.6;
       for(const rock of asteroids){
-        const x=centerX+(rock.x-ship.x)/75,y=centerY+(rock.y-ship.y)/75;
+        const x=centerX+(rock.x-ship.x)/unitsPerPixel,y=centerY+(rock.y-ship.y)/unitsPerPixel;
         if(x<9||x>151||y<21||y>94)continue;
         ctx.beginPath();ctx.moveTo(x,y-2);ctx.lineTo(x+2,y);ctx.lineTo(x,y+2);ctx.lineTo(x-2,y);ctx.closePath();ctx.fill();ctx.stroke();
       }
@@ -245,12 +300,18 @@
       marker(manual.dx,manual.dy,true);
       target={name:manual.name,dx:manual.dx,dy:manual.dy};
     }
+    const selectedShip = nearby.find(ship => shipTarget && ship.kind === targetKind && ship.id === shipTarget.id);
+    for (const ship of nearby) if (ship !== selectedShip) shipMarker(ship, player, false);
+    if (selectedShip) {
+      shipMarker(selectedShip, player, true);
+      target = {name:selectedShip.name, dx:selectedShip.x-player.x, dy:selectedShip.y-player.y, combat:true};
+    }
     if (target) {
-      destinationArrow(target.dx, target.dy);
+      destinationArrow(target.dx, target.dy, target.combat);
       const distance = Math.round(Math.hypot(target.dx, target.dy));
       ctx.font = '600 9px system-ui';
-      ctx.fillStyle = '#dbf6f9';
-      ctx.fillText(target.name.toUpperCase(), 10, 111, 95);
+      ctx.fillStyle = target.combat ? '#ffdc78' : '#dbf6f9';
+      ctx.fillText(`${target.combat ? 'TARGET ' : ''}${target.name.toUpperCase()}`, 10, 111, 95);
       ctx.textAlign = 'right';
       ctx.fillStyle = '#9ce7f0';
       ctx.fillText(`${distance.toLocaleString()} u`, 149, 111, 44);
@@ -258,7 +319,7 @@
     }
     playerMarker(state.angle);
     factionEmblem(faction);
-    const label = `${factionNames[faction]} local radar. Your ship is at the center, heading ${Math.round((Number(state.angle) || 0) * 180 / Math.PI)} degrees. ${contactCount} planet markers. ${target?.name || 'Destination'}: ${Math.round(Math.hypot(target?.dx || 0, target?.dy || 0)).toLocaleString()} units away. Click a planet dot to select it; double-click the radar to open navigation.`;
+    const label = `${factionNames[faction]} local radar. Your ship is at the center, heading ${Math.round((Number(state.angle) || 0) * 180 / Math.PI)} degrees. ${contactCount} planet markers. ${nearby.length} ship contacts shown as green arrows; your targeted ship has a gold box and direction pointer. ${target?.combat ? 'Targeted ship' : 'Destination'}: ${target?.name || 'None'}, ${Math.round(Math.hypot(target?.dx || 0, target?.dy || 0)).toLocaleString()} units away. Click a ship to target it or a planet dot to select it; double-click the radar to open map, same as M.`;
     if (label !== lastLabel) {
       canvas.setAttribute('aria-label', label);
       lastLabel = label;

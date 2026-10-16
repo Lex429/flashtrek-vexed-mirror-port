@@ -595,7 +595,7 @@
       const selected=targetId===freighter.id;
       if(selected)window.nativeAsteroidCombat?.drawTargetFrame(ctx,{
         name:`Tug Class II #${freighter.id+1}`,size:Math.hypot(dimensions.width,dimensions.height)/Math.SQRT2,
-        kind:freighter.phase==='disabled'?'DISABLED FREIGHTER':'FREIGHTER',shield:freighter.shields/Math.max(1,tugStats().shields),
+        kind:freighter.phase==='disabled'?'DISABLED FREIGHTER':'FREIGHTER',color:'#ffd66e',shield:freighter.shields/Math.max(1,tugStats().shields),
         hull:freighter.hull/Math.max(1,tugStats().hull),selectedAt:tugSelectedAt
       },x,y,zoom,cx);
     }

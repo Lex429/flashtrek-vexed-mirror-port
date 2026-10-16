@@ -31,5 +31,15 @@
       cameraX:-Math.sin(angle)*distance, cameraY:Math.cos(angle)*distance,
       alpha:fade, squeezeX:squeeze, ring:null};
   }
-  window.vexedRebirthWarp = {departure, arrival, departureMs, arrivalMs, arrivalSpeed:220*zoom};
+  // The player animates the camera on arrival. An observer sees that same
+  // movement on the arriving ship while their own camera stays in place.
+  function worldEffect(kind, elapsedMs, angle, x, y) {
+    const effect = kind === 'departure' ? departure(elapsedMs, angle) : arrival(elapsedMs, angle);
+    return {...effect,
+      shipX:x + (kind === 'departure' ? effect.shipX - 300 : effect.cameraX),
+      shipY:y + (kind === 'departure' ? effect.shipY - 225 : effect.cameraY),
+      cameraX:0, cameraY:0,
+      ring:effect.ring ? {...effect.ring,x,y} : null};
+  }
+  window.vexedRebirthWarp = {departure, arrival, worldEffect, departureMs, arrivalMs, arrivalSpeed:220*zoom};
 })();

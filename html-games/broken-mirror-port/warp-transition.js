@@ -52,6 +52,13 @@
     } catch {}
   }
   function effect(audio) {if(soundEnabled){audio.currentTime=0;audio.play().catch(()=>{});}}
+  let nearbySoundAt=-Infinity;
+  function playNearby(kind,distance){
+    if(!soundEnabled||phase!=='idle'||distance>900||performance.now()-nearbySoundAt<250)return;
+    const audio=(kind==='departure'?enterSound:dropSound).cloneNode();
+    audio.volume=(kind==='departure'?.5:.6)*.7*Math.max(.1,1-distance/1000);
+    nearbySoundAt=performance.now();audio.play().catch(()=>{});
+  }
   function setText(selector,value){overlay.querySelector(selector).textContent=String(value);}
   function setPhase(value){
     phase=value;phaseTime=0;overlay.dataset.phase=value;
@@ -145,6 +152,7 @@
   }
   window.vexedWarp = {
     start,
+    playNearby,
     reset:clean,
     get active(){return phase!=='idle';},
     get phase(){return phase;},

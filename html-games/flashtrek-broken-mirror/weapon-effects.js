@@ -1,5 +1,25 @@
 /* Shared showcase/game weapon drawing. Coordinates and zoom come from each scene. */
 (() => {
+ const appearance={units:.91976,spinMin:4,spinMax:9};
+ window.showcaseWeaponAppearance=appearance;
+ window.createShowcaseWeaponVisual=({kind,style,units=appearance.units,spin,spinSpeed})=>({kind,style,units,
+  spin:spin??Math.random()*Math.PI*2,spinSpeed:spinSpeed??appearance.spinMin+Math.random()*(appearance.spinMax-appearance.spinMin)});
+ window.paintShowcaseWeaponShot=(ctx,shot,geometry,age=0)=>{
+  ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.shadowBlur=0;ctx.shadowColor='transparent';ctx.filter='none';ctx.lineCap='butt';ctx.lineJoin='miter';
+  let spin=shot.spin+age/1000*shot.spinSpeed;
+  if(geometry.screenPixels){
+   // Transform positions first, then draw in CSS pixels so even the shader's minimum widths stay identical.
+   const matrix=ctx.getTransform(),rect=ctx.canvas.getBoundingClientRect(),pixelRatio=ctx.canvas.width/Math.max(1,rect.width);
+   const point=(x,y)=>({x:(matrix.a*x+matrix.c*y+matrix.e)/pixelRatio,y:(matrix.b*x+matrix.d*y+matrix.f)/pixelRatio});
+   geometry={...geometry,zoom:1};
+   for(const [x,y] of [['x','y'],['x1','y1'],['x2','y2']])if(Number.isFinite(geometry[x])&&Number.isFinite(geometry[y])){const mapped=point(geometry[x],geometry[y]);geometry[x]=mapped.x;geometry[y]=mapped.y;}
+   if(Number.isFinite(geometry.angle)){const x=Math.cos(geometry.angle),y=Math.sin(geometry.angle);geometry.angle=Math.atan2(matrix.b*x+matrix.d*y,matrix.a*x+matrix.c*y);}
+   spin+=Math.atan2(matrix.b,matrix.a);ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+  }
+  window.drawShowcaseWeapon(ctx,{...geometry,kind:shot.kind,color:shot.style.color,thickness:shot.style.thickness,
+   units:shot.units??appearance.units,spin});
+  ctx.restore();
+ };
  const hex=color=>'#'+Number(color).toString(16).padStart(6,'0');
  function gradient(ctx,x,y,r,color,alpha){
   const g=ctx.createRadialGradient(x,y,0,x,y,r);

@@ -150,9 +150,9 @@
     }
     return null;
   }
-  function drawCombatTargetFrame(ctx,{name,size,kind='ASTEROID',shield=0,hull=1},x,y,zoom,cx){
+  function drawCombatTargetFrame(ctx,{name,size,kind='ASTEROID',shield=0,hull=1,color='#ff7777'},x,y,zoom,cx){
     window.drawShowcaseTargetFrame(ctx,{
-      x,y,w:size,h:size,name,kind,shield,hull,zoom,color:'#ff7777',
+      x,y,w:size,h:size,name,kind,shield,hull,zoom,color,
       rightEdge:cx+(ctx.canvas.width-cx)/zoom-15/zoom
     });
   }

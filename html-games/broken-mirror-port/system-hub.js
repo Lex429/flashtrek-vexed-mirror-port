@@ -25,7 +25,7 @@
   const root=document.createElement('section');
   root.id='system-hub';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','System navigation and port services');
   document.body.appendChild(root);
-  let bridge=null,tab='navigation',selected=3,note='',returnFocus=null,timer=null,nodeClickTimer=null,shipPage=0,routePage=0,previousOverflow='';
+  let bridge=null,tab='navigation',selected=3,note='',returnFocus=null,timer=null,shipPage=0,routePage=0,previousOverflow='';
   const safe=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const shipIcon=ship=>shipArtIds.has(ship.id)?`<img class="hub-ship-art" src="../flashtrek-broken-mirror/startup/sol-ships/ship-${ship.id}.png" alt="">`:`<span class="hub-ship-icon">${safe(ship.name).charAt(0)}</span>`;
   const fmt=value=>Math.floor(Number(value)||0).toLocaleString();
@@ -42,35 +42,17 @@
   const pageSize=()=>window.innerHeight<620?2:4;
   function open(options,initialTab='navigation'){
     if(!options?.getState?.())return;
+    if(initialTab==='navigation'){options.openMap();return;}
     bridge=options;tab=initialTab;selected=local(bridge.getState())?window.vexedSolFlight?.targetId??current(bridge.getState()):current(bridge.getState());note='';shipPage=0;routePage=0;returnFocus=document.activeElement;
     previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';
     root.hidden=false;render();clearInterval(timer);timer=setInterval(()=>{if(!root.hidden&&bridge.getState()?.localCruise)render()},1000);
     root.querySelector('.hub-close')?.focus({preventScroll:true});
   }
   function close(focus=true){
-    if(root.hidden)return;root.hidden=true;document.body.style.overflow=previousOverflow;clearInterval(timer);timer=null;clearTimeout(nodeClickTimer);nodeClickTimer=null;root.innerHTML='';
+    if(root.hidden)return;root.hidden=true;document.body.style.overflow=previousOverflow;clearInterval(timer);timer=null;root.innerHTML='';
     if(focus)returnFocus?.focus?.({preventScroll:true});
   }
   function action(callback){const result=callback();note=result?.message||result?.error||'';render();}
-  function startCruise(id){
-    const result=bridge.cruise(Number(id));
-    if(result?.ok){close(false);document.getElementById('space').focus({preventScroll:true});return;}
-    note=result?.error||'Unable to start cruise.';render();
-  }
-  function chart(state){
-    const list=nodes(state),now=current(state),minX=Math.min(...list.map(n=>n.x))-1800,maxX=Math.max(...list.map(n=>n.x))+1800,minY=Math.min(...list.map(n=>n.y))-1700,maxY=Math.max(...list.map(n=>n.y))+1700;
-    const x=n=>((n.x-minX)/(maxX-minX)*94+3).toFixed(2),y=n=>((n.y-minY)/(maxY-minY)*82+9).toFixed(2);
-    return `<div class="hub-chart" role="group" aria-label="Local destinations"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${list.map((n,i)=>`${i?'L':'M'} ${x(n)} ${y(n)}`).join(' ')}" fill="none" stroke="#51aab48a" stroke-width=".3" stroke-dasharray=".8 1"/></svg>${list.map(n=>`<button type="button" class="hub-node ${n.id===selected?'selected':''} ${n.id===now?'current':''}" data-node="${n.id}" style="left:${x(n)}%;top:${y(n)}%" aria-label="${safe(n.name)}${n.id===now?', current location':''}" title="${safe(n.name)}"><span class="hub-dot"></span><span>${safe(n.name)}</span></button>`).join('')}</div>`;
-  }
-  function navigation(state){
-    const n=selectedNode(state),here=nodes(state).find(item=>item.id===current(state)),ship=local(state)?window.vexedSolFlight.shipPosition(state):here;
-    const destination=local(state)?window.vexedSolFlight.bodyPosition(n):n;
-    const distance=Math.hypot(destination.x-ship.x,destination.y-ship.y),cruise=state.localCruise;
-    const cruiseTarget=cruise&&nodes(state).find(item=>item.id===Number(cruise.to));
-    const cruiseGoal=cruiseTarget&&(Number.isFinite(Number(cruise.stopX))&&Number.isFinite(Number(cruise.stopY))?{x:Number(cruise.stopX),y:Number(cruise.stopY)}:window.vexedSolFlight.bodyPosition(cruiseTarget));
-    const remaining=cruiseGoal?Math.max(0,Math.ceil(Math.hypot(cruiseGoal.x-ship.x,cruiseGoal.y-ship.y)/Math.max(1,Number(cruise.speed)||240))):0;
-    return `<div class="hub-nav"><div class="hub-map-card"><div class="hub-map-heading">${local(state)?'SOL SYSTEM · LOCAL NAVIGATION':'CURRENT SYSTEM'}</div>${chart(state)}<p>Click to aim the radar. Double-click a destination or use Cruise to fly there.</p></div><div class="hub-destination"><img src="${image(n)}" alt="${safe(n.name)}"><span class="hub-kicker">${n.port?'LOCAL PORT':'DESTINATION'}</span><h3>${safe(n.name)}</h3><p>${safe(n.description)}</p><dl><div><dt>Distance</dt><dd>${fmt(distance)} units</dd></div><div><dt>Population</dt><dd data-population-count data-population-value="${n.population}">${n.population?fmt(n.population):'Uninhabited'}</dd></div><div><dt>Status</dt><dd>${cruise?`Cruising · ${remaining}s left`:n.id===current(state)?'At destination':'Ready to travel'}</dd></div><div><dt>Services</dt><dd>${n.port?'Market · Shipyard':'None'}</dd></div></dl>${local(state)&&n.id!==current(state)?`<button class="hub-primary" data-cruise="${n.id}" ${cruise?'disabled':''}>Cruise to ${safe(n.name)}</button>`:''}${n.id===current(state)&&n.port?'<button class="hub-primary" data-encounter>Contact this planet</button>':''}<button data-interstellar>Open interstellar map</button></div></div>`;
-  }
   function services(state){
     const n=selectedNode(state),at=n.id===current(state),cruise=!!state.localCruise;
     const usable=n.port&&at&&!cruise;
@@ -114,17 +96,12 @@
     const state=bridge.getState(),list=nodes(state);
     if(!list.some(n=>n.id===selected))selected=current(state);
     if(!local(state)&&tab==='routes')tab='services';
-    const focus=preserveFocus?document.activeElement?.getAttribute('data-node')||document.activeElement?.getAttribute('data-tab')||null:null;
-    root.innerHTML=`<div class="hub-shell"><header><div><span class="hub-kicker">STARSHIP COMMAND · LOCAL SYSTEM</span><h2>${local(state)?'Sol system':safe(world.systems.find(s=>s.id===state.system)?.name||'System')}</h2></div><button class="hub-close" type="button">Return to flight ×</button></header><div class="hub-summary"><span><b>${fmt(state.latinum)}</b> latinum</span><span><b>${state.devMode?'∞':fmt(state.antimatter)}</b> antimatter</span><span><b>${safe(list.find(n=>n.id===current(state))?.name)}</b> current location</span></div><nav class="hub-tabs" aria-label="System sections">${[['navigation','Navigation'],['services','Port services'],['market','Market'],['routes','Cargo routes'],['shipyard','Shipyard']].map(([id,label])=>`<button data-tab="${id}" aria-pressed="${tab===id}" ${id==='routes'&&!local(state)?'disabled':''}>${label}</button>`).join('')}</nav><div class="hub-content">${tab==='navigation'?navigation(state):tab==='services'?services(state):tab==='market'?(local(state)?freightMarket(state)+market(state):market(state)):tab==='routes'?freightRoutes(state):shipyard(state)+(local(state)?tugUpgrade(state):'')}</div><footer role="status">${safe(note||'Choose a destination, travel, then use its services.')}</footer></div>`;
+    const focus=preserveFocus?document.activeElement?.getAttribute('data-tab')||null:null;
+    root.innerHTML=`<div class="hub-shell"><header><div><span class="hub-kicker">STARSHIP COMMAND · LOCAL SYSTEM</span><h2>${local(state)?'Sol system':safe(world.systems.find(s=>s.id===state.system)?.name||'System')}</h2></div><button class="hub-close" type="button">Return to flight ×</button></header><div class="hub-summary"><span><b>${fmt(state.latinum)}</b> latinum</span><span><b>${state.devMode?'∞':fmt(state.antimatter)}</b> antimatter</span><span><b>${safe(list.find(n=>n.id===current(state))?.name)}</b> current location</span></div><nav class="hub-tabs" aria-label="System sections">${[['navigation','Map'],['services','Port services'],['market','Market'],['routes','Cargo routes'],['shipyard','Shipyard']].map(([id,label])=>`<button data-tab="${id}" aria-pressed="${tab===id}" ${id==='routes'&&!local(state)?'disabled':''}>${label}</button>`).join('')}</nav><div class="hub-content">${tab==='services'?services(state):tab==='market'?(local(state)?freightMarket(state)+market(state):market(state)):tab==='routes'?freightRoutes(state):shipyard(state)+(local(state)?tugUpgrade(state):'')}</div><footer role="status">${safe(note||'Choose a destination, travel, then use its services.')}</footer></div>`;
     root.querySelector('.hub-close').onclick=()=>close();
-    root.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{if(button.dataset.tab==='services'){close(false);bridge.openEncounter();return}tab=button.dataset.tab;note='';render()});
+    root.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{if(button.dataset.tab==='navigation'){close(false);bridge.openMap();return}if(button.dataset.tab==='services'){close(false);bridge.openEncounter();return}tab=button.dataset.tab;note='';render()});
     root.querySelectorAll('[data-encounter]').forEach(button=>button.onclick=()=>{close(false);bridge.openEncounter()});
-    root.querySelectorAll('[data-node]').forEach(button=>{
-      button.onclick=()=>{selected=Number(button.dataset.node);if(local(bridge.getState()))window.vexedSolFlight?.setTarget(selected);shipPage=0;routePage=0;note='';clearTimeout(nodeClickTimer);nodeClickTimer=setTimeout(()=>render(),300)};
-      button.ondblclick=()=>{clearTimeout(nodeClickTimer);nodeClickTimer=null;if(local(bridge.getState()))startCruise(Number(button.dataset.node));else render()};
-    });
     root.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>{const [kind,direction]=button.dataset.page.split(':');if(kind==='ships')shipPage+=direction==='next'?1:-1;else routePage+=direction==='next'?1:-1;render(false)});
-    root.querySelectorAll('[data-cruise]').forEach(button=>button.onclick=()=>startCruise(button.dataset.cruise));
     root.querySelectorAll('[data-buy]').forEach(button=>button.onclick=()=>action(()=>bridge.trade(button.dataset.buy,true,selected)));
     root.querySelectorAll('[data-hail]').forEach(button=>button.onclick=()=>{const n=selectedNode(bridge.getState());note=`${n.name} control responds: ${n.description}`;render()});
     root.querySelectorAll('[data-transport]').forEach(button=>button.onclick=()=>{const state=bridge.getState(),delivery=(state.localContracts||[]).find(contract=>contract.to===Number(button.dataset.transport));action(()=>delivery?bridge.deliver(delivery.id):{error:`No cargo aboard is bound for ${selectedNode(state).name}. Check Cargo routes to load a shipment.`})});
@@ -142,8 +119,7 @@
     root.querySelectorAll('[data-freight-buy]').forEach(button=>button.onclick=()=>action(()=>bridge.freightTrade(Number(button.dataset.freightBuy),true,selected,freightLot)));
     root.querySelectorAll('[data-freight-sell]').forEach(button=>button.onclick=()=>action(()=>bridge.freightTrade(Number(button.dataset.freightSell),false,selected,freightLot)));
     root.querySelectorAll('[data-deliver]').forEach(button=>button.onclick=()=>action(()=>bridge.deliver(Number(button.dataset.deliver))));
-    root.querySelectorAll('[data-interstellar]').forEach(button=>button.onclick=()=>{close(false);bridge.openMap()});
-    if(focus)root.querySelector(`[data-node="${focus}"],[data-tab="${focus}"]`)?.focus({preventScroll:true});
+    if(focus)root.querySelector(`[data-tab="${focus}"]`)?.focus({preventScroll:true});
   }
   document.addEventListener('keydown',event=>{if(!root.hidden&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close()}},true);
   function updatePopulation(){
@@ -153,5 +129,5 @@
     const count=selectedNode(bridge.getState()).population;
     window.nativePopulation.animateDisplay(label,count);
   }
-  window.nativeSystemHub={open,close,refresh:render,updatePopulation,population,get active(){return !root.hidden},sol};
+  window.nativeSystemHub={open,close,refresh:render,updatePopulation,population,select(id){if(!root.hidden&&nodes(bridge.getState()).some(node=>node.id===Number(id))){selected=Number(id);render();}},get active(){return !root.hidden},sol};
 })();

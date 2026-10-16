@@ -1,76 +1,381 @@
-/* Original Vexed Mirror map presentation, connected to native-navigation.js. */
-(()=>{
-'use strict';
-const mapButton=document.getElementById('mapBtn');
-const galaxyMap=document.createElement('section');galaxyMap.id='galaxy-map';galaxyMap.hidden=true;galaxyMap.setAttribute('role','dialog');galaxyMap.setAttribute('aria-modal','true');galaxyMap.setAttribute('aria-label','Interstellar navigation');game.appendChild(galaxyMap);
-let mapSelected=0,mapState,mapMessage='',mapTimer,mapReturnFocus;
-const mapEscape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const mapNumber=n=>Number(n||0).toLocaleString(undefined,{maximumFractionDigits:1});
-const mapFactions={1:{icon:2,color:'#e999aa'},2:{icon:3,color:'#ef775f'},3:{icon:7,color:'#c08aed'},4:{color:'#e8c480'},5:{icon:6,color:'#81c8e9'},6:{icon:5,color:'#89df73'},7:{icon:4,color:'#deb069'},8:{color:'#8aa5f1'},12:{icon:1,color:'#a4c9d4'},14:{icon:8,color:'#93dc59'},16:{color:'#79e8d2'}};
-const mapStandings={'Hostile':{color:'#ff0000',label:'Hostile'},'Allied':{color:'#4ab3ff',label:'Allied'},'Your territory':{color:'#0fff0f',label:'Owned'},'Neutral':{color:'#cacaca',label:'Neutral'},'Forbidden':{color:'#ffed15',label:'Forbidden / restricted'},'Uninhabited':{color:'#eda91d',label:'Uninhabited'},'Unknown':{color:'#858585',label:'Unexplored'}};
-function mapRelation(standing){return mapStandings[standing]||mapStandings.Unknown;}
-function mapCall(action,value=0){return window.nativeNavigation.call(action,value);}
-function openGalaxyMap(){if(!window.nativeNavigation.active)return;const result=mapCall('open');if(!result.ok)return;mapReturnFocus=document.activeElement;galaxyMap.hidden=false;mapSelected=mapCall('state')?.manualTargetSystem||0;mapMessage='';refreshGalaxyMap();clearInterval(mapTimer);mapTimer=setInterval(refreshGalaxyMap,2500);galaxyMap.querySelector('.map-close')?.focus();}
-function closeGalaxyMap(focus=true){galaxyMap.hidden=true;clearInterval(mapTimer);mapTimer=undefined;mapCall('close');if(focus)(mapReturnFocus?.isConnected?mapReturnFocus:mapButton).focus({preventScroll:true});}
-mapButton.onclick=openGalaxyMap;
-document.addEventListener('keydown',event=>{if(galaxyMap.hidden)return;if(event.key==='Escape'){event.preventDefault();closeGalaxyMap();}});
-function mapSelect(id){mapSelected=Number(id);mapMessage='';refreshGalaxyMap();}
-function mapChart(state){
- const nodes=state.nodes,find=id=>nodes.find(n=>n.id===id),ship=state.shipPosition,xs=nodes.map(n=>n.x),ys=nodes.map(n=>n.y);
- if(ship){xs.push(ship.x);ys.push(ship.y);}
- const minX=Math.min(...xs)-28,minY=Math.min(...ys)-24,w=Math.max(...xs)-minX+40,h=Math.max(...ys)-minY+30;
- const current=find(state.current),selected=find(state.selected.id);
- let stars='';for(let i=0;i<65;i++){const x=minX+(i*137.43%w),y=minY+(i*83.71%h);stars+=`<circle cx="${x}" cy="${y}" r="${i%9===0?.7:.35}" opacity="${.12+(i%4)*.08}"/>`;}
- return `<svg class="map-chart" viewBox="${minX} ${minY} ${w} ${h}" role="group" aria-label="Systems and surveyed cargo routes"><defs><pattern id="map-coordinates" width="35" height="35" patternUnits="userSpaceOnUse"><path d="M 35 0 L 0 0 0 35" fill="none" stroke="#6fb1c1" stroke-width=".35" opacity=".13"/></pattern><filter id="map-glow"><feGaussianBlur stdDeviation="1.2"/></filter></defs><rect x="${minX}" y="${minY}" width="${w}" height="${h}" fill="url(#map-coordinates)"/><g fill="#d2f3ff" aria-hidden="true">${stars}</g>
- <g class="map-route-lines">${state.routes.map(r=>{const a=find(r.a),b=find(r.b);return a&&b?`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="${r.suspended?'map-suspended':'map-active-route'}"><title>${mapEscape(r.label)} · ${r.suspended?'Suspended':'Active'}</title></line>`:'';}).join('')}</g>
- ${ship&&selected&&state.manualTargetSystem?`<line class="map-course-preview" x1="${ship.x}" y1="${ship.y}" x2="${selected.x}" y2="${selected.y}"/>`:current&&selected&&current.id!==selected.id?`<line class="map-course-preview" x1="${current.x}" y1="${current.y}" x2="${selected.x}" y2="${selected.y}"/>`:''}
- ${nodes.map(n=>{const relationship=mapRelation(n.status),color=relationship.color,selected=n.id===state.selected.id;return `<g class="map-node ${n.known?'map-discovered':'map-unknown'} ${n.current?'map-current':''} ${selected?'map-selected':''}" data-system="${n.id}" role="button" tabindex="0" aria-label="${mapEscape(n.name)}${n.current?', current location':''}, ${mapEscape(relationship.label)}" aria-pressed="${selected}" style="--system-color:${color};--standing-color:${relationship.color}"><title>${mapEscape(n.name)} · ${mapEscape(relationship.label)}</title><circle class="map-hit" cx="${n.x}" cy="${n.y}" r="12"/><circle class="map-halo" cx="${n.x}" cy="${n.y}" r="8"/>${n.known?`<circle class="map-standing-ring" cx="${n.x}" cy="${n.y}" r="6.5"/>`:''}<circle class="map-contact" cx="${n.x}" cy="${n.y}" r="${n.known?4:3}"/>${n.current?`<path class="map-location" d="M ${n.x-4} ${n.y-12} L ${n.x} ${n.y-7} L ${n.x+4} ${n.y-12}"/>`:''}${n.known||selected?`<text class="map-label" x="${n.x+9}" y="${n.y+3}">${mapEscape(n.known?n.name:'S-'+String(n.id).padStart(3,'0'))}</text>`:''}</g>`;}).join('')}${ship?`<g class="map-ship-position" aria-label="Your live position"><title>Your ship</title><circle cx="${ship.x}" cy="${ship.y}" r="5"/><path d="M ${ship.x} ${ship.y-3} L ${ship.x+2.5} ${ship.y+2} L ${ship.x-2.5} ${ship.y+2} Z"/></g>`:''}${mapFleetMarkers(state,find)}</svg>`;
-}
-function mapFleetMarkers(state,find){return state.nodes.filter(n=>(state.fleet||[]).some(s=>s.system===n.id)).map(n=>{const ships=state.fleet.filter(s=>s.system===n.id);return `<g class="map-fleet-marker" aria-label="${ships.length} fleet ships at ${mapEscape(n.name)}"><title>${ships.length} of your fleet ships at ${mapEscape(n.name)}</title><path d="M ${n.x-11} ${n.y-3} l -4 8 h 8 z"/><text x="${n.x-15}" y="${n.y+13}">${ships.length}</text></g>`;}).join('');}
-function mapDetails(state){
- const s=state.selected,faction=mapFactions[s.government],relationship=mapRelation(s.standing),icon=s.known&&faction?.icon?`<img src="${"startup/factions/faction-"+faction.icon+".png"}" alt="${mapEscape(s.governmentName)} emblem">`:`<span class="map-unidentified">${s.known?mapEscape(s.governmentName.split(' ').map(w=>w[0]).join('').slice(0,3)):'?'}</span>`;
- const fleet=(state.fleet||[]).filter(ship=>ship.system===s.id),fleetMarkup=fleet.length?`<div class="map-deliveries map-fleet-list"><h4>Your fleet in this system · ${fleet.length}</h4>${fleet.map(ship=>`<p>${mapEscape(ship.name)}</p>`).join('')}</div>`:'';
- const deliveries=s.deliveries.length?`<div class="map-deliveries"><h4>Cargo aboard for this system</h4>${s.deliveries.map(d=>`<p><b>${mapNumber(d.tons)} t · ${mapEscape(d.name)}</b><span>${mapNumber(d.payment)} latinum on delivery</span></p>`).join('')}</div>`:'';
- return `<div class="map-faction-display" style="--faction-glow:${s.known?(faction?.color||'#96c6d6'):'#688495'}"><div class="map-system-emblem">${icon}</div><span>${mapEscape(s.governmentName)}</span></div><div class="map-system-title"><div><p class="map-kicker">${s.id===state.current?'CURRENT LOCATION':s.known?'SURVEYED SYSTEM':'UNEXPLORED CONTACT'}</p><h3>${mapEscape(s.name)}</h3></div></div>
- <dl class="map-intel"><div><dt>Government</dt><dd>${mapEscape(s.governmentName)}</dd></div><div><dt>Your standing</dt><dd><span class="map-standing-badge" style="--standing-color:${relationship.color}">${mapEscape(relationship.label)}</span></dd></div><div><dt>Population</dt><dd ${s.known?`data-population-count data-population-value="${Math.max(0,s.population)}"`:''}>${s.known?mapNumber(Math.max(0,s.population)):'Unknown'}</dd></div><div><dt>System strength</dt><dd>${s.known?mapNumber(s.strength):'Unknown'}</dd></div><div><dt>Map status</dt><dd><span class="map-standing-badge" style="--standing-color:${mapRelation(s.status).color}">${mapEscape(mapRelation(s.status).label)}</span></dd></div><div><dt>Survey</dt><dd>${s.known?'Visited':'Unknown'}</dd></div></dl>
- <div class="map-journey"><h4>Journey preview</h4><div><span>Manual distance</span><b>${mapNumber(s.manualDistance)} u</b></div><div><span>Manual flight at full speed</span><b>~${Math.max(1,Math.ceil(s.manualSeconds/60))} min</b></div><div><span>Warp travel time</span><b>${s.days<0?'Unavailable':mapNumber(s.days)+' days'}</b></div><div><span>Antimatter used by warp</span><b>${s.fuel<0?'Unavailable':mapNumber(s.fuel)+' t'}</b></div><div><span>Antimatter aboard</span><b>${state.devMode?'∞':mapNumber(state.fuel)} t</b></div></div>
- ${fleetMarkup}${deliveries}<p class="map-description">${mapEscape(s.description)}</p><p class="map-selection-note">${mapEscape(mapMessage||(s.error?`${s.error} Manual flight is available.`:s.known?'Ready to travel.':'Travel here to reveal this system.'))}</p>`;
-}
-function refreshGalaxyMap(){
- if(galaxyMap.hidden)return;const previousId=mapSelected,previousCount=galaxyMap.querySelector('[data-population-count]')?.dataset.populationValue;const state=mapCall('state',mapSelected);if(!state?.ok){closeGalaxyMap();return;}mapState=state;mapSelected=state.selected.id;
- const scroll=galaxyMap.querySelector('.map-detail')?.scrollTop||0,focus=document.activeElement,focusID=focus?.closest('[data-system]')?.dataset.system,focusClass=galaxyMap.contains(focus)?focus.className:null;
- galaxyMap.innerHTML=`<div class="map-top"><div><p class="map-kicker">STELLAR CARTOGRAPHY</p><h2>Interstellar map</h2></div><div class="map-exploration"><b>${state.discovered} / ${state.total}</b><span>systems surveyed</span></div><button type="button" class="map-close">Return to flight ×</button></div>
- <div class="map-body"><div class="map-space"><div class="map-position"><span class="map-position-light"></span>${mapEscape(state.currentName)}<small>Current system</small></div>${mapChart(state)}<div class="map-legend"><div class="map-legend-row map-relationship-legend" aria-label="Original map colors"><b>Original map colors</b>${Object.values(mapStandings).map(s=>`<span><i style="background:${s.color};border-color:${s.color}"></i>${mapEscape(s.label)}</span>`).join('')}</div><div class="map-legend-row"><span><i class="map-legend-current"></i>Current system</span><span><i class="map-legend-ship"></i>Your ship</span><span><i class="map-legend-route"></i>Active route</span><span><i class="map-legend-suspended"></i>Suspended</span><span class="map-fleet-key">▲ Your fleet</span><small>System colors = original map status</small></div></div></div><aside class="map-detail" aria-label="Selected system">${mapDetails(state)}</aside></div>
- <div class="map-bottom"><p>Select a system to track for manual flight or travel by warp.<br><span>Manual flight uses your ship's normal controls and takes real time.</span></p><div class="map-actions"><button type="button" class="map-track-flight">Track for manual flight</button><button type="button" class="map-set-course" ${state.selected.canTravel?'':'disabled'}>Warp →</button></div></div>`;
- if(previousId===mapSelected&&previousCount!==undefined){const label=galaxyMap.querySelector('[data-population-count]');if(label&&Number(previousCount)!==Number(label.dataset.populationValue)){const next=Number(label.dataset.populationValue);label.dataset.populationValue=previousCount;label.textContent=mapNumber(previousCount);window.nativePopulation.animateDisplay(label,next);}}
- galaxyMap.querySelector('.map-close').onclick=()=>closeGalaxyMap();
- galaxyMap.querySelectorAll('[data-system]').forEach(node=>{node.onclick=()=>mapSelect(node.dataset.system);node.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();mapSelect(node.dataset.system);}};});
- galaxyMap.querySelector('.map-track-flight').onclick=()=>{
-  const result=mapCall('track',mapSelected);
-  if(result?.ok)closeGalaxyMap(false);
-  else{mapMessage=result?.error||'Unable to track this system.';refreshGalaxyMap();}
- };
- galaxyMap.querySelector('.map-set-course').onclick=()=>{
-  const destination=mapSelected;
-  closeGalaxyMap(false);
-  // Paint the flight view with the map closed before starting departure.
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-   const result=mapCall('course',destination);
-   if(!result?.ok){openGalaxyMap();mapSelected=destination;mapMessage=result?.error||'Unable to set course.';refreshGalaxyMap();}
-  }));
- };
- galaxyMap.querySelector('.map-detail').scrollTop=scroll;
- if(focusID)galaxyMap.querySelector(`[data-system="${focusID}"]`)?.focus();else if(typeof focusClass==='string'&&['map-close','map-set-course','map-track-flight'].includes(focusClass))galaxyMap.querySelector('.'+focusClass)?.focus();
-}
+/* One continuous, ship-centered chart for local and interstellar travel. */
+(() => {
+  'use strict';
+  const root = document.createElement('section');
+  root.id = 'galaxy-map';
+  root.hidden = true;
+  root.setAttribute('role', 'dialog');
+  root.setAttribute('aria-modal', 'true');
+  root.setAttribute('aria-label', 'Navigation map');
+  document.getElementById('game').append(root);
+  root.innerHTML = `<header class="map-header"><div><h2>Map</h2><p class="map-location"></p></div><div class="map-controls"><button type="button" data-action="center">Center on ship</button><div class="map-zoom"><button type="button" data-action="out" aria-label="Zoom out">−</button><button type="button" data-action="in" aria-label="Zoom in">+</button></div><button type="button" data-action="close" class="map-close">Close <span>Esc</span></button></div></header><div class="map-viewport"><svg class="map-chart" role="group" aria-label="Ship position and destinations"></svg><div class="map-scale"></div><div class="map-legend" aria-label="System relationship colors"></div><p class="map-help">Scroll to zoom · Drag to move · Click a destination</p></div><footer class="map-destination"><div class="map-destination-info"><div class="map-destination-heading"><h3></h3><span class="map-welcome"></span><span class="map-system-status" hidden></span></div><p class="map-destination-meta"></p><dl class="map-system-facts" aria-label="System information"></dl><p class="map-message" role="status" aria-live="polite"></p></div><div class="map-actions"><button type="button" data-action="marker" class="map-marker" aria-label="Set marker" title="Set marker">⚑</button><button type="button" data-action="cruise" class="map-primary">Cruise to</button><button type="button" data-action="warp" class="map-primary">Warp to</button><button type="button" data-action="navigate">Select for navigation</button></div></footer>`;
+  const svg = root.querySelector('svg');
+  const viewport = root.querySelector('.map-viewport');
+  const hover=document.createElement('div');hover.className='map-hover';hover.hidden=true;hover.setAttribute('role','tooltip');viewport.append(hover);
+  const mapButton = document.getElementById('mapBtn');
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const number = value => Math.round(value).toLocaleString();
+  const call = (action, value = 0) => window.nativeNavigation.call(action, value);
+  const systemName = node => node?.id === 1 && node.known ? 'Sol' : node?.name || 'Unknown system';
+  const populationNumber = new Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1});
+  const labelMeasure=document.createElement('canvas').getContext('2d');
+  const mapColors={Allied:'#4ab3ff',Hostile:'#ff0000','Your territory':'#0fff0f',Neutral:'#cacaca',Forbidden:'#ffed15',Uninhabited:'#eda91d',Unknown:'#858585'};
+  const signed=value=>`${value>0?'+':''}${number(value)}`;
+  const blend=(a,b,t)=>a+(b-a)*t;
+  const smooth=(a,b,value)=>{const t=clamp((value-a)/(b-a),0,1);return t*t*(3-2*t);};
+  root.querySelector('.map-legend').innerHTML=[['Allied','Allied / welcome'],['Hostile','Hostile / not welcome'],['Neutral','Neutral'],['Your territory','Your territory'],['Forbidden','Restricted'],['Uninhabited','Uninhabited'],['Unknown','Unexplored']].map(([status,label])=>`<span><i class="${status==='Forbidden'?'map-key-restricted':''}" style="--key-color:${mapColors[status]}"></i>${label}</span>`).join('');
+  function reception(system) {
+    if(!system?.known)return {text:'Welcome status unknown',tone:'unknown'};
+    if(system.status==='Uninhabited')return {text:'Uninhabited',tone:'uninhabited'};
+    return ({Allied:{text:'Welcome · Allied',tone:'friendly'},Hostile:{text:'Not welcome · Hostile',tone:'hostile'},'Your territory':{text:'Your territory',tone:'owned'},Neutral:{text:'Neutral reception',tone:'neutral'}})[system.standing] || {text:'Welcome status unknown',tone:'unknown'};
+  }
+  const markerKey = 'broken-mirror-map-markers';
+  let markers = {};
+  try { const saved = JSON.parse(localStorage.getItem(markerKey)); if (saved && typeof saved === 'object' && !Array.isArray(saved)) markers = saved; } catch {}
+  let state, selected, timer, returnFocus, drag, frame = 0, followShip = true, message = '';
+  let camera = {x:0, y:0, span:6}, goal = {...camera};
+  let lastFrame=0, overviewFollow=true, shipArt=null, shipArtKey='', shipArtToken=0;
+  let zoomDelay,zoomRepeat,zoomHeld=false;
+  function stopZoomHold(){clearTimeout(zoomDelay);clearInterval(zoomRepeat);}
+  function overviewBounds(){
+    const positions=[...state.nodes,state.shipPosition].filter(Boolean),xs=positions.map(node=>node.x),ys=positions.map(node=>node.y);
+    const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+    return {x:(minX+maxX)/2,y:(minY+maxY)/2,spanX:Math.max(180,(maxX-minX)*1.3),spanY:Math.max(120,(maxY-minY)*1.3)};
+  }
+  function geometry(span){
+    const bounds=overviewBounds(),wide=smooth(95,bounds.spanX,span);
+    const legendHeight=root.querySelector('.map-legend').clientHeight;
+    return {wide,centerY:viewport.clientHeight/2-wide*(legendHeight/2+12),scaleX:viewport.clientWidth/span,scaleY:blend(viewport.clientWidth/span,Math.max(50,viewport.clientHeight-legendHeight-65)/bounds.spanY,wide)};
+  }
+  function followGoal(){
+    if(!followShip||!state.shipPosition)return;
+    const bounds=overviewBounds(),wide=overviewFollow?smooth(95,bounds.spanX,goal.span):0;
+    goal.x=blend(state.shipPosition.x,bounds.x,wide);goal.y=blend(state.shipPosition.y,bounds.y,wide);
+  }
+  function loadMapShip(){
+    const maximum=window.VexedMirrorWorld.ships.find(ship=>ship.id===state.shipType)?.hull||100,ratio=state.shipHull/maximum;
+    const key=`${state.shipType}:${ratio<.25?3:ratio<.5?2:ratio<.75?1:0}`;
+    if(key===shipArtKey)return;
+    shipArtKey=key;shipArt=null;const token=++shipArtToken;
+    window.vexedFlightAssets.loadShip(state.shipType,state.shipHull).then(asset=>{
+      if(token!==shipArtToken)return;
+      const sample=document.createElement('canvas');sample.width=asset.width;sample.height=asset.height;
+      const context=sample.getContext('2d');context.drawImage(asset.art,0,0);
+      const pixels=context.getImageData(0,0,sample.width,sample.height).data;
+      let left=sample.width,top=sample.height,right=0,bottom=0;
+      for(let y=0;y<sample.height;y++)for(let x=0;x<sample.width;x++)if(pixels[(y*sample.width+x)*4+3]>32){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+      const width=Math.max(1,right-left+1),height=Math.max(1,bottom-top+1),icon=document.createElement('canvas');
+      icon.width=Math.max(1,Math.round(width/Math.max(width,height)*64));icon.height=Math.max(1,Math.round(height/Math.max(width,height)*64));
+      icon.getContext('2d').drawImage(sample,left,top,width,height,0,0,icon.width,icon.height);
+      shipArt={url:icon.toDataURL('image/png'),ratio:width/height,type:asset.type};requestDraw();
+    }).catch(()=>{if(token===shipArtToken)shipArtKey='';});
+  }
 
-window.nativeGalaxyMap={open:openGalaxyMap,close:closeGalaxyMap,refresh:refreshGalaxyMap,get isOpen(){return !galaxyMap.hidden;}};
-galaxyMap.addEventListener('keydown',event=>{
- if(event.key!=='Tab')return;
- const targets=Array.from(galaxyMap.querySelectorAll('button:not(:disabled),[tabindex="0"]'));
- const first=targets[0],last=targets[targets.length-1];
- if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
- else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
-});
-addEventListener('pagehide',()=>clearInterval(mapTimer));
+  function solAnchor() { return state.nodes.find(node => node.id === 1) || window.nativeManualFlight.chartPosition(1); }
+  function systemArea(system){
+    if(system.id===1)return {x:system.x+10.5,y:system.y,rx:19,ry:8};
+    const nearest=Math.min(...state.nodes.filter(other=>other.id!==system.id).map(other=>Math.hypot(other.x-system.x,other.y-system.y)));
+    const radius=clamp(nearest*.38,4,14);
+    return {x:system.x-.22,y:system.y+.075,rx:radius,ry:radius*.65};
+  }
+  function systemAreaView(system){
+    const area=systemArea(system),availableHeight=Math.max(120,viewport.clientHeight-root.querySelector('.map-legend').clientHeight-50);
+    return {x:area.x,y:area.y,span:Math.max(area.rx*2.7,area.ry*2.7*viewport.clientWidth/availableHeight)};
+  }
+  function solBodies() {
+    const anchor = solAnchor();
+    return window.nativeSystemHub.sol.map(body => {
+      const position = window.vexedSolFlight.bodyPosition(body);
+      return {...body, system:1, x:anchor.x + position.x/1000, y:anchor.y + position.y/1000};
+    });
+  }
+  function selectedNode() {
+    if (selected.body !== undefined) return solBodies().find(body => body.id === selected.body);
+    return state.nodes.find(node => node.id === selected.system) || state.selected;
+  }
+  function markerID() { return selected.body !== undefined ? `body:${selected.system}:${selected.body}` : `system:${selected.system}`; }
+  function requestDraw() { if (!frame && !root.hidden) frame = requestAnimationFrame(draw); }
+  function refresh() {
+    if (root.hidden) return;
+    const next = call('state', selected.system);
+    if (!next?.ok) { close(false); return; }
+    state = next;
+    followGoal();loadMapShip();
+    updateInfo();
+    requestDraw();
+  }
+  function open() {
+    if (!window.nativeNavigation.active || !call('open')?.ok) return;
+    returnFocus = document.activeElement;
+    state = call('state');
+    if (!state?.ok) return;
+    selected = state.current === 1 ? {system:1, body:state.localBody} : {system:state.current};
+    const ship = state.shipPosition || state.nodes.find(node => node.current);
+    camera = {x:ship.x, y:ship.y, span:6}; goal = {...camera};
+    followShip = true; overviewFollow=true;lastFrame=0; message = ''; drag = null; root.hidden = false;
+    clearInterval(timer); timer = setInterval(refresh, 500);
+    refresh(); root.querySelector('.map-close').focus({preventScroll:true});
+  }
+  function close(focus = true) {
+    const wasOpen = !root.hidden;
+    root.hidden = true; clearInterval(timer); timer = undefined; drag = null;
+    hover.hidden=true;
+    stopZoomHold();zoomHeld=false;
+    cancelAnimationFrame(frame); frame = 0;
+    if (!wasOpen) return;
+    call('close');
+    if (focus) (returnFocus?.isConnected ? returnFocus : mapButton).focus({preventScroll:true});
+  }
+  function centerOnShip() {
+    followShip = true;overviewFollow=false;
+    goal.x = state.shipPosition.x; goal.y = state.shipPosition.y;
+    requestDraw();
+  }
+  function zoom(factor, point) {
+    const nextSpan = clamp(goal.span * factor, 1.2, overviewBounds().spanX);
+    if (!followShip && point) {
+      const width = viewport.clientWidth, height = viewport.clientHeight;
+      const before=geometry(goal.span),after=geometry(nextSpan);
+      goal.x += (point.x-width/2) * (1/before.scaleX-1/after.scaleX);
+      goal.y += (point.y-before.centerY)/before.scaleY-(point.y-after.centerY)/after.scaleY;
+    }
+    goal.span = nextSpan;overviewFollow=true;followGoal();
+    requestDraw();
+  }
+  function selectDestination(system, body) {
+    selected = {system:Number(system)};
+    if (body !== undefined) selected.body = Number(body);
+    message = ''; refresh();
+  }
+  function updateInfo() {
+    const node = selectedNode();
+    if (!node) return;
+    const current = state.nodes.find(node => node.current);
+    const local = selected.system === state.current && (selected.body !== undefined || state.current !== 1);
+    root.querySelector('.map-location').textContent = `${systemName(current)} solar system${state.inLocalTransit ? ' · Cruising' : ''}`;
+    root.querySelector('.map-destination-info h3').textContent = selected.body !== undefined ? node.name : `${systemName(node)} system`;
+    const distance = selected.body !== undefined ? Math.hypot(node.x-state.shipPosition.x, node.y-state.shipPosition.y)*1000 : state.selected.manualDistance;
+    root.querySelector('.map-destination-meta').textContent = selected.body !== undefined
+      ? `Sol · ${number(distance)} units away${node.port ? ' · Port' : ''}`
+      : selected.system === state.current ? 'Your current solar system' : state.selected.travelDays >= 0 ? `${number(state.selected.travelDays)} days · ${number(state.selected.fuel)} t antimatter` : 'Manual navigation only';
+    const system = state.selected, welcome = reception(system);
+    const badge = root.querySelector('.map-welcome');
+    badge.textContent = welcome.text;
+    badge.dataset.tone = welcome.tone;
+    badge.title = `Your reception in ${systemName(system)} system`;
+    const status = root.querySelector('.map-system-status');
+    status.hidden = system.status !== 'Forbidden';
+    status.textContent = status.hidden ? '' : 'Restricted space';
+    const population = selected.body !== undefined ? system.localPopulations?.[selected.body] : system.population;
+    const residents = system.known && Number.isFinite(population) && population >= 0;
+    const facts = [
+      ['Government',system.governmentName],
+      ['Your standing',system.known && Number.isFinite(system.prestige) ? `${system.prestige>0?'+':''}${number(system.prestige)}` : 'Unknown'],
+      ['Population',residents ? population ? populationNumber.format(population) : 'Uninhabited' : 'Unknown'],
+      ['System strength',system.known ? number(system.strength) : 'Unknown']
+    ];
+    root.querySelector('.map-system-facts').innerHTML = facts.map(([label,value])=>`<div><dt>${escape(label)}</dt><dd${label==='Population'&&residents?` title="${number(population)} inhabitants"`:''}>${escape(value)}</dd></div>`).join('');
+    const cruise = root.querySelector('[data-action="cruise"]');
+    const warp = root.querySelector('[data-action="warp"]');
+    const nav = root.querySelector('[data-action="navigate"]');
+    cruise.hidden = !local;
+    cruise.disabled = state.inLocalTransit;
+    warp.hidden = local || selected.system === state.current;
+    warp.textContent = selected.body !== undefined && !local ? 'Warp to Sol' : 'Warp to';
+    warp.disabled = state.inLocalTransit || !state.selected.canTravel;
+    warp.title = state.selected.canTravel ? `Warp to ${systemName(state.selected)}` : state.selected.error;
+    nav.disabled = state.inLocalTransit;
+    root.querySelector('.map-message').textContent = message || (state.inLocalTransit ? 'Current cruise is in progress.' : !warp.hidden && !state.selected.canTravel ? state.selected.error : '');
+    const marked = !!markers[markerID()];
+    const marker = root.querySelector('[data-action="marker"]');
+    marker.classList.toggle('marked', marked);
+    marker.setAttribute('aria-pressed', String(marked));
+    marker.setAttribute('aria-label', marked ? 'Remove marker' : 'Set marker');
+    marker.title = marked ? 'Remove marker' : 'Set marker';
+  }
+  function travel(action) {
+    let result;
+    if (action === 'warp') {
+      const destination = selected.system;
+      close(false);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        result = call('course', destination);
+        if (!result?.ok) { open(); selected = {system:destination}; message = result?.error || 'Unable to warp here.'; refresh(); }
+      }));
+      return;
+    }
+    result = action === 'cruise' ? call('cruise', selected.body ?? 0) : selected.body !== undefined && selected.system === state.current ? call('local-target', selected.body) : call('track', selected.system);
+    if (result?.ok) { close(false); document.getElementById('space').focus({preventScroll:true}); }
+    else { message = result?.error || 'Unable to set this destination.'; updateInfo(); }
+  }
 
+  function draw(timestamp) {
+    frame = 0;
+    if (root.hidden || !state) return;
+    const width = viewport.clientWidth, height = viewport.clientHeight;
+    if (!width || !height) return;
+    const delta=lastFrame?clamp(timestamp-lastFrame,1,50):16.7,amount=1-Math.exp(-delta/105);
+    const moving=Math.abs(Math.log(camera.span/goal.span))>.00015||Math.abs(camera.x-goal.x)>.001||Math.abs(camera.y-goal.y)>.001;
+    if(moving){camera.x=blend(camera.x,goal.x,amount);camera.y=blend(camera.y,goal.y,amount);camera.span=Math.exp(blend(Math.log(camera.span),Math.log(goal.span),amount));lastFrame=timestamp;}
+    else {camera={...goal};lastFrame=0;}
+    const view=geometry(camera.span),wide=view.wide,legendHeight=root.querySelector('.map-legend').clientHeight;
+    const project=point=>({x:width/2+(point.x-camera.x)*view.scaleX,y:view.centerY+(point.y-camera.y)*view.scaleY});
+    const onScreen=point=>point.x>-24&&point.x<width+24&&point.y>-24&&point.y<height+24;
+    const ship=project(state.shipPosition),compact=width<600,fontSize=compact?10:12;
+    svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+    svg.dataset.span=camera.span;svg.dataset.overview=wide;
+    const occupied=[];
+    labelMeasure.font=`${fontSize}px system-ui`;
+    function label(name,point){
+      const textWidth=Math.ceil(labelMeasure.measureText(name).width)+2,textHeight=fontSize+5;
+      const box={x:point.x+12,y:point.y+4-fontSize,w:textWidth,h:textHeight};
+      // Crowded names can disappear, but their anchor never changes sides or moves away.
+      if(occupied.some(other=>other.owner!==point&&box.x<other.x+other.w+4&&box.x+box.w+4>other.x&&box.y<other.y+other.h+2&&box.y+box.h+2>other.y))return '';
+      occupied.push(box);
+      return `<text class="map-label" x="${point.x+12}" y="${point.y+4}" style="font-size:${fontSize}px">${escape(name)}</text>`;
+    }
+    const spacing=Math.pow(10,Math.floor(Math.log10(camera.span/7))),gridX=spacing*view.scaleX,gridY=spacing*view.scaleY;
+    const offsetX=((width/2-camera.x*view.scaleX)%gridX+gridX)%gridX,offsetY=((view.centerY-camera.y*view.scaleY)%gridY+gridY)%gridY;
+    let markup=`<defs><pattern id="navigation-grid" width="${gridX}" height="${gridY}" x="${offsetX}" y="${offsetY}" patternUnits="userSpaceOnUse"><path d="M ${gridX} 0 H 0 V ${gridY}" fill="none" stroke="#ffffff" stroke-opacity=".035"/></pattern></defs><rect width="${width}" height="${height}" fill="url(#navigation-grid)"/>`;
+    const sol=state.nodes.find(node=>node.id===1),bodyOpacity=1-smooth(62,105,camera.span);
+    if(camera.span<175)for(const system of state.nodes){
+      const area=systemArea(system),center=project(area),rx=area.rx*view.scaleX,ry=area.ry*view.scaleY;
+      if(center.x+rx<0||center.x-rx>width||center.y+ry<0||center.y-ry>height)continue;
+      const opacity=(1-smooth(100,175,camera.span))*smooth(18,46,Math.min(rx,ry));
+      if(opacity<.02)continue;
+      const title=system.known?`${systemName(system)} solar system`:`Unexplored system S-${String(system.id).padStart(3,'0')}`;
+      const areaFont=compact||height<300?10:12,tracking=areaFont*.15;
+      labelMeasure.font=`${areaFont}px system-ui`;
+      const titleWidth=labelMeasure.measureText(title.toUpperCase()).width+(title.length-1)*tracking;
+      const titleOpacity=smooth(titleWidth*.85,titleWidth*1.15,rx*2);
+      markup+=`<g class="map-system-boundary" data-region-system="${system.id}" aria-label="${escape(title)}" opacity="${opacity}"><ellipse cx="${center.x}" cy="${center.y}" rx="${rx}" ry="${ry}"/>${titleOpacity>.02?`<text x="${center.x}" y="${center.y-ry-13}" text-anchor="middle" opacity="${titleOpacity}" style="font-size:${areaFont}px;letter-spacing:.15em">${escape(title.toUpperCase())}</text>`:''}</g>`;
+    }
+    labelMeasure.font=`${fontSize}px system-ui`;
+    let route;
+    if(state.manualTargetSystem)route=state.nodes.find(node=>node.id===state.manualTargetSystem);
+    else if(state.current===1)route=solBodies().find(body=>body.id===state.localNavTarget);
+    if(route){const end=project(route);markup+=`<path class="map-navigation-line" d="M ${ship.x} ${ship.y} L ${end.x} ${end.y}"/>`;}
+    const items=[];
+    for(const node of state.nodes){
+      const opacity=node.id===1&&sol.known?1-bodyOpacity:1;if(opacity<.03)continue;
+      const point=project(node.id===1?node:{x:node.x-.22,y:node.y+.075});
+      const isSelected=selected.system===node.id&&(selected.body===undefined||bodyOpacity<.5);
+      const isMarked=!!markers[`system:${node.id}`]||node.id===1&&Object.keys(markers).some(key=>key.startsWith('body:1:')&&markers[key]);
+      items.push({node,point,isSelected,isCurrent:node.current,isMarked,body:false,opacity});
+    }
+    if(sol?.known&&bodyOpacity>.03)for(const body of solBodies()){
+      const point=project(body);
+      items.push({node:body,point,isSelected:selected.system===1&&selected.body===body.id,isCurrent:state.current===1&&state.localBody===body.id,isMarked:!!markers[`body:1:${body.id}`],body:true,opacity:bodyOpacity});
+    }
+    items.sort((a,b)=>Number(b.isSelected)-Number(a.isSelected)||Number(b.isCurrent)-Number(a.isCurrent)||Number(b.isMarked)-Number(a.isMarked)||Number(b.node.known)-Number(a.node.known));
+    for(const item of items)if(item.opacity>.35)occupied.push({x:item.point.x-8,y:item.point.y-8,w:16,h:16,owner:item.point});
+    const planetColors=['#f3c468','#bcb7ac','#dabd87','#7ebbdc','#c5cbd2','#df9475','#a69a86','#d7c3a1','#dfc892','#8acdd5','#6d94d0','#b5bdc8'];
+    for(const item of items){
+      const {node,point,isSelected,isCurrent,isMarked,body,opacity}=item,relation=body?sol:node,welcome=reception(relation);
+      const status=!relation?.known?'Unknown':relation.status==='Uninhabited'?'Uninhabited':relation.standing;
+      const color=body?planetColors[node.id]:mapColors[status]||mapColors.Unknown;
+      const name=body?node.name:systemName(node),reputation=!body&&node.known?node.prestige:null;
+      const text=opacity>.5&&(isSelected||isCurrent||isMarked||body||node.known)?label(name,point):'';
+      const radius=body?(node.id===0?7:5):compact?4.5:5.5;
+      const description=`${name} · ${welcome.text}${reputation!==null?` · Standing ${signed(reputation)}`:''}${relation?.status==='Forbidden'?' · Restricted space':''}`;
+      markup+=`<g class="map-destination-node ${isSelected?'selected':''} ${isCurrent?'current':''} ${!relation?.known?'unknown':''}" data-system="${body?1:node.id}" ${body?`data-body="${node.id}"`:''} data-reputation="${reputation??''}" data-standing="${escape(status)}" tabindex="${opacity>.5&&onScreen(point)?0:-1}" role="button" aria-label="${escape(description)}" aria-pressed="${isSelected}" opacity="${opacity}" style="--node-color:${color};${opacity<.35?'pointer-events:none':''}"><circle class="map-hit" cx="${point.x}" cy="${point.y}" r="${wide>.5?10:15}"/>${!body&&node.status==='Forbidden'?`<circle class="map-restricted-ring" cx="${point.x}" cy="${point.y}" r="${radius+3}"/>`:''}${isSelected?`<circle class="map-selection-ring" cx="${point.x}" cy="${point.y}" r="${radius+6}"/>`:''}<circle class="map-dot" cx="${point.x}" cy="${point.y}" r="${radius}"/>${isMarked?`<path class="map-saved-marker" d="M ${point.x-3} ${point.y-12} v -9 h 8 v 5 h -8"/>`:''}${text}</g>`;
+    }
+    const angle=state.shipAngle*180/Math.PI+90,size=blend(20,16,wide),iconWidth=shipArt?size*Math.min(1,shipArt.ratio):0,iconHeight=shipArt?size*Math.min(1,1/shipArt.ratio):0;
+    function shipIcon(point,offscreen=false){return `<g class="map-your-ship ${offscreen?'map-offscreen-ship':''}" transform="translate(${point.x},${point.y})" data-ship-type="${state.shipType}" data-world-x="${state.shipPosition.x}" data-world-y="${state.shipPosition.y}" aria-label="${escape(state.shipName)}, your current ship${offscreen?', outside this view':''}"><circle r="${offscreen?9:blend(11,9,wide)}"/>${shipArt?`<image href="${shipArt.url}" x="${-iconWidth/2}" y="${-iconHeight/2}" width="${iconWidth}" height="${iconHeight}" transform="rotate(${angle})"/>`:'<circle class="map-ship-loading" r="2"/>'}${camera.span<45&&!offscreen?'<text x="15" y="-10">YOU</text>':''}</g>`;}
+    markup+=onScreen(ship)?shipIcon(ship):shipIcon({x:clamp(ship.x,18,width-18),y:clamp(ship.y,45,height-legendHeight-48)},true);
+    const focused=svg.contains(document.activeElement)?document.activeElement.closest('[data-system]'):null,focusSystem=focused?.dataset.system,focusBody=focused?.dataset.body;
+    svg.innerHTML=markup;
+    if(focusSystem)svg.querySelector(`[data-system="${focusSystem}"]${focusBody!==undefined?`[data-body="${focusBody}"]`:':not([data-body])'}`)?.focus({preventScroll:true});
+    root.querySelector('.map-scale').textContent=`${wide>.92?'All systems':camera.span<20?'Local area':camera.span<100?'Solar system':'Nearby systems'} · ${number(spacing*1000)} units / grid`;
+    if(moving)requestDraw();
+  }
+
+  root.addEventListener('click', event => {
+    const button = event.target.closest('[data-action]');
+    if (button && !button.disabled) {
+      const action = button.dataset.action;
+      if (action === 'close') close();
+      else if (action === 'center') centerOnShip();
+      else if (action === 'in' || action === 'out') {if(!zoomHeld)zoom(action==='in'?1/1.32:1.32);zoomHeld=false;}
+      else if (action === 'marker') { const key=markerID(); if(markers[key])delete markers[key];else markers[key]=true;try{localStorage.setItem(markerKey,JSON.stringify(markers));}catch{}updateInfo();requestDraw(); }
+      else travel(action);
+    }
+  });
+  root.addEventListener('pointerdown',event=>{
+    const action=event.target.closest('[data-action]')?.dataset.action;
+    if(event.button!==0||!['in','out'].includes(action))return;
+    stopZoomHold();zoomHeld=false;
+    zoomDelay=setTimeout(()=>{zoomHeld=true;zoom(action==='in'?1/1.12:1.12);zoomRepeat=setInterval(()=>zoom(action==='in'?1/1.12:1.12),75);},230);
+  });
+  addEventListener('pointerup',stopZoomHold);
+  addEventListener('pointercancel',stopZoomHold);
+  svg.addEventListener('wheel', event => {
+    event.preventDefault();
+    const box=svg.getBoundingClientRect();
+    zoom(Math.exp(clamp(event.deltaY,-200,200)*.0025),{x:event.clientX-box.left,y:event.clientY-box.top});
+  }, {passive:false});
+  svg.addEventListener('pointerdown', event => {
+    if(event.button!==0)return;
+    hover.hidden=true;
+    drag={x:event.clientX,y:event.clientY,camera:{...camera},target:event.target.closest('[data-system]'),moved:false};
+    svg.setPointerCapture(event.pointerId);
+  });
+  svg.addEventListener('pointermove', event => {
+    if(!drag){
+      const target=event.target.closest('[data-system]');
+      if(!target){hover.hidden=true;return;}
+      const system=state.nodes.find(node=>node.id===Number(target.dataset.system));
+      if(!system){hover.hidden=true;return;}
+      const name=target.dataset.body!==undefined?solBodies().find(body=>body.id===Number(target.dataset.body))?.name:systemName(system),welcome=reception(system);
+      hover.innerHTML=`<strong>${escape(name)}</strong><span>${escape(welcome.text)}${system.known?` · Standing ${signed(system.prestige)}`:''}</span>${system.status==='Forbidden'?'<small>Restricted space</small>':''}`;
+      hover.dataset.tone=welcome.tone;hover.hidden=false;
+      const bounds=viewport.getBoundingClientRect();hover.style.left=`${clamp(event.clientX-bounds.left+13,8,Math.max(8,viewport.clientWidth-hover.offsetWidth-8))}px`;hover.style.top=`${clamp(event.clientY-bounds.top+14,8,Math.max(8,viewport.clientHeight-hover.offsetHeight-8))}px`;
+      return;
+    }
+    const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
+    if(Math.hypot(dx,dy)<4&&!drag.moved)return;
+    drag.moved=true;followShip=false;
+    const view=geometry(drag.camera.span);
+    camera={...drag.camera,x:drag.camera.x-dx/view.scaleX,y:drag.camera.y-dy/view.scaleY};
+    goal={...camera};requestDraw();
+  });
+  svg.addEventListener('pointerleave',()=>{hover.hidden=true;});
+  svg.addEventListener('pointerup', event => {
+    if(!drag)return;
+    const {target,moved}=drag;drag=null;
+    if(svg.hasPointerCapture(event.pointerId))svg.releasePointerCapture(event.pointerId);
+    if(target&&!moved)selectDestination(target.dataset.system,target.dataset.body);
+  });
+  svg.addEventListener('pointercancel',()=>{drag=null;});
+  svg.addEventListener('dblclick', event => {
+    const target=event.target.closest('[data-system]');if(!target)return;
+    selectDestination(target.dataset.system,target.dataset.body);
+    const node=selectedNode();followShip=false;
+    goal=selected.body!==undefined?{x:node.x,y:node.y,span:6}:systemAreaView(node);requestDraw();
+  });
+  svg.addEventListener('keydown', event => {
+    const target=event.target.closest('[data-system]');
+    if(target&&(event.key==='Enter'||event.key===' ')){event.preventDefault();selectDestination(target.dataset.system,target.dataset.body);root.querySelector('[data-action="navigate"]').focus();}
+  });
+  root.addEventListener('keydown', event => {
+    if(event.key==='Tab'){
+      const targets=[...root.querySelectorAll('button:not(:disabled):not([hidden]),[tabindex="0"]')];
+      const first=targets[0],last=targets[targets.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+    }else if(event.key==='+'||event.key==='='){event.preventDefault();zoom(1/1.32);}
+    else if(event.key==='-'){event.preventDefault();zoom(1.32);}
+    else if(event.code==='Home'){event.preventDefault();centerOnShip();}
+  });
+  document.addEventListener('keydown',event=>{
+    if(root.hidden||event.repeat)return;
+    if(event.key==='Escape'||event.code==='KeyM'){
+      event.preventDefault();event.stopImmediatePropagation();close();
+    }
+  },true);
+  new ResizeObserver(requestDraw).observe(viewport);
+  mapButton.onclick=open;
+  window.nativeGalaxyMap={open,close,refresh,get isOpen(){return !root.hidden;}};
+  addEventListener('pagehide',()=>{clearInterval(timer);cancelAnimationFrame(frame);stopZoomHold();});
 })();

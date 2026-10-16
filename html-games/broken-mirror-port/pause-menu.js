@@ -41,6 +41,7 @@
   addEventListener('keydown',event=>{
     if(event.key==='Escape'){
       if(!document.getElementById('startup').hidden||event.repeat)return;
+      if(window.nativeGalaxyMap?.isOpen){event.preventDefault();event.stopImmediatePropagation();window.nativeGalaxyMap.close();return;}
       if(window.nativeSetup?.active){event.preventDefault();event.stopImmediatePropagation();window.nativeSetup.back();return;}
       event.preventDefault();event.stopImmediatePropagation();if(!overlay.hidden){if(!options.hidden)show('home');else close();}else show();return;
     }
