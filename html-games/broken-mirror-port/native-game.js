@@ -123,7 +123,7 @@ function advanceLocalCruise(dt,now){
 let lastEconomySave=0;
 // Keep collision and steering steps small while consuming ordinary slow frames in full.
 function advanceSimulation(dt,now){
- if(!game||window.nativeSimulation.blocked()||!(dt>0))return;
+ if(!game||window.nativeSimulation.blocked()||travelling()||!(dt>0))return;
  const count=Math.ceil(dt/(1/60)),step=dt/count;
  for(let i=0;i<count;i++){
   window.nativeSimulation.advance(game,step);
@@ -145,7 +145,7 @@ function advanceSimulation(dt,now){
 }
 // Returning from a hidden tab must not advance its suspended interval.
 document.addEventListener('visibilitychange',()=>{last=performance.now()});
-function draw(frameTime){const dt=window.nativeSimulation.blocked()?0:Math.max(0,Math.min(.25,(frameTime-last)/1000));last=frameTime;starTime+=dt;const now=window.nativeSimulation.now(game);advanceSimulation(dt,now);const {w,h,safeBottom}=size(),warpFlight=window.vexedWarp.flightEffect,zoom=1;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0,frameTime-last),dt=window.nativeSimulation.blocked()?0:Math.max(0,Math.min(.25,frameMs/1000));last=frameTime;starTime+=dt;const now=window.nativeSimulation.now(game);advanceSimulation(dt,now);const simulationMs=performance.now()-frameStarted,renderStarted=performance.now();const recordFrame=()=>window.nativeSimulationMetrics?.record(game,{frame:frameMs,simulation:simulationMs,render:performance.now()-renderStarted,mode:devGalaxyView?'map':'flight'});const {w,h,safeBottom}=size(),warpFlight=window.vexedWarp.flightEffect,zoom=1;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
  if(game?.system===1&&!paused()&&!document.hidden&&!travelling()){
   const arrived=window.vexedSolFlight?.nearestArrival(game);
   if(arrived){updateVisuals();save(true);message(`Approaching ${arrived.name}. ${arrived.port?'Local services are available nearby.':'No port is available here.'}`);window.nativeSystemHub?.refresh();}
@@ -155,7 +155,7 @@ function draw(frameTime){const dt=window.nativeSimulation.blocked()?0:Math.max(0
   planetHit=null;planetHits=[];
   window.nativeGalaxyOverview.paint(ctx,{w,h},game);
   window.nativeRadar?.paint(game,false);
-  requestAnimationFrame(draw);return;
+  recordFrame();requestAnimationFrame(draw);return;
  }
  const solPosition=game?.system===1?window.vexedSolFlight?.shipPosition(game):null;
  const cameraX=(solPosition?.x??game?.x??0)+(warpFlight?.cameraX||0),cameraY=(solPosition?.y??game?.y??0)+(warpFlight?.cameraY||0),cx=w/2,cy=h/2;
@@ -201,7 +201,7 @@ function draw(frameTime){const dt=window.nativeSimulation.blocked()?0:Math.max(0
  if(game.landed&&!warpFlight){ctx.fillStyle='#06101bdc';ctx.fillRect(0,0,w,h);ctx.textAlign='center';ctx.fillStyle='#e7f7ff';ctx.font='22px system-ui';ctx.fillText(`PORT OF ${sys(game.system).name.toUpperCase()}`,w/2,h/2-12);ctx.font='13px system-ui';ctx.fillStyle='#9db8ce';ctx.fillText('Docked · open Trade to buy and sell cargo',w/2,h/2+18);ctx.textAlign='left'}
  }
  window.nativeRadar?.paint(game,!!game&&modal.hidden&&!travelling()&&!paused()&&!window.nativeGalaxyMap?.isOpen&&!window.nativeSystemHub?.active&&!window.nativePlanetEncounter?.active);
- requestAnimationFrame(draw)}requestAnimationFrame(draw);
+ recordFrame();requestAnimationFrame(draw)}requestAnimationFrame(draw);
 function showMap(){if(game&&!busy()){window.nativeSystemHub?.close(false);window.nativePlanetEncounter?.close(false);window.nativeGalaxyMap.open()}}
 function openInventory(){if(!game||travelling()||window.nativePause?.active||!modal.hidden||window.nativeSystemHub?.active||window.nativePlanetEncounter?.active||window.nativeGalaxyMap?.isOpen)return;keys={};cancelTargetPress();window.nativeShipInventory.open()}
 function trackManualSystem(id){
@@ -514,9 +514,33 @@ function setDevGalaxyView(enabled){
  spaceCamera=null;
  document.body.classList.toggle('dev-galaxy-view',devGalaxyView);
  galaxyReturn.hidden=!devGalaxyView;
- window.nativeGalaxyOverview?.setActive(devGalaxyView);
+ window.nativeGalaxyOverview?.setActive(devGalaxyView,game);
 }
 galaxyReturn.onclick=()=>setDevGalaxyView(false);
+function inspectNpcLocally(state,id,report){
+ if(state!==game||!game?.devMode||busy())return {ok:false,error:'Local inspection requires an active Dev game.'};
+ const entry=report||window.nativeShipSystems.inspectAll(game).find(ship=>String(ship.id)===String(id));
+ if(!entry)return {ok:false,error:'Ship unavailable.'};
+ const system=Number(entry.system||entry.entity?.system||game.system),anchor=window.nativeManualFlight.anchor(system)||{x:0,y:0};
+ const galaxy=entry.galaxy||entry.galaxyPosition||entry.position||{x:anchor.x+entry.x,y:anchor.y+entry.y};
+ if(!Number.isFinite(galaxy.x)||!Number.isFinite(galaxy.y))return {ok:false,error:'Ship position unavailable.'};
+ game.system=system;game.planet=sys(system).name;game.localBody=3;
+ game.x=galaxy.x-anchor.x-150;game.y=galaxy.y-anchor.y+100;game.speed=0;game.vx=0;game.vy=0;game.landed=false;
+ game.localCruise=null;delete game.arrivalApproach;keys={};cancelTargetPress();
+ window.nativeCombatShots.cancel();window.nativeSystemHub?.close(false);window.nativeGalaxyMap?.close(false);
+ window.vexedSpace.enterSystem(system,true);spaceCamera=null;setDevGalaxyView(false);modal.hidden=true;
+ updateVisuals();refresh();save(true);message(`Dev inspection: ${entry.name||id}. NPC task continues unchanged.`);
+ return {ok:true,id:entry.id};
+}
+window.nativeGalaxyOverview?.configure({visit:inspectNpcLocally});
+function startFreighterDemo(){
+ if(!game?.devMode||busy())return {ok:false,error:'Begin a Dev game first.'};
+ const result=window.nativeNpcLives.startDemo(game);
+ if(result.ok===false){toast(result.error);return result;}
+ setDevGalaxyView(true);window.nativeGalaxyOverview.select(result.id);window.nativeGalaxyOverview.track(result.id);
+ close();save(true);message('Freighter demonstration selected. Inspect locally or watch the same delivery on the map.');return result;
+}
+window.nativeNpcDev={getState:()=>game?.devMode?game:null,visit:id=>inspectNpcLocally(game,id),demo:startFreighterDemo,showMap:()=>{if(game?.devMode)setDevGalaxyView(true);}};
 function devTools(){
  if(!game?.devMode||busy())return;
  window.nativeGalaxyMap?.close(false);
@@ -528,6 +552,7 @@ function devTools(){
  const galaxyButton=document.createElement('button');galaxyButton.id='galaxy-map-button';galaxyButton.type='button';galaxyButton.textContent=devGalaxyView?'Return to flight view':'View whole galaxy';
  dialog.querySelector('.dev-system-group').before(galaxyButton);
  galaxyButton.onclick=()=>{setDevGalaxyView(!devGalaxyView);close();};
+ const freightButton=document.createElement('button');freightButton.id='dev-freighter-life-button';freightButton.type='button';freightButton.textContent='Follow a persistent freighter delivery';galaxyButton.after(freightButton);freightButton.onclick=startFreighterDemo;
  const miningButton=document.createElement('button');miningButton.id='dev-civilian-mining-button';miningButton.type='button';miningButton.textContent='Watch civilian mining at Earth';galaxyButton.after(miningButton);
  miningButton.onclick=()=>{game.system=1;game.planet=sys(1).name;game.localBody=3;game.x=0;game.y=0;game.speed=0;game.landed=false;game.localCruise=null;game.arrivalApproach=null;window.vexedSpace.enterSystem(1,true);spaceCamera=null;setDevGalaxyView(false);const ready=window.nativeCivilianTraffic.startOreDisputeDemo(game);updateVisuals();refresh();save(true);close();const notice=ready?'A civilian is mining near Earth. Watch the other ship approach and steal its ore.':'Asteroids are still loading. The miner and ore thief will start when they are ready.';message(notice);toast(notice);};
  const disputeButton=document.createElement('button');disputeButton.id='dev-civilian-dispute-button';disputeButton.type='button';disputeButton.textContent='Watch ore theft dispute at Earth';miningButton.after(disputeButton);

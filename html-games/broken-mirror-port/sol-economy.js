@@ -32,10 +32,36 @@
   const solGovernmentId=Number(world.systems.find(system=>system.id===1)?.governmentId)||1;
   let targetId=null,tugSelectedAt=0;
   const tugStats=()=>window.VexedMirrorWorld.ships.find(ship=>ship.id===10);
+  const lifeNow=economy=>Number(economy.processingAt??economy.lifeClock)||0;
+  function lifeEvent(economy,ship,kind,message){
+    ship.recentEvents||=[];ship.recentEvents.unshift({at:lifeNow(economy),kind,message});ship.recentEvents.length=Math.min(16,ship.recentEvents.length);
+  }
+  function ensureLives(economy,state){
+    if(!Number.isFinite(economy.lifeClock))economy.lifeClock=window.nativeSimulation?.seconds(state)||0;
+    economy.lifeMetrics||={detailed:0,distant:0,distantUpdates:0,scheduledEvents:0,deferred:0};
+    for(const ship of economy.freighters)if(ship.lifeVersion!==1){
+      Object.assign(ship,{lifeVersion:1,identity:`tug:${ship.id}`,name:`Sol Freight ${String(ship.id+1).padStart(2,'0')}`,role:'freight',homeBase:{system:1,port:ship.port},system:1,credits:0,recentEvents:[]});
+      ship.cargoOwner=ship.ownerGovernmentId;ship.weapons||=[];
+      window.nativeWeaponLoadout?.ensure(state,ship,[]);
+      lifeEvent(economy,ship,'registered','Existing Sol fleet identity retained; internal company freight.');
+      syncTask(economy,ship);
+    }
+    return economy;
+  }
+  function syncTask(economy,ship){
+    const job=ship.assignment,old=ship.task;
+    if(!old||old.status!=='active'||old.kind!==(job?'freight':'idle')||old.fromPort!==job?.from||old.toPort!==job?.to||old.good!==job?.good){
+      ship.taskSequence=(ship.taskSequence||0)+1;
+      ship.task={id:`tug:${ship.id}:${ship.taskSequence}`,kind:job?'freight':'idle',reason:job?'Deliver available surplus to an unmet Sol port shortage.':'No affordable surplus meets a port shortage.',fromPort:job?.from,toPort:job?.to,good:job?.good,requirements:job?{stock:job.tons,capacity:160}:null,startedAt:lifeNow(economy),status:'active',completion:'Dock and transfer carried cargo once.',failure:'Ship destroyed or disabled; loaded cargo remains stranded or is lost.'};
+    }
+    ship.task.phase=ship.phase;ship.task.progress=Number(ship.progress)||0;
+    if(['disabled','destroyed'].includes(ship.phase)){ship.task.status='failed';ship.task.failureReason=ship.phase;}
+  }
   function disable(economy,ship){
     if(ship.phase==='destroyed'||ship.phase==='disabled'||ship.hull<=0)return;
     ship.phase='disabled';ship.speed=0;ship.turnTimer=0;
     note(economy,`Tug ${ship.id+1} disabled. Engines and lights offline; cargo stranded in space.`);
+    ship.lifeLeg=null;ship.lifeEventAt=null;syncTask(economy,ship);lifeEvent(economy,ship,'disabled','Engines disabled; loaded cargo is stranded aboard, no destination stock awarded.');
   }
   const tugDimensions=()=>window.nativeShipDefinitions.dimensions({shipType:10},'tug');
   const center = id => ({x:coords[id][0]-220,y:coords[id][1]+75});
@@ -78,6 +104,7 @@
   }
   const qty = value => Math.max(0,Math.floor(Number(value)||0));
   const stock = (economy,port,good) => qty(economy.ports[port]?.[good]);
+  const availableStock=(economy,port,good)=>Math.max(0,stock(economy,port,good)-qty(economy.stockReserved?.[port]?.[good]));
   const distance = (a,b) => Math.hypot(coords[a][0]-coords[b][0],coords[a][1]-coords[b][1]);
   function handlingTime(economy,port,tons,ship,unloading=false) {
     const busy=economy.freighters.filter(other=>other!==ship&&other.port===port&&['loading','unloading'].includes(other.phase)).length;
@@ -89,7 +116,7 @@
     return economy.freighters.reduce((sum,other)=>sum+(other!==except && other.assignment?.to===port && other.assignment.good===good ? qty(other.assignment.tons) : 0),0);
   }
   function candidate(economy,from,to,good,ship) {
-    const surplus=stock(economy,from,good)-targetStock[from][good];
+    const surplus=availableStock(economy,from,good)-targetStock[from][good];
     const shortage=targetStock[to][good]-stock(economy,to,good)-inbound(economy,to,good,ship);
     const tons=Math.floor(Math.min(160,surplus,shortage));
     if(from===to||tons<10)return null;
@@ -112,11 +139,12 @@
   function setCourse(ship,to) {
     ship.from=ship.port;ship.to=to;ship.pathStart={x:ship.x,y:ship.y};ship.path=route(ship.pathStart,station(to,ship.id));
     ship.routeIndex=0;ship.progress=0;ship.turnTimer=6;ship.phase='turning';ship.speed=0;
+    ship.lifeLeg=null;ship.lifeEventAt=null;
   }
   function beginLoading(economy,ship) {
     const job=ship.assignment;
     if(!job||job.from!==ship.port){dispatch(economy,ship);return;}
-    const available=stock(economy,job.from,job.good)-targetStock[job.from][job.good];
+    const available=availableStock(economy,job.from,job.good)-targetStock[job.from][job.good];
     const needed=targetStock[job.to][job.good]-stock(economy,job.to,job.good)-inbound(economy,job.to,job.good,ship);
     const tons=Math.floor(Math.min(job.tons,available,needed));
     if(tons<10){dispatch(economy,ship);return;}
@@ -125,11 +153,12 @@
   function dispatch(economy,ship) {
     ship.assignment=null;ship.good=null;ship.tons=0;
     const job=bestJob(economy,ship,true)||bestJob(economy,ship);
-    if(!job) {ship.phase='waiting';ship.dwell=5;ship.from=ship.port;ship.to=ship.port;return;}
+    if(!job) {ship.phase='waiting';ship.dwell=5;ship.from=ship.port;ship.to=ship.port;syncTask(economy,ship);return;}
     ship.assignment={from:job.from,to:job.to,good:job.good,tons:job.tons};ship.good=job.good;
     if(job.from===ship.port) {
       ship.from=ship.port;ship.to=job.to;beginLoading(economy,ship);
     } else setCourse(ship,job.from);
+    syncTask(economy,ship);
   }
   function repairShip(ship) {
     if(!ports.includes(ship.port))ship.port=ship.from;
@@ -203,7 +232,7 @@
         for(const ship of economy.freighters)ship.ownerGovernmentId=Number(ship.ownerGovernmentId)||solGovernmentId;
         economy.version=8;
       }
-      return economy;
+      return ensureLives(economy,state);
     }
     const inventory={};
     for(const port of ports)inventory[port]=goods.map((_,i)=>i===5?30:12);
@@ -217,11 +246,11 @@
     const freighters=lanes.map((lane,id)=>({id,port:lane.a,from:lane.a,to:lane.a,good:null,tons:0,progress:0,phase:'waiting',dwell:0,turnTimer:0,routeIndex:0,path:[],x:station(lane.a,id).x,y:station(lane.a,id).y,heading:-Math.PI/2,speed:0,assignment:null,hull:tugStats().hull,shields:tugStats().shields,rebuild:0,ownerGovernmentId:solGovernmentId}));
     state.solEconomy={version:8,ports:inventory,clock:0,freighters,log:[]};
     for(const ship of freighters)dispatch(state.solEconomy,ship);
-    return state.solEconomy;
+    return ensureLives(state.solEconomy,state);
   }
   function note(economy,message) {economy.log.unshift(message);economy.log.length=Math.min(economy.log.length,12);}
   function beginRebuild(economy,ship){
-    if(ship.phase!=='destroyed'||ship.rebuild>0||buildMaterials.some(([good,amount])=>stock(economy,5,good)<amount))return false;
+    if(ship.phase!=='destroyed'||ship.rebuild>0||buildMaterials.some(([good,amount])=>availableStock(economy,5,good)<amount))return false;
     for(const [good,amount] of buildMaterials)economy.ports[5][good]-=amount;
     ship.rebuild=120;
     note(economy,`Mars began constructing replacement Tug ${ship.id+1}.`);
@@ -233,6 +262,9 @@
       hull:tugStats().hull,shields:tugStats().shields,shieldFlash:null,phase:'waiting',rebuild:0,dwell:3,
       assignment:null,good:null,tons:0,handlingTons:0,path:[],routeIndex:0,progress:0});
     note(economy,`Mars launched replacement Tug ${ship.id+1}.`);
+    ship.lifeGeneration=(ship.lifeGeneration||0)+1;ship.lifeLeg=null;ship.lifeEventAt=null;
+    lifeEvent(economy,ship,'replacement',`Replacement hull generation ${ship.lifeGeneration}; previous cargo was not restored.`);
+    syncTask(economy,ship);
   }
   function destroy(economy,ship,stage){
     const lost=ship.tons,good=ship.good;
@@ -240,6 +272,7 @@
       handlingTons:0,assignment:null,path:[]});
     if(targetId===ship.id)targetId=null;
     note(economy,`Tug ${ship.id+1} destroyed${lost?`; ${lost} t of ${goods[good]} lost in space`:''}.`);
+    ship.lifeLeg=null;ship.lifeEventAt=null;syncTask(economy,ship);lifeEvent(economy,ship,'destroyed',`${lost||0} t of carried stock lost; destination receives nothing.`);
     beginRebuild(economy,ship);
   }
   function hit(state,id,damage,impact={}){
@@ -261,7 +294,7 @@
   function produce(economy) {
     const p=economy.ports;
     const make=(port,output,amount,inputs=[])=>{
-      if(inputs.some(([good,needed])=>stock(economy,port,good)<needed))return;
+      if(inputs.some(([good,needed])=>availableStock(economy,port,good)<needed))return;
       for(const [good,needed] of inputs)p[port][good]-=needed;
       p[port][output]=Math.min(9999,stock(economy,port,output)+amount);
     };
@@ -270,63 +303,107 @@
     make(5,8,3,[[1,4],[2,3],[3,1],[7,1]]);
     make(7,3,6,[[2,4]]);make(8,4,9);make(9,4,10);
     make(10,3,3,[[2,2]]);
-    for(const port of ports)for(const good of [4,5,6])if(port!==3&&port!==2&&port!==8&&port!==9)p[port][good]=Math.max(0,p[port][good]-1);
+    for(const port of ports)for(const good of [4,5,6])if(port!==3&&port!==2&&port!==8&&port!==9&&availableStock(economy,port,good)>0)p[port][good]=Math.max(0,p[port][good]-1);
   }
   function load(economy,ship) {
     const job=ship.assignment;
     if(!job||job.from!==ship.port){dispatch(economy,ship);return;}
-    const available=stock(economy,job.from,job.good)-targetStock[job.from][job.good];
+    const available=availableStock(economy,job.from,job.good)-targetStock[job.from][job.good];
     const needed=targetStock[job.to][job.good]-stock(economy,job.to,job.good)-inbound(economy,job.to,job.good,ship);
     const tons=Math.floor(Math.min(job.tons,ship.handlingTons||job.tons,available,needed));
     if(tons<10){dispatch(economy,ship);return;}
     economy.ports[job.from][job.good]-=tons;
     ship.tons=tons;job.tons=tons;ship.good=job.good;
     note(economy,`${names[job.from]} loaded ${tons} t of ${goods[job.good]} aboard Tug ${ship.id+1} for ${names[job.to]}.`);
+    lifeEvent(economy,ship,'loaded',`Loaded ${tons} t of ${goods[job.good]} from ${names[job.from]} inventory for ${names[job.to]}.`);
     setCourse(ship,job.to);
   }
-  function steer(ship,dt) {
-    const result=window.nativeShipMotion.followPath(ship,ship.path,ship.routeIndex,(window.nativeShipDefinitions.get(10,'tug').movement||window.nativeShipMotion.profiles.tug()),dt,{start:ship.pathStart});
-    ship.routeIndex=result.index;ship.progress=result.progress;
-    return result.arrived;
+  function scheduleTug(economy,ship,at){
+    ship.lifeLeg=null;
+    if(ship.phase==='disabled'){ship.lifeEventAt=null;return;}
+    if(ship.phase==='travel'){
+      const goal=ship.path[ship.routeIndex];
+      if(goal){ship.lifeLeg=window.nativeShipMotion.planLeg(ship,goal,window.nativeShipDefinitions.get(10,'tug').movement||window.nativeShipMotion.profiles.tug(),at);ship.lifeEventAt=at+ship.lifeLeg.duration;return;}
+      ship.lifeEventAt=at;return;
+    }
+    const delay=ship.phase==='destroyed'?(ship.rebuild||5):ship.phase==='turning'?(ship.turnTimer||0):ship.dwell||0;
+    ship.lifeEventAt=at+Math.max(.001,delay);
   }
-  function advance(state,dt) {
-    const economy=initialize(state);window.nativeShipEffects.prepare(10,'tug');
-    if(window.nativeSimulation.blocked()||!Number.isFinite(dt)||dt<=0)return false;
-    const elapsed=Math.min(dt,1);
-    economy.clock+=elapsed;
-    let changed=false;
-    while(economy.clock>=30){economy.clock-=30;produce(economy);changed=true;}
-    for(const ship of economy.freighters) {
-      ship.previousX=ship.x;ship.previousY=ship.y;
-      if(ship.phase==='destroyed') {
-        if(ship.rebuild>0){ship.rebuild=Math.max(0,ship.rebuild-elapsed);if(ship.rebuild===0){finishRebuild(economy,ship);changed=true;}}
-        else if(beginRebuild(economy,ship))changed=true;
-      } else if(ship.phase==='disabled') {
-        ship.speed=0;
-      } else if(ship.phase==='waiting') {
-        ship.dwell-=elapsed;
-        if(ship.dwell<=1e-6){dispatch(economy,ship);changed=true;}
-      } else if(ship.phase==='loading') {
-        ship.dwell-=elapsed;
-        if(ship.dwell<=1e-6){load(economy,ship);changed=true;}
-      } else if(ship.phase==='unloading') {
-        ship.dwell-=elapsed;
-        if(ship.dwell<=1e-6) {
-          if(ship.tons){economy.ports[ship.port][ship.good]=Math.min(9999,stock(economy,ship.port,ship.good)+ship.tons);note(economy,`${names[ship.port]} received ${ship.tons} t of ${goods[ship.good]} from Tug ${ship.id+1}.`);}
-          ship.lastDestination={to:ship.port,good:ship.good};ship.tons=0;dispatch(economy,ship);changed=true;
-        }
-      } else if(ship.phase==='turning') {
-        const result=window.nativeShipMotion.step(ship,{goal:ship.path[0],hold:true},{...window.nativeShipMotion.profiles.tug(),turnRate:.45},elapsed);
-        ship.turnTimer=Math.max(0,ship.turnTimer-elapsed);
-        if(ship.turnTimer<=1e-6&&Math.abs(result.headingError)<.08){ship.phase='travel';changed=true;}
-      } else if(ship.phase==='travel'&&steer(ship,Math.min(elapsed,.05))) {
+  function tugEvent(economy,ship,at){
+    if(ship.phase==='destroyed'){
+      if(ship.rebuild>0){ship.rebuild=0;finishRebuild(economy,ship);}else beginRebuild(economy,ship);
+    }else if(ship.phase==='waiting')dispatch(economy,ship);
+    else if(ship.phase==='loading')load(economy,ship);
+    else if(ship.phase==='unloading'){
+      if(ship.tons){
+        economy.ports[ship.port][ship.good]=stock(economy,ship.port,ship.good)+ship.tons;
+        note(economy,`${names[ship.port]} received ${ship.tons} t of ${goods[ship.good]} from Tug ${ship.id+1}.`);
+        lifeEvent(economy,ship,'delivered',`Transferred ${ship.tons} t of ${goods[ship.good]} into ${names[ship.port]} inventory.`);
+      }
+      ship.lastDestination={to:ship.port,good:ship.good};ship.tons=0;ship.deliveries=(ship.deliveries||0)+1;ship.task.status='complete';dispatch(economy,ship);
+    }else if(ship.phase==='turning'){ship.turnTimer=0;ship.phase='travel';}
+    else if(ship.phase==='travel'){
+      if(ship.lifeLeg)window.nativeShipMotion.sampleLeg(ship,ship.lifeLeg,at);
+      ship.routeIndex++;
+      if(ship.routeIndex>=ship.path.length){
         ship.port=ship.to;ship.speed=0;ship.progress=1;
         if(ship.tons){ship.phase='unloading';ship.handlingTons=ship.tons;ship.dwell=handlingTime(economy,ship.port,ship.tons,ship,true);}
-        else {ship.from=ship.port;ship.to=ship.assignment?.to||ship.port;beginLoading(economy,ship);}
-        changed=true;
+        else{ship.from=ship.port;ship.to=ship.assignment?.to||ship.port;beginLoading(economy,ship);}
       }
     }
+    syncTask(economy,ship);scheduleTug(economy,ship,at);
+  }
+  function detail(state,ship){
+    if(state.system!==1||window.vexedWarp?.active)return 'distant';
+    const player=window.vexedSolFlight?.shipPosition(state)||state;
+    return Math.hypot(ship.x-player.x,ship.y-player.y)<2400?'detailed':'distant';
+  }
+  function advance(state,dt) {
+    if(window.nativeSimulation.blocked()||!Number.isFinite(dt)||dt<=0)return false;
+    const economy=initialize(state),before=economy.lifeClock,now=Math.max(before+dt,window.nativeSimulation.seconds(state));
+    economy.lifeClock=now;economy.clock+=now-before;
+    let changed=false,production=0;
+    // Production debt remains saved and drains over later frames; work per call is bounded.
+    while(economy.clock>=30&&production++<64){economy.clock-=30;produce(economy);changed=true;}
+    const metrics=economy.lifeMetrics;metrics.detailed=0;metrics.distant=0;metrics.deferred=0;metrics.scheduledEvents=0;metrics.distantUpdates=0;
+    for(const ship of economy.freighters){
+      if(ship.lifeEventAt==null&&ship.phase!=='disabled')scheduleTug(economy,ship,before);
+      const level=detail(state,ship);ship.simulationDetail=level;metrics[level==='detailed'?'detailed':'distant']++;
+    }
+    if(metrics.detailed&&!window.nativeShipEffects.ready?.(10,'tug'))window.nativeShipEffects.prepare(10,'tug');
+    let budget=96;
+    // Nine Sol fleet members: choose the next due event globally, independent of visibility.
+    while(budget-->0){
+      let next=null;
+      for(const ship of economy.freighters)if(ship.lifeEventAt!=null&&ship.lifeEventAt<=now+1e-8&&(!next||ship.lifeEventAt<next.lifeEventAt))next=ship;
+      if(!next)break;
+      const at=next.lifeEventAt;
+      economy.processingAt=at;
+      try{tugEvent(economy,next,at);}finally{delete economy.processingAt;}
+      metrics.scheduledEvents++;if(next.simulationDetail==='distant')metrics.distantUpdates++;changed=true;
+    }
+    for(const ship of economy.freighters){
+      if(ship.lifeEventAt!=null&&ship.lifeEventAt<=now)metrics.deferred++;
+      if(ship.lifeLeg&&(ship.simulationDetail==='detailed'||now-(ship.lifeSampleAt||0)>=1)){
+        window.nativeShipMotion.sampleLeg(ship,ship.lifeLeg,Math.min(now,ship.lifeEventAt));ship.lifeSampleAt=now;
+        if(ship.simulationDetail==='distant')metrics.distantUpdates++;
+      }
+      const legProgress=ship.lifeLeg?Math.max(0,Math.min(1,(now-ship.lifeLeg.startedAt)/Math.max(.001,ship.lifeLeg.duration))):0;
+      ship.task.phase=ship.phase;ship.task.progress=ship.lifeLeg?(ship.routeIndex+legProgress)/Math.max(1,ship.path.length):ship.progress||0;
+    }
+    metrics.totalEvents=(metrics.totalEvents||0)+metrics.scheduledEvents;metrics.totalDistantUpdates=(metrics.totalDistantUpdates||0)+metrics.distantUpdates;
     return changed;
+  }
+  function lifeDescriptors(state){
+    const economy=initialize(state),now=window.nativeSimulation?.seconds(state)||economy.lifeClock;
+    return economy.freighters.map(ship=>{
+      const pose={...ship};if(ship.lifeLeg)window.nativeShipMotion.sampleLeg(pose,ship.lifeLeg,Math.min(now,ship.lifeEventAt));
+      const anchor=window.nativeManualFlight?.anchor(1)||{x:0,y:0};
+      return {id:ship.identity,category:'tug',entity:ship,name:ship.name,role:ship.role,faction:ship.ownerGovernmentId,system:1,port:ship.port,x:pose.x,y:pose.y,heading:pose.heading,
+        galaxy:{x:anchor.x+pose.x,y:anchor.y+pose.y},detail:detail(state,pose),simulationDetail:detail(state,pose),phase:ship.phase,homeBase:ship.homeBase,
+        task:ship.task,cargo:ship.tons?{good:ship.good,tons:ship.tons}:null,credits:ship.credits,hull:ship.hull,shields:ship.shields,
+        nextActionAt:ship.lifeEventAt,recentEvents:ship.recentEvents,origin:{system:1,port:ship.from},destination:{system:1,port:ship.to},route:ship.path,eta:Math.max(0,(ship.lifeEventAt||now)-now)};
+    });
   }
   function price(state,port,good,buy) {
     const available = stock(initialize(state),port,good);
@@ -339,7 +416,7 @@
     const capacity=window.VexedMirrorWorld.ships.find(ship=>ship.id===state.shipType)?.cargo||0;
     const committed=(state.localContracts||[]).reduce((total,job)=>total+(Number(job.to)===to&&Number(job.good)===good?qty(job.tons):0),0);
     const demand=Math.max(0,targetStock[to][good]*5-stock(economy,to,good)-committed);
-    const available=Math.max(0,stock(economy,from,good)-(surplusOnly?targetStock[from][good]:0));
+    const available=Math.max(0,availableStock(economy,from,good)-(surplusOnly?targetStock[from][good]:0));
     const maxLoad=Math.max(0,Math.min(available,demand,capacity-used(state)));
     const rate=basePrices[good]*.25+distance(from,to)/400;
     return {demand,available,maxLoad,rate};
@@ -367,7 +444,7 @@
     const cost=price(state,port,g,buy)*n;
     const capacity=window.VexedMirrorWorld.ships.find(s=>s.id===state.shipType)?.cargo || 0;
     if(buy) {
-      if(stock(economy,port,g)<n) return {ok:false,error:'The port does not have that much cargo.'};
+      if(availableStock(economy,port,g)<n) return {ok:false,error:'The port does not have that much unreserved cargo.'};
       if(used(state)+n>capacity) return {ok:false,error:'Your cargo hold is full.'};
       if(!state.devMode&&state.latinum<cost) return {ok:false,error:'Not enough latinum.'};
       economy.ports[port][g]-=n;state.solFreightHold[g]=qty(state.solFreightHold[g])+n;
@@ -447,5 +524,5 @@
         hull:freighter.hull/Math.max(1,tugStats().hull),selectedAt:tugSelectedAt},x,y,zoom,cx);
     }
   }
-  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,dimensions:()=>tugDimensions(1)};
+  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1)};
 })();

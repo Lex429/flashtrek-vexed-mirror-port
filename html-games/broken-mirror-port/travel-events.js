@@ -14,8 +14,8 @@
     const maxHull = world.ships.find(ship => ship.id === next.shipType)?.hull || 100;
     const add = (kind, title, text, effects = {}) => events.push({kind, title, text, effects});
     next.antimatter -= game.devMode ? 0 : journey.fuel;
-    next.day += journey.travelDays;
-    window.nativePopulation.advanceDays(next,journey.travelDays,random);
+    if(window.nativeWorldTime)window.nativeWorldTime.advanceDays(next,journey.travelDays,random);
+    else{next.day+=journey.travelDays;window.nativePopulation.advanceDays(next,journey.travelDays,random);}
     next.system = target.id;next.planet = target.name;
     next.x = 0;next.y = 0;next.speed = 0;next.angle = -Math.PI / 2;next.landed = false;
     next.nav += (Math.floor(random() * 2) + 1) * .1;

@@ -1,18 +1,37 @@
 body.dev-galaxy-view #game-hud,body.dev-galaxy-view #native-radar,body.dev-galaxy-view #zoom-controls{display:none!important}
+body.dev-galaxy-view>footer{display:none!important}
 #dev-galaxy-return{position:absolute;right:14px;top:13px;z-index:6;border:1px solid #9ddfce;background:#103b42e8;color:#e7fffa;box-shadow:0 0 18px #6fffd02e}
 #dev-galaxy-return[hidden]{display:none}
 #galaxy-map-button{margin-top:12px;width:100%;border-color:#86cdbd;background:#17413e;color:#e8fff7}
 #dev-civilian-mining-button{margin-top:8px;width:100%;border-color:#d7aa68;background:#40301d;color:#fff0d2}
-#dev-galaxy-ships{position:absolute;z-index:5;right:0;top:0;bottom:0;width:36%;max-width:calc(300px * var(--game-scale,1));display:flex;flex-direction:column;gap:8px;padding:54px 12px 12px;background:#07131eef;border-left:1px solid #477386;color:#dbf4ff;font:12px system-ui,sans-serif}
+#dev-galaxy-ships{position:absolute;z-index:5;right:0;top:0;bottom:0;width:40%;max-width:340px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;padding:54px 12px 10px;background:#07131ef5;border-left:1px solid #477386;color:#dbf4ff;font:12px system-ui,sans-serif}
 #dev-galaxy-ships[hidden]{display:none}
 .dev-galaxy-ships-head{display:flex;justify-content:space-between;align-items:center;gap:8px;letter-spacing:.07em;color:#b5e9f6}
 .dev-galaxy-ships-head span{color:#f0df9e;letter-spacing:0;white-space:nowrap}
 #dev-galaxy-ships label{display:flex;flex-direction:column;gap:3px;color:#9fc3d0;font-size:11px}
 #dev-galaxy-ships select,#dev-galaxy-ships input{width:100%;min-width:0;padding:6px;border:1px solid #456576;border-radius:4px;background:#102638;color:#effaff;font:12px system-ui,sans-serif}
-.dev-galaxy-ship-list{min-height:0;flex:1;overflow:auto;scrollbar-color:#497789 #0b1a29}
-.dev-galaxy-ship{display:flex;flex-direction:column;gap:2px;padding:7px 3px;border-bottom:1px solid #284052}
+.dev-galaxy-ship-list{min-height:65px;flex:1;overflow:auto;scrollbar-color:#497789 #0b1a29}
+.dev-galaxy-ship{display:flex;width:100%;flex-direction:column;gap:2px;padding:7px 5px;border:0;border-bottom:1px solid #284052;border-radius:0;background:transparent;text-align:left;cursor:pointer;box-shadow:none}
+.dev-galaxy-ship:hover,.dev-galaxy-ship:focus-visible{background:#183849;outline:1px solid #78b7ce;outline-offset:-1px}
+.dev-galaxy-ship.selected{background:#224556;border-left:3px solid #ffe59a;padding-left:2px}
 .dev-galaxy-ship strong{color:#8ad8f3;font-size:12px}
 .dev-galaxy-ship.tug strong{color:#8ce5af}
 .dev-galaxy-ship span{color:#d0dce5;font-size:11px}
 .dev-galaxy-ship small{color:#95aebc;font-size:10px;letter-spacing:.04em}
 .dev-galaxy-legend{color:#9cb6c4;font-size:10px;line-height:1.35}
+.dev-galaxy-map-controls,.dev-galaxy-ship-actions{display:flex;gap:6px}
+.dev-galaxy-ship-actions{position:sticky;top:0;z-index:1;background:#07131e;padding:3px 0 8px}
+.dev-galaxy-map-controls button,.dev-galaxy-ship-actions button{flex:1;min-width:0;padding:6px 4px;border:1px solid #49758b;border-radius:3px;color:#dff8ff;background:#163449;font:11px system-ui,sans-serif;cursor:pointer}
+.dev-galaxy-ship-actions [data-visit]{border-color:#c7a563;color:#ffebbc;background:#46381e}
+.dev-galaxy-ship-actions button:disabled{cursor:default;opacity:.45}
+.dev-galaxy-inspector{flex:1.5;min-height:80px;overflow:auto;padding:7px 0;border-top:1px solid #567381;scrollbar-color:#497789 #0b1a29}
+.dev-galaxy-inspector h3{margin:0 0 3px;color:#ffdf8f;font-size:14px}
+.dev-galaxy-inspector p{margin:0 0 7px;color:#b0ccda;font-size:10px;line-height:1.4}
+.dev-galaxy-inspector dl{margin:0 0 8px}
+.dev-galaxy-inspector dl>div{display:grid;grid-template-columns:66px 1fr;gap:5px;margin:0 0 4px}
+.dev-galaxy-inspector dt{color:#83acbd;font-size:10px}
+.dev-galaxy-inspector dd{margin:0;color:#e1edf3;font-size:10px;overflow-wrap:anywhere;line-height:1.35}
+.dev-galaxy-inspector>strong{display:block;margin-top:9px;font-size:10px;color:#a7cfde}
+.dev-galaxy-ship-events{list-style:none;padding:0;margin:4px 0 0;font-size:10px;line-height:1.4;color:#bbd4de}
+.dev-galaxy-ship-events li{padding:3px 0;border-top:1px solid #1a3441}
+@media(max-width:600px){#dev-galaxy-ships{padding-right:7px;padding-left:7px;font-size:11px}.dev-galaxy-inspector dl>div{grid-template-columns:54px 1fr}.dev-galaxy-ship-actions{flex-direction:column}.dev-galaxy-legend{font-size:9px}}

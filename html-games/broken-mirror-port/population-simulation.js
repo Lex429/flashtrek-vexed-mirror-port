@@ -126,9 +126,10 @@
     if(!state||seconds<=0)return false;
     state.populationClock=(Number(state.populationClock)||0)+seconds;
     let changed=false;
-    while(state.populationClock>=tickSeconds){
-      state.populationClock-=tickSeconds;
-      const days=tickSeconds/secondsPerDay;
+    if(state.populationClock>=tickSeconds){
+      const ticks=Math.floor(state.populationClock/tickSeconds);
+      state.populationClock-=ticks*tickSeconds;
+      const days=ticks*tickSeconds/secondsPerDay;
       changed=advanceDays(state,days,random)||changed;
       state.populationDayFraction=(Number(state.populationDayFraction)||0)+days;
       if(state.populationDayFraction>=1){
@@ -140,5 +141,5 @@
     return changed;
   }
 
-  window.nativePopulation={initialize,advanceDays,advanceSeconds,animateDisplay,animateMetric};
+  window.nativePopulation={initialize,advanceDays,advanceSeconds,animateDisplay,animateMetric,secondsPerDay};
 })();

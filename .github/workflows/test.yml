@@ -1,4 +1,4 @@
-name: Shared ship systems
+name: Ship systems and persistent lives
 on:
   push:
   pull_request:
@@ -30,6 +30,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-contract.py
+      - name: Persistent freighter life, observer inspection and distant delivery
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-npc-lives.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:

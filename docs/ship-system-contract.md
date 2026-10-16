@@ -22,6 +22,10 @@ The live game and damage showcase share their weapon and shield shaders in
 | Asteroid hit points, asteroid destruction, mining progress and ore entitlement | `asteroid-combat.js`, registered through `ship-systems.js` | Choose mine/fire and collect completed simulation results |
 | Tug deliveries, assignments, cargo loss, rebuilding and economic consequences | `sol-economy.js` | Use shared mechanics; retain delivery policy |
 | Civilian jobs, trading, mining choices, retaliation, faction consequences and dialogue | `civilian-traffic.js` and `civilian-combat-ai.js` | Decide travel/dock/mine/trade/pursue/flee/fire |
+| Persistent civilian tasks, stock reservations, commercial transactions, interstellar journeys and distant scheduling | `npc-lives.js`, extending `civilianTraffic.ships` | Role policies choose useful work using the common task commands |
+| Scheduled local movement commands sampled at any detail level | `ship-motion.js` `planLeg` / `sampleLeg` | Choose a goal, definition movement profile and start time |
+| Calendar skips and conversion between days and job time | `world-time.js`, using the saved simulation clock | Advance a committed journey once; its presentation animation does not add economic time |
+| Lightweight ship inspection across registered categories | `ship-systems.js` `inspectAll`, `dev-galaxy-view.js` | Read authoritative position/task state; relocate the Dev observer only |
 
 `player-combat.js` is a compatibility adapter for shared definitions, damage and
 effects. It does not contain a second player damage model. In the active game,
@@ -253,3 +257,14 @@ local movement still uses the shared integrator. Asteroids use the common target
 interface but retain asteroid-specific textures, destruction, mining and ore
 consequences. Biological/special artwork effects remain the existing profile
 renderers behind the shared ship drawing boundary.
+
+## Persistent lives extension
+
+The [NPC life contract](npc-life-contract.md) specifies the saved task/journey
+schemas, real inventory and credit transfers, bounded scheduler, calendar policy,
+detail transitions, lightweight inspector adapters, and repeatable freighter
+demonstration. Ordinary civilian work now belongs to `npc-lives.js`; the civilian
+controller retains nearby combat, dialogue and explicitly tagged scripted demos.
+Sol freight still uses its original inventories, route policy and rebuild costs.
+It now stores life/task metadata and schedules the same shared local movement
+commands for nearby and distant ships. Rendering cannot advance any of these jobs.
