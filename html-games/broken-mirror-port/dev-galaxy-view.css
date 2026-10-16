@@ -1,0 +1,18 @@
+body.dev-galaxy-view #game-hud,body.dev-galaxy-view #native-radar,body.dev-galaxy-view #zoom-controls{display:none!important}
+#dev-galaxy-return{position:absolute;right:14px;top:13px;z-index:6;border:1px solid #9ddfce;background:#103b42e8;color:#e7fffa;box-shadow:0 0 18px #6fffd02e}
+#dev-galaxy-return[hidden]{display:none}
+#galaxy-map-button{margin-top:12px;width:100%;border-color:#86cdbd;background:#17413e;color:#e8fff7}
+#dev-civilian-mining-button{margin-top:8px;width:100%;border-color:#d7aa68;background:#40301d;color:#fff0d2}
+#dev-galaxy-ships{position:absolute;z-index:5;right:0;top:0;bottom:0;width:36%;max-width:calc(300px * var(--game-scale,1));display:flex;flex-direction:column;gap:8px;padding:54px 12px 12px;background:#07131eef;border-left:1px solid #477386;color:#dbf4ff;font:12px system-ui,sans-serif}
+#dev-galaxy-ships[hidden]{display:none}
+.dev-galaxy-ships-head{display:flex;justify-content:space-between;align-items:center;gap:8px;letter-spacing:.07em;color:#b5e9f6}
+.dev-galaxy-ships-head span{color:#f0df9e;letter-spacing:0;white-space:nowrap}
+#dev-galaxy-ships label{display:flex;flex-direction:column;gap:3px;color:#9fc3d0;font-size:11px}
+#dev-galaxy-ships select,#dev-galaxy-ships input{width:100%;min-width:0;padding:6px;border:1px solid #456576;border-radius:4px;background:#102638;color:#effaff;font:12px system-ui,sans-serif}
+.dev-galaxy-ship-list{min-height:0;flex:1;overflow:auto;scrollbar-color:#497789 #0b1a29}
+.dev-galaxy-ship{display:flex;flex-direction:column;gap:2px;padding:7px 3px;border-bottom:1px solid #284052}
+.dev-galaxy-ship strong{color:#8ad8f3;font-size:12px}
+.dev-galaxy-ship.tug strong{color:#8ce5af}
+.dev-galaxy-ship span{color:#d0dce5;font-size:11px}
+.dev-galaxy-ship small{color:#95aebc;font-size:10px;letter-spacing:.04em}
+.dev-galaxy-legend{color:#9cb6c4;font-size:10px;line-height:1.35}

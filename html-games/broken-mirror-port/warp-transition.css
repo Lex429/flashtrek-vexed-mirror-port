@@ -1,0 +1,63 @@
+#warp-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  container-type: size;
+  --warp-unit: min(1cqw, 1.333333cqh);
+  background: #000;
+  color: #dfedf5;
+  font-family: Arial, sans-serif;
+}
+#warp-transition[hidden], #warp-transition [hidden] { display: none !important; }
+.warp-space { position: absolute; inset: 0; width: 100%; height: 100%; }
+#warp-transition button { font: inherit; border-radius: calc(.4 * var(--warp-unit)); }
+.warp-kicker { display: block; font-size: calc(1.1 * var(--warp-unit)); letter-spacing: .16em; color: #8fb8c8; }
+.warp-report {
+  position: absolute; top: 10%; bottom: 10%; right: 3%; width: calc(49 * var(--warp-unit));
+  display: flex; flex-direction: column; gap: calc(1.25 * var(--warp-unit)); min-height: 0;
+  padding: calc(1.6 * var(--warp-unit)); border: 1px solid #6dc1d56b; border-radius: calc(.8 * var(--warp-unit));
+  background: linear-gradient(135deg,#133342e8,#081724f0);
+  backdrop-filter: blur(12px); box-shadow: 0 12px 50px #0008,inset 0 0 32px #72dff208;
+  animation: warp-report-enter .55s ease both;
+}
+.warp-report::before { content: ''; position: absolute; left: calc(1.6 * var(--warp-unit)); top: -1px; width: calc(9 * var(--warp-unit)); height: 2px; background: #91eaf0; box-shadow: 0 0 12px #50d8fb66; }
+.warp-report-heading { display: flex; align-items: center; justify-content: space-between; gap: calc(.6 * var(--warp-unit)); }
+.warp-report-heading .warp-kicker { font-size: calc(.95 * var(--warp-unit)); letter-spacing: .1em; }
+.warp-elapsed { display: flex; align-items: center; gap: calc(1.6 * var(--warp-unit)); border-bottom: 1px solid #7194a637; padding-bottom: calc(.8 * var(--warp-unit)); }
+.warp-elapsed > strong { font-size: calc(6.1 * var(--warp-unit)); line-height: .95; color: #efc283; font-weight: 400; font-variant-numeric: tabular-nums; }
+.warp-elapsed > div { display: flex; flex-direction: column; gap: calc(.6 * var(--warp-unit)); }
+.warp-elapsed span { font-size: calc(1.25 * var(--warp-unit)); letter-spacing: .12em; color: #d8e6ee; }
+.warp-elapsed b { font-size: calc(1.05 * var(--warp-unit)); font-weight: 400; color: #a3bccd; }
+.warp-destination { display: flex; align-items: center; gap: calc(1.4 * var(--warp-unit)); }
+.warp-destination [data-emblem] { width: calc(5.3 * var(--warp-unit)); height: calc(6 * var(--warp-unit)); display: grid; place-items: center; }
+.warp-destination [data-emblem] img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: screen; }
+.warp-destination [data-emblem] > span { font-size: calc(4 * var(--warp-unit)); color: #8fd3de; }
+.warp-destination h2 { margin: calc(.4 * var(--warp-unit)) 0; font-size: calc(2.55 * var(--warp-unit)); color: #e6f7ff; font-weight: 500; }
+.warp-destination [data-government] { font-size: calc(1.35 * var(--warp-unit)); color: #8eacbe; }
+.warp-destination .warp-kicker { font-size: calc(.9 * var(--warp-unit)); }
+.warp-readings { display: grid; grid-template-columns: 1fr 1fr; gap: calc(1 * var(--warp-unit)) calc(1.4 * var(--warp-unit)); margin: 0; padding: calc(1 * var(--warp-unit)) 0; border-top: 1px solid #7194a637; border-bottom: 1px solid #7194a637; }
+.warp-readings dt { color: #83a7bb; font-size: calc(1.1 * var(--warp-unit)); margin-bottom: calc(.35 * var(--warp-unit)); }
+.warp-readings dd { color: #dbeef6; font-size: calc(1.6 * var(--warp-unit)); margin: 0; font-variant-numeric: tabular-nums; }
+.warp-bulletins { min-height: 0; flex: 1; overflow: auto; scrollbar-width: thin; scrollbar-color: #47788c #091c2b; }
+.warp-bulletins h3 { font-size: calc(1.35 * var(--warp-unit)); font-weight: 500; color: #bcd8e6; margin: 0 0 calc(.9 * var(--warp-unit)); }
+.warp-bulletins ol { list-style: none; margin: 0; padding: 0; display: grid; gap: calc(.9 * var(--warp-unit)); }
+.warp-bulletins li { padding: calc(.65 * var(--warp-unit)) calc(.9 * var(--warp-unit)); border-left: 2px solid #76adc1; background: #79bce70a; }
+.warp-bulletins li.warp-event-warning { border-color: #e5b67b; }.warp-bulletins li.warp-event-success { border-color: #81d5b8; }
+.warp-bulletins strong { display: block; color: #d2e6f0; font-size: calc(1.3 * var(--warp-unit)); font-weight: 500; }
+.warp-bulletins p { margin: calc(.4 * var(--warp-unit)) 0 0; color: #93b1c2; font-size: calc(1.2 * var(--warp-unit)); line-height: 1.5; }
+.warp-report-footer { display: flex; justify-content: flex-end; align-items: center; gap: calc(1 * var(--warp-unit)); border-top: 1px solid #7194a637; padding-top: calc(1 * var(--warp-unit)); }
+#warp-transition .warp-continue { padding: calc(1.1 * var(--warp-unit)) calc(1.9 * var(--warp-unit)); color: #e6fdff; font-size: calc(1.65 * var(--warp-unit)); background: linear-gradient(110deg,#205465,#163e4f); border-color: #75cad8; box-shadow: inset 0 0 12px #57d9e414; }
+#warp-transition .warp-continue:hover { background: #286d80; }.warp-continue span { margin-left: calc(1.5 * var(--warp-unit)); }
+.warp-error { position: absolute; left: 47%; right: 3%; top: 25%; padding: calc(2.3 * var(--warp-unit)); border: 1px solid #bd8798; background: #201d2fee; border-radius: calc(.8 * var(--warp-unit)); }
+.warp-error h2 { font-size: calc(2.4 * var(--warp-unit)); }.warp-error p { font-size: calc(1.55 * var(--warp-unit)); line-height: 1.6; color: #b5c6d3; }
+.warp-error > div { display: flex; gap: calc(1 * var(--warp-unit)); }.warp-error button { padding: calc(1 * var(--warp-unit)); font-size: calc(1.4 * var(--warp-unit)) !important; }
+body.warping #game-hud, body.warping #notice { visibility: hidden; }
+#warp-transition[data-phase="departure"], #warp-transition[data-phase="arrival"] { background: transparent; pointer-events: none; }
+#warp-transition[data-phase="departure"] > *, #warp-transition[data-phase="arrival"] > * { visibility: hidden; }
+body.warping:has(#warp-transition[data-phase="departure"]) #game-hud,
+body.warping:has(#warp-transition[data-phase="arrival"]) #game-hud { visibility: visible; }
+@keyframes warp-report-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .warp-report { animation: none; } }
+
+@container (max-aspect-ratio:1/1){.warp-report{top:40%;bottom:3%;left:5%;right:5%;width:auto;--warp-unit:7px}.warp-error{left:5%;right:5%;top:40%}}

@@ -1,0 +1,6 @@
+#sol-flight-map{position:absolute;right:12px;bottom:54px;z-index:12;width:142px;height:158px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;background:#071824e8;border:2px solid #39728a;border-radius:6px;box-shadow:0 0 10px #64cce340,inset 0 0 12px #63d5ed25;color:#d8f5f7;pointer-events:none}
+#sol-flight-map[hidden]{display:none}
+.sol-radar-dial{width:104px;height:104px;display:grid;place-items:center;border:1px solid #4c8da5;border-radius:50%;background:radial-gradient(circle,#123b4c 0%,#092837 58%,#071c2b 100%);box-shadow:inset 0 0 14px #2a829340,0 0 9px #1b94b02b}
+#sol-radar-arrow{width:38px;height:48px;fill:#a8f0f7;filter:drop-shadow(0 0 5px #72dcec);transition:transform .12s linear}
+#sol-radar-distance{font:600 12px system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.03em;color:#b8e6ef}
+@media(max-width:620px){#sol-flight-map{right:6px;bottom:80px;width:104px;height:120px;gap:4px}.sol-radar-dial{width:78px;height:78px}#sol-radar-arrow{width:29px;height:38px}#sol-radar-distance{font-size:10px}}

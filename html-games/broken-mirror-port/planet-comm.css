@@ -1,0 +1,26 @@
+/* The panel image is Vexed Mirror's commpanel sprite, frame 4. */
+#planet-comm[hidden]{display:none}
+#planet-comm{position:absolute;inset:0;z-index:27;display:grid;place-items:center;background:#020b16a8;pointer-events:auto}
+.planet-comm-panel{position:absolute;left:50%;top:50%;width:407px;height:184px;transform:translate(-50%,-50%) scale(calc(var(--game-scale,1) * 1.35));transform-origin:center;background:url('assets/planet-comm-original.png') -50px -18px / 549px 429px no-repeat;color:#c9e6f2;font:9px Arial,sans-serif;box-shadow:0 10px 40px #000b}
+.planet-comm-panel button{position:absolute;padding:0;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.planet-comm-panel button:hover,.planet-comm-panel button:focus-visible{outline:1px solid #70d8f4;outline-offset:-1px;background:#6ce0ff26}
+.comm-surface{position:absolute;left:5px;top:6px;width:61px;height:62px;object-fit:cover}
+.comm-world{position:absolute;left:74px;top:7px;width:240px;height:78px;overflow:hidden;line-height:1.18}
+.comm-world strong{display:block;margin-bottom:2px;color:#e2faff;font-size:12px}
+.comm-world .comm-government{color:#70c5df}
+.comm-world p{margin:3px 0 0;max-height:43px;overflow:auto;scrollbar-width:thin}
+.comm-stats{position:absolute;left:75px;top:98px;width:94px;height:79px;display:flex;flex-direction:column;gap:4px;justify-content:center;overflow:hidden;color:#9fc6d7;font-size:9px}
+.comm-detail{position:absolute;left:173px;top:99px;width:140px;height:78px;overflow:auto;line-height:1.2;scrollbar-width:thin}
+.comm-detail strong{display:block;color:#e2faff;font-size:10px}
+.comm-detail small{display:block;margin-top:4px;color:#a0c0cf;font-size:8px}
+.comm-detail p{margin:4px 0}
+.planet-comm-panel .comm-action{left:10px;width:51px;height:13px;font-size:0}
+.comm-exit{top:98px}.comm-repair{top:116px}.comm-sell{top:135px}.comm-trade{top:154px}
+.planet-comm-panel .comm-resource{top:16px;width:28px;height:27px}
+.comm-resource-0{left:323px}.comm-resource-1{left:365px}
+.planet-comm-panel .comm-offer{width:29px;height:29px}
+.comm-offer-0{left:323px;top:54px}.comm-offer-1{left:365px;top:54px}
+.comm-offer-2{left:323px;top:94px}.comm-offer-3{left:365px;top:94px}
+.comm-offer-4{left:323px;top:134px}.comm-offer-5{left:365px;top:134px}
+.planet-comm-panel .comm-offer.empty{opacity:.35;cursor:default}
+.comm-help{position:absolute;left:74px;top:84px;width:240px;color:#8db9cc;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

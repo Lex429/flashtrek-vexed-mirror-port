@@ -1,0 +1,28 @@
+#modal:has(.dev-tools-grid){padding:12px}
+.dialog:has(.dev-tools-grid){display:flex;flex-direction:column;width:min(720px,100%);height:min(540px,100%);min-height:0;overflow:hidden;padding:14px;border:1px solid #6eafbda3;border-radius:6px;background:linear-gradient(145deg,#112f40,#081724 75%);box-shadow:0 22px 85px #000c,0 0 30px #58c8d01e}
+.dev-tools-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.dev-tools-head span{color:#87c9d5;font-size:10px;font-weight:700;letter-spacing:.15em}
+.dialog .dev-tools-head h2{margin:2px 0 0;font-size:22px;line-height:1}
+.dev-tools-head button{width:32px;height:32px;padding:0;flex:none;font-size:19px;line-height:1;color:#d5f3f7;border-color:#69b5c2;background:#123746}
+.dev-tools-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:12px;flex:1;min-height:0}
+.dev-ship-stage{position:relative;min-width:0;min-height:0;overflow:hidden;border:1px solid #589cab8a;border-radius:4px;background:radial-gradient(ellipse at 50% 48%,#28667c55,transparent 57%),linear-gradient(145deg,#061824,#0a2736)}
+.dev-ship-stage::before{content:"";position:absolute;inset:12% 10% 18%;border:1px solid #7bccd01d;border-radius:50%;pointer-events:none}
+.dev-ship-stage canvas,.dev-ship-stage img{position:absolute;inset:0;display:block;width:100%;height:100%}
+.dev-ship-stage canvas{z-index:1;filter:drop-shadow(0 0 16px #79dce54a)}
+.dev-ship-stage img{padding:36px 24px 54px;object-fit:contain;opacity:1;transition:opacity .18s;filter:drop-shadow(0 0 16px #79dce54a)}
+.dev-ship-stage canvas.ready+img{opacity:0;transition:none}
+.dev-preview-name{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:26px 14px 11px;background:linear-gradient(transparent,#051522d9);color:#e9fbfc;font-size:20px;font-weight:650;text-shadow:0 2px 12px #000}
+.dev-tools-controls{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
+.dev-tools-controls .dev-select{display:block;margin:0;color:#9dd7e1;font-size:10px;font-weight:700;letter-spacing:.11em}
+.dev-tools-controls .dev-select select{width:100%;margin-top:4px;padding:7px 9px;border:1px solid #64aab8;border-radius:4px;background:#0c2838;color:#e7f7fa;font-size:12px}
+.dev-preview-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.dev-preview-stats>div{display:flex;justify-content:space-between;align-items:baseline;gap:5px;padding:6px 8px;border:1px solid #548d9b73;background:#0b293a8c}
+.dev-preview-stats span{color:#a0c2ca;font-size:10px}.dev-preview-stats strong{color:#e9fbfc;font-size:12px}
+.dev-preview-weapons{min-height:26px;padding:5px 8px;border:1px solid #548d9b73;background:#0b293a8c;color:#d8eef0;font-size:10px;line-height:1.3}
+.dev-preview-weapons::before{content:"STANDARD WEAPONS";display:block;margin-bottom:2px;color:#8dc8d2;font-size:9px;font-weight:700;letter-spacing:.07em}
+.dev-tools-controls>button{width:100%;padding:8px 10px;border-color:#91dfdf;background:#216777;color:#f0ffff;font-weight:700}
+.dev-tools-controls>button:hover{background:#2d7d8c}
+.dev-system-group{display:grid;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid #5c9aaa56}
+.dev-system-group button{width:100%;padding:7px 10px;border-color:#5daab8;background:#16495b;color:#e0f6fa;font-weight:650}
+@media(max-height:600px){.dialog:has(.dev-tools-grid){height:100%;padding:10px}.dev-tools-head{margin-bottom:6px}.dev-tools-grid{gap:8px}.dev-tools-controls{gap:5px}.dev-preview-stats>div{padding:4px 6px}.dev-preview-weapons{padding:4px 6px}.dev-system-group{gap:4px;padding-top:5px}}
+@media(max-width:620px){#modal:has(.dev-tools-grid){position:fixed;inset:0;z-index:10005;padding:10px}.dialog:has(.dev-tools-grid){width:100%;height:min(680px,100%);padding:10px}.dev-tools-grid{grid-template-columns:1fr;grid-template-rows:minmax(130px,1fr) auto;gap:8px}.dev-ship-stage img{padding:20px 28px 39px}.dev-preview-name{padding:16px 10px 7px;font-size:16px}.dev-tools-controls{gap:5px}.dev-tools-controls .dev-select select{padding:5px 7px}.dev-preview-stats>div{padding:3px 6px}.dev-tools-controls>button{padding:6px 8px}.dev-system-group{gap:4px;padding-top:4px}}

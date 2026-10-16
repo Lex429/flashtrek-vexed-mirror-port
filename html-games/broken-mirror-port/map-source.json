@@ -1,0 +1,8 @@
+{
+  "worldReference": "Games-Hub-Portable\\source\\vexed-mirror\\remake-reference\\systems.json",
+  "mapPresentationReference": "Games-Hub-Portable\\source\\vexed-mirror\\remake-reference\\browser-ui-source\\map-ui.js",
+  "cssReferenceSha256": "12dfd46386b5f5f5ca3c550299d1e9ef4f5b5f9514d69199849ff91dec052695",
+  "chartedSystems": 50,
+  "definedSystems": 52,
+  "coordinateSpace": "Original Flash commpanel frame 7; positive y points down"
+}

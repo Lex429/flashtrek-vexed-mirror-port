@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Security-Policy" content="form-action 'none'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'">
+<script src="../no-redirect.js"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flash Trek: Broken Mirror</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#080b10;color:#e8edf4;font-family:system-ui,sans-serif}body{display:flex;flex-direction:column}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px;background:linear-gradient(110deg,#1c222c,#10141c);border-bottom:1px solid #493137;box-shadow:0 3px 20px #0006;z-index:1}
+.identity{display:flex;align-items:center;gap:12px}.insignia{color:#eb777b;width:32px;height:36px;flex-shrink:0}h1{margin:0;font-size:16px;font-weight:650;letter-spacing:.025em}.subtitle{margin:4px 0 0;font-size:11px;letter-spacing:.13em;color:#97a5b9;text-transform:uppercase}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}button{background:#1b222d;color:#c7d1df;border:1px solid #354152;border-radius:6px;padding:8px 12px;cursor:pointer;font:500 12px system-ui,sans-serif}button:hover{background:#283344;border-color:#6d7f97}button:focus-visible{outline:2px solid #ff9598;outline-offset:3px}button[aria-pressed="true"]{background:#39262d;border-color:#95525e;color:#ffd6d8}button:disabled{opacity:.45;cursor:wait}#fullscreen{background:#733540;border-color:#a85765;color:#fff0f1}#fullscreen:hover{background:#924350}
+#viewport{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#17202d 0%,#0b1018 55%,#06080c 100%)}
+#game{position:relative;flex-shrink:0;width:600px;height:450px;background:#000;border-radius:3px;box-shadow:0 0 0 1px #3a4658,0 0 0 5px #151c26,0 18px 55px #000b;overflow:hidden}ruffle-player{display:block;width:100%;height:100%}#game ruffle-player{filter:url(#shadow-lift) brightness(1.06) saturate(1.04)}
+#status{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:#b7c4d8;background:#0b1018;font-size:14px}#status[hidden]{display:none}
+footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:9px 22px;border-top:1px solid #252d3b;background:#10151d;color:#8594aa;font-size:11px}footer a{color:#d8919e;text-decoration:none;white-space:nowrap}footer a:hover{text-decoration:underline}footer a:focus-visible{outline:2px solid #ff9598;outline-offset:3px}.signal{color:#b8c7d9}.signal::before{content:'';display:inline-block;width:5px;height:5px;margin-right:7px;border-radius:50%;background:#d2737d;box-shadow:0 0 7px #d2737d70;vertical-align:2px}.filters{position:absolute;width:0;height:0;pointer-events:none}#viewport:fullscreen{width:100%;height:100%;padding:12px}
+@media(max-width:640px){header{padding:10px 12px;gap:10px;flex-wrap:wrap}h1{font-size:14px}.subtitle{font-size:9px}.controls{width:100%;justify-content:flex-start}button{flex:1;padding:8px 6px}#viewport{padding:12px}footer{padding:8px 12px;font-size:10px}}
+#startup{position:absolute;inset:0;z-index:20;background:#000;overflow:hidden;opacity:1;transition:opacity .35s ease;isolation:isolate}
+#startup[hidden]{display:none}.boot-ship{position:absolute;left:50%;top:44%;width:clamp(100px,22%,190px);aspect-ratio:234/74;overflow:hidden;transform:translate(-50%,-50%);animation:boot-flight 3.6s ease-in-out infinite;filter:drop-shadow(0 0 12px #e0000055);transition:opacity .8s ease;will-change:transform,opacity}.boot-ship img{display:block;width:100%;height:auto;animation:boot-pulse 3.6s ease-in-out infinite}
+.boot-title{position:absolute;left:50%;transform:translate(-50%,-50%);height:auto;opacity:0;transition:opacity 1.25s ease;pointer-events:none;will-change:opacity}.boot-title.flash{width:84%;top:42%}.boot-title.mirror{width:80%;top:63%}
+@keyframes boot-pulse{0%,100%{opacity:.72}50%{opacity:1}}
+@keyframes boot-flight{0%,100%{transform:translate(-50%,-50%) translateX(-10px)}50%{transform:translate(-50%,-50%) translateX(10px)}}
+
+.boot-stage{position:absolute;left:0;right:0;top:59%;margin:0;text-align:center;font-size:12px;color:#b88991;transition:opacity .2s ease}.boot-progress{position:absolute;left:50%;top:57%;width:27%;height:3px;transform:translateX(-50%);background:#401015;transition:opacity .8s ease;border-radius:2px;overflow:hidden}.boot-progress span{display:block;width:100%;height:100%;background:#ff3544;box-shadow:0 0 12px #f22;transform:scaleX(0);transform-origin:left center;will-change:transform}
+#menu-art{position:absolute;inset:0;z-index:10;pointer-events:none}#menu-art[hidden]{display:none}#menu-art img{position:absolute;left:50%;transform:translate(-50%,-50%);height:auto}#menu-art .menu-flash{width:60%;top:10%}#menu-art .menu-mirror{width:53%;top:21%}.menu-compass{position:absolute;left:50%;top:50.6667%;width:32.2%;height:42.9333%;transform:translate(-50%,-50%);filter:drop-shadow(0 0 6px #e3263644)}#menu-art .menu-compass .menu-pointer{position:static;display:block;width:100%;height:100%;object-fit:contain;transform:rotate(0deg);transform-origin:50% 50%}
+
+#menu-art{container-type:inline-size}#menu-space{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.menu-space-caption{position:absolute;left:50%;top:86.3%;transform:translateX(-50%);white-space:nowrap;color:#ce8190;font:1.65cqw Arial,sans-serif;pointer-events:none}
+</style>
+<script>const gameAudioContexts=new Set();for(const name of ['AudioContext','webkitAudioContext']){const Constructor=window[name];if(Constructor)window[name]=new Proxy(Constructor,{construct(target,args){const context=Reflect.construct(target,args);gameAudioContexts.add(context);return context;}});}window.RufflePlayer={config:{autoplay:'on',unmuteOverlay:'hidden',backgroundColor:'#000000',letterbox:'on',allowScriptAccess:true,openUrlMode:'deny',allowNetworking:'all'}};</script>
+<script src="../canyon-defence/ruffle/ruffle.js"></script>
+<link rel="stylesheet" href="main-menu.css?v=direct-menu-1">
+<link rel="stylesheet" href="setup-ui.css?v=concise-factions-3">
+<link rel="stylesheet" href="save-ui.css?v=save-load-1">
+<link rel="stylesheet" href="trade-ui.css?v=cargo-routes-1"><link rel="stylesheet" href="map-ui.css?v=original-map-3"><link rel="stylesheet" href="sol-ui.css?v=sol-1"><link rel="stylesheet" href="radar-ui.css?v=original-radar-2"><link rel="stylesheet" href="sol-ports-ui.css?v=sol-ports-1"><link rel="stylesheet" href="mining-ui.css?v=click-mining-1"><link rel="stylesheet" href="flight-status.css?v=right-small-1"></head>
+<body>
+<svg class="filters" aria-hidden="true"><defs><filter id="shadow-lift" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent="0.86" offset="0"/><feFuncG type="gamma" amplitude="1" exponent="0.86" offset="0"/><feFuncB type="gamma" amplitude="1" exponent="0.86" offset="0"/></feComponentTransfer></filter></defs></svg>
+<header><div class="identity"><svg class="insignia" viewBox="0 0 32 36" aria-hidden="true"><path d="M16 2 29 32 16 24 3 32Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m16 11 2 5 5 1-4 3 1 5-4-3-4 3 1-5-4-3 5-1Z" fill="currentColor"/></svg><div><h1>Flash Trek: Broken Mirror</h1><p class="subtitle">Explore &#183; Trade &#183; Command</p></div></div>
+<div class="controls" aria-label="Game display and sound"><button id="size" type="button" aria-pressed="false">Larger view</button><button id="sound" type="button" aria-pressed="false" disabled>Sound off</button><button id="fullscreen" type="button">Full screen</button></div></header>
+<main id="viewport" aria-label="Broken Mirror game"><div id="game"><div id="startup" aria-label="Flash Trek Vexed Mirror opening animation"><div class="boot-ship"><img src="startup/red-ship.png" alt="" fetchpriority="high"></div><img class="boot-title flash" src="startup/flash-trek.png" alt="Flash Trek" fetchpriority="high"><img class="boot-title mirror" src="startup/vexed-mirror.png" alt="Vexed Mirror" fetchpriority="high"><div class="boot-progress" role="progressbar" aria-label="Loading game" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div></div><div id="menu-art" hidden><canvas id="menu-space" aria-hidden="true"></canvas><span class="menu-space-caption" aria-hidden="true">EXPLORE / TRADE / COMMAND</span><img class="menu-flash" src="startup/flash-trek.png" alt="Flash Trek"><img class="menu-mirror" src="startup/vexed-mirror.png" alt="Vexed Mirror"><div class="menu-compass"><img class="menu-pointer" src="startup/sword-menu-pointer.png" alt="" aria-hidden="true"></div></div><audio id="menu-music" src="startup/the-void-beyond.mp3" loop preload="auto"></audio><div id="status" role="status">Preparing your starshipÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</div></div></main>
+<footer><span class="signal" id="connection">Preparing systems</span><span><a href="damage-showcase.html">Damage showcase</a> / <a href="ship-review.html">View fleet</a> / <a href="planet-review.html">View planets</a> / <a href="station-review.html">View stations</a></span><span id="display-note">Enhanced view &#183; Comfortable size</span></footer>
+<script>
+const viewport=document.getElementById('viewport'),game=document.getElementById('game');
+const flightStatus=document.createElement('section');flightStatus.id='flight-status';flightStatus.setAttribute('aria-label','Flight updates');viewport.appendChild(flightStatus);
+const sound=document.getElementById('sound'),size=document.getElementById('size');
+let player,large=false,audible=true;
+function resizeGame(){const padding=document.fullscreenElement?24:innerWidth<=640?24:40;const flight=Number(game.dataset.frame)===154;flightStatus.hidden=!flight;const gutter=flight?Math.min(210,viewport.clientWidth*.24):0;const aw=Math.max(1,viewport.clientWidth-padding-(flight?gutter+12:0)),ah=Math.max(1,viewport.clientHeight-padding);const cap=large||document.fullscreenElement?Infinity:900;const width=Math.min(aw,ah*4/3,cap);game.style.width=width+'px';game.style.height=width*3/4+'px';flightStatus.style.width=gutter+'px';flightStatus.style.height=width*3/4+'px';}
+new ResizeObserver(resizeGame).observe(flightStatus);
+function focusGame(){if(Number(game.dataset.frame)===154)player?.focus();}
+// Restore flight input after interacting with page controls or returning to the game.
+game.addEventListener('pointerdown',event=>{if(Number(game.dataset.frame)===154&&!event.target.closest?.('section,button,input,select,textarea'))requestAnimationFrame(focusGame);});
+window.addEventListener('focus',focusGame);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)focusGame();});
+document.addEventListener('keydown',event=>{
+ if(Number(game.dataset.frame)!==154||!player)return;
+ const target=event.composedPath()[0];
+ if(target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
+ if(target?.closest?.('[role="dialog"]'))return;
+ if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(event.code)){
+  focusGame();
+  event.preventDefault();
+ }
+},true);
+function updateNote(){document.getElementById('display-note').textContent='Enhanced view \u00b7 '+(large?'Larger':'Comfortable')+' size';}
+new ResizeObserver(resizeGame).observe(viewport);
+size.onclick=()=>{large=!large;size.setAttribute('aria-pressed',String(large));resizeGame();updateNote();focusGame();};
+const music=document.getElementById('menu-music'),menuArt=document.getElementById('menu-art');
+let menuMusicActive=true;
+function syncMusic(){music.volume=.65;if(audible&&menuMusicActive)music.play().catch(()=>{});else music.pause();}
+function syncSound(){if(player)player.ruffle().volume=audible?1:0;sound.setAttribute('aria-pressed',String(audible));sound.textContent=audible?'Sound on':'Sound off';syncMusic();window.vexRebirthSoundMute?.(!audible);}
+sound.onclick=()=>{audible=!audible;syncSound();if(audible){for(const context of gameAudioContexts)context.resume().catch(()=>{});player?.ruffle().resume();}focusGame();};
+for(const event of ['pointerdown','keydown'])document.addEventListener(event,()=>syncMusic(),{capture:true});
+game.addEventListener('pointermove',event=>{const r=game.getBoundingClientRect();const dx=event.clientX-r.left-r.width*.5,dy=event.clientY-r.top-r.height*(228/450);if(Math.hypot(dx,dy)>4)menuArt.querySelector('.menu-pointer').style.transform='rotate('+(Math.atan2(dy,dx)*180/Math.PI-90)+'deg)';});
+function gameState(frame){game.dataset.frame=String(frame);syncGameLoading(frame);renderDeath(frame);resizeGame();requestAnimationFrame(()=>{if(Number(game.dataset.frame)===frame){renderSetup(frame);renderSaves(frame);renderTrade(frame);renderGalaxyMap(frame);renderSol(frame);renderRadar(frame);if(frame===154)focusGame();}});menuArt.hidden=frame!==106;menuMusicActive=frame<147;syncMusic();}
+document.getElementById('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await viewport.requestFullscreen();focusGame();}catch{document.getElementById('connection').textContent='Full screen unavailable';}};
+document.addEventListener('fullscreenchange',()=>{resizeGame();focusGame();});
+const bootDelay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+window.addEventListener('DOMContentLoaded',async()=>{
+ const status=document.getElementById('status'),intro=document.getElementById('startup');
+ status.hidden=true;resizeGame();syncSound();
+ let progressFrame=0;
+ let signalMenuReady;const menuReady=new Promise(resolve=>signalMenuReady=resolve);
+ try {
+  player=window.RufflePlayer.newest().createPlayer();game.appendChild(player);
+  const cursorStyle=document.createElement('style');
+  cursorStyle.textContent=':host,:host *{cursor:default!important}';
+  player.shadowRoot.appendChild(cursorStyle);
+  const progress=intro.querySelector('.boot-progress');
+  const progressFill=progress.querySelector('span');
+  const setProgress=value=>{progress.setAttribute('aria-valuenow',String(Math.round(value)));progressFill.style.transform='scaleX('+(value/100)+')';};
+  let backgroundReady=false,downloadFraction=0,runtimeReady=false,shownProgress=0,lastProgressTime=performance.now();
+  const stage=document.createElement('p');stage.className='boot-stage';intro.appendChild(stage);
+  const progressFinished=new Promise(resolve=>{
+   function animateProgress(now){
+    const assets=window.vexShipVisualLoading||{done:0,total:66};
+    const fraction=.2*downloadFraction+.2*Number(runtimeReady)+.6*Math.min(1,assets.done/assets.total);
+    // Follow completed work; leave completion for the menu-ready signal.
+    const target=backgroundReady?100:94*Math.pow(fraction,1.5);
+    const dt=Math.max(0,now-lastProgressTime);lastProgressTime=now;
+    shownProgress+=(target-shownProgress)*(1-Math.exp(-dt/(backgroundReady?70:350)));
+    setProgress(shownProgress);
+    stage.textContent=backgroundReady?'Ready':downloadFraction<1?'Loading game':!runtimeReady?'Starting game':assets.done<assets.total?`Preparing ships ${assets.done} / ${assets.total}`:'Opening menu';
+    progress.setAttribute('aria-valuetext',stage.textContent);
+    if(backgroundReady&&100-shownProgress<.1){setProgress(100);progressFrame=0;resolve();return;}
+    progressFrame=requestAnimationFrame(animateProgress);
+   }
+   progressFrame=requestAnimationFrame(animateProgress);
+  });
+  const observeTrace=message=>{
+   if(message==='VEXED_MIRROR_MENU_READY'||message==='VEX_STATE:106'){game.dataset.menuReady='true';signalMenuReady();}
+   if(message.startsWith('VEX_STATE:'))gameState(Number(message.slice(10)));
+  };
+  // Subscribe before loading: a fast cached game can reach its menu during load().
+  player.ruffle().traceObserver=observeTrace;
+  const response=await fetch('live-effects-diagnostic.swf?v=independent-main-menu-14');if(!response.ok)throw Error('Game download failed');
+  const totalBytes=Number(response.headers.get('content-length'));
+  const reader=response.body.getReader();const chunks=[];let received=0;
+  while(true){const {done,value}=await reader.read();if(done)break;chunks.push(value);received+=value.length;downloadFraction=totalBytes>0?Math.min(1,received/totalBytes):received/(received+8000000);}
+  const data=new Uint8Array(received);let offset=0;for(const chunk of chunks){data.set(chunk,offset);offset+=chunk.length;}
+  downloadFraction=1;
+  await player.ruffle().load({data,fileName:'BROKENMIRROR.swf'});
+  syncSound();sound.disabled=false;
+  runtimeReady=true;player.ruffle().traceObserver=observeTrace;
+  await Promise.all([menuReady,window.vexShipVisualAssetsReady,...Array.from(intro.querySelectorAll('img'),img=>img.decode())]);
+  backgroundReady=true;
+  await progressFinished;
+  menuSpace.prepare();
+  intro.querySelector('.boot-ship').style.opacity='0';progress.style.opacity='0';stage.style.opacity='0';
+  intro.querySelector('.flash').style.opacity='1';intro.querySelector('.mirror').style.opacity='1';
+  await bootDelay(350);intro.style.opacity='0';await bootDelay(350);intro.hidden=true;
+  document.getElementById('connection').textContent='Systems online';resizeGame();player.focus();
+ }catch(error){cancelAnimationFrame(progressFrame);intro.hidden=true;status.hidden=false;status.textContent='The game could not load. Refresh the page to try again.';document.getElementById('connection').textContent='Connection interrupted';console.error(error);}
+});
+</script>
+<script src="rebirth-explosion-sound.js?v=debris-shield-2"></script>
+<script src="rebirth-destruction.js?v=shared-hit-layer-2"></script>
+<script src="cthia-effects.js?v=visible-lights-3"></script>
+<script src="cthia-destruction.js?v=live-factory-3"></script>
+<script src="olympic-effects.js?v=1"></script>
+<script src="tug-effects.js?v=1"></script>
+<script src="constitution-tug-effects.js?v=1"></script>
+<script src="starter-effects.js?v=nova-1"></script>
+<script src="earth-profiles.js?v=galaxy-prometheus-2"></script>
+<script src="klingon-profiles.js?v=1"></script>
+<script src="romulan-profiles.js?v=1"></script>
+<script src="vulcan-profiles.js?v=1"></script>
+<script src="cardassian-profiles.js?v=1"></script>
+<script src="ferengi-dominion-profiles.js?v=1"></script>
+<script src="earth-effects.js?v=visible-lights-2"></script>
+<script src="galaxy-fracture.js?v=1"></script>
+<script src="earth-fractures.js?v=ferengi-dominion-1"></script>
+<script src="shield-flash.js?v=1"></script>
+<script src="debris-impacts.js?v=klingon-1"></script>
+<script src="weapon-effects.js?v=shared-weapons-1"></script>
+<script src="weapon-visuals.js?v=shared-weapons-1"></script>
+<script src="ship-visuals.js?v=reincarnation-safe-transforms-13"></script>
+<script src="menu-space.js?v=complete-menu-background-4"></script>
+<script src="main-menu.js?v=direct-menu-1"></script>
+<script src="transition-loading.js?v=reincarnate-loader-2"></script>
+<script src="death-ui.js?v=checkpoint-restore-1"></script>
+<script src="setup-ui.js?v=ship-loader-4"></script>
+<script src="save-ui.js?v=ship-loader-2"></script>
+<script src="flight-status.js?v=right-small-1"></script><script src="trade-ui.js?v=right-small-1"></script><script src="map-ui.js?v=original-map-3"></script><script src="sol-ui.js?v=right-small-1"></script><script src="sol-ports-ui.js?v=sol-ports-1"></script><script src="mining-ui.js?v=click-mining-1"></script><script src="radar-ui.js?v=original-radar-2"></script></body></html>
+
+
+
+
+
+
+
+
+
+
+
+

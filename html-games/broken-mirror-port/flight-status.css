@@ -1,0 +1,16 @@
+#viewport{flex-direction:row;gap:12px}
+#flight-status{display:flex;flex:0 0 auto;min-width:0;flex-direction:column;gap:8px;padding-top:4px;color:#c9eef1;font:11px system-ui,sans-serif;overflow:hidden}
+#flight-status[hidden]{display:none}
+#flight-notices{display:flex;flex-direction:column;gap:6px;min-width:0}
+.flight-notice{padding:7px 9px;border:1px solid #4b8fa377;border-left:2px solid #64cbd8;border-radius:4px;background:#09202bd9;line-height:1.4;overflow-wrap:anywhere;animation:notice-arrive .18s ease-out;transition:opacity .3s,transform .3s}
+.flight-notice span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.flight-notice[data-kind="trade"]{border-left-color:#89d9b2}
+.flight-notice.leaving{opacity:0;transform:translateX(8px)}
+#flight-status #sol-flight{position:static;inset:auto;display:flex;flex-wrap:wrap;align-items:center;gap:5px;width:auto;margin:0;padding:7px 9px;border:1px solid #4b8fa377;border-radius:4px;background:#09202bd9;color:#c9eef1;font:11px system-ui,sans-serif;pointer-events:auto;overflow:hidden}
+#flight-status #sol-flight[hidden]{display:none}
+#flight-status #sol-flight>div{flex:1 1 100%;min-width:0;overflow-wrap:anywhere}
+#flight-status #sol-flight b{font-size:11px}
+#flight-status #sol-flight span{display:block;margin:3px 0 0;font-size:10px}
+#flight-status #sol-flight button{font-size:11px;padding:3px 9px}
+@keyframes notice-arrive{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.flight-notice{animation:none;transition:none}}

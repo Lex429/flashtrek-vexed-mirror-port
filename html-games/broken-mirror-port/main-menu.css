@@ -1,0 +1,21 @@
+#main-menu-controls{position:absolute;inset:0;pointer-events:none}
+#main-menu-controls button{position:absolute;width:25.6667%;height:8.8889%;pointer-events:auto;border:1px solid #a74759;border-radius:0;background:#32121de8;color:#fff0f2;font:650 2cqw system-ui,sans-serif;text-transform:uppercase;letter-spacing:.025em;box-shadow:inset 0 0 12px #861d3520}
+#main-menu-controls button:hover{background:#5b1b2ce8;border-color:#ed7c91;box-shadow:0 0 14px #b23b5540}
+#main-menu-controls button:focus-visible{outline:2px solid #ffd5dc;outline-offset:4px}
+#main-menu-controls button:disabled{opacity:1;cursor:default}
+#main-menu-controls [data-menu="new"],#main-menu-controls [data-menu="continue"]{left:7%}
+#main-menu-controls [data-menu="instructions"],#main-menu-controls [data-menu="options"]{left:64.5833%}
+#main-menu-controls [data-menu="new"],#main-menu-controls [data-menu="instructions"]{top:26.1111%}
+#main-menu-controls [data-menu="continue"],#main-menu-controls [data-menu="options"]{top:73%}
+#main-menu-controls [data-menu="dev"]{left:37.1667%;top:73%}
+#menu-music-toggle{position:absolute;right:3%;bottom:10%;z-index:2;pointer-events:auto;padding:.55em .9em;border:1px solid #855867;background:#23151fdc;color:#f0d7dc;font:600 clamp(10px,1.3cqw,14px) system-ui,sans-serif;letter-spacing:.04em}
+#menu-music-toggle:hover{background:#43212e;border-color:#d18b9d}
+.menu-error{position:absolute;bottom:4%;left:5%;right:5%;text-align:center;color:#ff9ba9;font-size:12px}
+#main-menu-dialog{position:absolute;inset:0;z-index:16;display:grid;place-items:center;background:#050a13f5;padding:5%;container-type:inline-size}
+#main-menu-dialog[hidden]{display:none}
+.menu-dialog-card{width:100%;max-height:100%;overflow:auto;max-width:580px;color:#c5d4e3;font-size:clamp(10px,2.3cqw,15px);line-height:1.5}
+.menu-dialog-card h2{margin:.4em 0;font-size:clamp(18px,4cqw,28px);color:#f6e7eb}
+.menu-dialog-kicker{font-size:.8em;letter-spacing:.15em;color:#d58a99}
+.menu-dialog-card dl{display:grid;grid-template-columns:28% 1fr;gap:.5em 1em}
+.menu-dialog-card dt{color:#f0bac7}.menu-dialog-card dd{margin:0}
+.menu-option-buttons{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0}

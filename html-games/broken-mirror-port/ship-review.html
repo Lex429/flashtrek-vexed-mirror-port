@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Broken Mirror — Federation fleet</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#080b10;color:#e8edf4;font:15px system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:32px 24px}h1{font-size:28px;margin:0 0 8px}p{color:#9eafc5;line-height:1.6}h2{font-size:18px}.eyebrow{font-size:11px;color:#e899a4;letter-spacing:.16em;text-transform:uppercase;margin:0 0 10px}.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:24px 0 16px}label{color:#aebbd0;font-size:12px}select,button,.action{background:#1b222d;color:#d7e1ef;border:1px solid #354152;border-radius:6px;padding:10px 14px;font:inherit}select{min-width:230px;max-width:100%}button,.action{cursor:pointer}button:hover,.action:hover{background:#283344;border-color:#6d7f97}button:disabled,select:disabled{opacity:.5;cursor:wait}.primary{background:#733540;border-color:#a85765;color:#fff0f1}.primary:hover{background:#924350}a:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid #ff9598;outline-offset:3px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{border:1px solid #354152;border-radius:10px;overflow:hidden;background:#111722}.card h2{padding:16px;margin:0;border-bottom:1px solid #354152;font-size:15px}.player{aspect-ratio:4/3;background:#080b10}ruffle-player{display:block;width:100%;height:100%}#status{min-height:24px;font-size:12px;margin:10px 0;color:#b4c4db}.links{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 36px}.action{text-decoration:none;font-size:13px}.gallery{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.ship-card{padding:14px 8px 12px;border-radius:8px;border:1px solid #293446;background:linear-gradient(145deg,#18212d,#0d131b);text-align:center;color:#b9c9dc;cursor:pointer}.ship-card img{display:block;width:100%;height:145px;object-fit:contain;margin-bottom:10px}.ship-card span{font-size:11px}.ship-card[aria-pressed="true"]{border-color:#c57783;box-shadow:0 0 0 1px #c5778340}.ship-card:hover{border-color:#8193ac}.sheets{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.sheets img{display:block;width:100%;border-radius:6px;border:1px solid #354152}footer{margin-top:36px;padding-top:18px;border-top:1px solid #293446;font-size:12px}footer a{color:#e899a4}@media(max-width:850px){.gallery{grid-template-columns:repeat(4,1fr)}}@media(max-width:650px){main{padding:24px 16px}h1{font-size:24px}.grid{grid-template-columns:1fr;gap:12px}.gallery{grid-template-columns:repeat(3,1fr)}.ship-card img{height:105px}.toolbar{gap:8px}select{flex:1;min-width:190px}.sheets{grid-template-columns:repeat(2,1fr)}}
+  </style>
+  <script>window.RufflePlayer={config:{autoplay:'off',unmuteOverlay:'hidden',backgroundColor:'#080b10',allowScriptAccess:false,openUrlMode:'deny',allowNetworking:'internal'}};</script>
+  <script src="../canyon-defence/ruffle/ruffle.js"></script>
+</head>
+<body><main>
+  <p class="eyebrow">Broken Mirror · Artwork upgrade</p>
+  <h1>The Federation fleet, refreshed</h1>
+  <p>Cleaner hull detail, silver plating, and cyan engines across the fleet. Choose a ship to compare the original and upgraded artwork in motion.</p>
+  <div class="toolbar">
+    <label for="ship-choice">Ship</label><select id="ship-choice" disabled aria-label="Choose a ship"></select>
+    <button id="previous" type="button" disabled aria-label="Previous ship">←</button><button id="next" type="button" disabled aria-label="Next ship">→</button>
+    <button id="pause" type="button" aria-pressed="false" disabled>Pause rotation</button>
+  </div>
+  <div class="grid"><section class="card"><h2>Original artwork</h2><div class="player" id="original"></div></section><section class="card"><h2>Upgraded artwork</h2><div class="player" id="upgraded"></div></section></div>
+  <p id="status" role="status">Preparing the fleet…</p>
+  <div class="links"><a class="action primary" href="index.html">Play Broken Mirror</a><a class="action" id="full-art" href="art-review/federation-ship-v2.png" target="_blank" rel="noopener">Full-resolution artwork</a></div>
+  <h2 id="fleet-heading">Upgraded ships</h2><div class="gallery" id="fleet" aria-labelledby="fleet-heading"></div>
+  <footer><h2>Original artwork inventory</h2><p>The original ships, stations, weapons, planets, and interface artwork.</p><div class="sheets" id="sheets"></div></footer>
+</main><script>
+  const players=[],chooser=document.getElementById('ship-choice'),pauseButton=document.getElementById('pause');
+  let catalog=[],paused=false,loading=true,currentShip=146;
+  function controls(enabled){for(const id of ['ship-choice','previous','next','pause'])document.getElementById(id).disabled=!enabled;for(const card of document.querySelectorAll('.ship-card'))card.disabled=!enabled;}
+  async function showShip(id){
+    if(loading&&players.length!==0)return;
+    loading=true;controls(false);currentShip=id;chooser.value=String(id);
+    const entry=catalog.find(e=>e.id===id);document.getElementById('status').textContent='Loading '+entry.name+'…';
+    try{
+      if(!players.length){for(const target of ['original','upgraded']){const p=window.RufflePlayer.newest().createPlayer();document.getElementById(target).appendChild(p);const style=document.createElement('style');style.textContent='#play-button{display:none!important}';p.shadowRoot.appendChild(style);players.push(p);}}
+      for(const p of players)p.ruffle().suspend();
+      await Promise.all(players.map((p,i)=>p.ruffle().load('art-review/fleet/'+id+(i?'-upgraded.swf':'-original.swf'))));
+      for(const p of players){p.ruffle().volume=0;if(!paused)p.ruffle().resume();}
+      document.getElementById('full-art').href='art-review/fleet/'+id+'.png';
+      document.getElementById('status').textContent=entry.name+' · Same display size and rotation speed.';
+      for(const card of document.querySelectorAll('.ship-card'))card.setAttribute('aria-pressed',String(Number(card.dataset.id)===id));
+    }catch(e){document.getElementById('status').textContent='This comparison could not load. Choose another ship to try again.';console.error(e);}
+    finally{loading=false;controls(true);}
+  }
+  chooser.onchange=()=>showShip(Number(chooser.value));
+  for(const [id,direction] of [['previous',-1],['next',1]])document.getElementById(id).onclick=()=>showShip(catalog[(catalog.findIndex(e=>e.id===currentShip)+direction+catalog.length)%catalog.length].id);
+  pauseButton.onclick=()=>{paused=!paused;for(const p of players)paused?p.ruffle().suspend():p.ruffle().resume();pauseButton.setAttribute('aria-pressed',String(paused));pauseButton.textContent=paused?'Resume rotation':'Pause rotation';};
+  for(let i=1;i<=4;i++){const a=document.createElement('a');a.href='art-review/contact-sheet-'+i+'.jpg';a.target='_blank';a.rel='noopener';const img=document.createElement('img');img.src=a.href;img.alt='Original artwork contact sheet '+i;img.loading='lazy';a.appendChild(img);document.getElementById('sheets').appendChild(a);}
+  window.addEventListener('DOMContentLoaded',async()=>{
+    try{const response=await fetch('art-review/fleet/catalog.json');if(!response.ok)throw Error('Fleet inventory unavailable');catalog=await response.json();
+      for(const entry of catalog){const option=new Option(entry.name,String(entry.id));chooser.add(option);const card=document.createElement('button');card.className='ship-card';card.type='button';card.dataset.id=entry.id;card.setAttribute('aria-pressed','false');card.setAttribute('aria-label','Compare '+entry.name);const img=document.createElement('img');img.src='art-review/fleet/'+entry.id+'-texture.png';img.alt='';img.loading='lazy';const name=document.createElement('span');name.textContent=entry.name;card.append(img,name);card.onclick=()=>{if(loading)return;showShip(entry.id);document.querySelector('.toolbar').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});};document.getElementById('fleet').appendChild(card);}
+      document.getElementById('fleet-heading').textContent=catalog.length+' upgraded ships';
+      await showShip(Number(new URLSearchParams(location.search).get('ship'))||146);
+    }catch(e){document.getElementById('status').textContent='The fleet could not load. Refresh to try again.';console.error(e);}
+  });
+</script></body></html>

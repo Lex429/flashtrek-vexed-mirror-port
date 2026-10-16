@@ -1,0 +1,13 @@
+/* Full source HUD spans x=318..600, y=0..43 in the 600x450 game. */
+#game-hud {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  right: 0;
+  width: 47%;
+  height: 9.5555556%;
+  pointer-events: none;
+  filter: url(#vexed-hud-shadow-lift) brightness(1.06) saturate(1.04);
+}
+body:not(.playing) #game-hud { display: none; }
+.hud-filter { position: absolute; width: 0; height: 0; pointer-events: none; }
