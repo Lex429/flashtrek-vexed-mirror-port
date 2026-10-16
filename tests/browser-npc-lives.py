@@ -60,6 +60,7 @@ HELPERS = r"""() => {
     return {source:source.stock[g],destination:destination.stock[g],sourceCredits:source.credits,destinationCredits:destination.credits,reserved:source.reserved[g],shipCredits:ship.credits};};
   t.checkMap=()=>{const s=nativeNpcDev.getState(),ship=t.ship(),expected=nativeNpcLives.galaxyPosition(s,ship),snapshot=nativeGalaxyOverview.snapshot(s),row=snapshot.ships.find(row=>row.id===ship.id);
     check(row,'Selected ship missing from map');near(row.position.x,expected.x,'Map galaxy X');near(row.position.y,expected.y,'Map galaxy Y');
+    const player=snapshot.ships.find(row=>row.id==='player');near(player.credits,s.latinum,'Inspector player wallet');
     if(ship.task?.requirements?.good!==undefined){const stock=t.stocks();near(row.tradeStock.origin.tons,stock.source,'Inspector source inventory');near(row.tradeStock.destination.tons,stock.destination,'Inspector destination inventory');}
     return copy(row);};
   t.drawLocal=()=>{

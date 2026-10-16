@@ -58,7 +58,12 @@
     if(system!==state.system||state.hull<=0||state.landed||window.vexedWarp?.active)return [];
     return [window.nativeShipDefinitions.describe(state,state,{category:'player'})];
   }
-  register('player',{collect:player,inspect:state=>[{...window.nativeShipDefinitions.describe(state,state,{category:'player'}),name:state.shipName||'Player',role:'player',detail:'detailed'}],hit:(state,_,amount,impact)=>window.nativeCombatShots.onPlayerHit?.(state,amount,impact),
+  function inspectPlayer(state){
+    const cargo=[...Object.entries(state.solFreightHold||{}).filter(([,tons])=>Number(tons)>0).map(([good,tons])=>({good:Number(good),tons:Number(tons)})),
+      ...(state.localContracts||[]).map(job=>({good:job.good,tons:job.tons,contractId:job.id,destination:job.to}))];
+    return [{...window.nativeShipDefinitions.describe(state,state,{category:'player'}),name:state.shipName||'Player',role:'player',detail:state.hull>0?'detailed':'inactive',faction:state.government||state.faction,credits:Number(state.latinum)||0,cargo}];
+  }
+  register('player',{collect:player,inspect:inspectPlayer,hit:(state,_,amount,impact)=>window.nativeCombatShots.onPlayerHit?.(state,amount,impact),
     visualImpact:(state,_,event)=>window.nativePlayerCombat.visualImpact(state,event)});
   register('tug',{collect:(state,system)=>system===1?(state.solEconomy?.freighters||[]).filter(ship=>ship.phase!=='destroyed').map(ship=>window.nativeShipDefinitions.describe(state,ship,{category:'tug'})):[],
     inspect:state=>window.nativeSolEconomy.lifeDescriptors?.(state)||(state.solEconomy?.freighters||[]).map(ship=>window.nativeShipDefinitions.describe(state,ship,{category:'tug'})),

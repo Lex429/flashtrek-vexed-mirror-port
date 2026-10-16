@@ -76,7 +76,7 @@ for both runs. An optional `--base-url` measures an installed copy, and
 `--regressions` also invokes the existing smoke and Canvas suites. Set
 `BROWSER_CHANNEL` to an empty string for bundled Chromium in CI.
 
-The final Node suite passed **98/98** tests (baseline **73/73**). The existing
+The final Node suite passed **99/99** tests (baseline **73/73**). The existing
 browser smoke and 20-Canvas suite passed before and after migration. The new life
 browser demonstration passed with zero JavaScript errors or failed requests:
 

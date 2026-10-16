@@ -92,3 +92,12 @@ test('planning a player warp advances the copied freight world once and leaves t
   assert.ok(prepared.next.solEconomy.freighters[0].deliveries>=1,'Distant freight continued during the player calendar skip');
   assert.equal(prepared.report.elapsedDays,1);assert.equal(prepared.report.originId,1);assert.equal(prepared.report.systemId,2);
 });
+
+test('registered player inspection projects the real wallet, owned freight and contract cargo',()=>{
+  const {window,context,state}=freight();
+  load(context,['ship-systems.js']);
+  Object.assign(state,{shipType:7,hull:100,shields:100,latinum:5432,shipName:'Test Captain',government:'Player Government',solFreightHold:{0:12,5:4},localContracts:[{id:8,good:2,tons:6,to:5}]});
+  const before=JSON.stringify(state),player=window.nativeShipSystems.inspectAll(state).find(ship=>ship.id==='player');
+  assert.equal(player.credits,5432);assert.equal(player.faction,'Player Government');assert.equal(player.cargo.reduce((sum,lot)=>sum+lot.tons,0),22);
+  assert.equal(player.cargo[2].contractId,8);assert.equal(JSON.stringify(state),before);
+});
