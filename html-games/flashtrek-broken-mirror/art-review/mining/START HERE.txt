@@ -1,0 +1,10 @@
+SUPPLIED ASTEROID AND MINERAL ASSETS
+
+asteroids: all 53 untouched PNGs from 53_individual_asteroids.zip.
+mineral_asteroids: all 12 untouched PNGs from 12_mineral_crystal_asteroids.zip.
+These mineral pictures are the fragments you click to beam aboard.
+
+Native originals/manifest: source/vexed-mirror/assets/mining.
+Run sol_art.py, then build.py to create a candidate game. Review PNG changes
+alone do not replace the embedded native game art.
+See Improvement Notes/20 - Asteroids and Click-to-Beam Mining.txt.

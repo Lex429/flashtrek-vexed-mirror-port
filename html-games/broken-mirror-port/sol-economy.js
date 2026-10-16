@@ -68,7 +68,7 @@
           images.forEach((image,stage)=>{
             const aligned=profile.align(image,stage);
             const art=stage===3?profile.effects.unlitFrame(aligned):aligned;
-            tugAssets[stage]={art,width:art.width,height:art.height};
+            tugAssets[stage]={type:10,damageStage:stage,profile,art,width:art.width,height:art.height};
           });
           const frames=tugAssets.map(asset=>asset.art);
           stageTemplates=window.showcaseStageFragments.prepare(frames,profile.breakAnchors);
@@ -369,6 +369,7 @@
     let changed=false;
     while(economy.clock>=30){economy.clock-=30;produce(economy);changed=true;}
     for(const ship of economy.freighters) {
+      ship.previousX=ship.x;ship.previousY=ship.y;
       if(ship.phase==='destroyed') {
         if(ship.rebuild>0){ship.rebuild=Math.max(0,ship.rebuild-elapsed);if(ship.rebuild===0){finishRebuild(economy,ship);changed=true;}}
         else if(beginRebuild(economy,ship))changed=true;
@@ -488,7 +489,7 @@
     return {ok:true,message:`Delivered ${job.tons} t to ${names[job.to]}. ${job.pay} latinum received.`};
   }
   function select(id){if(targetId!==id)tugSelectedAt=performance.now();targetId=id;return id;}
-  function clearTarget(){targetId=null;shots.length=0;hullBursts.length=0;tugStageDebris.length=0;wrecks.length=0;}
+  function clearTarget(){window.nativeCombatShots.cancel('tug');targetId=null;shots.length=0;hullBursts.length=0;tugStageDebris.length=0;wrecks.length=0;}
   function target(state){return state?.solEconomy?.freighters.find(ship=>ship.id===targetId&&ship.phase!=='destroyed')||null;}
   function hitTest(state,{ship,cx,cy,zoom,x,y}){
     const economy=initialize(state),dimensions=tugDimensions(zoom);
@@ -500,22 +501,18 @@
   function fire(state,player,shipHeight,onFinish){
     const tug=target(state);
     if(!tug)return {ok:false,error:'Click a Tug to target it first.'};
-    if(Math.hypot(tug.x-player.x,tug.y-player.y)>650)return {ok:false,error:'Tug is out of weapon range. Fly closer.'};
-    const now=performance.now(),armed=window.nativeCombatShots.arm(state,now);
-    if(!armed.ok)return armed;
-    const {weapon,kind,style}=armed;
-    const shot=window.nativeCombatShots.create({state,ship:player,shipHeight,target:tug,kind,style,now});
-    shot.targetPoint=from=>window.nativeCombatShots.worldPoint(tug,shot.lockedImpactLocal||tugContactPoint(tug,from,tug.shields>0).local);
-    shots.push(shot);
-    setTimeout(()=>{
-      const from=window.nativeCombatShots.source(shot,state,window.vexedSolFlight.shipPosition(state));
-      const contact=tugContactPoint(tug,from,tug.shields>0);
-      shot.lockedImpactLocal=contact.local;
-      const result=hit(state,tug.id,weapon.damage,{from,kind:shot.kind,contact});
-      if(result.ok)onFinish?.(tug,result);
-    },window.nativeCombatShots.hitDelay(shot));
-    return {ok:true,weapon:weapon.name};
+    const result=window.nativeCombatShots.fire({state,shipHeight,owner:'tug',
+      getTarget:()=>state.system===1&&tug.phase!=='destroyed'?{...tug,id:'tug:'+tug.id}:null,
+      dimensions:()=>tugDimensions(1),shielded:ship=>ship.shields>0,
+      onHit(weapon,from,shot){
+        const contact=tugContactPoint(tug,from,tug.shields>0);shot.lockedImpactLocal=contact.local;
+        const damage=hit(state,tug.id,weapon.damage,{from,kind:shot.kind,contact});
+        if(damage.ok)onFinish?.(tug,damage);
+      }});
+    if(result.ok)shots.push(result.shot);
+    return result;
   }
+
   function snapshot(state,port) {
     const economy=initialize(state);
     const activity=ship=>{
@@ -535,7 +532,7 @@
   function paintEffects(ctx,{state,ship,cx,cy,zoom}){
     const now=performance.now();
     for(let i=shots.length-1;i>=0;i--){
-      const shot=shots[i],age=now-shot.born;if(age>shot.duration){shots.splice(i,1);continue;}
+      const shot=shots[i];if(!window.nativeCombatShots.isVisible(shot,now)){shots.splice(i,1);continue;}
       window.nativeCombatShots.paint(ctx,shot,{state,ship,cx,cy,zoom,now});
     }
     ctx.save();ctx.translate(cx-ship.x,cy-ship.y);
@@ -583,8 +580,7 @@
         ctx.restore();
       }
       if(asset){
-        window.vexedFlightAssets.drawShip(ctx,asset,x,y,dimensions.width,freighter.heading+Math.PI/2,now,{height:dimensions.height});
-        window.starterShips.get(10).effects.draw(ctx,{x,y,w:dimensions.width,h:dimensions.height},freighter.heading+Math.PI/2,stage,now,{lights:freighter.phase!=='disabled',damage:true,anchors:false});
+        window.vexedFlightAssets.drawShip(ctx,asset,x,y,dimensions.width,freighter.heading+Math.PI/2,now,{height:dimensions.height,lights:freighter.phase!=='disabled',damage:true,lightGain:1,lightBloom:1});
       }
       if(shieldVisible){
         ctx.save();ctx.translate(x,y);ctx.rotate(freighter.heading+Math.PI/2);

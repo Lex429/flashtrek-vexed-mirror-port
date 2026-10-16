@@ -91,8 +91,9 @@
     ctx.imageSmoothingQuality = 'high';
     ctx.translate(x, y);ctx.rotate(angle);ctx.scale(appearance.squeezeX ?? 1, 1);
     ctx.globalAlpha *= appearance.alpha ?? 1;
+    const cached=!fading&&!appearance.light&&asset.profile&&window.nativeShipSpriteCache?.draw(ctx,asset,width,height,time,appearance);
     if(fading){const px=32*width/asset.width,py=32*height/asset.height;ctx.drawImage(warpShipCanvas,-width/2-px,-height/2-py,width+px*2,height+py*2);}
-    else ctx.drawImage(asset.art, -width / 2, -height / 2, width, height);
+    else if(!cached)ctx.drawImage(asset.art, -width / 2, -height / 2, width, height);
     if(appearance.light){
       const source=appearance.light,tint=Number(source.color);
       const direction=Math.atan2(source.y-y,source.x-x)-angle,ux=Math.cos(direction),uy=Math.sin(direction);
@@ -108,7 +109,7 @@
       litShipContext.globalCompositeOperation='source-over';
       ctx.drawImage(litShipCanvas,-width/2,-height/2,width,height);
     }
-    if(!fading)asset.profile?.effects.draw(ctx, {x:0, y:0, w: width, h: height}, 0, asset.damageStage, time,
+    if(!fading&&!cached)asset.profile?.effects.draw(ctx, {x:0, y:0, w: width, h: height}, 0, asset.damageStage, time,
       {lights: appearance.lights !== false, damage: appearance.damage !== false, lightGain: appearance.lightGain??2.8, lightBloom: appearance.lightBloom??2.5});
     ctx.restore();
   }

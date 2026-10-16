@@ -113,15 +113,14 @@
     if(!rock||gone(state,rock.slotId))return{ok:false,error:'Click an intact asteroid to target it first.'};
     if(window.nativeCivilianTraffic?.isMiningRock(state,rock.slotId))return{ok:false,error:'A civilian miner is working this asteroid.'};
     if(mining)return{ok:false,error:'Mining laser is cutting this asteroid.'};
-    if(distance(rock,ship)>650)return{ok:false,error:'Asteroid is out of weapon range. Fly closer.'};
-    const now=performance.now(),armed=window.nativeCombatShots.arm(state,now);
-    if(!armed.ok)return armed;
-    const {weapon,style,kind}=armed;
-    const shot=window.nativeCombatShots.create({state,ship,shipHeight,target:rock,kind,style,now});
-    shots.push(shot);
-    setTimeout(()=>{if(shots.includes(shot))finishRock(state,rock,false,onFinish);},window.nativeCombatShots.hitDelay(shot));
-    return{ok:true,weapon:weapon.name,kind};
+    const result=window.nativeCombatShots.fire({state,shipHeight,owner:'asteroid',
+      getTarget:()=>state.system===1&&!gone(state,rock.slotId)?{...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,heading:rock.angle||0}:null,
+      dimensions:()=>({width:rock.size,height:rock.size}),shielded:()=>false,
+      onHit(){finishRock(state,rock,false,onFinish);}});
+    if(result.ok)shots.push(result.shot);
+    return result;
   }
+
   function mine(state,ship,onFinish){
     const rock=target();
     if(!rock||gone(state,rock.slotId))return{ok:false,error:'Target an intact asteroid to mine.'};
@@ -164,23 +163,25 @@
     ctx.globalAlpha=.72*alpha;ctx.strokeStyle='#71dcff';ctx.lineWidth=1.7/zoom;ctx.shadowColor='#31baff';ctx.shadowBlur=11/zoom;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.stroke();
     ctx.shadowBlur=0;ctx.globalAlpha=.3*alpha;ctx.lineWidth=.6/zoom;ctx.beginPath();ctx.arc(0,0,r-5/zoom,0,Math.PI*2);ctx.stroke();ctx.restore();
   }
-  function paint(ctx,{state,ship,cx,cy,zoom,now}){
+  function paint(ctx,{state,ship,cx,cy,zoom,now,w=cx*2,h=cy*2}){
     if(state.system!==1)return;
+    const visible=(x,y,r)=>window.nativeEffectVisibility.circle(x,y,r,{w,h});
     const rock=target();
     if(rock&&!gone(state,rock.slotId)&&mining?.rock.slotId!==rock.slotId&&!window.nativeCivilianTraffic?.isMiningRock(state,rock.slotId)){
       const x=cx+rock.x-ship.x,y=cy+rock.y-ship.y;
       drawCombatTargetFrame(ctx,{name:rock.name,size:rock.size,kind:'ASTEROID',hull:1-(Number(state.asteroidDamage?.[rock.slotId])||0)/Math.max(1,rock.maxHull),selectedAt},x,y,zoom,cx);
     }
-    shots=shots.filter(shot=>now-shot.born<shot.duration+850);
+    shots=shots.filter(shot=>window.nativeCombatShots.isVisible(shot,now));
     for(const shot of shots)window.nativeCombatShots.paint(ctx,shot,{state,ship,cx,cy,zoom,now});
     bursts=bursts.filter(b=>now-b.born<6200);
     for(const burst of bursts){
       const age=now-burst.born,t=age/1000,x=cx+burst.rock.x-ship.x,y=cy+burst.rock.y-ship.y;
-      if(age<260){const blast=age/260;ctx.save();ctx.globalAlpha=1-blast;ctx.strokeStyle='#e5b979';ctx.lineWidth=(2+5*(1-blast))/zoom;
+      if(age<260&&visible(x,y,(16+burst.rock.size*.72)/zoom)){const blast=age/260;ctx.save();ctx.globalAlpha=1-blast;ctx.strokeStyle='#e5b979';ctx.lineWidth=(2+5*(1-blast))/zoom;
         ctx.beginPath();ctx.ellipse(x,y,(12+blast*burst.rock.size*.72)/zoom,(10+blast*burst.rock.size*.72)/zoom,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
       for(const p of burst.pieces){
         if(age>p.ttl)continue;
         const px=x+p.x*burst.rock.size+Math.cos(p.angle)*p.speed*t,py=y+p.y*burst.rock.size+Math.sin(p.angle)*p.speed*t;
+        if(!visible(px,py,Math.hypot(p.w,p.h)*burst.rock.size/2))continue;
         ctx.save();ctx.globalAlpha=Math.min(1,(p.ttl-age)/500);ctx.translate(px,py);ctx.rotate(burst.rock.angle+p.spin*t);
         ctx.drawImage(p.texture,-p.w*burst.rock.size/2,-p.h*burst.rock.size/2,p.w*burst.rock.size,p.h*burst.rock.size);
         ctx.restore();
@@ -190,7 +191,7 @@
       const m=mining,age=now-m.born,r=m.rock;
       window.nativeAsteroidMiningEffects?.draw(ctx,m,{
         x:cx+r.x-ship.x,y:cy+r.y-ship.y,
-        source:{x:cx+m.ship.x-ship.x,y:cy+m.ship.y-ship.y},zoom,now
+        source:{x:cx+m.ship.x-ship.x,y:cy+m.ship.y-ship.y},zoom,now,w,h
       });
       if(age>=7150&&!m.finished){
         m.finished=true;

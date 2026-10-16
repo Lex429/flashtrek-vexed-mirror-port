@@ -66,6 +66,7 @@
         const textures=lampFrames[s]?.[i];if(!textures)continue;
         let pulse=p.kind==='running'?(Math.sin(t*4.2+i*.9)>.7?.9:.04):.18+.82*(.5+.5*Math.sin(t*2.1+(p.phase||0)));
         if(s>0&&d.damage[s].some(b=>Math.hypot(b.x-p.x,b.y-p.y)<b.r+17))pulse*=Math.sin(t*9+i*2)>.3?.55:.02;
+        if(window.nativeShipSpriteCache?.drawLamp(ctx,textures,p,pulse,options))continue;
         ctx.drawImage(textures.dim,p.left,p.top);
         const gain=options.lightGain||1,bloom=options.lightBloom||1;
         ctx.save();ctx.globalCompositeOperation='screen';ctx.filter=`brightness(${gain})`;ctx.globalAlpha=pulse;ctx.drawImage(textures.lit,p.left,p.top);

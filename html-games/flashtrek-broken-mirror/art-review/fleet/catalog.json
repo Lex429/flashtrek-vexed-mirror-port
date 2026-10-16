@@ -1,0 +1,320 @@
+[
+  {
+    "id": 144,
+    "name": "Steamrunner Class",
+    "frame": 1,
+    "width": 57,
+    "height": 73,
+    "shapes": [
+      145,
+      398
+    ]
+  },
+  {
+    "id": 146,
+    "name": "Excelsior Class",
+    "frame": 2,
+    "width": 45,
+    "height": 116,
+    "shapes": [
+      147,
+      399
+    ]
+  },
+  {
+    "id": 148,
+    "name": "Miranda Class",
+    "frame": 3,
+    "width": 56,
+    "height": 95,
+    "shapes": [
+      149,
+      400
+    ]
+  },
+  {
+    "id": 150,
+    "name": "Nebula Class",
+    "frame": 4,
+    "width": 109,
+    "height": 101,
+    "shapes": [
+      151
+    ]
+  },
+  {
+    "id": 152,
+    "name": "Nova Class",
+    "frame": 5,
+    "width": 29,
+    "height": 58,
+    "shapes": [
+      153,
+      401
+    ]
+  },
+  {
+    "id": 154,
+    "name": "Saber Class",
+    "frame": 6,
+    "width": 43,
+    "height": 49,
+    "shapes": [
+      155,
+      402
+    ]
+  },
+  {
+    "id": 156,
+    "name": "Danube Runabout",
+    "frame": 7,
+    "width": 16,
+    "height": 26,
+    "shapes": [
+      157,
+      403
+    ]
+  },
+  {
+    "id": 158,
+    "name": "Deforest Class",
+    "frame": 8,
+    "width": 66,
+    "height": 104,
+    "shapes": [
+      159,
+      404
+    ]
+  },
+  {
+    "id": 160,
+    "name": "Kingston Class",
+    "frame": 9,
+    "width": 75,
+    "height": 123,
+    "shapes": [
+      161,
+      405
+    ]
+  },
+  {
+    "id": 162,
+    "name": "Tug Class II",
+    "frame": 10,
+    "width": 40,
+    "height": 125,
+    "shapes": [
+      163,
+      406
+    ]
+  },
+  {
+    "id": 164,
+    "name": "Vega Class",
+    "frame": 11,
+    "width": 55,
+    "height": 73,
+    "shapes": [
+      165,
+      407
+    ]
+  },
+  {
+    "id": 166,
+    "name": "Aries Class",
+    "frame": 12,
+    "width": 38,
+    "height": 105,
+    "shapes": [
+      167,
+      408
+    ]
+  },
+  {
+    "id": 168,
+    "name": "Mozart Class",
+    "frame": 13,
+    "width": 80,
+    "height": 117,
+    "shapes": [
+      169,
+      409
+    ]
+  },
+  {
+    "id": 170,
+    "name": "Centaur Class",
+    "frame": 14,
+    "width": 70,
+    "height": 102,
+    "shapes": [
+      171,
+      410
+    ]
+  },
+  {
+    "id": 172,
+    "name": "Ambassador Class",
+    "frame": 15,
+    "width": 86,
+    "height": 139,
+    "shapes": [
+      173,
+      411
+    ]
+  },
+  {
+    "id": 208,
+    "name": "Akira Class",
+    "frame": 33,
+    "width": 59,
+    "height": 87,
+    "shapes": [
+      209,
+      426
+    ]
+  },
+  {
+    "id": 210,
+    "name": "Defiant Class",
+    "frame": 34,
+    "width": 28,
+    "height": 33,
+    "shapes": [
+      211,
+      427
+    ]
+  },
+  {
+    "id": 212,
+    "name": "Galaxy Class",
+    "frame": 35,
+    "width": 119,
+    "height": 159,
+    "shapes": [
+      213,
+      428
+    ]
+  },
+  {
+    "id": 214,
+    "name": "Intrepid Class",
+    "frame": 36,
+    "width": 33,
+    "height": 83,
+    "shapes": [
+      215,
+      429
+    ]
+  },
+  {
+    "id": 216,
+    "name": "Prometheus Class",
+    "frame": 37,
+    "width": 49,
+    "height": 124,
+    "shapes": [
+      217,
+      430
+    ]
+  },
+  {
+    "id": 218,
+    "name": "Sovereign Class",
+    "frame": 38,
+    "width": 82,
+    "height": 183,
+    "shapes": [
+      219,
+      431
+    ]
+  },
+  {
+    "id": 232,
+    "name": "Akuzi Class",
+    "frame": 45,
+    "width": 70,
+    "height": 99,
+    "shapes": [
+      233,
+      437
+    ]
+  },
+  {
+    "id": 234,
+    "name": "New Orleans Class",
+    "frame": 46,
+    "width": 95,
+    "height": 125,
+    "shapes": [
+      235,
+      438
+    ]
+  },
+  {
+    "id": 236,
+    "name": "Oberth Tug",
+    "frame": 47,
+    "width": 48,
+    "height": 92,
+    "shapes": [
+      237,
+      439
+    ]
+  },
+  {
+    "id": 240,
+    "name": "Galaxy Dreadnaught",
+    "frame": 49,
+    "width": 130,
+    "height": 167,
+    "shapes": [
+      241,
+      441
+    ]
+  },
+  {
+    "id": 254,
+    "name": "Constitution Tug",
+    "frame": 56,
+    "width": 63,
+    "height": 127,
+    "shapes": [
+      255,
+      448
+    ]
+  },
+  {
+    "id": 256,
+    "name": "Constellation Tug",
+    "frame": 57,
+    "width": 63,
+    "height": 116,
+    "shapes": [
+      257,
+      449
+    ]
+  },
+  {
+    "id": 258,
+    "name": "Olympic Class",
+    "frame": 58,
+    "width": 62,
+    "height": 158,
+    "shapes": [
+      259,
+      450
+    ]
+  },
+  {
+    "id": 262,
+    "name": "Dreadnaught Class",
+    "frame": 60,
+    "width": 147,
+    "height": 282,
+    "shapes": [
+      263,
+      452
+    ]
+  }
+]

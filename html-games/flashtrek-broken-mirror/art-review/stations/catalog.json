@@ -1,0 +1,192 @@
+[
+  {
+    "id": 272,
+    "frame": 70,
+    "name": "Earth Starbase",
+    "shape": 273,
+    "images": [
+      272
+    ]
+  },
+  {
+    "id": 274,
+    "frame": 71,
+    "name": "Earth Research",
+    "shape": 275,
+    "images": [
+      274
+    ]
+  },
+  {
+    "id": 276,
+    "frame": 72,
+    "name": "Vulcan University",
+    "shape": 277,
+    "images": [
+      276
+    ]
+  },
+  {
+    "id": 278,
+    "frame": 73,
+    "name": "Earth Heavy Shipyard",
+    "shape": 279,
+    "images": [
+      278
+    ]
+  },
+  {
+    "id": 280,
+    "frame": 74,
+    "name": "Earth Shipyard",
+    "shape": 281,
+    "images": [
+      280
+    ]
+  },
+  {
+    "id": 282,
+    "frame": 75,
+    "name": "Trade Station",
+    "shape": 283,
+    "images": [
+      282
+    ]
+  },
+  {
+    "id": 284,
+    "frame": 76,
+    "name": "Bar",
+    "shape": 285,
+    "images": [
+      284
+    ]
+  },
+  {
+    "id": 286,
+    "frame": 77,
+    "name": "Delpin Waterpark",
+    "shape": 287,
+    "images": [
+      286
+    ]
+  },
+  {
+    "id": 288,
+    "frame": 78,
+    "name": "Ore Station",
+    "shape": 289,
+    "images": [
+      288
+    ]
+  },
+  {
+    "id": 290,
+    "frame": 79,
+    "name": "Klingon Starbase",
+    "shape": 291,
+    "images": [
+      290
+    ]
+  },
+  {
+    "id": 292,
+    "frame": 80,
+    "name": "Klingon Shipyard",
+    "shape": 293,
+    "images": [
+      292
+    ]
+  },
+  {
+    "id": 294,
+    "frame": 81,
+    "name": "Klingon Heavy Shipyard",
+    "shape": 295,
+    "images": [
+      294
+    ]
+  },
+  {
+    "id": 296,
+    "frame": 82,
+    "name": "Dyson Sphere",
+    "shape": 297,
+    "images": [
+      296
+    ]
+  },
+  {
+    "id": 298,
+    "frame": 83,
+    "name": "Maintenance Station",
+    "shape": 299,
+    "images": [
+      298
+    ]
+  },
+  {
+    "id": 300,
+    "frame": 84,
+    "name": "Habitat Station",
+    "shape": 301,
+    "images": [
+      300
+    ]
+  },
+  {
+    "id": 302,
+    "frame": 85,
+    "name": "Wormhole Generator",
+    "shape": 304,
+    "images": [
+      302,
+      303
+    ]
+  },
+  {
+    "id": 305,
+    "frame": 86,
+    "name": "Defense Platform",
+    "shape": 306,
+    "images": [
+      305
+    ]
+  },
+  {
+    "id": 307,
+    "frame": 87,
+    "name": "Advanced Defense Platform",
+    "shape": 308,
+    "images": [
+      307
+    ]
+  },
+  {
+    "id": 309,
+    "frame": 88,
+    "name": "Cardassian Starbase",
+    "shape": 310,
+    "images": [
+      309
+    ]
+  },
+  {
+    "id": 311,
+    "frame": 89,
+    "name": "Subspace Comm Station",
+    "shape": 312,
+    "images": [
+      311
+    ]
+  },
+  {
+    "id": 313,
+    "frame": 90,
+    "name": "Romulan Starbase",
+    "shape": 314,
+    "images": [
+      313
+    ]
+  }
+]

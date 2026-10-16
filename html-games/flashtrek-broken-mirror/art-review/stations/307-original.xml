@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<swf _xmlExportMajor="2" _xmlExportMinor="2" _generator="JPEXS Free Flash Decompiler v.26.3.0" type="SWF" charset="UTF-8" compression="ZLIB" encrypted="false" frameCount="1" frameRate="13.0" gfx="false" hasEndTag="true" version="6"><displayRect type="RECT" Xmax="12000" Xmin="0" Ymax="9000" Ymin="0" nbits="15" />
+  <tags><item type="SetBackgroundColorTag"><backgroundColor type="RGB" red="8" green="11" blue="16" /></item><item type="DefineBitsLossless2Tag" bitmapColorTableSize="255" bitmapFormat="3" bitmapHeight="35" bitmapWidth="33" characterID="307" forceWriteAsLong="true" zlibBitmapData="78dacd926b50946514c70d4b0385805daecbc2c25eb9c8b2dc57606159582e62b0c835c80ce28e5c02c50033430d044471591004048acb5289159a09b22220a00894242031a38ed59726839ae18bfe7b69a1bed8ae5f9c3a33efbcff39cfef799ef39cf30fa29a234a208298eb829e0a19c27cfc519d538c431979e0b16ce1eee08cb09070c85b2fc091e70a269385b8f8dd20910d20abad83b446864e7937480606f0f1f7c74e8904bec4bffce449f03d3c101915053a930136870d4b4b1ad86c163c3d3de0e6e60a575717383b3b213c5c0289240cc1c141080a0a8448e48be2e222a4a7a7213131013131d178f8f001464686313c3c849e9ef3686b6b454bcb39343535a2a6468aeaea53a8aa3a818a8a721c3f5e86996937fcf1cb09f477b3317d4d82cbf59a4889de82e5490ee4527bf43438a3af4304064d1b45595cc80eeae0ec615ddcee3682b498047fbe26e67aa9682fa7a0fe8815627690d1d594895d621232e22cc1dfb60962772d5c69e0614fa403e834437872b5e0e56480a2380a62bcb4d092630a9e8506bc6d0856c0832f4703b97e9b616fb6118e540d08185aa8ab95417aba1a3ffff4237e58b887857bf3b875731c972ef602b2edc81750f0749f1d1ea4b22136d98c466f63347b9081ea74fc9a1d028af65608e95608653040d7d5059bc502cfc101911111080b0d859f4804a18f0f8a0a0b71a0a00005fbf7233f2f0f39d9d9c8cecac2decc4ca4a5a62225391931d1d18826e6f5f4c913fcbebc8ce5a525fcf6f831e6e7e6a01818407f5f1fbae572747576a2a3bd1d67eaea20aba941654505ca4a4b71ece851acc6caca0a9688bd8f1e3dc2fdfbf7b1b8b8888585054c4c4ca0b9b919b9b9b9c826eecfc8c8402a7177525212121212101f1f8fd8d8584410b58712b50706062220200062b118fe84a7fcfcfc20140ae1eded0d8140002f2f2fc24b9ef0207cc6e7f3e1eeee4ef8ca8df0952b5c5c56bde50c272727383a3a82cbe5c2dede1e767676b0b5b5858d8d0dacadadc1e170084fb2c122fac66432c158ed239d0e2b2b2bc2af96a0d168b0b0b080b9b939a8542acccccc40a150606a6a0a131313181b1bc3c8c8088686862093c9209148d0d7d7879e9e1e748979e8e8e8405353131b9481ffdb37ff22a2b75f715d0d525e61efdc58729ea68aa9adaf4bdac3f9f2aa2aa6eca3043b9782aba3aa98b74f9e6eee1e995659cffef6aeaf46ef7ca7ee65b7bf55fffa2b63ea19f925f50c89fc6f2b03eb42e3954d9b9fb17eadf8b8aca641a935b352d23373957aabaede6bda834a4d65db4aa5c714abf2552d37d7b0e837b6fc95b7aa4c3ef5c5da397d960e89a5ef1cfa7ac0e4a56cfe0e6f815092ba617edeec6307c7aa96eb334a66e8c2fb55953c466ba1e1c634772fcf80c09df1ef1a7c58cd657d70eeb3a93b6b07293aad4b3a266f298c5ede1b19e4b75d14129ba73f6cd1fedee73d8ae9756662307f48d9b98ca8607f5f8f5d6f2af3e3a3e353eb73999d991ebba194e111a1e2d77dd6f2447a7ae69f21dd185a536fc5c5ecfe3b3d3536f1ec76e63c87a5759e63ee14f50cf353f5cc376d6a00baf591a683e69715aa983347a536278a4a0ea862ce6eab743a2cdf67aa8a31fea4ebe2e0cd49d5054d7d3f3b7bf7aeda87cdcdcdffa7f127b1edc075" />
+    <item type="DefineShapeTag" forceWriteAsLong="true" shapeId="308">
+      <shapeBounds type="RECT" Xmax="367" Xmin="-293" Ymax="367" Ymin="-333" nbits="10" />
+      <shapes type="SHAPEWITHSTYLE" numFillBits="2" numLineBits="0">
+        <fillStyles type="FILLSTYLEARRAY">
+          <fillStyles>
+            <item type="FILLSTYLE" bitmapId="65535" fillStyleType="65">
+              <bitmapMatrix type="MATRIX" hasRotate="false" hasScale="true" nRotateBits="0" nScaleBits="22" nTranslateBits="0" scaleX="20.0" scaleY="20.0" translateX="0" translateY="0" />
+            </item>
+            <item type="FILLSTYLE" bitmapId="307" fillStyleType="65">
+              <bitmapMatrix type="MATRIX" hasRotate="false" hasScale="true" nRotateBits="0" nScaleBits="22" nTranslateBits="10" scaleX="20.0" scaleY="20.0" translateX="-293" translateY="-333" />
+            </item>
+          </fillStyles>
+        </fillStyles>
+        <lineStyles type="LINESTYLEARRAY">
+          <lineStyles />
+        </lineStyles>
+        <shapeRecords>
+          <item type="StyleChangeRecord" fillStyle1="2" moveBits="10" moveDeltaX="-293" moveDeltaY="-333" stateFillStyle0="false" stateFillStyle1="true" stateLineStyle="false" stateMoveTo="true" stateNewStyles="false" />
+          <item type="StraightEdgeRecord" deltaX="660" generalLineFlag="false" numBits="9" vertLineFlag="false" />
+          <item type="StraightEdgeRecord" deltaY="700" generalLineFlag="false" numBits="9" vertLineFlag="true" />
+          <item type="StraightEdgeRecord" deltaX="-660" generalLineFlag="false" numBits="9" vertLineFlag="false" />
+          <item type="StraightEdgeRecord" deltaY="-700" generalLineFlag="false" numBits="9" vertLineFlag="true" />
+          <item type="EndShapeRecord" endOfShape="0" />
+        </shapeRecords>
+      </shapes>
+    </item>
+    <item type="PlaceObject2Tag" characterId="308" depth="1" placeFlagHasCharacter="true" placeFlagHasMatrix="true" placeFlagMove="false" placeFlagHasClipActions="false" placeFlagHasClipDepth="false" placeFlagHasColorTransform="false" placeFlagHasName="false" placeFlagHasRatio="false" forceWriteAsLong="true"><matrix type="MATRIX" hasScale="true" hasRotate="false" scaleX="10.0" scaleY="10.0" translateX="5630" translateY="4330" nScaleBits="24" nRotateBits="0" nTranslateBits="15" /></item><item type="ShowFrameTag" /></tags></swf>

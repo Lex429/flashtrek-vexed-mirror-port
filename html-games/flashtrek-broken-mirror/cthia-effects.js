@@ -3,6 +3,19 @@
    slow motion, rotation, zoom, stage changes and repairs stay synchronized. */
 (() => {
   'use strict';
+  // Share fixed radial textures across ship profiles. Radius and brightness
+  // remain animated at draw time; no damage stage or animation frame is cached.
+  const glowTextures=new Map(),glowSize=128;
+  function glowTexture(color){
+    if(glowTextures.has(color))return glowTextures.get(color);
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=glowSize;
+    const g=canvas.getContext('2d'),r=glowSize/2,gradient=g.createRadialGradient(r,r,0,r,r,r);
+    gradient.addColorStop(0,'#ffffff');gradient.addColorStop(.2,color);gradient.addColorStop(1,color+'00');
+    g.fillStyle=gradient;g.beginPath();g.arc(r,r,r,0,Math.PI*2);g.fill();
+    // Bound memory even when a custom profile supplies additional colors.
+    if(glowTextures.size>=32)glowTextures.delete(glowTextures.keys().next().value);
+    glowTextures.set(color,canvas);return canvas;
+  }
   function createEffects(config={}){
   const width=config.width||365,height=config.height||512;
   const lights=config.lights||[
@@ -40,9 +53,8 @@
   }
   const noise=n=>{const v=Math.sin(n*12.9898+78.233)*43758.5453;return v-Math.floor(v);};
   function glow(ctx,x,y,r,color,alpha){
-    ctx.save();ctx.globalAlpha=alpha;const g=ctx.createRadialGradient(x,y,0,x,y,r);
-    g.addColorStop(0,'#ffffff');g.addColorStop(.2,color);g.addColorStop(1,color+'00');
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore();
+    ctx.save();ctx.globalAlpha=alpha;
+    ctx.drawImage(glowTexture(color),x-r,y-r,r*2,r*2);ctx.restore();
   }
   function snapshot(stage,time,options={}){
     const t=time/1000,s=Math.max(0,Math.min(3,stage));
@@ -54,7 +66,7 @@
     ctx.save();ctx.translate(layout.x,layout.y);ctx.rotate(angle);
     ctx.scale(layout.w/width,layout.h/height);ctx.translate(-width/2,-height/2);
     if(options.lights){
-      ctx.save();ctx.filter=`brightness(${options.lightGain||1})`;
+      ctx.save();const gain=options.lightGain||1;if(gain!==1)ctx.filter=`brightness(${gain})`;
       for(const [i,p] of lights.entries()){
         if(s===3&&(p.kind==='core'||p.offSevere))continue;
         let intensity=p.kind==='core'?.18+.82*corePulse(t):p.kind==='running'?(Math.sin(t*4.2+i*.9)>.7?.9:.03):.12+.13*wave(t,1.8,i*.7);

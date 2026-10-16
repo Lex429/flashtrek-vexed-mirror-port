@@ -58,9 +58,12 @@
     const raw=elapsed>=span*2+duration?1:clamp((elapsed-pass*span)/duration,0,1),ease=.5-.5*Math.cos(Math.PI*raw),progress=pass%2?1-ease:ease;
     return{pass,raw,ease,point:data.cut(pass,data.cuts.x0+(data.cuts.x1-data.cuts.x0)*progress)};
   }
-  function draw(ctx,m,{x,y,source,zoom,now}){
+  function draw(ctx,m,{x,y,source,zoom,now,w=Infinity,h=Infinity}){
     const age=now-m.born,rock=m.rock,im=window.nativeSolAsteroids.image(rock.file);
     if(!im.complete||!im.naturalWidth)return;
+    const visible=window.nativeEffectVisibility?.mining(x,y,source,rock.size,{w,h})??true;
+    // Avoid image sampling and texture construction for unseen mining effects.
+    if(!visible&&!m.effect)return;
     if(!m.effect)m.effect=create(im,rock,now);
     const effect=m.effect,{data,parts,unit,preview}=effect,size=rock.size,heatAge=age-3950,pressure=clamp(heatAge/3600,0,1),ease=pressure*pressure*(3-2*pressure),shieldScale=1.05-.43*ease;
     const dt=clamp((now-effect.clock)/1000,0,.06);effect.clock=now;
@@ -71,6 +74,8 @@
       const inside=p.samples.every(q=>{const wx=next.x+(q.x*ca-q.y*sa)*size,wy=next.y+(q.x*sa+q.y*ca)*size;return solid(data,(wx*baseC+wy*baseS)/size,(-wx*baseS+wy*baseC)/size,shieldScale*1.05);});
       if(inside){Object.assign(p,next);}else{p.vx*=-.35;p.vy*=-.35;p.spin*=-.4;effect.ripples.push({x:x+p.x,y:y+p.y,born:now});}
     }
+    effect.ripples=effect.ripples.filter(r=>now-r.born<520);
+    if(!visible)return;
     const gather=1-.86*pressure,scale=1-.4*pressure,drain=clamp((clamp(heatAge/4400,0,1)-.16)/.72,0,1),oreGrowth=clamp((age-7150)/800,0,1),rockFade=1-clamp(oreGrowth/.22,0,1);
     for(let i=0;i<4;i++){
       const p=parts[i],offsetX=p.x*gather,offsetY=p.y*gather;

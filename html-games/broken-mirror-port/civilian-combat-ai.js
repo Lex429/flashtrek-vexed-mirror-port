@@ -10,74 +10,12 @@
     52:{style:'cruiser',speed:.48,turn:.7,accel:36,range:290,pass:3.8}
   };
   const profile=type=>profiles[type]||profiles[47];
-  const velocity=ship=>({x:Number(ship.vx)||0,y:Number(ship.vy)||0});
   function begin(ship,role,clock){
     const speed=Number(ship.speed)||0;
     ship.vx=Math.cos(ship.heading)*speed;ship.vy=Math.sin(ship.heading)*speed;
     ship.combatAI={role,mode:role==='thief'?'breakaway':'intercept',until:clock+(role==='thief'?1.6:2.5),side:ship.id%2?1:-1,angularVelocity:0,nextEvade:clock+3,lastHitAt:-100,shots:0,passes:0,engineWarning:false,shieldWarning:false};
   }
-  function intercept(from,target,speed){
-    const v=velocity(target),dx=target.x-from.x,dy=target.y-from.y;
-    const a=v.x*v.x+v.y*v.y-speed*speed,b=2*(dx*v.x+dy*v.y),c=dx*dx+dy*dy;
-    let time=0;
-    if(Math.abs(a)<1e-6){if(Math.abs(b)>1e-6)time=-c/b;}
-    else{const discriminant=b*b-4*a*c;if(discriminant>=0){const root=Math.sqrt(discriminant),times=[(-b-root)/(2*a),(-b+root)/(2*a)].filter(value=>value>0);if(times.length)time=Math.min(...times);}}
-    time=clamp(Number.isFinite(time)?time:0,0,2.5);
-    return {x:target.x+v.x*time,y:target.y+v.y*time};
-  }
-  function weaponSpec(weapon,kind,ship){
-    const broad=ship.shipType===47||ship.shipType===52;
-    return {range:kind==='beam'?520:kind==='torpedo'?650:430,arc:(kind==='beam'?(broad?110:65):kind==='torpedo'?50:50)*Math.PI/180,
-      speed:kind==='torpedo'?225:340,turn:kind==='torpedo'?.85:0,radius:kind==='torpedo'?3:1.4,
-      recharge:Math.max(kind==='beam'?.55:.35,Number(weapon.recharge||3)/13*1.3)};
-  }
-  function circleSweep(from,to,center,radius){
-    const dx=to.x-from.x,dy=to.y-from.y,ox=from.x-center.x,oy=from.y-center.y;
-    const a=dx*dx+dy*dy,c=ox*ox+oy*oy-radius*radius;
-    if(c<=0)return 0;
-    if(a<1e-9)return null;
-    const b=2*(ox*dx+oy*dy),d=b*b-4*a*c;
-    if(d<0)return null;
-    const t=(-b-Math.sqrt(d))/(2*a);return t>=0&&t<=1?t:null;
-  }
-  function targetSweep(from,to,target,dimensions,radii){
-    const angle=target.heading+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle);
-    const previous={x:Number.isFinite(target.previousX)?target.previousX:target.x,y:Number.isFinite(target.previousY)?target.previousY:target.y};
-    const local=(point,origin)=>{const x=point.x-origin.x,y=point.y-origin.y;return{x:(x*c+y*s)/(radii.rx*.96),y:(-x*s+y*c)/(radii.ry*.96)};};
-    return circleSweep(local(from,previous),local(to,target),{x:0,y:0},1);
-  }
-  function obstacleHit(from,to,rocks,padding=0){
-    let best=null;
-    for(const rock of rocks){const t=circleSweep(from,to,rock,rock.size*.43+padding);if(t!=null&&(!best||t<best.t))best={t,rock};}
-    return best;
-  }
-  function canFire(ship,target,spec,aim,rocks,bystanders=[]){
-    const dx=aim.x-ship.x,dy=aim.y-ship.y;
-    if(Math.hypot(dx,dy)>spec.range||Math.abs(wrap(Math.atan2(dy,dx)-ship.heading))>spec.arc)return false;
-    if(obstacleHit(ship,aim,rocks))return false;
-    return !bystanders.some(other=>other.id!==ship.id&&other.id!==target.id&&circleSweep(ship,aim,other,Math.max(10,other.radius||15))!=null);
-  }
-  function launch(ship,target,spec,kind,clock,serial){
-    const aim=intercept(ship,target,spec.speed),jitter=Math.sin(serial*12.97+ship.id*7.1)*(ship.shipType===18||ship.shipType===23?.04:.018);
-    const angle=Math.atan2(aim.y-ship.y,aim.x-ship.x)+jitter;
-    return {x:ship.x+Math.cos(ship.heading)*spec.muzzle,y:ship.y+Math.sin(ship.heading)*spec.muzzle,
-      vx:Math.cos(angle)*spec.speed,vy:Math.sin(angle)*spec.speed,age:0,ttl:spec.range/spec.speed+.25,
-      projectile:true,alive:true,turn:spec.turn,radius:spec.radius,speed:spec.speed,launchedAt:clock,kind};
-  }
-  function stepProjectile(event,target,dt,rocks,radii,dimensions){
-    const from={x:event.x,y:event.y};
-    if(event.turn){
-      const angle=Math.atan2(event.vy,event.vx),desired=Math.atan2(target.y-event.y,target.x-event.x);
-      const next=angle+clamp(wrap(desired-angle),-event.turn*dt,event.turn*dt);
-      event.vx=Math.cos(next)*event.speed;event.vy=Math.sin(next)*event.speed;
-    }
-    event.x+=event.vx*dt;event.y+=event.vy*dt;event.age+=dt;
-    const to={x:event.x,y:event.y},terrain=obstacleHit(from,to,rocks,event.radius);
-    const contact=targetSweep(from,to,target,dimensions,radii);
-    if(terrain&&(contact==null||terrain.t<=contact))return {kind:'blocked',point:{x:from.x+(to.x-from.x)*terrain.t,y:from.y+(to.y-from.y)*terrain.t}};
-    if(contact!=null)return {kind:'hit',point:{x:from.x+(to.x-from.x)*contact,y:from.y+(to.y-from.y)*contact}};
-    return event.age>=event.ttl?{kind:'miss'}:null;
-  }
+  const {intercept,weaponSpec,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile}=window.nativeWeaponRules;
   function coverPoint(ship,target,rocks){
     let best=null,bestDistance=Infinity;
     for(const rock of rocks){
