@@ -46,7 +46,7 @@
     }
     // Existing cargo is already paid/loaded. Migration never withdraws it again.
     if(!ship.task&&ship.cargo){
-      ship.task={id:`civilian:${ship.id}:${++ship.taskSequence}`,kind:ship.role==='trading'?'trade':'freight',phase:'loaded',status:'active',createdAt:now(state),reason:'Continue the saved cargo delivery',
+      ship.task={id:`civilian:${ship.id}:${++ship.taskSequence}`,kind:ship.role==='trading'?'trade':'freight',phase:ship.journey?'transit':'loaded',status:'active',createdAt:ship.journey?.departedAt??now(state),reason:'Continue the saved cargo delivery',
         origin:{system:ship.cargo.fromSystem||ship.system,port:ship.cargo.fromPort||ship.port||0},destination:{system:ship.cargo.toSystem||ship.system,port:ship.cargo.toPort||0},requirements:{good:ship.cargo.good,tons:ship.cargo.tons},progress:0};
     }
     if(!ship.task&&ship.journey){ship.task={id:`civilian:${ship.id}:${++ship.taskSequence}`,kind:'reposition',status:'active',phase:'transit',createdAt:ship.journey.departedAt,reason:'Continue the saved interstellar journey',origin:{system:ship.journey.origin,port:ship.port||0},destination:{system:ship.journey.destination,port:ship.journey.destination===1?3:0},requirements:{},progress:0};}

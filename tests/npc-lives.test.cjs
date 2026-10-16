@@ -118,3 +118,18 @@ test('shield-only service is paid, partial service respects money, and an insolv
   const partial=await setup(1);partial.step(.1);assert.equal(partial.ship.task.requirements.cost,1);partial.until(()=>partial.ship.task.status==='completed');assert.ok(partial.ship.shields>0&&partial.ship.shields<100);assert.equal(partial.ship.credits,0);
   const idle=await setup(0);idle.step(.1);assert.equal(idle.ship.task.kind,'idle');assert.equal(idle.ship.shields,0);assert.equal(idle.ship.credits,0);
 });
+
+test('legacy loaded warp migration preserves the remaining journey and never departs a second time',async()=>{
+  const initial=await fixture(),saved=JSON.parse(JSON.stringify(initial.state)),ship=saved.civilianTraffic.ships[0];
+  Object.assign(ship,{phase:'warp',system:1,destinationSystem:2,timer:2,warpDuration:10,credits:123,cargo:{good:5,tons:4,fromSystem:1,fromPort:3,toSystem:2,toPort:0}});
+  for(const field of ['lifeVersion','task','journey','localLeg','nextActionAt'])delete ship[field];
+  saved.shipSimulation.seconds=90;
+  const restored=await fixture(saved),taskId=restored.ship.task.id,arrivalAt=restored.ship.journey.arrivalAt;
+  assert.equal(restored.ship.task.phase,'transit');assert.equal(arrivalAt,92);
+  const source=restored.lives.market(restored.state,1,3),stock=source.stock[5];
+  restored.step(1);assert.equal(restored.ship.journey.arrivalAt,arrivalAt);assert.equal(restored.ship.cargo.tons,4);
+  restored.step(1);assert.equal(restored.ship.system,2);assert.equal(restored.ship.journey,null);assert.equal(restored.ship.task.phase,'approaching');
+  assert.equal(restored.ship.task.id,taskId);assert.equal(restored.ship.credits,123);assert.equal(source.stock[5],stock);
+  assert.equal(restored.ship.recentEvents.filter(event=>event.kind==='departure').length,0);
+  restored.until(()=>restored.ship.task.status==='completed');assert.equal(restored.ship.deliveries,1);assert.equal(restored.ship.cargo,null);
+});

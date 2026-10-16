@@ -27,6 +27,8 @@ nearby tactical controllers; they are not ordinary economic traffic.
 Each migrated civilian keeps its existing name, ID, type, equipment, health,
 credits, cargo and system. It gains `lifeVersion:1`, `role`, `homeBase`,
 `taskSequence`, `task`, `journey`, `nextActionAt` and newest-first `recentEvents`.
+Legacy loaded and empty warp journeys keep their remaining arrival deadline;
+migration never withdraws the carried cargo again or starts a second departure.
 The event history is capped at 24 by default. Equipment continues to use saved
 owned weapon instances; there is no second recharge timer. Hull/shields and cargo
 on the ship remain authoritative.
