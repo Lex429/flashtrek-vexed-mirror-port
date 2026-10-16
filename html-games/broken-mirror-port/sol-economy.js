@@ -28,55 +28,16 @@
     9:[20,25,35,55,45,45,30,20,12],
     10:[25,35,75,40,55,45,30,25,18]
   };
-  const tugAssets=[],wrecks=[],tugStageDebris=[];
   const buildMaterials=[[1,15],[2,12],[3,6],[7,5],[8,2]];
   const solGovernmentId=Number(world.systems.find(system=>system.id===1)?.governmentId)||1;
-  const shots=[],hullBursts=[];
-  let tugPending,destruction,stageTemplates=null,targetId=null,tugSelectedAt=0,tugRenderDimensions=null;
+  let targetId=null,tugSelectedAt=0;
   const tugStats=()=>window.VexedMirrorWorld.ships.find(ship=>ship.id===10);
-  const damageStage=ship=>ship.hull/Math.max(1,tugStats().hull)<=.25?3:ship.hull/tugStats().hull<.5?2:ship.hull/tugStats().hull<.75?1:0;
   function disable(economy,ship){
-    if(ship.phase==='destroyed'||ship.phase==='disabled'||ship.hull<=0||ship.hull>tugStats().hull*.25)return;
+    if(ship.phase==='destroyed'||ship.phase==='disabled'||ship.hull<=0)return;
     ship.phase='disabled';ship.speed=0;ship.turnTimer=0;
     note(economy,`Tug ${ship.id+1} disabled. Engines and lights offline; cargo stranded in space.`);
   }
-  function tugDimensions(zoom){
-    const base=window.vexedFlightAssets.flightDimensions(window.vexedFlightAssets.size(10),zoom);
-    return {width:base.height*(tugAssets[0]?.width||164)/(tugAssets[0]?.height||512),height:base.height};
-  }
-  function tugWorldPoint(tug,local) {
-    const angle=tug.heading+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle);
-    return {x:tug.x+local.x*c-local.y*s,y:tug.y+local.x*s+local.y*c};
-  }
-  function tugContactPoint(tug,from,shielded=tug.shields>0) {
-    const dimensions=tugRenderDimensions||tugDimensions(1);
-    return window.nativeCombatShots.contact(tug,from,dimensions,shielded);
-  }
-  function tugLayout(ship) {
-    const dimensions=tugRenderDimensions||tugDimensions(1);
-    return {x:ship.x,y:ship.y,w:dimensions.width,h:dimensions.height};
-  }
-  function ensureTugArt() {
-    if(!tugAssets[0] && !tugPending && window.vexedFlightAssets) {
-      const profile=window.starterShips.get(10);
-      tugPending=Promise.all([0,1,2,3].map(stage=>new Promise((resolve,reject)=>{
-        const image=new Image();
-        image.onload=()=>image.decode().then(()=>resolve(image),reject);
-        image.onerror=()=>reject(Error('Regular Tug Class II artwork unavailable'));
-        image.src=`../flashtrek-broken-mirror/showcase-assets/ship-10-${stage}.png`;
-      }))).then(images=>{
-          images.forEach((image,stage)=>{
-            const aligned=profile.align(image,stage);
-            const art=stage===3?profile.effects.unlitFrame(aligned):aligned;
-            tugAssets[stage]={type:10,damageStage:stage,profile,art,width:art.width,height:art.height};
-          });
-          const frames=tugAssets.map(asset=>asset.art);
-          stageTemplates=window.showcaseStageFragments.prepare(frames,profile.breakAnchors);
-          destruction=window.createShipDestruction();
-          destruction.prepare(frames,profile.destruction);
-        }).catch(error=>console.warn('Tug damage art unavailable',error)).finally(()=>{tugPending=null;});
-    }
-  }
+  const tugDimensions=()=>window.nativeShipDefinitions.dimensions({shipType:10},'tug');
   const center = id => ({x:coords[id][0]-220,y:coords[id][1]+75});
   const clearance = id => bodySizes[id]/2+105;
   const station = (id,shipId=0) => {
@@ -275,57 +236,27 @@
   }
   function destroy(economy,ship,stage){
     const lost=ship.tons,good=ship.good;
-    hullBursts.length=0;
-    wrecks.push({id:ship.id,x:ship.x,y:ship.y,angle:ship.heading+Math.PI/2,stage,time:0,debris:[],particles:[],prepared:false});
-    if(wrecks.length>12)wrecks.shift();
     Object.assign(ship,{hull:0,shields:0,shieldFlash:null,phase:'destroyed',rebuild:0,speed:0,tons:0,good:null,
       handlingTons:0,assignment:null,path:[]});
     if(targetId===ship.id)targetId=null;
     note(economy,`Tug ${ship.id+1} destroyed${lost?`; ${lost} t of ${goods[good]} lost in space`:''}.`);
     beginRebuild(economy,ship);
   }
-  function hit(state,id,damage,impact=null){
-    const economy=initialize(state),ship=economy.freighters.find(entry=>entry.id===id);
-    if(!ship||ship.phase==='destroyed')return {ok:false,error:'Target already destroyed.'};
-    const amount=Math.max(0,Number(damage)||0),absorbed=Math.min(ship.shields,amount);
-    const stage=damageStage(ship);
-    const contact=impact?.contact||tugContactPoint(ship,impact?.from||{x:ship.x,y:ship.y-100},ship.shields>0);
-    ship.shields=Math.max(0,ship.shields-absorbed);
-    ship.hull=Math.max(0,ship.hull-(amount-absorbed));
-    if(absorbed>0){
-      ship.shieldFlash={born:performance.now(),color:'#50d5ff',
-        x:contact.local.x,y:contact.local.y,
-        dx:contact.dx,dy:contact.dy,kind:impact?.kind||'beam',
-        energy:1+Math.min(.55,absorbed/Math.max(1,absorbed+ship.shields)*.7),
-        charge:ship.shields/Math.max(1,tugStats().shields)};
-    }
-    if(amount>absorbed){
-      const hullContact=absorbed>0?tugContactPoint(ship,impact?.from||{x:ship.x,y:ship.y-100},false):contact;
-      window.showcaseHullBurst.burst(hullBursts,hullContact.world,performance.now(),.91976,1);
-      const nextStage=damageStage(ship);
-      if(ship.hull>0&&nextStage>stage&&stageTemplates){
-        const layout=tugLayout(ship),time=performance.now();
-        window.showcaseStageFragments.emit({debris:tugStageDebris,fragments:stageTemplates,before:stage,after:nextStage,
-          layout,world:piece=>tugWorldPoint(ship,{x:piece.x*layout.w,y:piece.y*layout.h}),
-          angle:ship.heading+Math.PI/2,time,zoom:1,
-          burst:(point,strength,sparksOnly)=>window.showcaseHullBurst.burst(hullBursts,point,time,.91976,1,strength,sparksOnly)});
-      }
-    }
-    const reputation=ship.hull<=0&&impact?.source!=='ai'?window.nativeFactionStanding.shipDestroyed(state,Number(ship.ownerGovernmentId)||solGovernmentId):null;
-    if(ship.hull<=0){
-      destroy(economy,ship,stage);
-      window.nativeEnvironmentalImpacts?.explode(state,{...ship,size:tugDimensions(1).height},{sourceKey:`ship:tug:${ship.id}`});
-    }
-    else disable(economy,ship);
-    return {ok:true,destroyed:ship.phase==='destroyed',shields:ship.shields,hull:ship.hull,reputation};
+  function hit(state,id,damage,impact={}){
+    impact||={};const economy=initialize(state),ship=economy.freighters.find(entry=>entry.id===id);
+    if(!ship)return {ok:false,error:'Target unavailable.'};
+    const descriptor=window.nativeShipDefinitions.describe(state,ship,{category:'tug'});
+    const result=window.nativeShipDamage.apply(descriptor,damage,impact);
+    if(!result.ok)return result;
+    window.nativeShipEffects.hit(state,descriptor,result,impact);
+    const reputation=result.destroyed&&impact.source!=='ai'?window.nativeFactionStanding.shipDestroyed(state,Number(ship.ownerGovernmentId)||solGovernmentId):null;
+    if(result.destroyed)destroy(economy,ship,result.beforeStage);else if(result.disabled)disable(economy,ship);
+    return {...result,reputation};
   }
-  function visualImpact(state,id,event){
+  function visualImpact(state,id,event={}){
     const ship=initialize(state).freighters.find(entry=>entry.id===id);
-    if(!ship||ship.phase==='destroyed'||state.system!==1)return;
-    const contact=tugContactPoint(ship,event.from||event,ship.shields>0),now=performance.now();
-    if(ship.shields>0)ship.shieldFlash={born:now,color:'#50d5ff',x:contact.local.x,y:contact.local.y,
-      dx:contact.dx,dy:contact.dy,kind:event.kind||'debris',energy:1,charge:ship.shields/Math.max(1,tugStats().shields)};
-    else window.showcaseHullBurst.burst(hullBursts,contact.world,now,window.showcaseWeaponAppearance.units,1,.65,true);
+    if(!ship||state.system!==1)return {ok:false};
+    return window.nativeShipEffects.visualImpact(state,window.nativeShipDefinitions.describe(state,ship,{category:'tug'}),event);
   }
   function produce(economy) {
     const p=economy.ports;
@@ -354,27 +285,13 @@
     setCourse(ship,job.to);
   }
   function steer(ship,dt) {
-    const points=ship.path,goal=points[Math.min(ship.routeIndex,points.length-1)];
-    if(!goal)return true;
-    const dx=goal.x-ship.x,dy=goal.y-ship.y,distanceToGoal=Math.hypot(dx,dy),final=ship.routeIndex===points.length-1;
-    const wanted=Math.atan2(dy,dx),turn=Math.atan2(Math.sin(wanted-ship.heading),Math.cos(wanted-ship.heading));
-    ship.heading+=Math.max(-1.35*dt,Math.min(1.35*dt,turn));
-    const turnFactor=Math.max(.26,1-Math.abs(turn)/Math.PI);
-    const targetSpeed=final?Math.min(135*turnFactor,Math.sqrt(2*45*Math.max(0,distanceToGoal-4))):135*turnFactor;
-    ship.speed+=Math.max(-45*dt,Math.min(38*dt,targetSpeed-ship.speed));
-    const step=Math.min(distanceToGoal,ship.speed*dt);
-    ship.x+=Math.cos(ship.heading)*step;ship.y+=Math.sin(ship.heading)*step;
-    if(!final&&distanceToGoal<Math.max(12,ship.speed*dt+4))ship.routeIndex++;
-    const start=ship.pathStart||{x:ship.x,y:ship.y};
-    const total=points.reduce((sum,p,i)=>sum+Math.hypot(p.x-(i?points[i-1].x:start.x),p.y-(i?points[i-1].y:start.y)),0);
-    let remaining=Math.hypot(goal.x-ship.x,goal.y-ship.y);
-    for(let i=ship.routeIndex+1;i<points.length;i++)remaining+=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y);
-    ship.progress=Math.max(0,Math.min(1,1-remaining/Math.max(1,total)));
-    return final&&distanceToGoal<7&&ship.speed<24;
+    const result=window.nativeShipMotion.followPath(ship,ship.path,ship.routeIndex,(window.nativeShipDefinitions.get(10,'tug').movement||window.nativeShipMotion.profiles.tug()),dt,{start:ship.pathStart});
+    ship.routeIndex=result.index;ship.progress=result.progress;
+    return result.arrived;
   }
   function advance(state,dt) {
-    const economy=initialize(state);
-    if(!Number.isFinite(dt)||dt<=0)return false;
+    const economy=initialize(state);window.nativeShipEffects.prepare(10,'tug');
+    if(window.nativeSimulation.blocked()||!Number.isFinite(dt)||dt<=0)return false;
     const elapsed=Math.min(dt,1);
     economy.clock+=elapsed;
     let changed=false;
@@ -399,11 +316,9 @@
           ship.lastDestination={to:ship.port,good:ship.good};ship.tons=0;dispatch(economy,ship);changed=true;
         }
       } else if(ship.phase==='turning') {
-        const goal=ship.path[0],wanted=Math.atan2(goal.y-ship.y,goal.x-ship.x);
-        const turn=Math.atan2(Math.sin(wanted-ship.heading),Math.cos(wanted-ship.heading));
-        ship.heading+=Math.max(-.45*elapsed,Math.min(.45*elapsed,turn));
+        const result=window.nativeShipMotion.step(ship,{goal:ship.path[0],hold:true},{...window.nativeShipMotion.profiles.tug(),turnRate:.45},elapsed);
         ship.turnTimer=Math.max(0,ship.turnTimer-elapsed);
-        if(ship.turnTimer<=1e-6&&Math.abs(turn)<.08){ship.phase='travel';changed=true;}
+        if(ship.turnTimer<=1e-6&&Math.abs(result.headingError)<.08){ship.phase='travel';changed=true;}
       } else if(ship.phase==='travel'&&steer(ship,Math.min(elapsed,.05))) {
         ship.port=ship.to;ship.speed=0;ship.progress=1;
         if(ship.tons){ship.phase='unloading';ship.handlingTons=ship.tons;ship.dwell=handlingTime(economy,ship.port,ship.tons,ship,true);}
@@ -411,26 +326,6 @@
         changed=true;
       }
     }
-    const now=performance.now();
-    for(const piece of tugStageDebris)if(now>=piece.born){
-      const oldX=piece.x,oldY=piece.y;window.showcaseStageFragments.update(piece,elapsed);
-      if(state.system===1)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY);
-    }
-    for(let i=tugStageDebris.length-1;i>=0;i--)if(now-tugStageDebris[i].born>tugStageDebris[i].ttl)tugStageDebris.splice(i,1);
-    for(const wreck of wrecks){
-      wreck.time+=elapsed*1000;
-      for(const piece of wreck.debris){
-        const oldX=piece.x,oldY=piece.y;piece.x+=piece.vx*elapsed;piece.y+=piece.vy*elapsed;piece.angle+=piece.spin*elapsed;
-        if(state.system===1)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:`ship:tug:${wreck.id}`});
-      }
-      for(const particle of wreck.particles){particle.x+=(particle.vx||0)*elapsed;particle.y+=(particle.vy||0)*elapsed;}
-      destruction?.updateTrails(wreck);
-      wreck.debris=wreck.debris.filter(piece=>wreck.time-piece.born<piece.ttl);
-      wreck.particles=wreck.particles.filter(particle=>wreck.time-particle.born<particle.ttl);
-    }
-    for(let i=wrecks.length-1;i>=0;i--)if(wrecks[i].time>17000)wrecks.splice(i,1);
-    for(const particle of hullBursts)if(now>=particle.born)window.showcaseHullBurst.update(particle,elapsed);
-    for(let i=hullBursts.length-1;i>=0;i--)if(now-hullBursts[i].born>hullBursts[i].ttl)hullBursts.splice(i,1);
     return changed;
   }
   function price(state,port,good,buy) {
@@ -505,8 +400,8 @@
     note(economy,`Your Tug delivered ${job.tons} t${goods[job.good]?' of '+goods[job.good]:''} to ${names[job.to]}.`);
     return {ok:true,message:`Delivered ${job.tons} t to ${names[job.to]}. ${job.pay} latinum received.`};
   }
-  function select(id){if(targetId!==id)tugSelectedAt=performance.now();targetId=id;return id;}
-  function clearTarget(){window.nativeCombatShots.cancel('tug');targetId=null;shots.length=0;hullBursts.length=0;tugStageDebris.length=0;wrecks.length=0;}
+  function select(id){if(targetId!==id)tugSelectedAt=0;targetId=id;return id;}
+  function clearTarget(){targetId=null;}
   function target(state){return state?.solEconomy?.freighters.find(ship=>ship.id===targetId&&ship.phase!=='destroyed')||null;}
   function hitTest(state,{ship,cx,cy,zoom,x,y}){
     const economy=initialize(state),dimensions=tugDimensions(zoom);
@@ -516,20 +411,12 @@
       .filter(entry=>entry.distance<=radius).sort((a,b)=>a.distance-b.distance)[0]?.tug||null;
   }
   function fire(state,player,shipHeight,onFinish){
-    const tug=target(state);
-    if(!tug)return {ok:false,error:'Click a Tug to target it first.'};
-    const result=window.nativeCombatShots.fire({state,shipHeight,owner:'tug',
-      getTarget:()=>state.system===1&&tug.phase!=='destroyed'?{...tug,id:'tug:'+tug.id}:null,
-      dimensions:()=>tugDimensions(1),shielded:ship=>ship.shields>0,
-      onHit(weapon,from,shot){
-        const contact=tugContactPoint(tug,from,tug.shields>0);shot.lockedImpactLocal=contact.local;
-        const damage=hit(state,tug.id,weapon.damage,{from,kind:shot.kind,contact});
-        if(damage.ok)onFinish?.(tug,damage);
-      }});
-    if(result.ok)shots.push(result.shot);
-    return result;
+    const tug=target(state);if(!tug)return {ok:false,error:'Click a Tug to target it first.'};
+    return window.nativeCombatShots.fire({state,shipHeight,owner:'tug',
+      getTarget:()=>window.nativeShipSystems.resolve(state,'tug:'+tug.id),
+      dimensions:()=>tugDimensions(),shielded:ship=>ship.shields>0,
+      onResolved(result){if(result.target?.id==='tug:'+tug.id&&result.damage?.ok)onFinish?.(tug,result.damage);}});
   }
-
   function snapshot(state,port) {
     const economy=initialize(state);
     const activity=ship=>{
@@ -546,72 +433,19 @@
       freighters:economy.freighters.map(ship=>({...ship,name:`Tug Class II #${ship.id+1} · ${names[ship.from]} → ${names[ship.to]}`,cargo:goods[ship.good]||'No cargo',activity:activity(ship)})),
       used:used(state),capacity:window.VexedMirrorWorld.ships.find(s=>s.id===state.shipType)?.cargo||0,log:economy.log.slice()};
   }
-  function paintEffects(ctx,{state,ship,cx,cy,zoom}){
-    const now=performance.now();
-    for(let i=shots.length-1;i>=0;i--){
-      const shot=shots[i];if(!window.nativeCombatShots.isVisible(shot,now)){shots.splice(i,1);continue;}
-      window.nativeCombatShots.paint(ctx,shot,{state,ship,cx,cy,zoom,now});
-    }
-    ctx.save();ctx.translate(cx-ship.x,cy-ship.y);
-    for(const piece of tugStageDebris)window.showcaseStageFragments.draw(ctx,piece,now);
-    const dimensions=tugDimensions(zoom);
-    for(const wreck of wrecks){
-      if(destruction&&!wreck.prepared){
-        const cos=Math.cos(wreck.angle),sin=Math.sin(wreck.angle);
-        destruction.emit(wreck,{x:wreck.x,y:wreck.y,w:dimensions.width,h:dimensions.height},piece=>{
-          const dx=piece.x*dimensions.width,dy=piece.y*dimensions.height;
-          return {x:wreck.x+dx*cos-dy*sin,y:wreck.y+dx*sin+dy*cos};
-        },wreck.stage,1);
-        wreck.prepared=true;
-      }
-      for(const piece of wreck.debris){
-        ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);
-        if(piece.structural)destruction.drawStructuralWreck(ctx,piece,wreck.time);
-        else {ctx.drawImage(piece.texture,-piece.w/2,-piece.h/2,piece.w,piece.h);destruction.drawWreckGlow(ctx,piece,wreck.time);}
-        ctx.restore();
-      }
-      for(const particle of wreck.particles)destruction?.drawParticle(ctx,particle,wreck.time);
-    }
-    for(const particle of hullBursts)window.showcaseHullBurst.draw(ctx,particle,now);
-    ctx.restore();
-  }
-  function paint(ctx,{state,ship,cx,cy,w,h,zoom}) {
-    const economy=state?.solEconomy;
-    if(!economy)return;
-    ensureTugArt();
-    const dimensions=tugDimensions(zoom);
-    tugRenderDimensions=dimensions;
-    const now=performance.now();
-    for(const freighter of economy.freighters) {
+  function paint(ctx,{state,ship,cx,cy,w,h,zoom=1}) {
+    if(!state.solEconomy)return;
+    for(const freighter of state.solEconomy.freighters){
       if(freighter.phase==='destroyed')continue;
-      const x=cx+freighter.x-ship.x,y=cy+freighter.y-ship.y;
-      const screenX=cx+(x-cx)*zoom,screenY=cy+(y-cy)*zoom;
-      if(screenX+dimensions.width*zoom/2< -20||screenX-dimensions.width*zoom/2>w+20||screenY+dimensions.height*zoom/2< -35||screenY-dimensions.height*zoom/2>h+35)continue;
-      const stage=damageStage(freighter),asset=tugAssets[stage];
-      const impact=freighter.shieldFlash;
-      const shieldVisible=asset&&impact&&now-impact.born<(impact.charge===0?430:620);
-      const shieldCharge=Math.max(.08,freighter.shields/Math.max(1,tugStats().shields));
-      if(shieldVisible){
-        ctx.save();ctx.translate(x,y);ctx.rotate(freighter.heading+Math.PI/2);
-        window.drawShowcaseShieldSurface(ctx,0,0,dimensions.width,dimensions.height,'#50d5ff',shieldCharge,now,{refract:true,impact});
-        ctx.restore();
-      }
-      if(asset){
-        window.vexedFlightAssets.drawShip(ctx,asset,x,y,dimensions.width,freighter.heading+Math.PI/2,now,{height:dimensions.height,lights:freighter.phase!=='disabled',damage:true,lightGain:1,lightBloom:1});
-      }
-      if(shieldVisible){
-        ctx.save();ctx.translate(x,y);ctx.rotate(freighter.heading+Math.PI/2);
-        window.drawShowcaseShieldFlash(ctx,asset.art,dimensions.width,dimensions.height,impact,now);
-        window.drawShowcaseShieldSurface(ctx,0,0,dimensions.width,dimensions.height,'#50d5ff',shieldCharge,now,{front:true,impact});
-        ctx.restore();
-      }
-      const selected=targetId===freighter.id;
-      if(selected)window.nativeAsteroidCombat?.drawTargetFrame(ctx,{
-        name:`Tug Class II #${freighter.id+1}`,size:Math.hypot(dimensions.width,dimensions.height)/Math.SQRT2,
+      const descriptor=window.nativeShipDefinitions.describe(state,freighter,{category:'tug'}),d=descriptor.dimensions;
+      const x=cx+descriptor.x-ship.x,y=cy+descriptor.y-ship.y;
+      if(x+d.width/2< -20||x-d.width/2>w+20||y+d.height/2< -35||y-d.height/2>h+35)continue;
+      window.nativeShipEffects.paintShip(ctx,descriptor,{ship,cx,cy});
+      if(targetId===freighter.id)window.nativeAsteroidCombat?.drawTargetFrame(ctx,{
+        name:`Tug Class II #${freighter.id+1}`,size:Math.hypot(d.width,d.height)/Math.SQRT2,
         kind:freighter.phase==='disabled'?'DISABLED FREIGHTER':'FREIGHTER',color:'#ffd66e',shield:freighter.shields/Math.max(1,tugStats().shields),
-        hull:freighter.hull/Math.max(1,tugStats().hull),selectedAt:tugSelectedAt
-      },x,y,zoom,cx);
+        hull:freighter.hull/Math.max(1,tugStats().hull),selectedAt:tugSelectedAt},x,y,zoom,cx);
     }
   }
-  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,buySell,contract,deliver,paint,paintEffects,select,clearTarget,target,hitTest,fire,hit,visualImpact,dimensions:()=>tugDimensions(1)};
+  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,dimensions:()=>tugDimensions(1)};
 })();

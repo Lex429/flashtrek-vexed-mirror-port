@@ -1,0 +1,65 @@
+/* Common world-target interface. Controllers register consequences, not physics. */
+(() => {
+  'use strict';
+  const kinds=new Map();
+  const register=(kind,adapter)=>{if(!adapter?.collect||!adapter?.hit)throw Error('A target adapter needs collect and hit');kinds.set(kind,adapter);};
+  const idKey=id=>String(id);
+  function collect(state,system=state.system){
+    const targets=[];
+    for(const [category,adapter] of kinds)for(const target of adapter.collect(state,system)||[])targets.push({...target,category:target.category||category});
+    return targets;
+  }
+  function scene(state,{system=state.system}={}){
+    const targets=collect(state,system);
+    const bodies=system===1?(window.nativeSystemHub?.sol||[]).filter(body=>body.id!==6).map(body=>({x:body.x-220,y:body.y+75,radius:(window.vexedSolFlight?.bodySize(body)||100)*.44})):[];
+    return {targets,bystanders:targets.filter(target=>target.category!=='asteroid'),rocks:targets.filter(target=>target.category==='asteroid'),destructibles:[],bodies};
+  }
+  function resolve(state,id,system=state.system){return collect(state,system).find(target=>idKey(target.id)===idKey(id))||null;}
+  function applyHit(state,result,event,source){
+    const collisionTarget=result.target;if(!collisionTarget)return {ok:false};
+    // Refresh after every collision: earlier shots may already have destroyed it.
+    const target=resolve(state,collisionTarget.id,collisionTarget.system??source.system??state.system);
+    if(!target)return {ok:false};
+    const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,
+      kind:event.kind,source:source.id==='player'?'player':'ai',sourceId:source.id};
+    return kinds.get(target.category)?.hit(state,target,event.damage,impact)||{ok:false};
+  }
+  function visualImpact(state,target,event){return kinds.get(target.category)?.visualImpact?.(state,target,event);}
+  function resolved(state,result,event){for(const adapter of kinds.values())adapter.onResolved?.(state,result,event);}
+  function move(state,entity,category,command,profile,dt){
+    if(!(dt>0)||window.nativeSimulation.blocked())return {arrived:false,moved:0};
+    const descriptor=window.nativeShipDefinitions.describe(state,entity,{category});
+    const pose={x:descriptor.x,y:descriptor.y,heading:descriptor.heading,speed:entity.speed||0,
+      vx:entity.vx,vy:entity.vy,motionAngularVelocity:entity.motionAngularVelocity};
+    const origin={x:descriptor.x-entity.x,y:descriptor.y-entity.y};
+    const result=window.nativeShipMotion.step(pose,command,profile||descriptor.definition.movement,dt);
+    Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionAngularVelocity:pose.motionAngularVelocity,
+      previousX:pose.previousX,previousY:pose.previousY});
+    if(category==='player')entity.angle=pose.heading;else entity.heading=pose.heading;
+    return result;
+  }
+  function player(state,system){
+    if(system!==state.system||state.hull<=0||state.landed||window.vexedWarp?.active)return [];
+    return [window.nativeShipDefinitions.describe(state,state,{category:'player'})];
+  }
+  register('player',{collect:player,hit:(state,_,amount,impact)=>window.nativeCombatShots.onPlayerHit?.(state,amount,impact),
+    visualImpact:(state,_,event)=>window.nativePlayerCombat.visualImpact(state,event)});
+  register('tug',{collect:(state,system)=>system===1?(state.solEconomy?.freighters||[]).filter(ship=>ship.phase!=='destroyed').map(ship=>window.nativeShipDefinitions.describe(state,ship,{category:'tug'})):[],
+    hit:(state,target,amount,impact)=>window.nativeSolEconomy.hit(state,target.entity.id,amount,impact),
+    visualImpact:(state,target,event)=>window.nativeSolEconomy.visualImpact(state,target.entity.id,event)});
+  register('civilian',{collect:(state,system)=>(state.civilianTraffic?.ships||[]).filter(ship=>ship.system===system&&!['warp','arriving','destroyed'].includes(ship.phase)).map(ship=>window.nativeShipDefinitions.describe(state,ship,{category:'civilian'})),
+    hit:(state,target,amount,impact)=>window.nativeCivilianTraffic.hit(state,target.entity.id,amount,impact),
+    visualImpact:(state,target,event)=>window.nativeCivilianTraffic.visualImpact(state,target.entity.id,event),
+    onResolved(state,result,event){
+      const traffic=state.civilianTraffic;
+      const conflict=[...(traffic?.disputes||[]),...(traffic?.retaliations||[])].find(record=>record.id===event.owner);
+      if(conflict){if(result.kind==='hit')conflict.hits=(conflict.hits||0)+1;else conflict.misses=(conflict.misses||0)+1;}
+    }});
+  register('asteroid',{collect:(state,system)=>{
+    if(system!==1)return [];
+    const gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
+    return (window.nativeSolAsteroids?.placements||[]).filter(rock=>!gone.has(rock.slotId)).map(rock=>({...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid',system:1,heading:rock.angle||0,
+      dimensions:{width:rock.size,height:rock.size},radius:rock.size*.43,entity:rock,targetable:true}));
+  },hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.hit(state,target.rockId,amount,impact)});
+  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,scene,resolve,applyHit,visualImpact,resolved,move});
+})();

@@ -6,8 +6,8 @@
   function refreshTargets(state){
     activeState=state;activeSystem=state.system;
     window.nativeCivilianTraffic?.initialize(state);
-    const scene=window.nativeCivilianTraffic?.combatScene(state,{system:state.system});
-    ships=(scene?.bystanders||[]).map(target=>({...target,id:target.id==='player'||String(target.id).startsWith('tug:')?target.id:`civilian:${target.id}`,system:state.system}));
+    const scene=window.nativeShipSystems?.scene(state,{system:state.system})||window.nativeCivilianTraffic?.combatScene(state,{system:state.system});
+    ships=(scene?.bystanders||[]).map(target=>({...target,id:target.id==='player'||String(target.id).startsWith('tug:')?target.id:`civilian:${target.id}`,system:state.system,descriptor:target}));
     const gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
     const source=window.nativeSolAsteroids?.placements;
     if(source!==rockSource){rockSource=source;rockTargets=(source||[]).map(rock=>({...rock,id:rock.slotId,system:1,radius:rock.size*.45}));}
@@ -18,8 +18,9 @@
     getShips:()=>ships,
     getAsteroids:()=>asteroids,
     onShipImpact(target,event){
-      const visual={...event,born:performance.now(),visualOnly:true};
-      if(target.id==='player')window.nativeCombatShots.onPlayerImpact?.(visual);
+      const visual={...event,born:clock,visualOnly:true};
+      if(window.nativeShipSystems)window.nativeShipSystems.visualImpact(activeState,target.descriptor,visual);
+      else if(target.id==='player')window.nativeCombatShots.onPlayerImpact?.(visual);
       else if(target.id.startsWith('tug:'))window.nativeSolEconomy.visualImpact?.(activeState,Number(target.id.slice(4)),visual);
       else window.nativeCivilianTraffic.visualImpact?.(activeState,Number(target.id.slice(9)),visual);
     },
@@ -31,7 +32,7 @@
     }
   });
   function reset(){impacts.reset();activeState=null;activeSystem=null;clock=0;ships=[];asteroids=[];suppressBlast=false;pieceIdentities=new WeakMap();rockSource=null;rockTargets=[];targetsDirty=true;}
-  function ensureState(state){if(activeState!==state||activeSystem!==state.system){reset();activeState=state;activeSystem=state.system;}}
+  function ensureState(state){if(activeState!==state||activeSystem!==state.system){reset();activeState=state;activeSystem=state.system;clock=window.nativeSimulation?.now(state)||0;}}
   function explode(state,source,{radius,duration=850,sourceKey=null}={}){
     if(!state||suppressBlast)return;ensureState(state);
     const system=source.system??state.system;if(system!==state.system)return;
@@ -51,7 +52,7 @@
   let pieceIdentities=new WeakMap();
   function advance(state,dt){
     if(!state||!Number.isFinite(dt)||dt<=0||document.hidden||window.nativePause?.active||window.nativeShipInventory?.active||window.vexedWarp?.active)return;
-    ensureState(state);clock+=dt*1000;
+    ensureState(state);clock=window.nativeSimulation?window.nativeSimulation.now(state):clock+dt*1000;
     // Idle flight pays no scene-query cost. Active pressure waves get fresh
     // positions each simulation step; many debris pieces share one scene query.
     if(impacts.hasWaves()){refreshTargets(state);impacts.update(clock);}

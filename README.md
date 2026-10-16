@@ -20,6 +20,8 @@ All flight ships render above planets. Weapon shots collide with the first ship,
 
 The port and [damage showcase](html-games/flashtrek-broken-mirror/damage-showcase.html) use the same phaser, disruptor, and torpedo renderer. Explosion pressure and flying wreckage trigger shield flashes or hull sparks without reducing ship health. Nearby asteroids can be destroyed by these environmental impacts.
 
+Ships now share definitions, movement, owned weapon recharge, firing, target collisions, damage and animation systems. Controllers choose jobs and commands. See the [ship system contract](docs/ship-system-contract.md) for ownership, extension examples, coordinate/time conventions and save migrations. [AGENTS.md](AGENTS.md) records the rules for future changes.
+
 ## Verification
 
 Run the deterministic combat and rendering tests with Node.js:
@@ -32,6 +34,11 @@ The browser checks use Python, Playwright, and Microsoft Edge. They start an iso
 
 ```sh
 python tests/browser-smoke.py
+python tests/browser-ship-contract.py
 ```
 
-Pass an existing server URL, such as `http://127.0.0.1:7788`, to check an installed copy. Browser reports and screenshots are written to the ignored `test-results` folder.
+The second browser suite checks real Canvas beam emitters and target contacts across ship roles, camera movement, custom shield shapes, pause/inventory and projectile save/load. Job regressions also simulate tug deliveries, civilian mining/trading and saved player mining without any rendering.
+
+Install Python test dependencies with `python -m pip install -r requirements-test.txt`. Pass an existing server URL, such as `http://127.0.0.1:7788`, to either browser script to check an installed copy. Browser reports and screenshots are written to the ignored `test-results` folder. Windows uses installed Microsoft Edge by default; set `BROWSER_CHANNEL` to an empty value to use Playwright Chromium after `python -m playwright install chromium`.
+
+The [test workflow](.github/workflows/test.yml) runs the Node suite and both browser suites on pushes and pull requests and uploads browser reports.

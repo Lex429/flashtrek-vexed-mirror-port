@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import threading
 import sys
+import os
 
 from playwright.sync_api import sync_playwright
 
@@ -28,7 +29,8 @@ else:
 errors, failed = [], []
 try:
     with sync_playwright() as p:
-        browser = p.chromium.launch(channel='msedge', headless=True)
+        channel=os.environ.get('BROWSER_CHANNEL','msedge')
+        browser = p.chromium.launch(headless=True, **({'channel':channel} if channel else {}))
         page = browser.new_page(viewport={'width': 1280, 'height': 850})
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('response', lambda response: failed.append(response.url) if response.status >= 400 else None)
@@ -48,6 +50,17 @@ try:
         layers = page.evaluate('window.__layers')
         assert max(i for i, layer in enumerate(layers) if layer == 'planet') < layers.index('freighter'), layers
         assert layers.index('freighter') < layers.index('civilian'), layers
+        before_flight = page.evaluate('({x:__flightState.x,y:__flightState.y,angle:__flightState.angle})')
+        page.keyboard.down('w')
+        page.wait_for_timeout(180)
+        page.keyboard.up('w')
+        page.keyboard.down('d')
+        page.wait_for_timeout(180)
+        page.keyboard.up('d')
+        after_flight = page.evaluate('({x:__flightState.x,y:__flightState.y,angle:__flightState.angle,speed:__flightState.speed})')
+        assert after_flight['speed'] > 0
+        assert (after_flight['x'],after_flight['y']) != (before_flight['x'],before_flight['y'])
+        assert after_flight['angle'] != before_flight['angle']
         page.screenshot(path=str(OUTPUT / 'flight.png'))
         page.evaluate('window.requestAnimationFrame=()=>0')
         page.wait_for_timeout(100)
@@ -63,7 +76,7 @@ try:
           const rock={...sampleRock,slotId:999991,x:origin.x+100,y:origin.y,size:35,maxHull:1};
           const rocks=nativeSolAsteroids.placements;
           const beam=VexedMirrorWeapons.find(weapon=>weapon.damage>0&&nativeCombatShots.weaponVisual(weapon).kind==='beam');
-          state.weapons=[beam.id,null,null];
+          nativeWeaponLoadout.refit(state,[beam.id,null,null]);
           const target={id:'probe-target',x:origin.x+180,y:origin.y,heading:0};
           let intendedHits=0;
           const fired=nativeCombatShots.fire({state,shipHeight:40,owner:'browser-probe',getTarget:()=>target,
@@ -71,7 +84,7 @@ try:
           check(fired.ok,'Could not fire real beam: '+fired.error);
           target.previousX=target.x;target.previousY=target.y=origin.y+400;
           rocks.push(rock);
-          for(let i=0;i<8;i++)nativeCombatShots.advance(state,1/60);
+          for(let i=0;i<8;i++){nativeSimulation.advance(state,1/60);nativeCombatShots.advance(state,1/60);}
           check(state.destroyedAsteroids?.includes(rock.slotId),'Missed beam did not destroy the intervening asteroid');
           check(intendedHits===0,'Missed beam damaged its original target');
           nativeCombatShots.cancel();nativeEnvironmentalImpacts.reset();
@@ -81,10 +94,10 @@ try:
           state.civilianTraffic.ships=[civilian];state.solEconomy.freighters=[tug];
           const before=JSON.stringify([state.hull,state.shields,civilian.hull,civilian.shields,tug.hull,tug.shields]);
           nativeEnvironmentalImpacts.explode(state,{x:origin.x+25,y:origin.y,size:80},{radius:180});
-          for(let i=0;i<65;i++)nativeEnvironmentalImpacts.advance(state,1/60);
+          for(let i=0;i<65;i++){nativeSimulation.advance(state,1/60);nativeEnvironmentalImpacts.advance(state,1/60);}
           check(state.destroyedAsteroids.includes(rock.slotId),'Blast did not destroy nearby asteroid');
           check(JSON.stringify([state.hull,state.shields,civilian.hull,civilian.shields,tug.hull,tug.shields])===before,'Explosion damaged ship health');
-          check(civilian.shieldFlash&&tug.shieldFlash,'Blast did not flash nearby ship shields');
+          check(nativeShipEffects.snapshot(nativeShipDefinitions.describe(state,civilian,{category:'civilian'})).flash&&nativeShipEffects.snapshot(nativeShipDefinitions.describe(state,tug,{category:'tug'})).flash,'Blast did not flash nearby ship shields');
           const snapshot=nativeEnvironmentalImpacts.snapshot();
           check(snapshot.impacts.some(event=>event.target==='ship:player'),'Player was omitted from explosion contacts');
           const oldClock=snapshot.clock;nativePause.open();nativeEnvironmentalImpacts.advance(state,1);
@@ -92,13 +105,35 @@ try:
           nativeEnvironmentalImpacts.reset();
           civilian.shields=0;tug.shields=0;
           nativeEnvironmentalImpacts.explode(state,{x:origin.x+25,y:origin.y,size:80},{radius:180});
-          for(let i=0;i<65;i++)nativeEnvironmentalImpacts.advance(state,1/60);
+          for(let i=0;i<65;i++){nativeSimulation.advance(state,1/60);nativeEnvironmentalImpacts.advance(state,1/60);}
           check(civilian.hull===100&&tug.hull===100,'Unshielded blast contact damaged hull');
           rocks.splice(rocks.indexOf(rock),1);
           return {layers:window.__layers,beam:beam.name,missedBeamDestroyedAsteroid:true,
             blastDestroyedAsteroid:true,shipHealthUnchanged:true,shipShieldFlashes:true,unshieldedHullUnchanged:true,
             pauseFreezesBlast:true,environmentalImpacts:snapshot.impacts.length};
         }""")
+        owned_before = page.evaluate("""() => {
+          const state=window.__flightState,owned=nativeWeaponLoadout.equipped(state)[0];
+          owned.instance.readyAt=nativeSimulation.seconds(state)+3;
+          document.querySelector('#save').click();
+          return {id:owned.instance.id,readyAt:owned.instance.readyAt,clock:nativeSimulation.seconds(state)};
+        }""")
+        page.reload()
+        page.wait_for_function('() => window.nativeCombatShots?.isReady() && document.querySelector("#startup").hidden', timeout=90000)
+        page.evaluate("""() => {
+          const advance=nativeCivilianTraffic.advance;
+          nativeCivilianTraffic.advance=(state,dt)=>{window.__restoredState=state;return advance(state,dt);};
+          document.querySelector('[data-menu="continue"]').click();
+        }""")
+        page.wait_for_function('() => !!window.__restoredState')
+        owned_after = page.evaluate("""() => {
+          const state=window.__restoredState,owned=nativeWeaponLoadout.equipped(state)[0];
+          return {id:owned.instance.id,readyAt:owned.instance.readyAt,clock:nativeSimulation.seconds(state)};
+        }""")
+        assert owned_after['id'] == owned_before['id']
+        assert owned_after['readyAt'] == owned_before['readyAt']
+        assert owned_after['clock'] >= owned_before['clock']
+        results['saveContinuePreservesOwnedRecharge'] = True
         page.goto(base + '/html-games/flashtrek-broken-mirror/damage-showcase.html')
         page.wait_for_function('() => window.showcaseState?.().ready', timeout=120000)
         page.locator('#ship-select').select_option('59')
@@ -119,7 +154,7 @@ try:
         results['showcase'] = {'shieldImpact': True, 'hullImpact': True, 'nearbyAsteroidsDestroyed': page.evaluate('window.showcaseEnvironment().nearbyAsteroids.filter(rock=>rock.destroyed).length')}
         assert not errors, errors
         assert not failed, failed
-        results.update(passed=True, javascriptErrors=errors, failedResponses=failed)
+        results.update(passed=True, ordinaryKeyboardFlight=True, javascriptErrors=errors, failedResponses=failed)
         (OUTPUT / 'browser-report.json').write_text(json.dumps(results, indent=2), encoding='utf-8')
         print(json.dumps(results, indent=2))
         browser.close()

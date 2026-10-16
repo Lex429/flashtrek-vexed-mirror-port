@@ -1,0 +1,173 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const test=require('node:test');
+const vm=require('node:vm');
+const port=path.join(__dirname,'../html-games/broken-mirror-port');
+
+function fixture(){
+  let time=1000,blocked=false;
+  const drawn=[],emitted=[],explosions=[];
+  const window={
+    nativeSimulation:{now:()=>time,blocked:()=>blocked},
+    showcaseWeaponAppearance:{units:.91976},
+    nativeWeaponRules:{},
+    starterShips:{get:()=>({displayRatio:.5})},
+    vexedSolFlight:{shipPosition:ship=>({x:ship.x+1000,y:ship.y+2000})},
+    vexedFlightAssets:{size:()=>({}),flightDimensions:()=>({width:30,height:60}),
+      loadShip:async(type,hull)=>({art:{},type,hull,profile:{breakAnchors:[],destruction:{}},width:164,height:512}),
+      drawShip:(...args)=>drawn.push({kind:'ship',args})},
+    showcaseHullBurst:{burst:(list,point,born)=>list.push({...point,born,ttl:500}),update:(p,dt)=>{p.x+=dt*20;},draw:(...args)=>drawn.push({kind:'spark',args})},
+    showcaseStageFragments:{prepare:()=>[[],[],[],[]],emit:event=>emitted.push({kind:'stage',event}),update:()=>{},draw:()=>{}},
+    createShipDestruction:()=>({prepare:()=>{},emit:(wreck)=>{emitted.push({kind:'wreck'});wreck.debris.push({x:wreck.x,y:wreck.y,vx:2,vy:3,spin:1,angle:0,born:0,ttl:2000,w:4,h:4});},
+      updateTrails:()=>{},drawParticle:()=>{},drawStructuralWreck:()=>{},drawWreckGlow:()=>{}}),
+    nativeEnvironmentalImpacts:{explode:(...args)=>explosions.push(args),debris:()=>{}},
+  };
+  const sandbox=vm.createContext({window,console,performance:{now:()=>900000},fetch:async()=>({json:async()=>({})})});
+  for(const file of ['world-data.js','ship-motion.js','ship-definitions.js','ship-damage.js','combat-shots.js','ship-effects.js'])vm.runInContext(fs.readFileSync(path.join(port,file),'utf8'),sandbox);
+  vm.runInContext(fs.readFileSync(path.join(port,'../flashtrek-broken-mirror/shield-flash.js'),'utf8'),sandbox);
+  window.drawShowcaseShieldFlash=(...args)=>drawn.push({kind:'flash',args});
+  window.drawShowcaseShieldSurface=(...args)=>drawn.push({kind:'surface',args});
+  const definitions=window.nativeShipDefinitions;
+  const roles=Object.keys(definitions.profiles);
+  const entities=(type=7)=>roles.map((category,index)=>{
+    const entity={id:index,shipType:type,system:2,x:40,y:80,angle:.7,heading:.7,speed:12,hull:100,shields:20};
+    const state=category==='player'?entity:{system:2};
+    return {state,entity,category,describe:()=>definitions.describe(state,entity,{category})};
+  });
+  const transforms=[];
+  const ctx={save:()=>{},restore:()=>{},translate:(x,y)=>transforms.push({x,y}),rotate:angle=>transforms.push({angle}),drawImage:()=>{}};
+  return {window,definitions,entities,ctx,transforms,drawn,emitted,explosions,setTime:value=>{time=value;},setBlocked:value=>{blocked=value;}};
+}
+
+test('all registered ship types and role profiles share damage and authoritative surfaces',()=>{
+  const {window,definitions,entities}=fixture();
+  for(const definition of definitions.registered())for(const role of entities(definition.id)){
+    const descriptor=role.describe(),from={x:descriptor.x-140,y:descriptor.y+33};
+    const contact=window.nativeCombatShots.contact(descriptor,from,descriptor.dimensions,true);
+    contact.shielded=true;contact.from=from;
+    const result=window.nativeShipDamage.apply(descriptor,35,{from,contact});
+    assert.equal(result.shields,0,`${definition.id}/${role.category} shields`);
+    assert.equal(result.hull,85,`${definition.id}/${role.category} hull`);
+    assert.equal(result.contacts.shield,contact,'supplied collision object stays authoritative');
+    const hull=result.contacts.hull,radii=definitions.surfaceRadii(descriptor.dimensions,false,descriptor.definition);
+    assert.ok(Math.abs(Math.hypot(hull.local.x/radii.rx,hull.local.y/radii.ry)-.96)<1e-8);
+  }
+});
+
+test('registered definitions inherit systems while preserving role scale and explicit capabilities',()=>{
+  const {definitions,entities}=fixture();
+  for(const [type,height] of [[18,60],[23,22.5],[47,72],[52,90]])assert.equal(definitions.dimensions({shipType:type},'civilian').height,height);
+  assert.equal(definitions.dimensions({shipType:10},'tug').width,60*164/512);
+  assert.equal(definitions.get(10,'tug').capabilities.armed,false);
+  assert.equal(definitions.get(10,'player').capabilities.armed,true);
+  definitions.register(987,{hull:240,shields:130,dimensions:{width:42,height:91},capabilities:{canMine:false},geometry:{hull:{rx:19,ry:37}}});
+  assert.ok(definitions.registered().some(row=>row.id===987));
+  for(const role of entities(987)){
+    const descriptor=role.describe();assert.equal(descriptor.definition.hull,240);
+    assert.equal(descriptor.dimensions.height,91);assert.equal(descriptor.definition.capabilities.canMine,false);
+    assert.equal(definitions.surfaceRadii(descriptor.dimensions,false,descriptor.definition).rx,19);
+  }
+});
+
+test('effective definitions retain engine upgrades, custom movement and world-space previous poses',()=>{
+  const {definitions,entities}=fixture();
+  for(const level of [0,1,2,3]){
+    const role=entities(10)[0];role.entity.tugEngineLevel=level;role.entity.system=1;
+    role.entity.previousX=900;role.entity.previousY=1900;
+    const descriptor=role.describe(),speed=level?35+15*Math.min(2,level):definitions.get(10).speedOrOtherStationValue;
+    assert.equal(descriptor.definition.speedOrOtherStationValue,speed);
+    assert.equal(descriptor.definition.movement.maxSpeed,speed*4.5);
+    assert.equal(descriptor.previousX,900);assert.equal(descriptor.previousY,1900);
+    assert.equal(descriptor.x,1040);assert.equal(descriptor.y,2080);
+  }
+  definitions.register(987,{movement:{maxSpeed:12,acceleration:4,braking:6,turnRate:.4}});
+  for(const role of entities(987))assert.equal(role.describe().definition.movement.maxSpeed,12);
+});
+
+test('shield overflow follows the authoritative local collision ray after a target sweep',()=>{
+  const {window,entities}=fixture();
+  for(const role of entities()){
+    const descriptor=role.describe(),from={x:descriptor.x-100,y:descriptor.y+30};
+    const contact=window.nativeCombatShots.contact(descriptor,from,descriptor.dimensions,true);
+    contact.from={x:descriptor.x+1000,y:descriptor.y-400};
+    const result=window.nativeShipDamage.apply(descriptor,30,{contact,from:contact.from});
+    const shieldAngle=Math.atan2(contact.local.y,contact.local.x),hullAngle=Math.atan2(result.contacts.hull.local.y,result.contacts.hull.local.x);
+    assert.ok(Math.abs(shieldAngle-hullAngle)<1e-10,`${role.category} overflow uses collision ray instead of stale projectile approach`);
+  }
+});
+
+test('visual-only impacts preserve health and attach to the same current surface for every role',async()=>{
+  const {window,entities,ctx,drawn,transforms}=fixture();
+  for(const role of entities()){
+    if(role.category==='tug')role.state.system=1;
+    const descriptor=role.describe(),contact=window.nativeCombatShots.contact(descriptor,{x:descriptor.x-200,y:descriptor.y+10},descriptor.dimensions,true);
+    contact.shielded=true;
+    window.nativeShipEffects.visualImpact(role.state,descriptor,{contact,kind:'explosion'});
+    assert.equal(role.entity.shields,20);assert.equal(role.entity.hull,100);
+    role.entity.x+=45;role.entity.y-=21;role.entity.heading+=.5;role.entity.angle+=.5;
+    const moved=role.describe(),view={ship:{x:-300,y:700},cx:320,cy:220,asset:{art:{}}};
+    window.nativeShipEffects.paintShip(ctx,moved,view);
+    const flash=drawn.filter(row=>row.kind==='flash').at(-1).args[4];
+    assert.equal(flash.x,contact.local.x);assert.equal(flash.y,contact.local.y);
+    assert.ok(transforms.some(p=>p.x===320+moved.x+300&&p.y===220+moved.y-700));
+    assert.ok(transforms.some(p=>p.angle===moved.heading+Math.PI/2));
+    role.entity.shields=0;
+    window.nativeShipEffects.visualImpact(role.state,role.describe(),{kind:'debris'});
+    assert.equal(role.entity.hull,100);assert.equal(window.nativeShipEffects.snapshot(role.describe()).particles,1);
+  }
+});
+
+test('pause freezes impact clocks and particle integration across all role profiles',()=>{
+  const {window,entities,ctx,drawn,setTime,setBlocked}=fixture();
+  for(const role of entities()){
+    if(role.category==='tug')role.state.system=1;
+    const descriptor=role.describe();window.nativeShipEffects.visualImpact(role.state,descriptor,{kind:'beam'});
+    role.entity.shields=0;window.nativeShipEffects.visualImpact(role.state,role.describe(),{kind:'debris'});
+    const view={ship:{x:0,y:0},cx:300,cy:200,asset:{art:{}}};
+    setBlocked(true);window.nativeShipEffects.advance(role.state,10);
+    window.nativeShipEffects.paintSurface(ctx,role.describe(),view,{front:true});
+    assert.equal(window.nativeShipEffects.snapshot(role.describe()).particles,1);
+    assert.equal(drawn.filter(row=>row.kind==='flash').at(-1).args[5],1000,'shader time uses simulation milliseconds');
+    setBlocked(false);setTime(1621);window.nativeShipEffects.advance(role.state,.621);
+    assert.equal(window.nativeShipEffects.snapshot(role.describe()).particles,0);
+    assert.equal(window.nativeShipEffects.snapshot(role.describe()).flash,null);setTime(1000);
+  }
+});
+
+test('nonlethal damage and disabled capabilities share one calculation without redefining health',()=>{
+  const {window,entities}=fixture();
+  for(const role of entities()){
+    const descriptor=role.describe(),result=window.nativeShipDamage.apply(descriptor,99999,{nonlethal:true});
+    const floor=descriptor.definition.capabilities.disableRatio?Math.max(1,descriptor.definition.hull*.25):0;
+    assert.equal(result.hull,Math.min(100,floor));assert.equal(result.disabled,floor>0);assert.equal(result.destroyed,floor===0);
+  }
+});
+
+test('all roles emit identical damage-stage transitions from authoritative hull overflow',async()=>{
+  const {window,entities,emitted}=fixture();
+  for(const role of entities()){
+    if(role.category==='tug')role.state.system=1;
+    const maximum=role.describe().definition.hull;role.entity.hull=maximum;role.entity.shields=5;
+    const descriptor=role.describe();await window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category);
+    const result=window.nativeShipDamage.apply(descriptor,5+maximum*.8,{kind:'beam'});
+    assert.equal(result.beforeStage,0);assert.equal(result.afterStage,3);assert.equal(result.destroyed,false);
+    window.nativeShipEffects.hit(role.state,descriptor,result,{kind:'beam'});
+    const stage=emitted.filter(row=>row.kind==='stage').at(-1).event;
+    assert.equal(stage.before,0);assert.equal(stage.after,3);assert.equal(stage.angle,descriptor.heading+Math.PI/2);
+    assert.equal(stage.layout.w,descriptor.dimensions.width);assert.equal(stage.layout.h,descriptor.dimensions.height);
+  }
+});
+
+test('rendering never emits destruction, damages targets or advances particles',async()=>{
+  const {window,entities,ctx,emitted,explosions}=fixture();
+  for(const role of entities()){
+    if(role.category==='tug')role.state.system=1;
+    const descriptor=role.describe();await window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category);
+    const result=window.nativeShipDamage.apply(descriptor,99999,{kind:'torpedo'});
+    window.nativeShipEffects.hit(role.state,descriptor,result,{kind:'torpedo'});
+    const before=emitted.length,blastCount=explosions.length,view={ship:{x:0,y:0},cx:300,cy:200};
+    for(let i=0;i<4;i++)window.nativeShipEffects.paint(role.state,ctx,view);
+    assert.equal(emitted.length,before);assert.equal(explosions.length,blastCount);assert.equal(role.entity.hull,0);
+  }
+});

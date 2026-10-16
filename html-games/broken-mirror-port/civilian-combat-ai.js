@@ -1,18 +1,17 @@
-/* Civilian pilots: maneuvering, firing solutions, and physical projectile contacts. */
+/* Civilian tactical decisions. Shared motion and weapon systems execute mechanics. */
 (() => {
   'use strict';
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
-  const wrap=angle=>Math.atan2(Math.sin(angle),Math.cos(angle));
+  const wrap=angle=>window.nativeShipMotion.wrap(angle);
   const profiles={
-    18:{style:'interceptor',speed:.8,turn:2.3,accel:90,range:165,pass:2.1},
-    23:{style:'evader',speed:.72,turn:2.6,accel:105,range:150,pass:1.8},
-    47:{style:'defender',speed:.55,turn:1.05,accel:48,range:235,pass:3.2},
-    52:{style:'cruiser',speed:.48,turn:.7,accel:36,range:290,pass:3.8}
+    18:{style:'interceptor',range:165,pass:2.1},
+    23:{style:'evader',range:150,pass:1.8},
+    47:{style:'defender',range:235,pass:3.2},
+    52:{style:'cruiser',range:290,pass:3.8}
   };
   const profile=type=>profiles[type]||profiles[47];
   function begin(ship,role,clock){
-    const speed=Number(ship.speed)||0;
-    ship.vx=Math.cos(ship.heading)*speed;ship.vy=Math.sin(ship.heading)*speed;
+    window.nativeShipMotion.prepare(ship,{resetVelocity:true,resetAngular:true});
     ship.combatAI={role,mode:role==='thief'?'breakaway':'intercept',until:clock+(role==='thief'?1.6:2.5),side:ship.id%2?1:-1,angularVelocity:0,nextEvade:clock+3,lastHitAt:-100,shots:0,passes:0,engineWarning:false,shieldWarning:false};
   }
   const {intercept,weaponSpec,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile}=window.nativeWeaponRules;
@@ -28,11 +27,11 @@
   function incomingThreat(ship,pending){
     return pending.find(event=>event.projectile&&event.targetId===ship.id&&event.age>.08&&circleSweep(event,{x:event.x+(event.vx-(ship.vx||0))*.65,y:event.y+(event.vy-(ship.vy||0))*.65},ship,22)!=null);
   }
-  function steer(ship,target,dispute,{dt,clock,hull,shields,rocks,bystanders,bodies=[]}){
+  function decide(ship,target,dispute,{clock,hull,shields,rocks=[],bystanders=[],bodies=[]}){
     if(!ship.combatAI)begin(ship,ship.id===dispute.b?'thief':'claimant',clock);
     const ai=ship.combatAI,previousMode=ai.mode,p=profile(ship.shipType),dx=target.x-ship.x,dy=target.y-ship.y,distance=Math.hypot(dx,dy)||1;
     const ux=dx/distance,uy=dy/distance,hp=ship.hull/hull,shield=shields?ship.shields/shields:0;
-    const engine=hp<.5?clamp(.45+hp,.55,.95):1,top=Math.max(36,p.speed*(ship.cruiseSpeed||105))*engine;
+    const engine=hp<.5?clamp(.45+hp,.55,.95):1;
     const incoming=incomingThreat(ship,dispute.pending||[]);
     if(clock>=ai.nextEvade&&(incoming||hp<.5||shield<.18&&clock-ai.lastHitAt<2)){
       ai.mode=incoming?'dodge':'evade';ai.until=clock+(incoming?.8:1.5);ai.nextEvade=clock+4.2;
@@ -86,24 +85,20 @@
     const anchor=dispute.anchor,rx=dispute.bounds?.x||440,ry=dispute.bounds?.y||330;
     const ex=(ship.x-anchor.x)/rx,ey=(ship.y-anchor.y)/ry,edge=Math.hypot(ex,ey);
     if(edge>.72){const strength=clamp((edge-.72)*6,0,4);desired.x-=ex*strength;desired.y-=ey*strength;}
-    const heading=Math.atan2(desired.y,desired.x),error=wrap(heading-ship.heading),turnLimit=p.turn*(hp<.5?.7:1);
-    const angularTarget=clamp(error*3,-turnLimit,turnLimit);
-    ai.angularVelocity+=(angularTarget-ai.angularVelocity)*Math.min(1,dt*6);
-    const change=clamp(ai.angularVelocity*dt,-Math.abs(error),Math.abs(error));ship.heading=wrap(ship.heading+change);
-    const aligned=clamp(1-Math.abs(error)/2.3,.25,1),desiredSpeed=top*throttle*aligned;
-    const vx=Math.cos(ship.heading)*desiredSpeed,vy=Math.sin(ship.heading)*desiredSpeed;
-    const ax=vx-(ship.vx||0),ay=vy-(ship.vy||0),accel=p.accel*engine*dt,delta=Math.hypot(ax,ay)||1;
-    ship.vx=(ship.vx||0)+ax*Math.min(1,accel/delta);ship.vy=(ship.vy||0)+ay*Math.min(1,accel/delta);
-    const speed=Math.hypot(ship.vx,ship.vy);if(speed>top){ship.vx*=top/speed;ship.vy*=top/speed;}
-    ship.previousX=ship.x;ship.previousY=ship.y;ship.x+=ship.vx*dt;ship.y+=ship.vy*dt;ship.speed=Math.hypot(ship.vx,ship.vy);
     ai.engineFactor=engine;if(previousMode!==ai.mode||ai.modeSince==null)ai.modeSince=clock;
-    return ai;
+    return {heading:Math.atan2(desired.y,desired.x),throttle,engineFactor:engine,turnFactor:hp<.5?.7:1};
+  }
+  function steer(ship,target,dispute,scene){
+    if(!Number.isFinite(scene.dt)||scene.dt<=0||!target||!Number.isFinite(target.x)||!Number.isFinite(target.y))return ship.combatAI;
+    const command=decide(ship,target,dispute,scene);
+    const definition=window.nativeShipDefinitions?.get(ship.shipType,'civilian');
+    const movement=definition?.combatMovement||definition?.profile.combatMovement||window.nativeShipMotion.profiles.combat(ship.shipType,ship.cruiseSpeed||105);
+    window.nativeShipMotion.step(ship,command,movement,scene.dt);
+    return ship.combatAI;
   }
   function coast(ship,dt){
     if(!ship.combatAI)return;
-    ship.x+=(ship.vx||0)*dt;ship.y+=(ship.vy||0)*dt;
-    const damping=Math.exp(-2.5*dt);ship.vx=(ship.vx||0)*damping;ship.vy=(ship.vy||0)*damping;
-    ship.heading=wrap(ship.heading+ship.combatAI.side*.12*dt);ship.speed=Math.hypot(ship.vx,ship.vy);
+    window.nativeShipMotion.step(ship,{coast:true,turn:ship.combatAI.side},window.nativeShipMotion.profiles.coast(),dt);
   }
-  window.nativeCivilianCombatAI={profile,begin,intercept,weaponSpec,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile,steer,coast,wrap};
+  window.nativeCivilianCombatAI={profile,begin,decide,intercept,weaponSpec,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile,steer,coast,wrap};
 })();

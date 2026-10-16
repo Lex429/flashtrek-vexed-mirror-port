@@ -30,7 +30,7 @@ async function environment() {
   };
   const context = vm.createContext({ window, document: { hidden: false }, performance: { now: () => 1000 }, console,
     fetch: async () => ({ ok: true, json: async () => ({ weapons: {} }) }) });
-  for (const file of ['weapon-rules.js', 'combat-shots.js', 'civilian-combat-ai.js', 'civilian-traffic.js', 'asteroid-combat.js']) load(context, file);
+  for (const file of ['simulation-clock.js','ship-motion.js','ship-definitions.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','civilian-combat-ai.js','civilian-traffic.js','asteroid-combat.js']) load(context, file);
   await window.nativeCombatShots.ready;
   window.nativeCombatShots.setVisualCatalog({ weapons: { beam: [{ id: 1 }] } }, { units: 100 });
   return { window, context, rules: window.nativeWeaponRules, shots: window.nativeCombatShots };
@@ -75,7 +75,7 @@ test('projectiles continue flying when their original target disappears', async 
   target = null;
   const rock = { slotId: 4, x: 150, y: 0, size: 20, maxHull: 10 };
   window.nativeSolAsteroids.placements.push(rock);
-  shots.advance(state, .5);
+  window.nativeSimulation.advance(state,.5); shots.advance(state, .5);
   assert.deepEqual([...state.destroyedAsteroids], [4]);
   assert.equal(shot.shot.projectile.alive, false);
 });
@@ -90,7 +90,7 @@ test('simultaneous stray shots pass objects destroyed earlier in the same update
   assert.equal(shots.fire(options).ok, true);
   target = null;
   window.nativeSolAsteroids.placements.push({ slotId: 4, x: 150, y: 0, size: 20, maxHull: 10 }, { slotId: 5, x: 180, y: 0, size: 20, maxHull: 10 });
-  shots.advance(state, .7);
+  window.nativeSimulation.advance(state,.7); shots.advance(state, .7);
   assert.deepEqual([...state.destroyedAsteroids], [4, 5]);
 });
 
@@ -104,7 +104,7 @@ test('collateral damage reduces shields and retaliation targets the actual NPC s
   assert.equal(victim.retaliationTargetId, shooter.id);
   assert.equal(state.civilianTraffic.retaliations[0].b, shooter.id);
   assert.equal(victim.phase, 'fighting');
-  assert.equal(victim.shieldFlash.kind, 'torpedo');
+  assert.equal(window.nativeShipEffects.snapshot(window.nativeShipDefinitions.describe(state,victim,{category:'civilian'})).flash.kind,'torpedo');
   assert.doesNotThrow(() => JSON.stringify(state));
 });
 
@@ -116,7 +116,7 @@ test('an NPC projectile still destroys an intervening asteroid after its shooter
   shooter.hull = 0; shooter.phase = 'destroyed'; victim.phase = 'fighting'; victim.disputeId = 1;
   state.civilianTraffic.disputes = [{ id: 1, system: 1, a: shooter.id, b: victim.id, reason: 'test', startedAt: 0, pending: [event], volleys: 1 }];
   window.nativeSolAsteroids.placements.push({ slotId: 8, x: 50, y: 0, size: 20, maxHull: 10 });
-  window.nativeCivilianTraffic.advance(state, .25);
+  window.nativeCombatShots.restore(state);window.nativeSimulation.advance(state,.25);window.nativeCivilianTraffic.advance(state,.25);window.nativeCombatShots.advance(state,.25);
   assert.deepEqual([...state.destroyedAsteroids], [8]);
   assert.equal(state.civilianTraffic.strayShots.length, 0);
   assert.equal(state.civilianTraffic.disputes.length, 0);
@@ -127,7 +127,7 @@ test('an idle civilian hit by the player fires back and pending attacks remain s
   const victim = vessel(1, 200, 0), state = stateWith([victim]);
   victim.heading = Math.PI;
   window.nativeCivilianTraffic.hit(state, victim.id, 1, { source: 'player', sourceId: 'player', from: { x: 0, y: 0 } });
-  for (let i = 0; i < 30; i++) window.nativeCivilianTraffic.advance(state, .02);
+  for(let i=0;i<30;i++){window.nativeSimulation.advance(state,.02);window.nativeCivilianTraffic.advance(state,.02);window.nativeCombatShots.advance(state,.02);}
   assert.equal(victim.retaliationTargetId, 'player');
   assert.ok(state.civilianTraffic.retaliations[0].volleys > 0);
   assert.doesNotThrow(() => JSON.stringify(state));
@@ -141,7 +141,7 @@ test('environmental impacts flash shields or hull sparks without damage or retal
   const result = traffic.visualImpact(state, victim.id, { from: { x: 0, y: 0 }, kind: 'explosion' });
   assert.equal(result.shields, 100);
   assert.equal(result.hull, 100);
-  assert.equal(victim.shieldFlash.kind, 'explosion');
+  assert.equal(window.nativeShipEffects.snapshot(window.nativeShipDefinitions.describe(state,victim,{category:'civilian'})).flash.kind,'explosion');
   victim.shields = 0;
   assert.equal(traffic.visualImpact(state, victim.id, { from: { x: 0, y: 0 }, kind: 'debris' }).hull, 100);
   assert.equal(state.civilianTraffic.retaliations.length, 0);

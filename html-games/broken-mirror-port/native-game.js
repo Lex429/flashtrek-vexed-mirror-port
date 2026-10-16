@@ -6,12 +6,11 @@ const factions=['Non-Aligned','Earth Empire','Klingon Empire','Ferengi','Romulan
 const colors=['#9dd9ee','#ed879b','#f06456','#e6c65d','#74d979','#d8c88e','#c18be2','#a6f05e'];
 const goods=['Deuranium','Antimatter','Dilithium','Food'];
 const devResources=['latinum','deuranium','antimatter','dilithium','food'];
-const shipStats=value=>{const ship=world.ships.find(entry=>entry.id===Number(value.shipType))||world.ships.find(entry=>entry.id===7);return ship.id===10&&Number(value.tugEngineLevel)>0?{...ship,speedOrOtherStationValue:35+15*Math.min(2,Number(value.tugEngineLevel))}:ship};
+const shipStats=value=>window.nativeShipDefinitions.forEntity(value,world.ships.some(ship=>ship.id===Number(value.shipType))?value:{...value,shipType:7},{category:'player'});
 const localSpeedFactor=value=>Math.max(.7,Math.min(2.5,Number(shipStats(value).speedOrOtherStationValue)/35));
-const manualTopSpeed=ship=>Math.max(36,Number(ship.speedOrOtherStationValue)*4.5);
 function unlockDev(value){
  value.devMode=true;
- if(!value.devWeaponKitGranted){value.weaponInventory=Array.isArray(value.weaponInventory)?value.weaponInventory:[];value.weaponInventory.push(...(window.VexedMirrorWeapons||[]).map(item=>item.id));value.devWeaponKitGranted=true}
+ if(!value.devWeaponKitGranted){for(const weapon of window.VexedMirrorWeapons||[])window.nativeWeaponLoadout.grant(value,weapon.id);value.devWeaponKitGranted=true}
  for(const key of devResources)value[key]=1000000000;
  value.stocks=Object.fromEntries(goods.map(g=>[g,1000000000]));
  value.discovered=world.systems.map(system=>system.id);
@@ -55,7 +54,7 @@ window.nativeCombatShots.onPlayerHit=(state,damage,impact)=>{
  }
  return result;
 };
-function activate(value){window.nativePlayerCombat.reset();window.nativeEnvironmentalImpacts?.reset();cancelTargetPress();window.nativeShipInventory?.close();window.nativePause.close();window.vexedWarp.reset();window.nativeGalaxyMap?.close(false);window.nativePlanetEncounter?.close(false);window.nativeAsteroidCombat?.clear();window.nativeSolEconomy?.clearTarget();window.nativeCivilianTraffic?.clearTarget();game=navigation.initialize(value);setDevGalaxyView(false);if(game.vitalsVersion!==2){const ship=shipStats(game);game.hull=Math.round(Math.max(0,Math.min(100,Number(game.hull)||0))*ship.hull/100);game.shields=Math.round(Math.max(0,Math.min(100,Number(game.shields)||0))*ship.shields/100);game.vitalsVersion=2;}game.localBody=Number.isInteger(Number(game.localBody))?Number(game.localBody):3;game.localContracts=Array.isArray(game.localContracts)?game.localContracts:[];game.weaponInventory=Array.isArray(game.weaponInventory)?game.weaponInventory.map(Number).filter(id=>Number.isInteger(id)&&id>0&&window.VexedMirrorWeapons?.some(item=>item.id===id)):[];window.nativeSolEconomy.initialize(game);window.nativeCivilianTraffic.initialize(game);window.vexedSolFlight?.setTarget(game.localCruise?.to??game.localNavTarget??game.localBody);if(game.devMode)unlockDev(game);window.vexedSpace.enterSystem(game.system,true);spaceCamera=null;keys={};modal.hidden=true;menuArt.hidden=true;document.body.classList.add('playing');document.getElementById('save').disabled=false;devButton.hidden=!game.devMode;updateVisuals();refresh()}
+function activate(value){window.nativePlayerCombat.reset();window.nativeEnvironmentalImpacts?.reset();cancelTargetPress();window.nativeShipInventory?.close();window.nativePause.close();window.vexedWarp.reset();window.nativeGalaxyMap?.close(false);window.nativePlanetEncounter?.close(false);window.nativeAsteroidCombat?.clear();window.nativeSolEconomy?.clearTarget();window.nativeCivilianTraffic?.clearTarget();game=navigation.initialize(value);window.nativeSimulation.ensure(game);setDevGalaxyView(false);if(game.vitalsVersion!==2){const ship=shipStats(game);game.hull=Math.round(Math.max(0,Math.min(100,Number(game.hull)||0))*ship.hull/100);game.shields=Math.round(Math.max(0,Math.min(100,Number(game.shields)||0))*ship.shields/100);game.vitalsVersion=2;}game.localBody=Number.isInteger(Number(game.localBody))?Number(game.localBody):3;game.localContracts=Array.isArray(game.localContracts)?game.localContracts:[];game.weaponInventory=Array.isArray(game.weaponInventory)?game.weaponInventory.map(Number).filter(id=>Number.isInteger(id)&&id>0&&window.VexedMirrorWeapons?.some(item=>item.id===id)):[];window.nativeSolEconomy.initialize(game);window.nativeCivilianTraffic.initialize(game);window.vexedSolFlight?.setTarget(game.localCruise?.to??game.localNavTarget??game.localBody);if(game.devMode)unlockDev(game);window.nativeWeaponLoadout.ensure(game);window.nativeCombatShots.restore?.(game);window.vexedSpace.enterSystem(game.system,true);spaceCamera=null;keys={};modal.hidden=true;menuArt.hidden=true;document.body.classList.add('playing');document.getElementById('save').disabled=false;devButton.hidden=!game.devMode;updateVisuals();refresh()}
 function begin(){activate({...fresh(),devMode:true});message('Dev command ready. All systems, ships, and supplies are available.');save()}
 function resume(){const saved=savedGame();if(!saved)return;const defaults=fresh(),value={...defaults,...saved,stocks:{...defaults.stocks,...saved.stocks}};for(const key of ['system','faction','day','nav','antimatter','deuranium','latinum','dilithium','food','x','y','angle','speed','hull','shields'])value[key]=Number.isFinite(Number(value[key]))?Number(value[key]):defaults[key];activate(value);if(game.devMode)save(true);message(`Command data restored. Current system: ${sys(game.system).name}.`);const receipt=game.pendingTransit;if(receipt?.version===1&&receipt.report?.systemId===game.system&&Array.isArray(receipt.report.events))startJourney(receipt.report,null,true)}
 window.startNativeNewGame=()=>window.nativeSetup.open();
@@ -89,16 +88,10 @@ function advanceArrivalApproach(dt,now){
  const approach=game?.arrivalApproach;
  if(!approach||dt<=0)return;
  if(approach.system!==game.system){delete game.arrivalApproach;game.speed=0;save(true);return;}
- const dx=approach.x-game.x,dy=approach.y-game.y,distance=Math.hypot(dx,dy);
- if(distance<=Math.max(.75,Math.min(Number(game.speed||0)*dt,1))){
-  game.x=approach.x;game.y=approach.y;game.speed=0;delete game.arrivalApproach;
-  save(true);message(`Approach complete at ${sys(game.system).name}.`);refresh();return;
+ const moved=window.nativeShipSystems.move(game,game,'player',{goal:{x:approach.x+(game.system===1?window.vexedSolFlight.shipPosition(game).x-game.x:0),y:approach.y+(game.system===1?window.vexedSolFlight.shipPosition(game).y-game.y:0)},snap:true},window.nativeShipMotion.profiles.approach(window.vexedRebirthWarp.arrivalSpeed),dt);
+ if(moved.arrived){
+  delete game.arrivalApproach;save(true);message(`Approach complete at ${sys(game.system).name}.`);refresh();return;
  }
- const heading=Math.atan2(dy,dx),turn=Math.atan2(Math.sin(heading-game.angle),Math.cos(heading-game.angle));
- game.angle+=turn*Math.min(1,dt*4);
- const speed=Math.min(window.vexedRebirthWarp.arrivalSpeed,Math.sqrt(360*distance));
- const step=Math.min(distance,speed*dt);
- game.speed=speed;game.x+=dx/distance*step;game.y+=dy/distance*step;
  if(now-lastCruiseSave>2000){lastCruiseSave=now;save(true);}
 }
 function advanceLocalCruise(dt,now){
@@ -120,37 +113,31 @@ function advanceLocalCruise(dt,now){
  if(cruise.speedVersion!==2){cruise.speed=Math.max(350*factor,Math.min(1500*factor,(Number(cruise.speed)||240*factor)*1.7));cruise.speedVersion=2;}
  const cruiseSpeed=Number(cruise.speed)||Math.max(350,Math.min(1500,Math.ceil(distance/8)))*factor;
  cruise.speed=cruiseSpeed;
- if(distance<=Math.max(.75,Math.min(cruiseSpeed*dt,1))){
+ const moved=window.nativeShipSystems.move(game,game,'player',{goal:{x:cruise.stopX,y:cruise.stopY},snap:true},window.nativeShipMotion.profiles.cruise(cruiseSpeed,factor),dt);
+ if(moved.arrived){
   game.localBody=destination.id;game.x=cruise.stopX-destination.x;game.y=cruise.stopY-destination.y;game.speed=0;game.localCruise=null;
   updateVisuals();save(true);message(`Arrived at ${destination.name}.`);window.nativeSystemHub?.refresh();return;
  }
- const heading=Math.atan2(dy,dx),turn=Math.atan2(Math.sin(heading-game.angle),Math.cos(heading-game.angle));
- game.angle+=turn*Math.min(1,dt*4);
- const speed=Math.min(cruiseSpeed,Math.max(0,Number(game.speed)||0)+520*factor*dt,Math.sqrt(720*distance)*factor);
- const step=Math.min(distance,speed*dt);
- game.speed=speed;game.x+=dx/distance*step;game.y+=dy/distance*step;
  if(now-lastCruiseSave>2000){lastCruiseSave=now;save(true);}
 }
 let lastEconomySave=0;
 // Keep collision and steering steps small while consuming ordinary slow frames in full.
 function advanceSimulation(dt,now){
- if(!game||!(dt>0))return;
+ if(!game||window.nativeSimulation.blocked()||!(dt>0))return;
  const count=Math.ceil(dt/(1/60)),step=dt/count;
  for(let i=0;i<count;i++){
+  window.nativeSimulation.advance(game,step);
   advanceLocalCruise(step,now);advanceArrivalApproach(step,now);
   if(window.nativePopulation.advanceSeconds(game,step)){window.nativePlanetEncounter?.refresh();window.nativeSystemHub?.updatePopulation();}
   window.nativeSolEconomy.advance(game,step);
   window.nativeCivilianTraffic.advance(game,step);
   window.nativeCombatShots.advance(game,step);
   window.nativeEnvironmentalImpacts?.advance(game,step);
-  window.nativePlayerCombat.advance(step);
+  window.nativeShipEffects.advance(game,step);
+  window.nativeAsteroidCombat.advance(game,step);
   if(modal.hidden&&game.hull>0&&!game.landed&&!window.nativeGalaxyMap?.isOpen&&!window.nativeSystemHub?.active&&!window.nativePlanetEncounter?.active&&!game.localCruise&&!game.arrivalApproach&&!busy()){
-   const turn=(keys.KeyA||keys.ArrowLeft?-1:0)+(keys.KeyD||keys.ArrowRight?1:0),ship=shipStats(game),topSpeed=manualTopSpeed(ship),turnRate=Math.max(.5,Number(ship.turn)/12*3);
-   game.angle+=turn*turnRate*step;
-   if(keys.KeyW||keys.ArrowUp)game.speed=Math.min(topSpeed,game.speed+topSpeed*.75*step);
-   if(keys.KeyS||keys.ArrowDown)game.speed=Math.max(0,game.speed-topSpeed*1.2*step);
-   game.speed=Math.min(game.speed,topSpeed);
-   game.x+=Math.cos(game.angle)*game.speed*step;game.y+=Math.sin(game.angle)*game.speed*step;
+   const turn=(keys.KeyA||keys.ArrowLeft?-1:0)+(keys.KeyD||keys.ArrowRight?1:0);
+   window.nativeShipSystems.move(game,game,'player',{turn,throttle:keys.KeyW||keys.ArrowUp?1:0,brake:!!(keys.KeyS||keys.ArrowDown)},undefined,step);
    updateManualFlight(now);
   }
  }
@@ -158,7 +145,7 @@ function advanceSimulation(dt,now){
 }
 // Returning from a hidden tab must not advance its suspended interval.
 document.addEventListener('visibilitychange',()=>{last=performance.now()});
-function draw(now){const dt=paused()||document.hidden?0:Math.max(0,Math.min(.25,(now-last)/1000));last=now;starTime+=dt;advanceSimulation(dt,now);const {w,h,safeBottom}=size(),warpFlight=window.vexedWarp.flightEffect,zoom=1;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+function draw(frameTime){const dt=window.nativeSimulation.blocked()?0:Math.max(0,Math.min(.25,(frameTime-last)/1000));last=frameTime;starTime+=dt;const now=window.nativeSimulation.now(game);advanceSimulation(dt,now);const {w,h,safeBottom}=size(),warpFlight=window.vexedWarp.flightEffect,zoom=1;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
  if(game?.system===1&&!paused()&&!document.hidden&&!travelling()){
   const arrived=window.vexedSolFlight?.nearestArrival(game);
   if(arrived){updateVisuals();save(true);message(`Approaching ${arrived.name}. ${arrived.port?'Local services are available nearby.':'No port is available here.'}`);window.nativeSystemHub?.refresh();}
@@ -199,13 +186,13 @@ function draw(now){const dt=paused()||document.hidden?0:Math.max(0,Math.min(.25,
  if(solBodies)window.nativeSolAsteroids?.paint(ctx,{ship:solPosition,cx,cy,zoom,w,h,mined:[...(game.minedAsteroids||[]),...(game.destroyedAsteroids||[])],damage:game.asteroidDamage||{},hiddenId:window.nativeAsteroidCombat?.miningId,hiddenIds:window.nativeCivilianTraffic.miningIds(game)});
  if(solBodies)window.nativeSolEconomy.paint(ctx,{state:game,ship:solPosition,cx,cy,w,h,zoom});
  window.nativeCivilianTraffic.paint(ctx,{state:game,ship:solPosition||game,cx,cy,w,h,zoom});
- const playerView={state:game,ship:solPosition||game,cx,cy,dimensions:shipDimensions,asset:flightShip,now};
- window.nativePlayerCombat.paint(ctx,{...playerView,front:false});
- window.vexedFlightAssets.drawShip(ctx,warpFlight?window.vexedWarp.flightShip||flightShip:flightShip,warpFlight?warpFlight.shipX+cx-300:cx,warpFlight?warpFlight.shipY+cy-225:cy,shipW,warpFlight?.angle??game.angle+Math.PI/2,starTime*1000,{...warpFlight,height:shipH,light:window.vexedSpace.light,warpPulse:warpFlight?.kind?1:0});
+ const playerDescriptor=window.nativeShipDefinitions.describe(game,game,{category:'player'});
+ window.nativeShipEffects.paintShip(ctx,playerDescriptor,{ship:solPosition||game,cx,cy,asset:warpFlight?window.vexedWarp.flightShip||flightShip:flightShip,
+  x:warpFlight?warpFlight.shipX+cx-300:cx,y:warpFlight?warpFlight.shipY+cy-225:cy,dimensions:shipDimensions,warpEffect:warpFlight,
+  appearance:{light:window.vexedSpace.light,warpPulse:warpFlight?.kind?1:0}});
  window.vexedFlightAssets.drawWarpRing(ctx,warpFlight?.ring?{...warpFlight.ring,x:warpFlight.ring.x+cx-300,y:warpFlight.ring.y+cy-225}:null,shipW);
- window.nativePlayerCombat.paint(ctx,{...playerView,front:true});
- if(solBodies)window.nativeSolEconomy.paintEffects(ctx,{state:game,ship:solPosition,cx,cy,zoom});
- window.nativeCivilianTraffic.paintEffects(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,w,h});
+ window.nativeCombatShots.paintAll(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,now});
+ window.nativeShipEffects.paint(game,ctx,{ship:solPosition||game,cx,cy,zoom,w,h});
  if(solBodies)window.nativeCivilianTraffic.paintMining(ctx,{state:game,ship:solPosition,cx,cy,zoom,w,h});
  if(solBodies)window.nativeAsteroidCombat?.paint(ctx,{state:game,ship:solPosition,cx,cy,zoom,now,w,h});
  window.nativeEnvironmentalImpacts?.paint(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,w,h});
@@ -226,7 +213,7 @@ function trackManualSystem(id){
 }
 window.nativeManualFlight.clearTracking=()=>{if(game?.manualTargetSystem){game.manualTargetSystem=0;save(true);}};
 function startJourney(report,next,resumed=false,destinationLabel){window.nativeCombatShots.cancel();keys={};setDevGalaxyView(false);modal.hidden=true;return window.vexedWarp.start({report,resumed,destinationLabel,originPosition:{x:game.x,y:game.y},originAngle:game.angle+Math.PI/2,originShip:flightShip,arrivalAngle:Math.atan2(-220,-75),
- commit(){const previous=game;game=next;if(game.system===1&&previous.system!==1)game.localBody=3;game.localCruise=null;delete game.arrivalApproach;game.pendingTransit={version:1,phase:'report',report};try{save(true)}catch(error){game=previous;throw error}updateVisuals();message(`Transit to ${report.systemName} complete. Awaiting your arrival command.`);refresh()},
+ commit(){const previous=game;game=next;window.nativePlayerCombat.reset();window.nativeEnvironmentalImpacts.reset();if(game.system===1&&previous.system!==1)game.localBody=3;game.localCruise=null;delete game.arrivalApproach;game.pendingTransit={version:1,phase:'report',report};try{save(true)}catch(error){game=previous;throw error}updateVisuals();message(`Transit to ${report.systemName} complete. Awaiting your arrival command.`);refresh()},
  beginArrival(){window.vexedSpace.enterSystem(game.system,true);spaceCamera=null;game.pendingTransit.phase='arrival';game.angle=Math.atan2(75,-220);game.landed=false;save(true)},
  finish(){delete game.pendingTransit;const planet=game.system===1?window.nativeSystemHub.sol.find(body=>body.id===3):null,goal=planet?window.vexedSolFlight.bodyPosition(planet):{x:-220,y:75};const dx=goal.x-game.x,dy=goal.y-game.y,distance=Math.hypot(dx,dy),clearance=approachDistance(planet?window.vexedSolFlight.bodySize(planet):128);game.arrivalApproach={system:game.system,x:distance>clearance?goal.x-dx/distance*clearance:game.x,y:distance>clearance?goal.y-dy/distance*clearance:game.y};game.speed=window.vexedRebirthWarp.arrivalSpeed;save(true);message(`Arrived at ${report.systemName}. ${report.elapsedDays} days elapsed; ${report.fuelUsed} antimatter consumed. Slowing for planetary approach.`);refresh();canvas.focus({preventScroll:true})},
  cancel(wasCommitted){if(wasCommitted){delete game.pendingTransit;save(true)}message(wasCommitted?`Arrived at ${report.systemName}.`:'Transit interrupted. Your original course and resources are unchanged.');refresh();canvas.focus({preventScroll:true})}
@@ -271,7 +258,7 @@ function hubBuyWeapon(id,port){
  if(!weapon)return{ok:false,error:'Weapon unavailable.'};
  if(!game.devMode&&game.latinum<weapon.price)return{ok:false,error:'Not enough latinum for this weapon.'};
  if(!game.devMode)game.latinum-=weapon.price;
- game.weaponInventory.push(id);save(true);refresh();message(`${weapon.name} added to your weapon locker.`);
+ window.nativeWeaponLoadout.grant(game,id);save(true);refresh();message(`${weapon.name} added to your weapon locker.`);
  return{ok:true,message:`${weapon.name} added to your weapon locker. Equip it in your inventory.`};
 }
 function hubRepair(port){
@@ -296,7 +283,7 @@ function hubCruise(id){
  const stopY=distance>clearance?goal.y-(goal.y-ship.y)/distance*clearance:ship.y;
  const speedFactor=localSpeedFactor(game),speed=Math.max(350,Math.min(1500,Math.ceil(distance/8)))*speedFactor;
  game.localCruise={from:from.id,to:to.id,speed,speedFactor,speedVersion:2,stopX,stopY,startedAt:Date.now()};game.speed=0;game.landed=false;
- game.manualTargetSystem=0;game.localNavTarget=to.id;window.vexedSolFlight.setTarget(to.id);lastCruiseSave=performance.now();
+ game.manualTargetSystem=0;game.localNavTarget=to.id;window.vexedSolFlight.setTarget(to.id);lastCruiseSave=window.nativeSimulation.now(game);
  save(true);message(`Flying from ${from.name} to ${to.name}.`);return{ok:true,message:`Course set for ${to.name}. Flying there now.`};
 }
 function selectLocalDestination(id){
@@ -340,7 +327,7 @@ function hubBuyShip(id,port){
  const tugMaterials=[[1,15],[2,12],[3,6],[7,5],[8,2]];
  if(id===10&&game.system===1&&port===5&&!game.devMode){const inventory=window.nativeSolEconomy.initialize(game).ports[5];if(tugMaterials.some(([good,amount])=>inventory[good]<amount))return{ok:false,error:'Mars needs more metal, components, computers, deuranium, or hull sections to assemble a Tug Class II.'};for(const [good,amount] of tugMaterials)inventory[good]-=amount}
  if(!game.devMode)game.latinum-=ship.price;
- game.weaponInventory.push(...game.weapons.filter(id=>Number(id)>0));game.shipType=ship.id;game.shipClass=ship.name;game.tugEngineLevel=0;game.weapons=ship.defaultWeapons.map(value=>value||null);game.hull=ship.hull;game.shields=ship.shields;game.speed=0;game.vitalsVersion=2;
+ window.nativeWeaponLoadout.refit(game,ship.defaultWeapons);game.shipType=ship.id;game.shipClass=ship.name;game.tugEngineLevel=0;game.hull=ship.hull;game.shields=ship.shields;game.speed=0;game.vitalsVersion=2;
  updateVisuals();refresh();save(true);message(`${ship.name} purchased at ${game.system===1?window.nativeSystemHub.sol[port].name:sys(game.system).name}.`);
  return{ok:true,message:`You now command the ${ship.name}.`};
 }
@@ -546,7 +533,7 @@ function devTools(){
  const disputeButton=document.createElement('button');disputeButton.id='dev-civilian-dispute-button';disputeButton.type='button';disputeButton.textContent='Watch ore theft dispute at Earth';miningButton.after(disputeButton);
  disputeButton.onclick=()=>{game.system=1;game.planet=sys(1).name;game.localBody=3;game.x=0;game.y=0;game.speed=0;game.landed=false;game.localCruise=null;game.arrivalApproach=null;window.vexedSpace.enterSystem(1,true);spaceCamera=null;setDevGalaxyView(false);const ready=window.nativeCivilianTraffic.startOreDisputeDemo(game);updateVisuals();refresh();save(true);close();const notice=ready?'Watch the miner: another civilian is approaching to steal its ore.':'Asteroids are still loading. Try the dispute preview again shortly.';message(notice);toast(notice);};
  modal.hidden=false;window.nativeDevShipPreview.attach(dialog,world.ships);
- dialog.querySelector('[data-dev-equip]').onclick=()=>{const ship=world.ships.find(entry=>entry.id===Number(shipSelect.value));if(!ship)return;game.weaponInventory.push(...game.weapons.filter(id=>Number(id)>0));game.shipType=ship.id;game.shipClass=ship.name;game.weapons=ship.defaultWeapons.map(value=>value||null);game.speed=0;unlockDev(game);updateVisuals();refresh();save(true);message(`Dev ship equipped: ${ship.name}.`);close()};
+ dialog.querySelector('[data-dev-equip]').onclick=()=>{const ship=world.ships.find(entry=>entry.id===Number(shipSelect.value));if(!ship)return;window.nativeWeaponLoadout.refit(game,ship.defaultWeapons);game.shipType=ship.id;game.shipClass=ship.name;game.speed=0;unlockDev(game);updateVisuals();refresh();save(true);message(`Dev ship equipped: ${ship.name}.`);close()};
  dialog.querySelector('[data-dev-jump]').onclick=()=>{const system=sys(systemSelect.value);if(!system)return;game.system=system.id;game.planet=system.name;game.x=0;game.y=0;game.speed=0;game.landed=false;window.vexedSpace.enterSystem(system.id,true);spaceCamera=null;updateVisuals();refresh();save(true);message(`Dev jump complete: ${system.name}.`);close()};
  dialog.querySelector('[data-close]').onclick=close;
 }
@@ -602,14 +589,9 @@ canvas.tabIndex=-1;asteroidMineButton.onclick=()=>mineTarget();asteroidMineButto
  addEventListener('keydown',e=>{if(window.nativeShipInventory?.active){if((e.code==='KeyI'||e.key==='Escape')&&!e.repeat){e.preventDefault();window.nativeShipInventory.close()}return}if(e.code==='KeyI'&&!e.repeat&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();openInventory();return}if(travelling()){if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();return}if(window.nativeSystemHub?.active||window.nativePlanetEncounter?.active)return;if(window.nativeGalaxyMap?.isOpen){if((e.key==='Escape'||e.code==='KeyM')&&!e.repeat){e.preventDefault();window.nativeGalaxyMap.close()}return}if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&modal.hidden&&game){e.preventDefault();if(!e.repeat)beginTargetPress(e.code);return}if(e.code==='Space'&&modal.hidden&&game){e.preventDefault();if(!e.repeat)fireLockedTarget();return}if(e.key==='Escape'){close();return}if(modal.hidden&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();if(e.code==='KeyM'&&modal.hidden&&!e.repeat){e.preventDefault();showMap()}if(e.code==='KeyN'&&modal.hidden&&!e.repeat)openHub('navigation');if(e.code==='KeyT'&&modal.hidden&&!e.repeat)openHub('market');if(e.code==='KeyE'&&modal.hidden)dock()});addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft'||e.code==='ShiftRight')endTargetPress(e.code)});addEventListener('keydown',e=>{if(modal.hidden&&game&&!window.nativeGalaxyMap?.isOpen&&!window.nativeSystemHub?.active&&!window.nativePlanetEncounter?.active&&!window.nativeShipInventory?.active&&!busy())keys[e.code]=true});addEventListener('blur',()=>{keys={};cancelTargetPress()});addEventListener('resize',size);
 window.nativePause.attach({active:()=>!!game,clearInput(){keys={};cancelTargetPress()},prepare(){window.nativeGalaxyMap?.close(false);window.nativeSystemHub?.close(false);window.nativePlanetEncounter?.close(false);window.nativeShipInventory?.close();modal.hidden=true},save:()=>save(true)});
 window.nativeShipInventory.attach({getState:()=>game,deliveryNavigation,moveWeapon(fromType,from,toType,to){
- if(!game||!['slot','locker'].includes(fromType)||!['slot','locker'].includes(toType)||!Number.isInteger(from)||!Number.isInteger(to)||from<0||to<0)return false;
- const source=fromType==='slot'?game.weapons:game.weaponInventory,target=toType==='slot'?game.weapons:game.weaponInventory;
- if(fromType==='slot'&&from>2||toType==='slot'&&to>2||from>=source.length||!source[from]||toType==='locker'&&to>target.length)return false;
- if(source===target&&from===to)return false;
- if(toType==='locker'&&to===target.length){target.push(source[from]);if(fromType==='locker')source.splice(from,1);else source[from]=null}
- else if(fromType==='locker'&&toType==='slot'){const replaced=target[to];target[to]=source[from];if(replaced)source[from]=replaced;else source.splice(from,1)}
- else if(fromType==='slot'&&toType==='locker'){[source[from],target[to]]=[target[to],source[from]];if(!source[from])source[from]=null}
- else [source[from],target[to]]=[target[to],source[from]];
+ if(!game)return false;
+ const result=window.nativeWeaponLoadout.move(game,{fromType,fromIndex:from,toType,toIndex:to});
+ if(!result.ok)return false;
  save(true);refresh();return true;
 }});
 navigation.attach({getGame:()=>game,isBusy:busy,prepareMap(action){keys={};cancelTargetPress();window.nativeSystemHub?.close(false);window.nativePlanetEncounter?.close(false);modal.hidden=true;if(action==='open'){clearTimeout(toastTimer);document.getElementById('notice').textContent=''}},travel:warp,track:trackManualSystem,cruise:mapCruise,selectLocal:selectLocalDestination});

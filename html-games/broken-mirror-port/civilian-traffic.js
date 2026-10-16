@@ -1,14 +1,12 @@
 /* Persistent civilian traffic shared by Sol and nearby star systems. */
 (() => {
   'use strict';
-  const world=window.VexedMirrorWorld, economy=window.nativeSolEconomy,combat=window.nativeCivilianCombatAI,rules=window.nativeWeaponRules;
+  const world=window.VexedMirrorWorld, economy=window.nativeSolEconomy,combat=window.nativeCivilianCombatAI;
   const types=[18,23,47,52], homes={18:14,23:47,47:1,52:6};
   const destinations=[2,4,6,14,47];
   const solPorts=[3,4,5,2,1,7,8,9,10];
   const systems=world.systems,neighborCache=new Map();
-  const assets=new Map(), effects=new Map(), shots=[], bursts=[], fragments=[], wrecks=[];
   const miningVisuals=new Map();
-  const disputeVisuals=new Map();
   let selected=null,selectedAt=0;
   const stats=id=>world.ships.find(ship=>ship.id===id);
   const systemName=id=>world.systems.find(system=>system.id===id)?.name||`System ${id}`;
@@ -25,33 +23,7 @@
     if(system===1){const body=window.nativeSystemHub?.sol?.find(entry=>entry.id===port);return {x:(body?.x||0)+180+(id%4)*85,y:(body?.y||0)-130+(id%3)*85};}
     return {x:-130+(id%4)*95,y:80+(id%3)*80};
   };
-  const stage=ship=>{const fraction=ship.hull/Math.max(1,stats(ship.shipType).hull);return fraction<.25?3:fraction<.5?2:fraction<.75?1:0};
-  const displayHeights={23:22.5,47:72,52:90};
-  const dimensions=ship=>{
-    if(ship.dimensions)return ship.dimensions;
-    const profile=window.starterShips?.get(ship.shipType),ratio=Number(profile?.displayRatio)||Number(profile?.width)/Number(profile?.height)||1;
-    const shuttleHeight=window.vexedFlightAssets.flightDimensions(window.vexedFlightAssets.size(7),1).height;
-    const height=ship.shipType===18?shuttleHeight:displayHeights[ship.shipType]||75;
-    return {width:height*ratio,height};
-  };
-  function art(ship){
-    const key=`${ship.shipType}:${stage(ship)}`;
-    if(!assets.has(key)){assets.set(key,null);window.vexedFlightAssets.loadShip(ship.shipType,ship.hull,{showcase:true}).then(value=>assets.set(key,value)).catch(()=>assets.delete(key));}
-    return assets.get(key);
-  }
-  function prepareEffects(type){
-    if(effects.has(type))return;
-    effects.set(type,null);
-    const hull=stats(type).hull;
-    Promise.all([hull,hull*.7,hull*.4,hull*.1].map(value=>window.vexedFlightAssets.loadShip(type,value,{showcase:true}))).then(frames=>{
-      frames.forEach((asset,index)=>assets.set(`${type}:${index}`,asset));
-      const profile=frames[0].profile;
-      if(!profile?.breakAnchors||!profile?.destruction)return;
-      const art=frames.map(asset=>asset.art),destruction=window.createShipDestruction();
-      effects.set(type,{fragments:window.showcaseStageFragments.prepare(art,profile.breakAnchors),destruction});
-      destruction.prepare(art,profile.destruction);
-    }).catch(error=>{effects.set(type,null);console.warn('Civilian damage art unavailable',type,error);});
-  }
+  const dimensions=ship=>window.nativeShipDefinitions.dimensions(ship,'civilian');
   function note(state,message){const traffic=initialize(state);traffic.log.unshift(message);traffic.log.length=Math.min(traffic.log.length,18);}
   function hail(state,ship,text){
     if(!ship)return;
@@ -93,8 +65,26 @@
       }
       traffic.version=2;
     }
-    for(const type of types)prepareEffects(type);
+    migrateClock(state,traffic);
+    window.nativeCombatShots.migrate?.(state);
+    for(const type of types)window.nativeShipEffects.prepare(type,'civilian');
     return traffic;
+  }
+  function migrateClock(state,traffic){
+    if(traffic.timingVersion===1)return;
+    const offset=window.nativeSimulation.seconds(state)-(Number(traffic.clock)||0);
+    const shift=(object,keys)=>{for(const key of keys)if(Number.isFinite(object?.[key]))object[key]+=offset;};
+    for(const ship of traffic.ships){
+      shift(ship,['miningStartedAt','talkingUntil','retaliationUntil','disputeCooldownUntil']);
+      shift(ship.combatAI,['until','nextEvade','lastHitAt','modeSince','lineBlockedUntil']);
+    }
+    for(const conflict of [...traffic.disputes,...traffic.retaliations]){
+      shift(conflict,['startedAt','nextA','nextB','nextHailAt','nextShotAt']);
+      for(const hail of conflict.hails||[])shift(hail,['dueAt']);
+    }
+    for(const encounter of Object.values(traffic.encounters||{}))shift(encounter,['next']);
+    for(const key of Object.keys(traffic.meetings||{}))if(Number.isFinite(traffic.meetings[key]))traffic.meetings[key]+=offset;
+    traffic.clock=window.nativeSimulation.seconds(state);traffic.timingVersion=1;
   }
   function load(state,ship){
     if(ship.cargo)return;
@@ -192,11 +182,9 @@
   function advanceOreTheft(state,ship,dt){
     const traffic=state.civilianTraffic,miner=traffic.ships.find(other=>other.id===ship.theftTargetId),rock=rockById(ship.theftRockSlot);
     if(!rock||!operational(miner)||miner.system!==ship.system||!['mining','collecting'].includes(miner.phase)||!availableForDispute(traffic,ship)||traffic.disputes.some(dispute=>dispute.system===ship.system)||freeHold(ship)<1){cancelOreTheft(ship);return;}
-    const dx=rock.x-ship.x,dy=rock.y-ship.y,distance=Math.hypot(dx,dy),speed=Math.max(36,Number(stats(ship.shipType).speedOrOtherStationValue||40)*3);
-    ship.heading=Math.atan2(dy,dx);ship.speed=Math.min(speed,(ship.speed||0)+speed*.75*dt);
-    const step=Math.min(Math.max(0,distance-85),ship.speed*dt);if(distance>0){ship.x+=dx/distance*step;ship.y+=dy/distance*step;}
-    if(distance-step>90)return;
-    ship.speed=0;
+    const moved=window.nativeShipMotion.step(ship,{goal:rock,arrivalRadius:85,stopAtRadius:true,snap:false,braking:false},window.nativeShipDefinitions.describe(state,ship,{category:'civilian'}).definition.movement,dt);
+    if(moved.distance>90)return;
+    window.nativeShipMotion.stop(ship);
     if(miner.phase!=='collecting')return;
     const tons=claimOre(state,ship,rock);cancelOreTheft(ship);
     if(!tons)return;
@@ -222,8 +210,6 @@
     for(const ship of [a,b].filter(Boolean)){
       if(ship.disputeId===dispute.id){delete ship.disputeId;ship.disputeCooldownUntil=traffic.clock+180;ship.speed=0;if(ship.phase==='fighting'){ship.phase='docked';ship.timer=8;}}
     }
-    for(const event of dispute.pending||[])traffic.strayShots.push({system:dispute.system,event});
-    dispute.pending=[];
     const loser=[a,b].find(ship=>ship?.phase==='disabled');
     traffic.combatReports||=[];
     traffic.combatReports.unshift({reason:dispute.reason,duration:traffic.clock-dispute.startedAt,shots:dispute.volleys,hits:dispute.hits||0,misses:dispute.misses||0,blocked:dispute.blocked||0,disabled:loser?.id??null});
@@ -233,80 +219,21 @@
     traffic.disputes=traffic.disputes.filter(entry=>entry.id!==dispute.id);
   }
   function disputeWeapons(ship){
-    const fitted=(stats(ship.shipType).defaultWeapons||[]).map(id=>window.VexedMirrorWeapons?.find(weapon=>weapon.id===id)).filter(weapon=>weapon?.damage>0);
-    // Civilian hulls without a default armament carry one light defensive weapon.
-    return fitted.length?fitted:[window.VexedMirrorWeapons?.find(weapon=>weapon.id===(ship.shipType===47?1:10))||{name:'Defensive phaser',damage:1,recharge:3}];
-  }
-  function showDisputeShot(state,dispute,event,shooter,victim){
-    if(dispute.system!==state.system||disputeVisuals.has(event.id))return;
-    const visual=window.nativeCombatShots.weaponVisual(window.VexedMirrorWeapons?.find(weapon=>weapon.id===event.weaponId)||{name:event.kind});
-    if(!visual.style)return;
-    const shot=window.nativeCombatShots.create({state:{angle:shooter.heading},ship:shooter,shooter,shipHeight:dimensions(shooter).height,target:victim,...visual});
-    shot.kind=event.kind;shot.disputeId=dispute.id;shot.system=dispute.system;
-    shot.clock=()=>state.civilianTraffic.clock;shot.startedAt=event.launchedAt;
-    if(event.projectile)shot.projectile=event;
-    else shot.targetPoint=from=>window.nativeCombatShots.worldPoint(victim,shot.lockedImpactLocal||window.nativeCombatShots.contact(victim,from,dimensions(victim),victim.shields>0).local);
-    shots.push(shot);disputeVisuals.set(event.id,shot);
+    const definition=window.nativeShipDefinitions.get(ship.shipType,'civilian');
+    const fitted=definition.equipment.filter(id=>window.VexedMirrorWeapons?.some(weapon=>weapon.id===id&&weapon.damage>0));
+    return fitted.length?fitted:definition.capabilities.defensiveWeapon?[definition.capabilities.defensiveWeapon]:[];
   }
   function fireDisputeShot(state,dispute,shooter,victim,scene){
-    const traffic=state.civilianTraffic,ai=shooter.combatAI;
-    const options=[];
-    for(const [slot,weapon] of disputeWeapons(shooter).entries()){
-      if(!rules.isReady(shooter,slot,weapon,traffic.clock))continue;
-      const visual=window.nativeCombatShots.weaponVisual(weapon);if(!visual.style)continue;
-      const spec=rules.weaponSpec(weapon,visual.kind),aim=visual.kind==='beam'?victim:rules.intercept(shooter,victim,spec.speed);
-      if(!rules.firingSolution(shooter,victim,spec,visual.kind,scene)){
-        if(combat.obstacleHit(shooter,aim,scene.rocks))ai.lineBlockedUntil=traffic.clock+.7;
-        continue;
-      }
-      const score=weapon.damage+(visual.kind==='beam'&&victim.shields>0?4:0)+(visual.kind==='torpedo'&&victim.shields<=0?3:0);
-      options.push({slot,weapon,visual,spec,score});
-    }
-    if(!options.length)return .1;
-    const {slot,weapon,visual}=options.sort((a,b)=>b.score-a.score)[0];
-    const id=traffic.nextShotId++,muzzle=dimensions(shooter).height*.36;
-    const event={...rules.startShot(weapon,visual.kind,shooter,victim,traffic.clock,muzzle),id,sourceId:shooter.id,targetId:victim.id,weaponId:weapon.id,muzzle,sourceSnapshot:{...shooter},targetSnapshot:{...victim}};
-    dispute.pending.push(event);dispute.volleys++;ai.shots++;rules.consume(shooter,slot,weapon,visual.kind,traffic.clock);
-    showDisputeShot(state,dispute,event,shooter,victim);
+    const traffic=state.civilianTraffic,descriptor=window.nativeShipDefinitions.describe(state,shooter,{category:'civilian'});
+    const selection=window.nativeWeaponLoadout.equipped(state,shooter,disputeWeapons(shooter)).sort((a,b)=>{
+      const score=entry=>entry.weapon.damage+(window.nativeCombatShots.weaponVisual(entry.weapon).kind==='beam'&&victim.shields>0?4:0)+(window.nativeCombatShots.weaponVisual(entry.weapon).kind==='torpedo'&&victim.shields<=0?3:0);
+      return score(b)-score(a);
+    });
+    const result=window.nativeCombatShots.fireFor({state,shooter:descriptor,target:victim,owner:dispute.id,selection});
+    if(result.ok){dispute.volleys++;shooter.combatAI.shots++;}
     return .1;
   }
-  function combatScene(state,dispute){
-    const traffic=initialize(state);
-    const rocks=dispute.system===1?(window.nativeSolAsteroids?.placements||[]).filter(rock=>!rockGone(state,rock)):[];
-    const describe=(ship,id,category,d)=>({...ship,id,category,heading:ship.heading||0,vx:Number.isFinite(ship.vx)?ship.vx:Math.cos(ship.heading||0)*(Number(ship.speed)||0),vy:Number.isFinite(ship.vy)?ship.vy:Math.sin(ship.heading||0)*(Number(ship.speed)||0),dimensions:d,radius:Math.max(8,Math.max(d.width,d.height)*.35),radii:ship.shields>0?window.showcaseShieldRadii(d.width,d.height):{rx:Math.max(8,d.width*.34),ry:Math.max(12,d.height*.44)}});
-    const bystanders=traffic.ships.filter(ship=>ship.system===dispute.system&&!['warp','arriving','destroyed'].includes(ship.phase)).map(ship=>describe(ship,ship.id,'civilian',dimensions(ship)));
-    if(dispute.system===1)for(const tug of state.solEconomy?.freighters||[])if(!['warp','arriving','destroyed'].includes(tug.phase)){
-      const base=window.vexedFlightAssets.flightDimensions(window.vexedFlightAssets.size(10),1),d=window.nativeSolEconomy.dimensions?.()||{width:base.height*164/512,height:base.height};
-      bystanders.push(describe(tug,`tug:${tug.id}`,'tug',d));
-    }
-    if(dispute.system===state.system&&state.hull>0&&!state.landed&&!window.vexedWarp?.active){
-      const pos=state.system===1?window.vexedSolFlight.shipPosition(state):state;
-      const size=window.vexedFlightAssets.flightDimensions(window.vexedFlightAssets.size(state.shipType),1);
-      bystanders.push(describe({x:pos.x,y:pos.y,heading:state.angle,speed:state.speed||0,hull:state.hull,shields:state.shields,shipType:state.shipType,system:state.system},'player','player',size));
-    }
-    const bodies=dispute.system===1?(window.nativeSystemHub?.sol||[]).filter(body=>body.id!==6).map(body=>({x:body.x-220,y:body.y+75,radius:(window.vexedSolFlight?.bodySize(body)||100)*.44})):[];
-    return {rocks,bystanders,bodies};
-  }
-  function resolveDisputeShot(state,dispute,event,source,victim,scene,dt){
-    source=source||event.sourceSnapshot;
-    victim=victim||{...event.targetSnapshot,targetable:false};
-    if(!source||!victim){event.alive=false;return true;}
-    showDisputeShot(state,dispute,event,source,victim);
-    const d=dimensions(victim),radii=victim.shields>0?window.showcaseShieldRadii(d.width,d.height):{rx:Math.max(8,d.width*.34),ry:Math.max(12,d.height*.44)};
-    const result=rules.stepShot(event,source,victim,scene,state.civilianTraffic.clock,dt,radii,d);
-    if(!result)return false;
-    if(result.kind==='hit'){
-      const shot=disputeVisuals.get(event.id);
-      if(shot&&result.point)shot.targetPoint=()=>result.point;
-      window.nativeCombatShots.applyHit(state,result,event,source);dispute.hits++;
-    }else if(result.kind==='blocked'){
-      dispute.blocked++;const shot=disputeVisuals.get(event.id);if(shot&&!event.projectile&&result.point)shot.targetPoint=()=>result.point;
-      if(result.point&&dispute.system===state.system)window.showcaseHullBurst?.burst(bursts,result.point,performance.now(),.65,1,.35,true);
-    }else dispute.misses++;
-    event.alive=false;
-    if(event.projectile){const visual=disputeVisuals.get(event.id),index=shots.indexOf(visual);if(index>=0)shots.splice(index,1);}
-    disputeVisuals.delete(event.id);return true;
-  }
+  function combatScene(state,dispute){return window.nativeShipSystems.scene(state,{system:dispute.system});}
   function advanceDisputes(state,dt){
     const traffic=state.civilianTraffic;
     for(const dispute of [...traffic.disputes]){
@@ -332,11 +259,6 @@
         if(entry){hail(state,entry.speaker===a.id?a:b,entry.text);dispute.hails.splice(dispute.hails.indexOf(entry),1);dispute.nextHailAt=traffic.clock+3;}
       }
       scene=combatScene(state,dispute);
-      for(const event of [...dispute.pending]){
-        scene=combatScene(state,dispute);
-        const source=scene.bystanders.find(ship=>ship.id===event.sourceId),victim=scene.bystanders.find(ship=>ship.id===event.targetId);
-        if(resolveDisputeShot(state,dispute,event,source,victim,scene,dt))dispute.pending=dispute.pending.filter(entry=>entry.id!==event.id);
-      }
       if(!operational(a)||!operational(b)){endDispute(state,dispute,a,b);continue;}
       if(traffic.clock>=dispute.nextA)dispute.nextA=traffic.clock+fireDisputeShot(state,dispute,a,(traffic.clock<=a.retaliationUntil&&scene.bystanders.find(ship=>ship.id===a.retaliationTargetId&&ship.hull>0))||b,scene);
       if(traffic.clock>=dispute.nextB)dispute.nextB=traffic.clock+fireDisputeShot(state,dispute,b,(traffic.clock<=b.retaliationUntil&&scene.bystanders.find(ship=>ship.id===b.retaliationTargetId&&ship.hull>0))||a,scene);
@@ -360,7 +282,6 @@
       const ship=traffic.ships.find(other=>other.id===retaliation.a);let scene=combatScene(state,retaliation);
       const attacker=scene.bystanders.find(other=>other.id===ship?.retaliationTargetId&&other.hull>0&&!['disabled','destroyed'].includes(other.phase));
       if(!operational(ship)||!attacker||ship.system!==retaliation.system||traffic.clock>ship.retaliationUntil){
-        for(const event of retaliation.pending)traffic.strayShots.push({system:retaliation.system,event});
         if(ship){delete ship.retaliationId;delete ship.retaliationTargetId;if(ship.phase==='fighting'){ship.phase='docked';ship.timer=5;ship.speed=0;}}
         traffic.retaliations=traffic.retaliations.filter(other=>other!==retaliation);continue;
       }
@@ -369,15 +290,7 @@
       ship.combatRadius=Math.max(7,Math.max(dimensions(ship).width,dimensions(ship).height)*.35);
       combat.steer(ship,attacker,retaliation,{...scene,dt,clock:traffic.clock,hull:stats(ship.shipType).hull,shields:stats(ship.shipType).shields});
       scene=combatScene(state,retaliation);
-      for(const event of [...retaliation.pending]){
-        scene=combatScene(state,retaliation);
-        if(resolveDisputeShot(state,retaliation,event,scene.bystanders.find(other=>other.id===event.sourceId),scene.bystanders.find(other=>other.id===event.targetId),scene,dt))retaliation.pending=retaliation.pending.filter(other=>other!==event);
-      }
       if(traffic.clock>=retaliation.nextShotAt)retaliation.nextShotAt=traffic.clock+fireDisputeShot(state,retaliation,ship,attacker,scene);
-    }
-    for(const stray of [...traffic.strayShots]){
-      const scene=combatScene(state,stray),event=stray.event;
-      if(resolveDisputeShot(state,{...stray,hits:0,misses:0,blocked:0},event,scene.bystanders.find(other=>other.id===event.sourceId),scene.bystanders.find(other=>other.id===event.targetId),scene,dt))traffic.strayShots=traffic.strayShots.filter(other=>other!==stray);
     }
   }
   function startMiningDemo(state,{force=false,theft=true}={}){
@@ -417,7 +330,7 @@
     if(next!==ship.port){cruise(state,ship,next);return;}
     warp(state,ship,destinations[(ship.id+ship.legs+1)%destinations.length]||14);
   }
-  function arrive(state,ship){ship.x=ship.goalX;ship.y=ship.goalY;ship.speed=0;ship.phase='docked';ship.timer=5+(ship.id%3)*2;ship.legs++;unload(state,ship);}
+  function arrive(state,ship){window.nativeShipMotion.stop(ship);ship.phase='docked';ship.timer=5+(ship.id%3)*2;ship.legs++;unload(state,ship);}
   function deals(state){
     const ships=state.civilianTraffic.ships;
     for(let i=0;i<ships.length;i++)for(let j=i+1;j<ships.length;j++){
@@ -473,7 +386,7 @@
     warpSound(state,ship,'arrival');
   }
   function advance(state,dt){
-    const traffic=initialize(state);if(dt<=0)return;dt=Math.min(dt,.25);traffic.clock+=dt;
+    const traffic=initialize(state);if(window.nativeSimulation.blocked()||dt<=0)return;dt=Math.min(dt,.25);traffic.clock=window.nativeSimulation.seconds(state);
     for(const vessel of traffic.ships){vessel.previousX=vessel.x;vessel.previousY=vessel.y;}
     if(state.devMode&&state.system===1&&Number(state.localBody??3)===3&&!state.landed&&!state.localCruise&&!state.arrivalApproach&&!window.vexedWarp?.active&&(!traffic.devOreDisputeDemoStarted||traffic.devCombatPreviewVersion!==2))startOreDisputeDemo(state);
     for(const ship of traffic.ships){
@@ -497,95 +410,65 @@
       if(ship.phase==='collecting'){ship.timer-=dt;if(ship.timer<=0)collectMinedOre(state,ship);continue;}
       if(ship.phase==='cruise'||ship.phase==='mining-flight'||ship.phase==='encounter'){
         if(ship.phase==='mining-flight'&&rockGone(state,rockById(ship.miningRockSlot))){const replacement=availableRock(state,'Asteroid Belt');if(replacement)miningFlight(state,ship,replacement);else{ship.phase='docked';ship.timer=2;ship.miningRockSlot=null;}continue;}
-        const dx=ship.goalX-ship.x,dy=ship.goalY-ship.y,distance=Math.hypot(dx,dy),cruiseSpeed=Math.max(36,Number(stats(ship.shipType).speedOrOtherStationValue||40)*3);
-        const speed=Math.min(cruiseSpeed,Math.max(0,Number(ship.speed)||0)+cruiseSpeed*.75*dt,Math.sqrt(450*distance));
-        ship.speed=speed;
-        ship.heading=Math.atan2(dy,dx);const step=Math.min(distance,speed*dt);if(distance>0){ship.x+=dx/distance*step;ship.y+=dy/distance*step;}
-        if(distance<=step+.1){if(ship.phase==='mining-flight'){beginMining(state,ship,rockById(ship.miningRockSlot));ship.port=6;}else if(ship.phase==='encounter'){const destination=ship.system===1?place(1,ship.port,ship.id):{x:-150+(ship.id%3)*45,y:55+(ship.id%2)*60};ship.goalX=destination.x;ship.goalY=destination.y;ship.phase='cruise';}else arrive(state,ship);}
+        const moved=window.nativeShipMotion.step(ship,{goal:{x:ship.goalX,y:ship.goalY},snap:true},window.nativeShipDefinitions.describe(state,ship,{category:'civilian'}).definition.movement,dt);
+        if(moved.arrived){if(ship.phase==='mining-flight'){beginMining(state,ship,rockById(ship.miningRockSlot));ship.port=6;}else if(ship.phase==='encounter'){const destination=ship.system===1?place(1,ship.port,ship.id):{x:-150+(ship.id%3)*45,y:55+(ship.id%2)*60};ship.goalX=destination.x;ship.goalY=destination.y;ship.phase='cruise';}else arrive(state,ship);}
+
       }
     }
     traffic.dealTick=(traffic.dealTick||0)+dt;if(traffic.dealTick>=1){traffic.dealTick%=1;deals(state);directEncounter(state,traffic);}
     advanceDisputes(state,dt);
     advanceRetaliations(state,dt);
-    for(let i=bursts.length-1;i>=0;i--){if(performance.now()-bursts[i].born>bursts[i].ttl)bursts.splice(i,1);else window.showcaseHullBurst.update(bursts[i],dt);}
-    const now=performance.now();for(let i=fragments.length-1;i>=0;i--){const piece=fragments[i];if(now-piece.born>piece.ttl)fragments.splice(i,1);else{const oldX=piece.x,oldY=piece.y;window.showcaseStageFragments.update(piece,dt);window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:piece.sourceKey});}}
-    for(let i=wrecks.length-1;i>=0;i--){const wreck=wrecks[i];wreck.time+=dt*1000;for(const piece of wreck.debris){const oldX=piece.x,oldY=piece.y;piece.x+=piece.vx*dt;piece.y+=piece.vy*dt;piece.angle+=piece.spin*dt;piece.system=wreck.system;window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:wreck.sourceKey});}for(const particle of wreck.particles){particle.x+=(particle.vx||0)*dt;particle.y+=(particle.vy||0)*dt;}effects.get(wreck.type)?.destruction.updateTrails(wreck);wreck.debris=wreck.debris.filter(piece=>wreck.time-piece.born<piece.ttl);wreck.particles=wreck.particles.filter(particle=>wreck.time-particle.born<particle.ttl);if(wreck.time>17000)wrecks.splice(i,1);}
   }
   const localShips=state=>initialize(state).ships.filter(ship=>ship.system===state.system&&!['warp','arriving','destroyed'].includes(ship.phase));
-  function select(id){selected=id;selectedAt=performance.now();}
-  function clearTarget(){window.nativeCombatShots.cancel('civilian');selected=null;shots.length=0;bursts.length=0;fragments.length=0;wrecks.length=0;miningVisuals.clear();disputeVisuals.clear();}
+  function select(id){selected=id;selectedAt=0;}
+  function clearTarget(){selected=null;miningVisuals.clear();}
   const target=state=>localShips(state).find(ship=>ship.id===selected)||null;
   function hitTest(state,{ship,cx,cy,zoom,x,y}){return localShips(state).map(entry=>({entry,d:Math.hypot(x-cx-(entry.x-ship.x)*zoom,y-cy-(entry.y-ship.y)*zoom)})).filter(item=>item.d<=Math.max(18,Math.hypot(dimensions(item.entry).width,dimensions(item.entry).height)*zoom*.45)).sort((a,b)=>a.d-b.d)[0]?.entry||null;}
   function visualImpact(state,id,event={}){
-    const ship=initialize(state).ships.find(entry=>entry.id===id);if(!ship||ship.phase==='destroyed'||ship.system!==state.system)return {ok:false};
-    const from=event.from||event.point||{x:ship.x,y:ship.y-100},contact=window.nativeCombatShots.contact(ship,from,dimensions(ship),ship.shields>0);
-    if(ship.shields>0)ship.shieldFlash={born:performance.now(),x:contact.local.x,y:contact.local.y,dx:contact.dx,dy:contact.dy,kind:event.kind||'torpedo',energy:event.energy||.8,charge:ship.shields/Math.max(1,stats(ship.shipType).shields)};
-    else window.showcaseHullBurst?.burst(bursts,contact.world,performance.now(),.91976,1,event.energy||.65,true);
-    return {ok:true,shields:ship.shields,hull:ship.hull};
+    const ship=initialize(state).ships.find(entry=>entry.id===id);if(!ship)return {ok:false};
+    return window.nativeShipEffects.visualImpact(state,window.nativeShipDefinitions.describe(state,ship,{category:'civilian'}),event);
   }
-  function hit(state,id,damage,impact=null){
-    const ship=initialize(state).ships.find(entry=>entry.id===id);if(!ship||ship.phase==='destroyed')return {ok:false,error:'Target already destroyed.'};
-    const previous=stage(ship),requested=Math.max(0,Number(damage)||0),floor=impact?.nonlethal?Math.min(ship.hull,disabledHull(ship)):0;
-    const amount=impact?.nonlethal?Math.min(requested,ship.shields+Math.max(0,ship.hull-floor)):requested,absorbed=Math.min(ship.shields,amount),from=impact?.from||{x:ship.x,y:ship.y-100};
-    const contact=impact?.contact||window.nativeCombatShots.contact(ship,from,dimensions(ship),ship.shields>0);
-    ship.shields-=absorbed;ship.hull=Math.max(floor,ship.hull-(amount-absorbed));
-    if(ship.combatAI&&amount>0){
+  function hit(state,id,damage,impact={}){
+    impact||={};const ship=initialize(state).ships.find(entry=>entry.id===id);if(!ship)return {ok:false,error:'Target unavailable.'};
+    const descriptor=window.nativeShipDefinitions.describe(state,ship,{category:'civilian'}),result=window.nativeShipDamage.apply(descriptor,damage,impact);
+    if(!result.ok)return result;
+    window.nativeShipEffects.hit(state,descriptor,result,impact);
+    if(ship.combatAI&&result.amount>0){
       const ai=ship.combatAI,dispute=state.civilianTraffic.disputes.find(entry=>entry.id===ship.disputeId);ai.lastHitAt=state.civilianTraffic.clock;
       if(ship.shields<=0&&!ai.shieldWarning){ai.shieldWarning=true;queueHail(state,dispute,ship,'Shields down. Taking evasive action!');}
-      if(ship.hull<stats(ship.shipType).hull*.5&&!ai.engineWarning){ai.engineWarning=true;queueHail(state,dispute,ship,'Engine damage. We are losing speed!');}
+      if(ship.hull<descriptor.definition.hull*.5&&!ai.engineWarning){ai.engineWarning=true;queueHail(state,dispute,ship,'Engine damage. We are losing speed!');}
     }
-    if(absorbed&&ship.system===state.system)ship.shieldFlash={born:performance.now(),x:contact.local.x,y:contact.local.y,dx:contact.dx,dy:contact.dy,kind:impact?.kind||'beam',energy:1+Math.min(.55,absorbed/Math.max(1,absorbed+ship.shields)*.7),charge:ship.shields/Math.max(1,stats(ship.shipType).shields)};
-    if(amount>absorbed&&ship.system===state.system){
-      const time=performance.now(),hullContact=absorbed>0?window.nativeCombatShots.contact(ship,from,dimensions(ship),false):contact;
-      window.showcaseHullBurst?.burst(bursts,hullContact.world,time,.91976,1);
-      const prepared=effects.get(ship.shipType),next=stage(ship);
-      if(ship.hull>0&&next>previous&&prepared){
-        const d=dimensions(ship),layout={x:ship.x,y:ship.y,w:d.width,h:d.height},angle=ship.heading+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle),first=fragments.length;
-        window.showcaseStageFragments.emit({debris:fragments,fragments:prepared.fragments,before:previous,after:next,layout,world:piece=>({x:ship.x+(piece.x*d.width)*c-(piece.y*d.height)*s,y:ship.y+(piece.x*d.width)*s+(piece.y*d.height)*c}),angle,time,zoom:1,burst:(point,strength,sparksOnly)=>window.showcaseHullBurst.burst(bursts,point,time,.91976,1,strength,sparksOnly)});
-        for(const piece of fragments.slice(first)){piece.system=ship.system;piece.sourceKey='ship:civilian:'+ship.id;}
-      }
-    }
-    let reputation=null;if(ship.hull===0){const sourceKey='ship:civilian:'+ship.id,wreck={type:ship.shipType,system:ship.system,x:ship.x,y:ship.y,angle:ship.heading+Math.PI/2,stage:previous,time:0,debris:[],particles:[],prepared:false,sourceKey};wrecks.push(wreck);if(wrecks.length>12)wrecks.shift();ship.phase='destroyed';ship.cargo=null;reputation=impact?.source==='ai'?null:window.nativeFactionStanding.shipDestroyed(state,ship.ownerGovernmentId);note(state,`${ship.name} destroyed in ${systemName(ship.system)}.`);if(selected===id)selected=null;window.nativeEnvironmentalImpacts?.explode(state,{...ship,size:dimensions(ship).height},{sourceKey});}
-    else if(ship.hull<=disabledHull(ship)&&ship.phase!=='disabled'){ship.phase='disabled';ship.speed=0;note(state,`${ship.name} disabled with engines offline.`);}
-    if(amount>0)retaliate(state,ship,impact?.sourceId??(impact?.source==='ai'?null:'player'));
-    return {ok:true,destroyed:ship.phase==='destroyed',disabled:ship.phase==='disabled',shields:ship.shields,hull:ship.hull,reputation};
+    let reputation=null;
+    if(result.destroyed){ship.phase='destroyed';ship.cargo=null;reputation=impact.source==='ai'?null:window.nativeFactionStanding.shipDestroyed(state,ship.ownerGovernmentId);note(state,`${ship.name} destroyed in ${systemName(ship.system)}.`);if(selected===id)selected=null;}
+    else if(result.disabled&&ship.phase!=='disabled'){ship.phase='disabled';window.nativeShipMotion.stop(ship);note(state,`${ship.name} disabled with engines offline.`);}
+    if(result.amount>0)retaliate(state,ship,impact.sourceId??(impact.source==='ai'?null:'player'));
+    return {...result,reputation};
   }
   function fire(state,player,shipHeight,onFinish){
     const victim=target(state);if(!victim)return {ok:false,error:'Choose a civilian ship first.'};
-    const system=state.system;
-    const result=window.nativeCombatShots.fire({state,shipHeight,owner:'civilian',
-      getTarget:()=>state.system===system&&victim.system===system&&!['destroyed','warp','arriving'].includes(victim.phase)?victim:null,
+    return window.nativeCombatShots.fire({state,shipHeight,owner:'civilian',getTarget:()=>window.nativeShipSystems.resolve(state,victim.id),
       dimensions,shielded:ship=>ship.shields>0,
-      onHit(weapon,from,shot){
-        const contact=window.nativeCombatShots.contact(victim,from,dimensions(victim),victim.shields>0);
-        shot.lockedImpactLocal=contact.local;
-        const damage=hit(state,victim.id,weapon.damage,{from,kind:shot.kind,contact,source:'player',sourceId:'player'});
-        if(damage.ok)onFinish?.(victim,damage);
-      }});
-    if(result.ok)shots.push(result.shot);
-    return result;
+      onResolved(result){if(result.target?.id===victim.id&&result.damage?.ok)onFinish?.(victim,result.damage);}});
   }
 
   function paint(ctx,{state,ship,cx,cy,w,h,zoom}){
-    const now=performance.now();for(const vessel of initialize(state).ships){
+    for(const vessel of state.civilianTraffic?.ships||[]){
       if(vessel.system!==state.system||vessel.phase==='destroyed'||vessel.phase==='warp'&&!vessel.warpVisual)continue;
       const visual=vessel.warpVisual;
       const warpEffect=visual?window.vexedRebirthWarp.worldEffect(visual.kind,visual.elapsedMs,visual.angle,vessel.x,vessel.y):null;
       const x=cx+(warpEffect?.shipX??vessel.x)-ship.x,y=cy+(warpEffect?.shipY??vessel.y)-ship.y,d=dimensions(vessel),screenX=cx+(x-cx)*zoom,screenY=cy+(y-cy)*zoom;
       const drawRing=()=>{if(warpEffect?.ring)window.vexedFlightAssets.drawWarpRing(ctx,{...warpEffect.ring,x:cx+warpEffect.ring.x-ship.x,y:cy+warpEffect.ring.y-ship.y},d.width);};
       if(screenX< -120||screenX>w+120||screenY< -120||screenY>h+120){drawRing();continue;}
-      const asset=art(vessel),angle=vessel.heading+Math.PI/2,flash=!warpEffect&&vessel.shieldFlash;
-      if(asset&&flash&&now-flash.born<620){ctx.save();ctx.translate(x,y);ctx.rotate(angle);window.drawShowcaseShieldSurface(ctx,0,0,d.width,d.height,'#50d5ff',Math.max(.08,flash.charge),now,{refract:true,impact:flash});ctx.restore();}
-      if(asset)window.vexedFlightAssets.drawShip(ctx,asset,x,y,d.width,warpEffect?.angle??angle,now,{...warpEffect,height:d.height,lights:vessel.phase!=='disabled',lightGain:1,lightBloom:1});
+      const descriptor=window.nativeShipDefinitions.describe(state,vessel,{category:'civilian'});
+      window.nativeShipEffects.paintShip(ctx,descriptor,{ship,cx,cy,x,y,warpEffect});
       drawRing();
-      if(asset&&flash&&now-flash.born<620){ctx.save();ctx.translate(x,y);ctx.rotate(angle);window.drawShowcaseShieldFlash(ctx,asset.art,d.width,d.height,flash,now);window.drawShowcaseShieldSurface(ctx,0,0,d.width,d.height,'#50d5ff',Math.max(.08,flash.charge),now,{front:true,impact:flash});ctx.restore();}
       if(selected===vessel.id&&!warpEffect)window.nativeAsteroidCombat?.drawTargetFrame(ctx,{name:vessel.name,size:Math.hypot(d.width,d.height)/Math.SQRT2,kind:vessel.phase==='disabled'?'DISABLED CIVILIAN':'CIVILIAN',color:'#ffd66e',shield:vessel.shields/Math.max(1,stats(vessel.shipType).shields),hull:vessel.hull/Math.max(1,stats(vessel.shipType).hull),selectedAt},x,y,zoom,cx);
     }
   }
   function miningIds(state){return initialize(state).ships.filter(vessel=>vessel.system===1&&vessel.phase==='mining').map(vessel=>vessel.miningRockSlot);}
   function paintMining(ctx,{state,ship,cx,cy,zoom,w=cx*2,h=cy*2}){
     if(state.system!==1)return;
-    const now=performance.now(),clock=initialize(state).clock;
+    const now=window.nativeSimulation.now(state),clock=window.nativeSimulation.seconds(state);
     for(const vessel of localShips(state)){
       if(vessel.phase!=='mining'&&(vessel.phase!=='collecting'||clock-(vessel.miningStartedAt??clock)>=8.5))continue;
       const rock=rockById(vessel.miningRockSlot);if(!rock)continue;
@@ -596,37 +479,6 @@
       window.nativeAsteroidMiningEffects?.draw(ctx,visual,{x:cx+rock.x-ship.x,y:cy+rock.y-ship.y,source:{x:cx+visual.ship.x-ship.x,y:cy+visual.ship.y-ship.y},zoom,now,w,h});
     }
   }
-  function paintEffects(ctx,{state,ship,cx,cy,zoom,w=cx*2,h=cy*2}){
-    const now=performance.now(),view={w,h};
-    const visible=(point,radius)=>window.nativeEffectVisibility.circle(cx+point.x-ship.x,cy+point.y-ship.y,radius,view);
-    for(let i=shots.length-1;i>=0;i--){
-      const shot=shots[i];
-      if(!window.nativeCombatShots.isVisible(shot,now)){shots.splice(i,1);continue;}
-      if(shot.system==null||shot.system===state.system)window.nativeCombatShots.paint(ctx,shot,{state,ship,cx,cy,zoom,now});
-    }
-    ctx.save();ctx.translate(cx-ship.x,cy-ship.y);
-    for(const piece of fragments)if(visible(piece,Math.hypot(piece.w,piece.h)/2))window.showcaseStageFragments.draw(ctx,piece,now);
-    for(const wreck of wrecks){
-      if(wreck.system!==state.system)continue;
-      const prepared=effects.get(wreck.type)?.destruction;
-      if(prepared&&!wreck.prepared){
-        const d=dimensions({shipType:wreck.type}),c=Math.cos(wreck.angle),s=Math.sin(wreck.angle);
-        prepared.emit(wreck,{x:wreck.x,y:wreck.y,w:d.width,h:d.height},piece=>({x:wreck.x+(piece.x*d.width)*c-(piece.y*d.height)*s,y:wreck.y+(piece.x*d.width)*s+(piece.y*d.height)*c}),wreck.stage,1);
-        wreck.prepared=true;
-      }
-      // Cull each moving piece, not the original explosion center.
-      for(const piece of wreck.debris){
-        if(!visible(piece,Math.hypot(piece.w,piece.h)/2+28))continue;
-        ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);
-        if(piece.structural)prepared.drawStructuralWreck(ctx,piece,wreck.time);
-        else{ctx.drawImage(piece.texture,-piece.w/2,-piece.h/2,piece.w,piece.h);prepared.drawWreckGlow(ctx,piece,wreck.time);}
-        ctx.restore();
-      }
-      for(const particle of wreck.particles)if(visible(particle,particle.size*4+12))prepared?.drawParticle(ctx,particle,wreck.time);
-    }
-    for(const particle of bursts)if(visible(particle,particle.size+2))window.showcaseHullBurst.draw(ctx,particle,now);
-    ctx.restore();
-  }
   function snapshot(state){const traffic=initialize(state);return {ships:traffic.ships.map(ship=>({id:ship.id,name:ship.name,system:ship.system,destinationSystem:ship.destinationSystem,phase:ship.phase,port:ship.port,cargo:[ship.cargo?`${ship.cargo.tons} t ${economy.goods[ship.cargo.good]}`:null,ship.oreHold?`${ship.oreHold} t mined ore`:null].filter(Boolean).join(', ')||'Empty hold',deliveries:ship.deliveries,mined:ship.mined,deals:ship.deals,stolenOre:ship.stolenOre||0,dispute:traffic.disputes.find(dispute=>dispute.id===ship.disputeId)?.reason||null})),disputes:traffic.disputes.map(({id,system,a,b,reason})=>({id,system,a,b,reason})),log:traffic.log.slice()};}
-  window.nativeCivilianTraffic={initialize,advance,paint,paintMining,miningIds,isMiningRock,startMiningDemo,startOreDisputeDemo,paintEffects,select,clearTarget,target,hitTest,fire,hit,visualImpact,snapshot,localShips,combatScene,effectsReady:()=>types.every(type=>Boolean(effects.get(type)))};
+  window.nativeCivilianTraffic={initialize,advance,paint,paintMining,miningIds,isMiningRock,startMiningDemo,startOreDisputeDemo,select,clearTarget,target,hitTest,fire,hit,visualImpact,snapshot,localShips,combatScene,effectsReady:()=>types.every(type=>window.nativeShipEffects.ready(type,'civilian'))};
 })();

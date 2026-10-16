@@ -13,10 +13,10 @@
   const random=n=>{const x=Math.sin(n*127.1+78.233)*43758.5453;return x-Math.floor(x);};
   const lightLayers=new WeakMap();
   const refractionLayers=new WeakMap();
-  window.drawShowcaseShieldSurface=(ctx,x,y,w,h,color,charge,time,{front=false,refract=false,impact=null}={})=>{
+  window.drawShowcaseShieldSurface=(ctx,x,y,w,h,color,charge,time,{front=false,refract=false,impact=null,surfaceRadii=null}={})=>{
     if(!impact)return;
     const life=impact.charge===0?430:duration,age=time-impact.born;if(age<0||age>=life)return;
-    const {rx,ry}=shieldRadii(w,h);
+    const {rx,ry}=surfaceRadii||shieldRadii(w,h);
     const strain=1-clamp(charge,0,1),flicker=1-strain*.13*(.5+.5*Math.sin(time*.038));
     ctx.save();ctx.translate(x,y);
     let hx=Number.isFinite(impact.x)?impact.x:0,hy=Number.isFinite(impact.y)?impact.y:-ry*.78;
@@ -117,13 +117,13 @@
     g.fillStyle=gradient;g.fillRect(0,0,width,height);g.globalCompositeOperation='source-over';
     ctx.save();ctx.globalCompositeOperation='screen';ctx.drawImage(layer.canvas,-w/2,-h/2,w,h);ctx.restore();
   }
-  window.drawShowcaseShieldFlash=(ctx,image,w,h,flash,time)=>{
+  window.drawShowcaseShieldFlash=(ctx,image,w,h,flash,time,{surfaceRadii=null}={})=>{
     if(!flash)return;
     const life=flash.charge===0?430:duration,age=time-flash.born;if(age<0||age>=life)return;
     const progress=age/life,attack=clamp(age/45,0,1),fade=Math.pow(1-progress,1.55),strength=clamp(flash.energy||1,.7,1.7);
     const kind=flash.kind||'beam',wide=kind==='torpedo'?1.55:kind==='disruptor'?1.2:1;
     const alpha=attack*fade*strength,charge=clamp(flash.charge??1,0,1),strain=1-charge;
-    const {rx,ry}=shieldRadii(w,h);
+    const {rx,ry}=surfaceRadii||shieldRadii(w,h);
     let hx=Number.isFinite(flash.x)?flash.x:0,hy=Number.isFinite(flash.y)?flash.y:-ry*.78;
     const normalized=Math.hypot(hx/rx,hy/ry);
     if(normalized>.96){hx*=.96/normalized;hy*=.96/normalized;}

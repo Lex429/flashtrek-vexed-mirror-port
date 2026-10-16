@@ -58,7 +58,12 @@
   // Resolve the first physical contact, including objects that were clear at launch.
   function firstContact(from,to,source,target,scene,radii,dimensions,padding=0){
     let best=null;
-    const consider=(candidate,t)=>{if(t!=null&&(!best||t<best.t))best={kind:'hit',t,target:candidate,point:{x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t}};};
+    const consider=(candidate,t)=>{
+      if(t==null||best&&t>=best.t)return;
+      const intersection={x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t};
+      const contact=collisionContact(candidate,intersection,from,t);
+      best={kind:'hit',t,target:candidate,point:contact.world,sweepPoint:intersection,from:{...from},contact};
+    };
     const candidates=[...(scene.bystanders||[]),...(scene.destructibles||[])].filter(other=>other.id!==source?.id&&other.id!==target?.id&&other.targetable!==false);
     if(target&&target.targetable!==false)candidates.push({...target,dimensions,radii});
     for(const candidate of candidates){
@@ -69,11 +74,24 @@
     }
     for(const rock of scene.rocks||[]){
       if(rock.targetable===false)continue;
-      consider({...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid'},circleSweep(from,to,rock,rock.size*.43+padding));
+      consider({...rock,id:rock.id??'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid'},circleSweep(from,to,rock,rock.size*.43+padding));
     }
     // Permit a rock target supplied without a full scene (such as an isolated test).
     if(target?.rockId!=null&&target.targetable!==false&&!(scene.rocks||[]).some(rock=>rock.slotId===target.rockId))consider(target,circleSweep(from,to,target,target.size*.43+padding));
     return best;
+  }
+  // Collision owns the exact local surface. Damage and rendering consume this result.
+  function collisionContact(target,point,from,time=1){
+    const asteroid=target.rockId!=null,angle=asteroid?0:(target.heading||0)+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle);
+    const d=target.dimensions||{width:Math.max(2,(target.radius||15)*2),height:Math.max(2,(target.radius||15)*2)};
+    const r=asteroid?{rx:target.size*.43,ry:target.size*.43}:target.radii||{rx:target.radius||15,ry:target.radius||15};
+    const origin={x:Number.isFinite(target.previousX)?target.previousX+(target.x-target.previousX)*time:target.x,y:Number.isFinite(target.previousY)?target.previousY+(target.y-target.previousY)*time:target.y};
+    const dx=point.x-origin.x,dy=point.y-origin.y;
+    let lx=dx*c+dy*s,ly=-dx*s+dy*c;
+    if(Math.hypot(lx,ly)<1e-9){const fx=from.x-target.x,fy=from.y-target.y;lx=fx*c+fy*s;ly=-fx*s+fy*c;if(Math.hypot(lx,ly)<1e-9)ly=-1;}
+    const scale=(asteroid?1:.96)/Math.hypot(lx/r.rx,ly/r.ry),length=Math.hypot(lx,ly);
+    const local={x:lx*scale,y:ly*scale},world={x:target.x+local.x*c-local.y*s,y:target.y+local.x*s+local.y*c};
+    return {local,world,dx:-lx/length,dy:-ly/length,from:{...from},shielded:!asteroid&&(target.surfaceShielded??Number(target.shields)>0),radii:{...r},dimensions:{...d}};
   }
   function stepProjectile(event,target,dt,rocks,radii,dimensions,scene=null,source=null){
     const from={x:event.x,y:event.y};
@@ -111,6 +129,7 @@
       event.dueAt=clock+.07;
       event.from={x:source.x+Math.cos(source.heading)*muzzle,y:source.y+Math.sin(source.heading)*muzzle};
       const angle=Math.atan2(target.y-event.from.y,target.x-event.from.x);
+      event.beamHeadingOffset=wrap(angle-source.heading);
       event.beamEnd={x:event.from.x+Math.cos(angle)*spec.range,y:event.from.y+Math.sin(angle)*spec.range};
     }
     else Object.assign(event,launch(source,target,{...spec,muzzle},kind,clock));
@@ -120,14 +139,16 @@
     if(!event.alive||!Number.isFinite(dt)||dt<=0)return null;
     if(event.projectile)return stepProjectile(event,target,dt,[],radii,dimensions,scene,source);
     if(clock<event.dueAt)return null;
-    const muzzle=event.muzzle||0,from=event.from||{x:source.x+Math.cos(source.heading)*muzzle,y:source.y+Math.sin(source.heading)*muzzle};
-    const to=event.beamEnd||target;
+    const muzzle=event.muzzle||0,from=emitter(source,event);
+    const angle=(source.heading||0)+(event.beamHeadingOffset??Math.atan2((event.beamEnd?.y??target.y)-from.y,(event.beamEnd?.x??target.x)-from.x)-(source.heading||0));
+    const to={x:from.x+Math.cos(angle)*event.spec.range,y:from.y+Math.sin(angle)*event.spec.range};
+    event.from={...from};event.beamEnd=to;
     return to?(firstContact(from,to,source,target,scene,radii,dimensions)||{kind:'miss',point:to}):{kind:'miss'};
   }
-  function cooldownKey(slot,weapon){return slot+':'+weapon.id;}
-  function isReady(owner,slot,weapon,clock){return (owner.weaponReadyAt?.[cooldownKey(slot,weapon)]||0)<=clock;}
-  function consume(owner,slot,weapon,kind,clock){
-    owner.weaponReadyAt||={};owner.weaponReadyAt[cooldownKey(slot,weapon)]=clock+weaponSpec(weapon,kind).recharge;
+  function emitter(source,event){
+    const attachment=event.emitter;
+    if(attachment){const angle=(source.heading||0)+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle);return {x:source.x+attachment.x*c-attachment.y*s,y:source.y+attachment.x*s+attachment.y*c};}
+    return {x:source.x+Math.cos(source.heading||0)*(event.muzzle||0),y:source.y+Math.sin(source.heading||0)*(event.muzzle||0)};
   }
-  window.nativeWeaponRules={weaponSpec,intercept,circleSweep,targetSweep,obstacleHit,firstContact,canFire,launch,stepProjectile,firingSolution,startShot,stepShot,isReady,consume,wrap};
+  window.nativeWeaponRules={weaponSpec,intercept,circleSweep,targetSweep,obstacleHit,firstContact,collisionContact,canFire,launch,stepProjectile,firingSolution,startShot,stepShot,emitter,wrap};
 })();

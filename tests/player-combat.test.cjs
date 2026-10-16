@@ -32,7 +32,9 @@ function fixture() {
     drawShowcaseShieldSurface: (...args) => draws.push({ kind: 'shield-surface', options: args.at(-1) }),
   };
   const sandbox = vm.createContext({ window, performance: { now: () => now } });
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '../html-games/broken-mirror-port/player-combat.js'), 'utf8'), sandbox);
+  for(const file of ['ship-definitions.js','ship-damage.js','ship-effects.js','player-combat.js']) {
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../html-games/broken-mirror-port',file), 'utf8'), sandbox);
+  }
   return { api: window.nativePlayerCombat, contacts, bursts, explosions, draws, setTime: time => { now = time; } };
 }
 

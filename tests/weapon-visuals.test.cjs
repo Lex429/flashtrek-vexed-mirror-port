@@ -11,12 +11,13 @@ const combat = JSON.parse(fs.readFileSync(path.join(showcase, 'showcase-assets/c
 const catalog = JSON.parse(fs.readFileSync(path.join(showcase, 'showcase-assets/catalog.json'), 'utf8'));
 
 async function loadCombatRenderer() {
-  const window = { nativeWeaponRules: {} };
+  const window = {};
   const sandbox = vm.createContext({
     window, console, performance: { now: () => 1000 }, document: { hidden: false },
     fetch: async url => ({ ok: true, json: async () => url.includes('combat-data.json') ? combat : catalog }),
   });
   vm.runInContext(fs.readFileSync(path.join(showcase, 'weapon-effects.js'), 'utf8'), sandbox);
+  vm.runInContext(fs.readFileSync(path.join(port, 'weapon-rules.js'), 'utf8'), sandbox);
   vm.runInContext(fs.readFileSync(path.join(port, 'combat-shots.js'), 'utf8'), sandbox);
   await window.nativeCombatShots.ready;
   return window;
@@ -67,7 +68,8 @@ const normalize = value => JSON.parse(JSON.stringify(value, (_, entry) => typeof
 function expectedGeometry(shot, ship, state, { cx, cy, scale, rotation, elapsed }) {
   const cosine = Math.cos(rotation), sine = Math.sin(rotation);
   const screen = point => {
-    const x = cx + point.x - ship.x, y = cy + point.y - ship.y;
+    // The view applies world zoom before the surrounding canvas transform.
+    const x = cx + (point.x - ship.x) * scale, y = cy + (point.y - ship.y) * scale;
     return { x: scale * (x * cosine - y * sine), y: scale * (x * sine + y * cosine) };
   };
   if (shot.projectile) {

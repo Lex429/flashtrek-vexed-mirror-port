@@ -29,7 +29,7 @@ function fixture() {
   const sandbox = vm.createContext({ window, console, performance: { now: () => 1000 } });
   // Use the actual ship capacities, Sol ownership, freight initialization and
   // faction consequence rules. Rendering assets are never requested by these APIs.
-  for (const file of ['world-data.js', 'faction-standing.js', 'sol-economy.js']) {
+  for (const file of ['world-data.js', 'ship-definitions.js', 'ship-damage.js', 'ship-effects.js', 'faction-standing.js', 'sol-economy.js']) {
     vm.runInContext(fs.readFileSync(path.join(port, file), 'utf8'), sandbox);
   }
   const state = { system: 1, localPrestige: {} };
@@ -74,16 +74,15 @@ test('a player weapon destroying a tug still applies its owning faction penalty'
 });
 
 test('a blast shield impact preserves tug health, cargo, route and player standing', () => {
-  const { api, state, ship, contacts, bursts, explosions } = fixture();
+  const { api, window, state, ship, contacts, bursts, explosions } = fixture();
   const before = plain(ship), prestigeBefore = structuredClone(state.localPrestige);
   api.visualImpact(state, ship.id, { kind: 'explosion', from: { x: ship.x - 100, y: ship.y } });
   assert.equal(ship.hull, before.hull);
   assert.equal(ship.shields, before.shields);
-  assert.equal(ship.shieldFlash.kind, 'explosion');
-  assert.equal(ship.shieldFlash.charge, 1);
-  const after = plain(ship);
-  delete after.shieldFlash;
-  assert.deepEqual(after, before);
+  const visual=window.nativeShipEffects.snapshot(window.nativeShipDefinitions.describe(state,ship,{category:'tug'}));
+  assert.equal(visual.flash.kind, 'explosion');
+  assert.equal(visual.flash.charge, 1);
+  assert.deepEqual(plain(ship), before);
   assert.deepEqual(state.localPrestige, prestigeBefore);
   assert.equal(contacts[0].shielded, true);
   assert.equal(bursts.length, 0);
