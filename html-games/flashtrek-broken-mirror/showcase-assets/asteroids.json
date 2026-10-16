@@ -1,0 +1,211 @@
+[
+  {
+    "id": 100,
+    "name": "Asteroid 01",
+    "oreType": "dilithium",
+    "oreLabel": "Dilithium",
+    "oreRole": "Common mining resource for weapon progression.",
+    "oreImage": "../art-review/mining/mineral_asteroids/02_purple_amethyst_asteroid.png",
+    "file": "asteroids/asteroid_01.png",
+    "width": 178,
+    "height": 178
+  },
+  {
+    "id": 103,
+    "name": "Asteroid 04",
+    "oreType": "trellium",
+    "oreLabel": "Trellium",
+    "oreRole": "Found in particular hazardous regions and asteroid fields.",
+    "oreImage": "../art-review/mining/mineral_asteroids/08_smoky_crystal_asteroid.png",
+    "file": "asteroids/asteroid_04.png",
+    "width": 550,
+    "height": 550
+  },
+  {
+    "id": 104,
+    "name": "Asteroid 05",
+    "oreType": "tritanium",
+    "oreLabel": "Tritanium",
+    "oreRole": "Structural resource needed in larger quantities.",
+    "oreImage": "../art-review/mining/mineral_asteroids/11_silver_mineral_asteroid.png",
+    "file": "asteroids/asteroid_05.png",
+    "width": 417,
+    "height": 417
+  },
+  {
+    "id": 105,
+    "name": "Asteroid 06",
+    "oreType": "gallicite",
+    "oreLabel": "Gallicite",
+    "oreRole": "Found at specific mining locations and through engineering missions.",
+    "oreImage": "../art-review/mining/mineral_asteroids/03_green_crystal_asteroid.png",
+    "file": "asteroids/asteroid_06.png",
+    "width": 151,
+    "height": 151
+  },
+  {
+    "id": 111,
+    "name": "Asteroid 12",
+    "oreType": "dilithium",
+    "oreLabel": "Dilithium",
+    "oreRole": "Common mining resource for weapon progression.",
+    "oreImage": "../art-review/mining/mineral_asteroids/04_blue_crystal_asteroid.png",
+    "file": "asteroids/asteroid_12.png",
+    "width": 214,
+    "height": 214
+  },
+  {
+    "id": 112,
+    "name": "Asteroid 13",
+    "oreType": "tritanium",
+    "oreLabel": "Tritanium",
+    "oreRole": "Structural resource needed in larger quantities.",
+    "oreImage": "../art-review/mining/mineral_asteroids/12_copper_mineral_asteroid.png",
+    "file": "asteroids/asteroid_13.png",
+    "width": 155,
+    "height": 155
+  },
+  {
+    "id": 113,
+    "name": "Asteroid 14",
+    "oreType": "dilithium",
+    "oreLabel": "Dilithium",
+    "oreRole": "Common mining resource for weapon progression.",
+    "oreImage": "../art-review/mining/mineral_asteroids/07_ice_blue_crystal_asteroid.png",
+    "file": "asteroids/asteroid_14.png",
+    "width": 216,
+    "height": 216
+  },
+  {
+    "id": 114,
+    "name": "Asteroid 15",
+    "oreType": "trellium",
+    "oreLabel": "Trellium",
+    "oreRole": "Found in particular hazardous regions and asteroid fields.",
+    "oreImage": "../art-review/mining/mineral_asteroids/09_amber_crystal_asteroid.png",
+    "file": "asteroids/asteroid_15.png",
+    "width": 406,
+    "height": 406
+  },
+  {
+    "id": 118,
+    "name": "Asteroid 19",
+    "oreType": "dilithium",
+    "oreLabel": "Dilithium",
+    "oreRole": "Common mining resource for weapon progression.",
+    "oreImage": "../art-review/mining/mineral_asteroids/02_purple_amethyst_asteroid.png",
+    "file": "asteroids/asteroid_19.png",
+    "width": 217,
+    "height": 217
+  },
+  {
+    "id": 119,
+    "name": "Asteroid 20",
+    "oreType": "tritanium",
+    "oreLabel": "Tritanium",
+    "oreRole": "Structural resource needed in larger quantities.",
+    "oreImage": "../art-review/mining/mineral_asteroids/11_silver_mineral_asteroid.png",
+    "file": "asteroids/asteroid_20.png",
+    "width": 368,
+    "height": 368
+  },
+  {
+    "id": 120,
+    "name": "Asteroid 21",
+    "oreType": "dilithium",
+    "oreLabel": "Dilithium",
+    "oreRole": "Common mining resource for weapon progression.",
+    "oreImage": "../art-review/mining/mineral_asteroids/04_blue_crystal_asteroid.png",
+    "file": "asteroids/asteroid_21.png",
+    "width": 253,
+    "height": 253
+  },
+  {
+    "id": 125,
+    "name": "Asteroid 26",
+    "oreType": "trellium",
+    "oreLabel": "Trellium",
+    "oreRole": "Found in particular hazardous regions and asteroid fields.",
+    "oreImage": "../art-review/mining/mineral_asteroids/06_yellow_citrine_asteroid.png",
+    "file": "asteroids/asteroid_26.png",
+    "width": 472,
+    "height": 472
+  },
+  {
+    "id": 126,
+    "name": "Asteroid 27",
+    "oreType": "tritanium",
+    "oreLabel": "Tritanium",
+    "oreRole": "Structural resource needed in larger quantities.",
+    "oreImage": "../art-review/mining/mineral_asteroids/12_copper_mineral_asteroid.png",
+    "file": "asteroids/asteroid_27.png",
+    "width": 586,
+    "height": 586
+  },
+  {
+    "id": 128,
+    "name": "Asteroid 29",
+    "oreType": "gallicite",
+    "oreLabel": "Gallicite",
+    "oreRole": "Found at specific mining locations and through engineering missions.",
+    "oreImage": "../art-review/mining/mineral_asteroids/01_clear_quartz_asteroid.png",
+    "file": "asteroids/asteroid_29.png",
+    "width": 151,
+    "height": 151
+  },
+  {
+    "id": 138,
+    "name": "Asteroid 39",
+    "oreType": "dilithium",
+    "oreLabel": "Dilithium",
+    "oreRole": "Common mining resource for weapon progression.",
+    "oreImage": "../art-review/mining/mineral_asteroids/07_ice_blue_crystal_asteroid.png",
+    "file": "asteroids/asteroid_39.png",
+    "width": 179,
+    "height": 179
+  },
+  {
+    "id": 139,
+    "name": "Asteroid 40",
+    "oreType": "dilithium",
+    "oreLabel": "Dilithium",
+    "oreRole": "Common mining resource for weapon progression.",
+    "oreImage": "../art-review/mining/mineral_asteroids/02_purple_amethyst_asteroid.png",
+    "file": "asteroids/asteroid_40.png",
+    "width": 188,
+    "height": 188
+  },
+  {
+    "id": 143,
+    "name": "Asteroid 44",
+    "oreType": "trellium",
+    "oreLabel": "Trellium",
+    "oreRole": "Found in particular hazardous regions and asteroid fields.",
+    "oreImage": "../art-review/mining/mineral_asteroids/08_smoky_crystal_asteroid.png",
+    "file": "asteroids/asteroid_44.png",
+    "width": 318,
+    "height": 318
+  },
+  {
+    "id": 144,
+    "name": "Asteroid 45",
+    "oreType": "benamite",
+    "oreLabel": "Benamite",
+    "oreRole": "Rare exploration, research, and high-level mission reward.",
+    "oreImage": "../art-review/mining/mineral_asteroids/05_red_crystal_asteroid.png",
+    "file": "asteroids/asteroid_45.png",
+    "width": 151,
+    "height": 151
+  },
+  {
+    "id": 150,
+    "name": "Asteroid 51",
+    "oreType": "dilithium",
+    "oreLabel": "Dilithium",
+    "oreRole": "Common mining resource for weapon progression.",
+    "oreImage": "../art-review/mining/mineral_asteroids/04_blue_crystal_asteroid.png",
+    "file": "asteroids/asteroid_51.png",
+    "width": 156,
+    "height": 156
+  }
+]

@@ -1,0 +1,10 @@
+SOL PLANET ASSETS
+
+All 11 destinations have review PNGs. Supplied images are embedded for Mercury,
+Venus, Moon, Mars, Jupiter, Saturn, Uranus and Neptune. Earth and the Sun keep
+existing art. The asteroid-belt chart waypoint is retained for navigation,
+while actual asteroids are scattered across Sol and several loose clusters.
+
+Native originals/manifest: source/vexed-mirror/assets/sol.
+Run sol_art.py, then build.py to create a candidate game. Review PNG replacement
+alone does not install native artwork. See Improvement Notes/20.

@@ -1,0 +1,1132 @@
+{
+  "source": {
+    "game": "BROKENMIRROR.swf",
+    "sha256": "79ea21c47c8252d69a896c1565d1741900a02241bff779ff7304d47047b43565",
+    "shipTable": "DefineEditText 1026 (itemtext)",
+    "weaponTable": "DefineEditText 1032 (weaponinfo)",
+    "icons": "DefineSprite 576, frames 106\u00e2\u20ac\u201c132",
+    "damageFormula": "weapon base damage only; firing ship rating does not modify damage",
+    "iconRemasters": "Generated realistic icons; true RGBA transparency. Native masters and explicitly upscaled 8K exports kept separately.",
+    "energySystem": "Removed",
+    "rechargeFormula": "raw weapon recharge /13 seconds; independent of firing ship"
+  },
+  "ships": {
+    "1": {
+      "name": "Steamrunner Class",
+      "weaponsRating": 4.0,
+      "hull": 250.0,
+      "shields": 250.0
+    },
+    "2": {
+      "name": "Excelsior Class",
+      "weaponsRating": 4.0,
+      "hull": 200.0,
+      "shields": 250.0
+    },
+    "3": {
+      "name": "Miranda Class",
+      "weaponsRating": 3.0,
+      "hull": 45.0,
+      "shields": 150.0
+    },
+    "4": {
+      "name": "Nebula Class",
+      "weaponsRating": 5.0,
+      "hull": 150.0,
+      "shields": 100.0
+    },
+    "5": {
+      "name": "Nova Class",
+      "weaponsRating": 2.0,
+      "hull": 100.0,
+      "shields": 120.0
+    },
+    "6": {
+      "name": "Saber Class",
+      "weaponsRating": 1.0,
+      "hull": 30.0,
+      "shields": 50.0
+    },
+    "7": {
+      "name": "Danube Runabout",
+      "weaponsRating": 1.0,
+      "hull": 50.0,
+      "shields": 50.0
+    },
+    "8": {
+      "name": "Deforest Class",
+      "weaponsRating": 2.0,
+      "hull": 100.0,
+      "shields": 125.0
+    },
+    "9": {
+      "name": "Kingston Class",
+      "weaponsRating": 3.0,
+      "hull": 80.0,
+      "shields": 200.0
+    },
+    "10": {
+      "name": "Tug Class II",
+      "weaponsRating": 3.0,
+      "hull": 50.0,
+      "shields": 200.0
+    },
+    "11": {
+      "name": "Vega Class",
+      "weaponsRating": 4.0,
+      "hull": 250.0,
+      "shields": 300.0
+    },
+    "12": {
+      "name": "Aries Class",
+      "weaponsRating": 3.0,
+      "hull": 100.0,
+      "shields": 100.0
+    },
+    "13": {
+      "name": "Mozart Class",
+      "weaponsRating": 3.0,
+      "hull": 100.0,
+      "shields": 250.0
+    },
+    "14": {
+      "name": "Centaur Class",
+      "weaponsRating": 3.0,
+      "hull": 100.0,
+      "shields": 200.0
+    },
+    "15": {
+      "name": "Ambassador Class",
+      "weaponsRating": 4.0,
+      "hull": 300.0,
+      "shields": 300.0
+    },
+    "16": {
+      "name": "Hideki Class",
+      "weaponsRating": 1.0,
+      "hull": 50.0,
+      "shields": 50.0
+    },
+    "17": {
+      "name": "Ferengi Marauder",
+      "weaponsRating": 5.0,
+      "hull": 250.0,
+      "shields": 400.0
+    },
+    "18": {
+      "name": "Ferengi Shuttle",
+      "weaponsRating": 1.0,
+      "hull": 25.0,
+      "shields": 50.0
+    },
+    "19": {
+      "name": "Ferengi Vagabond",
+      "weaponsRating": 3.0,
+      "hull": 250.0,
+      "shields": 300.0
+    },
+    "20": {
+      "name": "Tholian Isaac Class",
+      "weaponsRating": 4.0,
+      "hull": 250.0,
+      "shields": 300.0
+    },
+    "21": {
+      "name": "Delpin Cruiser",
+      "weaponsRating": 4.0,
+      "hull": 300.0,
+      "shields": 400.0
+    },
+    "22": {
+      "name": "Delpin Warship",
+      "weaponsRating": 1.0,
+      "hull": 350.0,
+      "shields": 300.0
+    },
+    "23": {
+      "name": "Bajoran Sailing Ship",
+      "weaponsRating": 1.0,
+      "hull": 50.0,
+      "shields": 75.0
+    },
+    "24": {
+      "name": "Lysian Fighter",
+      "weaponsRating": 1.0,
+      "hull": 25.0,
+      "shields": 0.0
+    },
+    "25": {
+      "name": "Vulcan Warpship",
+      "weaponsRating": 1.0,
+      "hull": 50.0,
+      "shields": 75.0
+    },
+    "26": {
+      "name": "Vulcan Explorer",
+      "weaponsRating": 5.0,
+      "hull": 300.0,
+      "shields": 350.0
+    },
+    "27": {
+      "name": "Romulan Der'idex",
+      "weaponsRating": 5.0,
+      "hull": 450.0,
+      "shields": 750.0
+    },
+    "28": {
+      "name": "Romulan Norexan",
+      "weaponsRating": 4.0,
+      "hull": 250.0,
+      "shields": 300.0
+    },
+    "29": {
+      "name": "Romulan Scout",
+      "weaponsRating": 1.0,
+      "hull": 25.0,
+      "shields": 50.0
+    },
+    "30": {
+      "name": "Jem'Hadar Fighter",
+      "weaponsRating": 3.0,
+      "hull": 150.0,
+      "shields": 200.0
+    },
+    "31": {
+      "name": "Galor Class",
+      "weaponsRating": 4.0,
+      "hull": 450.0,
+      "shields": 500.0
+    },
+    "32": {
+      "name": "Keldon Class",
+      "weaponsRating": 5.0,
+      "hull": 500.0,
+      "shields": 800.0
+    },
+    "33": {
+      "name": "Akira Class",
+      "weaponsRating": 4.0,
+      "hull": 400.0,
+      "shields": 600.0
+    },
+    "34": {
+      "name": "Defiant Class",
+      "weaponsRating": 3.0,
+      "hull": 500.0,
+      "shields": 300.0
+    },
+    "35": {
+      "name": "Galaxy Class",
+      "weaponsRating": 5.0,
+      "hull": 400.0,
+      "shields": 800.0
+    },
+    "36": {
+      "name": "Intrepid Class",
+      "weaponsRating": 2.0,
+      "hull": 200.0,
+      "shields": 400.0
+    },
+    "37": {
+      "name": "Prometheus Class",
+      "weaponsRating": 3.0,
+      "hull": 400.0,
+      "shields": 500.0
+    },
+    "38": {
+      "name": "Sovereign Class",
+      "weaponsRating": 5.0,
+      "hull": 500.0,
+      "shields": 850.0
+    },
+    "39": {
+      "name": "B'rel Type",
+      "weaponsRating": 1.0,
+      "hull": 50.0,
+      "shields": 40.0
+    },
+    "40": {
+      "name": "K'Tinga Cruiser",
+      "weaponsRating": 3.0,
+      "hull": 200.0,
+      "shields": 300.0
+    },
+    "41": {
+      "name": "K'Vort Type",
+      "weaponsRating": 3.0,
+      "hull": 250.0,
+      "shields": 200.0
+    },
+    "42": {
+      "name": "Neg'Var Warship",
+      "weaponsRating": 5.0,
+      "hull": 500.0,
+      "shields": 1000.0
+    },
+    "43": {
+      "name": "Vorcha Cruiser",
+      "weaponsRating": 4.0,
+      "hull": 400.0,
+      "shields": 500.0
+    },
+    "44": {
+      "name": "Borg Cube",
+      "weaponsRating": 6.0,
+      "hull": 5000.0,
+      "shields": 5000.0
+    },
+    "45": {
+      "name": "Akuzi Class",
+      "weaponsRating": 2.0,
+      "hull": 190.0,
+      "shields": 150.0
+    },
+    "46": {
+      "name": "New Orleans Class",
+      "weaponsRating": 3.0,
+      "hull": 200.0,
+      "shields": 250.0
+    },
+    "47": {
+      "name": "Oberth Tug",
+      "weaponsRating": 2.0,
+      "hull": 100.0,
+      "shields": 100.0
+    },
+    "48": {
+      "name": "Jem'Hadar Battlecruiser",
+      "weaponsRating": 5.0,
+      "hull": 700.0,
+      "shields": 900.0
+    },
+    "49": {
+      "name": "Galaxy Dreadnaught",
+      "weaponsRating": 5.0,
+      "hull": 800.0,
+      "shields": 950.0
+    },
+    "50": {
+      "name": "Sentient Lifeform",
+      "weaponsRating": 6.0,
+      "hull": 450.0,
+      "shields": 0.0
+    },
+    "51": {
+      "name": "Delpin Luxury Liner",
+      "weaponsRating": 5.0,
+      "hull": 200.0,
+      "shields": 300.0
+    },
+    "52": {
+      "name": "Tarellian Cruiser",
+      "weaponsRating": 3.0,
+      "hull": 350.0,
+      "shields": 200.0
+    },
+    "53": {
+      "name": "Reman Warbird",
+      "weaponsRating": 5.0,
+      "hull": 450.0,
+      "shields": 850.0
+    },
+    "54": {
+      "name": "Tamarian Cruiser",
+      "weaponsRating": 3.0,
+      "hull": 250.0,
+      "shields": 350.0
+    },
+    "55": {
+      "name": "Alien Bioship",
+      "weaponsRating": 10.0,
+      "hull": 900.0,
+      "shields": 900.0
+    },
+    "56": {
+      "name": "Constitution Tug",
+      "weaponsRating": 3.0,
+      "hull": 200.0,
+      "shields": 200.0
+    },
+    "57": {
+      "name": "Constellation Tug",
+      "weaponsRating": 3.0,
+      "hull": 200.0,
+      "shields": 175.0
+    },
+    "58": {
+      "name": "Olympic Class",
+      "weaponsRating": 3.0,
+      "hull": 350.0,
+      "shields": 250.0
+    },
+    "59": {
+      "name": "Vulcan C'Thia",
+      "weaponsRating": 3.0,
+      "hull": 300.0,
+      "shields": 300.0
+    },
+    "60": {
+      "name": "Dreadnaught Class",
+      "weaponsRating": 6.0,
+      "hull": 8000.0,
+      "shields": 8000.0
+    },
+    "61": {
+      "name": "Klingon Qonos",
+      "weaponsRating": 6.0,
+      "hull": 8000.0,
+      "shields": 8000.0
+    },
+    "62": {
+      "name": "Cardassian Behemoth",
+      "weaponsRating": 6.0,
+      "hull": 8000.0,
+      "shields": 8000.0
+    },
+    "63": {
+      "name": "Vulcan Lifeform",
+      "weaponsRating": 6.0,
+      "hull": 8000.0,
+      "shields": 8000.0
+    },
+    "64": {
+      "name": "Romulan Warhawk",
+      "weaponsRating": 6.0,
+      "hull": 8000.0,
+      "shields": 8000.0
+    },
+    "65": {
+      "name": "Dominion Battleship",
+      "weaponsRating": 6.0,
+      "hull": 8000.0,
+      "shields": 8000.0
+    },
+    "66": {
+      "name": "Tholian Conquest",
+      "weaponsRating": 6.0,
+      "hull": 8000.0,
+      "shields": 8000.0
+    }
+  },
+  "weapons": {
+    "beam": [
+      {
+        "id": 1,
+        "name": "Type X Phaser",
+        "description": "A standard, common beam phaser design that channels energy from the warp core.",
+        "minimumRating": 1.0,
+        "baseDamage": 3.0,
+        "recharge": 8.0,
+        "icon": "weapon-icon-remastered-1.png",
+        "iconSharedWith": null,
+        "sound": "beam1",
+        "color": 16754219,
+        "thickness": 3,
+        "type": 2,
+        "iconRemastered": true
+      },
+      {
+        "id": 2,
+        "name": "Particle Beam",
+        "description": "A powerful beam phaser that can do a great deal of damage but has a slow recharge rate.",
+        "minimumRating": 2.0,
+        "baseDamage": 8.0,
+        "recharge": 13.0,
+        "icon": "weapon-icon-remastered-2.png",
+        "iconSharedWith": null,
+        "sound": "beam2",
+        "color": 12615167,
+        "thickness": 3,
+        "type": 5,
+        "iconRemastered": true
+      },
+      {
+        "id": 3,
+        "name": "Polaron Phaser",
+        "description": "Designed by the Klingons, this heavy dual phaser is used throughout the galaxy.",
+        "minimumRating": 1.0,
+        "baseDamage": 3.0,
+        "recharge": 10.0,
+        "icon": "weapon-icon-remastered-3.png",
+        "iconSharedWith": null,
+        "sound": "beam3",
+        "color": 15662891,
+        "thickness": 3,
+        "type": 8,
+        "iconRemastered": true
+      },
+      {
+        "id": 4,
+        "name": "Plasma Phaser",
+        "description": "A concentrated beam of plasma, this weapon has a low yeild but a quick recharge rate at close range.",
+        "minimumRating": 1.0,
+        "baseDamage": 1.0,
+        "recharge": 4.0,
+        "icon": "weapon-icon-remastered-4.png",
+        "iconSharedWith": null,
+        "sound": "beam4",
+        "color": 13828096,
+        "thickness": 3,
+        "type": 11,
+        "iconRemastered": true
+      },
+      {
+        "id": 5,
+        "name": "Cutting Beam",
+        "description": "An alien beam weapon, that can cut through a ship like a hot knife through butter.",
+        "minimumRating": 4.0,
+        "baseDamage": 5.0,
+        "recharge": 3.0,
+        "icon": "weapon-icon-remastered-5.png",
+        "iconSharedWith": null,
+        "sound": "beam5",
+        "color": 3912003,
+        "thickness": 3,
+        "type": 14,
+        "iconRemastered": true
+      }
+    ],
+    "torpedo": [
+      {
+        "id": 13,
+        "name": "Gravimetric Torpedo",
+        "description": "Although slow, the gravimetric torpedo draws itself magnetically towards a target, making it harder to avoid, and it has a fast recharge rate.",
+        "minimumRating": 3.0,
+        "baseDamage": 5.0,
+        "recharge": 8.0,
+        "icon": "weapon-icon-remastered-13.png",
+        "iconSharedWith": null,
+        "sound": "torp2",
+        "color": 12615167,
+        "thickness": 2,
+        "type": 18,
+        "iconRemastered": true
+      },
+      {
+        "id": 15,
+        "name": "Photon Torpedo",
+        "description": "A simple torpedo design using a matter/antimatter explosive device, low yield and slow reload.",
+        "minimumRating": 1.0,
+        "baseDamage": 3.0,
+        "recharge": 20.0,
+        "icon": "weapon-icon-remastered-15.png",
+        "iconSharedWith": null,
+        "sound": "torp1",
+        "color": 16754219,
+        "thickness": 2,
+        "type": 2,
+        "iconRemastered": true
+      },
+      {
+        "id": 16,
+        "name": "Quantum Torpedo",
+        "description": "A high yield torpedo with a quantum singularity explosive charge.",
+        "minimumRating": 3.0,
+        "baseDamage": 3.0,
+        "recharge": 15.0,
+        "icon": "weapon-icon-remastered-16.png",
+        "iconSharedWith": null,
+        "sound": "torp5",
+        "color": 14609399,
+        "thickness": 2,
+        "type": 4,
+        "iconRemastered": true
+      },
+      {
+        "id": 17,
+        "name": "Plasma Torpedo",
+        "description": "A burst of concentrated plasma energy that has devistating effects, but is slow to recharge.",
+        "minimumRating": 3.0,
+        "baseDamage": 6.0,
+        "recharge": 30.0,
+        "icon": "weapon-icon-remastered-17.png",
+        "iconSharedWith": null,
+        "sound": "torp3",
+        "color": 2883388,
+        "thickness": 2,
+        "type": 6,
+        "iconRemastered": true
+      },
+      {
+        "id": 18,
+        "name": "Transphasic Torpedo",
+        "description": "Torpedo mega-weapons with a painfully slow recharge.",
+        "minimumRating": 4.0,
+        "baseDamage": 75.0,
+        "recharge": 100.0,
+        "icon": "weapon-icon-remastered-18.png",
+        "iconSharedWith": null,
+        "sound": "torp5",
+        "color": 14609399,
+        "thickness": 2,
+        "type": 8,
+        "iconRemastered": true
+      },
+      {
+        "id": 19,
+        "name": "Polaron Torpedo",
+        "description": "A torpedo that utilizes a polarized explosive device.",
+        "minimumRating": 2.0,
+        "baseDamage": 3.0,
+        "recharge": 15.0,
+        "icon": "weapon-icon-remastered-19.png",
+        "iconSharedWith": null,
+        "sound": "torp2",
+        "color": 12615167,
+        "thickness": 2,
+        "type": 10,
+        "iconRemastered": true
+      }
+    ],
+    "disruptor": [
+      {
+        "id": 6,
+        "name": "Disruptor Cannon",
+        "description": "These rapid fire disruptors will cut through any ship quick, but are only forward-firing.",
+        "minimumRating": 2.0,
+        "baseDamage": 1.0,
+        "recharge": 2.0,
+        "icon": "weapon-icon-remastered-6.png",
+        "iconSharedWith": null,
+        "sound": "disr4",
+        "color": 3912003,
+        "thickness": 4,
+        "type": 12,
+        "iconRemastered": true
+      },
+      {
+        "id": 7,
+        "name": "Disruptor Canon",
+        "description": "A single forward-firing disruptor, good for a small ship.",
+        "minimumRating": 0.0,
+        "baseDamage": 1.0,
+        "recharge": 2.0,
+        "icon": "weapon-icon-remastered-7.png",
+        "iconSharedWith": null,
+        "sound": "disr4",
+        "color": 3912003,
+        "thickness": 4,
+        "type": 14,
+        "iconRemastered": true
+      },
+      {
+        "id": 8,
+        "name": "Quantum Pulse Cannon",
+        "description": "Developed by the Teposians, this is the most powerful cannon of its size.",
+        "minimumRating": 1.0,
+        "baseDamage": 4.0,
+        "recharge": 2.0,
+        "icon": "weapon-icon-remastered-8.png",
+        "iconSharedWith": null,
+        "sound": "disr2",
+        "color": 10890239,
+        "thickness": 2,
+        "type": 16,
+        "iconRemastered": true
+      },
+      {
+        "id": 9,
+        "name": "Dual Pulse Phasers",
+        "description": "Concentrated pulses of normal phasers, this weapon is perfect for small fighters and warships.",
+        "minimumRating": 1.0,
+        "baseDamage": 2.0,
+        "recharge": 2.0,
+        "icon": "weapon-icon-remastered-9.png",
+        "iconSharedWith": null,
+        "sound": "disr1",
+        "color": 16754219,
+        "thickness": 2,
+        "type": 20,
+        "iconRemastered": true
+      },
+      {
+        "id": 10,
+        "name": "Phaser Cannon",
+        "description": "The human response to the successful disruptor cannon, small and weak but rapid firing.",
+        "minimumRating": 0.0,
+        "baseDamage": 1.0,
+        "recharge": 3.0,
+        "icon": "weapon-icon-remastered-10.png",
+        "iconSharedWith": null,
+        "sound": "disr1",
+        "color": 16754219,
+        "thickness": 2,
+        "type": 22,
+        "iconRemastered": true
+      },
+      {
+        "id": 11,
+        "name": "Pulse Turrent",
+        "description": "A top-mounted turrent that fires dual phaser pulses in any direction.",
+        "minimumRating": 3.0,
+        "baseDamage": 2.0,
+        "recharge": 2.0,
+        "icon": "weapon-icon-remastered-11.png",
+        "iconSharedWith": null,
+        "sound": "disr1",
+        "color": 16754219,
+        "thickness": 2,
+        "type": 20,
+        "iconRemastered": true
+      },
+      {
+        "id": 12,
+        "name": "Disruptor Turrent",
+        "description": "A dual disruptor cannon attached to a 360 degree firing turrent.",
+        "minimumRating": 3.0,
+        "baseDamage": 3.0,
+        "recharge": 2.0,
+        "icon": "weapon-icon-remastered-12.png",
+        "iconSharedWith": null,
+        "sound": "disr4",
+        "color": 3912003,
+        "thickness": 4,
+        "type": 12,
+        "iconRemastered": true
+      },
+      {
+        "id": 14,
+        "name": "Type VII Phaser",
+        "description": "Fires a rapid succession of small phaser blasts.",
+        "minimumRating": 2.0,
+        "baseDamage": 2.0,
+        "recharge": 10.0,
+        "icon": "weapon-icon-remastered-14.png",
+        "iconSharedWith": null,
+        "sound": "disr1",
+        "color": 16754219,
+        "thickness": 2,
+        "type": 24,
+        "iconRemastered": true
+      }
+    ]
+  },
+  "equipment": [
+    {
+      "id": 20,
+      "name": "Bajoran Sail",
+      "description": "This sail gather antimatter particles from space.",
+      "minimumRating": 0.0,
+      "baseDamage": 0.0,
+      "recharge": 0.0,
+      "icon": "weapon-icon-remastered-20.png",
+      "iconSharedWith": null,
+      "iconRemastered": true
+    },
+    {
+      "id": 21,
+      "name": "Shield Recovery Module",
+      "description": "Doubles normal shield recovery while shields are active.",
+      "minimumRating": 2.0,
+      "baseDamage": 0.0,
+      "recharge": 0.0,
+      "icon": "weapon-icon-remastered-21.png",
+      "iconSharedWith": null,
+      "iconRemastered": true
+    },
+    {
+      "id": 22,
+      "name": "Cloaking Device",
+      "description": "Cloak indefinitely with shields down. Firing or raising shields reveals the ship.",
+      "minimumRating": 2.0,
+      "baseDamage": 0.0,
+      "recharge": 50.0,
+      "icon": "weapon-icon-remastered-22.png",
+      "iconSharedWith": null,
+      "iconRemastered": true
+    },
+    {
+      "id": 23,
+      "name": "Engine Disruptor",
+      "description": "Emitting this pulse will neutralize the engines of all ships around you. Great for escaping a superior foe.",
+      "minimumRating": 1.0,
+      "baseDamage": 0.0,
+      "recharge": 80.0,
+      "icon": "weapon-icon-remastered-23.png",
+      "iconSharedWith": null,
+      "iconRemastered": true
+    },
+    {
+      "id": 24,
+      "name": "Tachyon Field Generator",
+      "description": "Emits a massive pulse that forces all nearby ships to decloak.",
+      "minimumRating": 2.0,
+      "baseDamage": 0.0,
+      "recharge": 150.0,
+      "icon": "weapon-icon-remastered-24.png",
+      "iconSharedWith": null,
+      "iconRemastered": true
+    },
+    {
+      "id": 25,
+      "name": "Tractor Beam",
+      "description": "Locks onto a target and holds it there.",
+      "minimumRating": 1.0,
+      "baseDamage": 0.0,
+      "recharge": 30.0,
+      "icon": "weapon-icon-remastered-25.png",
+      "iconSharedWith": null,
+      "iconRemastered": true
+    },
+    {
+      "id": 26,
+      "name": "Thaleron Generator",
+      "description": "Generates a cloud of thaleron radiation, highly illegal to use.",
+      "minimumRating": 4.0,
+      "baseDamage": 10.0,
+      "recharge": 800.0,
+      "icon": "weapon-icon-remastered-26.png",
+      "iconSharedWith": null,
+      "iconRemastered": true
+    },
+    {
+      "id": 27,
+      "name": "Magnetorp Launcher",
+      "description": "A special rapidfire launcher for photon torpedoes.",
+      "minimumRating": 4.0,
+      "baseDamage": 3.0,
+      "recharge": 5.0,
+      "icon": "weapon-icon-remastered-27.png",
+      "iconSharedWith": null,
+      "iconRemastered": true
+    }
+  ],
+  "creatures": {
+    "67": {
+      "health": 240,
+      "source": "Showcase starting balance; editable"
+    },
+    "68": {
+      "health": 140,
+      "source": "Showcase starting balance; editable"
+    },
+    "69": {
+      "health": 180,
+      "source": "Showcase starting balance; editable"
+    },
+    "70": {
+      "health": 100,
+      "source": "Showcase starting balance; editable"
+    },
+    "71": {
+      "health": 420,
+      "source": "Showcase starting balance; editable"
+    },
+    "72": {
+      "health": 260,
+      "source": "Showcase starting balance; editable"
+    },
+    "73": {
+      "health": 750,
+      "source": "Showcase starting balance; editable"
+    },
+    "74": {
+      "health": 450,
+      "source": "Showcase starting balance; editable"
+    },
+    "75": {
+      "health": 1400,
+      "source": "Showcase starting balance; editable"
+    },
+    "76": {
+      "health": 850,
+      "source": "Showcase starting balance; editable"
+    },
+    "77": {
+      "health": 2400,
+      "source": "Showcase starting balance; editable"
+    },
+    "78": {
+      "health": 1500,
+      "source": "Showcase starting balance; editable"
+    },
+    "200": {
+      "health": 240,
+      "source": "Showcase starting balance; editable"
+    },
+    "201": {
+      "health": 140,
+      "source": "Showcase starting balance; editable"
+    },
+    "202": {
+      "health": 180,
+      "source": "Showcase starting balance; editable"
+    },
+    "203": {
+      "health": 100,
+      "source": "Showcase starting balance; editable"
+    },
+    "204": {
+      "health": 420,
+      "source": "Showcase starting balance; editable"
+    },
+    "205": {
+      "health": 260,
+      "source": "Showcase starting balance; editable"
+    },
+    "206": {
+      "health": 750,
+      "source": "Showcase starting balance; editable"
+    },
+    "207": {
+      "health": 450,
+      "source": "Showcase starting balance; editable"
+    },
+    "208": {
+      "health": 1400,
+      "source": "Showcase starting balance; editable"
+    },
+    "209": {
+      "health": 850,
+      "source": "Showcase starting balance; editable"
+    },
+    "210": {
+      "health": 2400,
+      "source": "Showcase starting balance; editable"
+    },
+    "211": {
+      "health": 1500,
+      "source": "Showcase starting balance; editable"
+    },
+    "212": {
+      "health": 240,
+      "source": "Showcase starting balance; editable"
+    },
+    "213": {
+      "health": 140,
+      "source": "Showcase starting balance; editable"
+    },
+    "214": {
+      "health": 180,
+      "source": "Showcase starting balance; editable"
+    },
+    "215": {
+      "health": 100,
+      "source": "Showcase starting balance; editable"
+    },
+    "216": {
+      "health": 420,
+      "source": "Showcase starting balance; editable"
+    },
+    "217": {
+      "health": 260,
+      "source": "Showcase starting balance; editable"
+    },
+    "218": {
+      "health": 750,
+      "source": "Showcase starting balance; editable"
+    },
+    "219": {
+      "health": 450,
+      "source": "Showcase starting balance; editable"
+    },
+    "220": {
+      "health": 1400,
+      "source": "Showcase starting balance; editable"
+    },
+    "221": {
+      "health": 850,
+      "source": "Showcase starting balance; editable"
+    },
+    "222": {
+      "health": 2400,
+      "source": "Showcase starting balance; editable"
+    },
+    "223": {
+      "health": 1500,
+      "source": "Showcase starting balance; editable"
+    },
+    "224": {
+      "health": 240,
+      "source": "Showcase starting balance; editable"
+    },
+    "225": {
+      "health": 140,
+      "source": "Showcase starting balance; editable"
+    },
+    "226": {
+      "health": 180,
+      "source": "Showcase starting balance; editable"
+    },
+    "227": {
+      "health": 100,
+      "source": "Showcase starting balance; editable"
+    },
+    "228": {
+      "health": 420,
+      "source": "Showcase starting balance; editable"
+    },
+    "229": {
+      "health": 260,
+      "source": "Showcase starting balance; editable"
+    },
+    "230": {
+      "health": 750,
+      "source": "Showcase starting balance; editable"
+    },
+    "231": {
+      "health": 450,
+      "source": "Showcase starting balance; editable"
+    },
+    "232": {
+      "health": 1400,
+      "source": "Showcase starting balance; editable"
+    },
+    "233": {
+      "health": 850,
+      "source": "Showcase starting balance; editable"
+    },
+    "234": {
+      "health": 2400,
+      "source": "Showcase starting balance; editable"
+    },
+    "235": {
+      "health": 1500,
+      "source": "Showcase starting balance; editable"
+    },
+    "236": {
+      "health": 240,
+      "source": "Showcase starting balance; editable"
+    },
+    "237": {
+      "health": 140,
+      "source": "Showcase starting balance; editable"
+    },
+    "238": {
+      "health": 180,
+      "source": "Showcase starting balance; editable"
+    },
+    "239": {
+      "health": 100,
+      "source": "Showcase starting balance; editable"
+    },
+    "240": {
+      "health": 420,
+      "source": "Showcase starting balance; editable"
+    },
+    "241": {
+      "health": 260,
+      "source": "Showcase starting balance; editable"
+    },
+    "242": {
+      "health": 750,
+      "source": "Showcase starting balance; editable"
+    },
+    "243": {
+      "health": 450,
+      "source": "Showcase starting balance; editable"
+    },
+    "244": {
+      "health": 1400,
+      "source": "Showcase starting balance; editable"
+    },
+    "245": {
+      "health": 850,
+      "source": "Showcase starting balance; editable"
+    },
+    "246": {
+      "health": 2400,
+      "source": "Showcase starting balance; editable"
+    },
+    "247": {
+      "health": 1500,
+      "source": "Showcase starting balance; editable"
+    },
+    "248": {
+      "health": 240,
+      "source": "Showcase starting balance; editable"
+    },
+    "249": {
+      "health": 140,
+      "source": "Showcase starting balance; editable"
+    },
+    "250": {
+      "health": 180,
+      "source": "Showcase starting balance; editable"
+    },
+    "251": {
+      "health": 100,
+      "source": "Showcase starting balance; editable"
+    },
+    "252": {
+      "health": 420,
+      "source": "Showcase starting balance; editable"
+    },
+    "253": {
+      "health": 260,
+      "source": "Showcase starting balance; editable"
+    },
+    "254": {
+      "health": 750,
+      "source": "Showcase starting balance; editable"
+    },
+    "255": {
+      "health": 450,
+      "source": "Showcase starting balance; editable"
+    },
+    "256": {
+      "health": 1400,
+      "source": "Showcase starting balance; editable"
+    },
+    "257": {
+      "health": 850,
+      "source": "Showcase starting balance; editable"
+    },
+    "258": {
+      "health": 2400,
+      "source": "Showcase starting balance; editable"
+    },
+    "259": {
+      "health": 1500,
+      "source": "Showcase starting balance; editable"
+    },
+    "260": {
+      "health": 240,
+      "source": "Showcase starting balance; editable"
+    },
+    "261": {
+      "health": 140,
+      "source": "Showcase starting balance; editable"
+    },
+    "262": {
+      "health": 180,
+      "source": "Showcase starting balance; editable"
+    },
+    "263": {
+      "health": 100,
+      "source": "Showcase starting balance; editable"
+    },
+    "264": {
+      "health": 420,
+      "source": "Showcase starting balance; editable"
+    },
+    "265": {
+      "health": 260,
+      "source": "Showcase starting balance; editable"
+    },
+    "266": {
+      "health": 750,
+      "source": "Showcase starting balance; editable"
+    },
+    "267": {
+      "health": 450,
+      "source": "Showcase starting balance; editable"
+    },
+    "268": {
+      "health": 1400,
+      "source": "Showcase starting balance; editable"
+    },
+    "269": {
+      "health": 850,
+      "source": "Showcase starting balance; editable"
+    },
+    "270": {
+      "health": 2400,
+      "source": "Showcase starting balance; editable"
+    },
+    "271": {
+      "health": 1500,
+      "source": "Showcase starting balance; editable"
+    }
+  }
+}

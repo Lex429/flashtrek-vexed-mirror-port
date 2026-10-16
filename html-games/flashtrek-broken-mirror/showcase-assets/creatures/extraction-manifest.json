@@ -1,0 +1,242 @@
+[
+  {
+    "id": 67,
+    "name": "Egg A",
+    "file": "creatures/egg-a-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      6,
+      152,
+      225,
+      518
+    ],
+    "sourceComponent": 4,
+    "sourcePixels": 53894,
+    "extractedPixels": 53894,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 68,
+    "name": "Egg B",
+    "file": "creatures/egg-b-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      94,
+      641,
+      210,
+      800
+    ],
+    "sourceComponent": 22,
+    "sourcePixels": 12130,
+    "extractedPixels": 12130,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 69,
+    "name": "Larva A",
+    "file": "creatures/larva-a-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      238,
+      228,
+      385,
+      484
+    ],
+    "sourceComponent": 6,
+    "sourcePixels": 20671,
+    "extractedPixels": 20672,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 70,
+    "name": "Larva B",
+    "file": "creatures/larva-b-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      319,
+      645,
+      418,
+      791
+    ],
+    "sourceComponent": 23,
+    "sourcePixels": 7620,
+    "extractedPixels": 7621,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 71,
+    "name": "Juvenile A",
+    "file": "creatures/juvenile-a-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      408,
+      166,
+      590,
+      499
+    ],
+    "sourceComponent": 5,
+    "sourcePixels": 34331,
+    "extractedPixels": 34331,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 72,
+    "name": "Juvenile B",
+    "file": "creatures/juvenile-b-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      521,
+      638,
+      653,
+      798
+    ],
+    "sourceComponent": 21,
+    "sourcePixels": 12279,
+    "extractedPixels": 12281,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 73,
+    "name": "Worker A",
+    "file": "creatures/worker-a-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      617,
+      60,
+      929,
+      523
+    ],
+    "sourceComponent": 3,
+    "sourcePixels": 68630,
+    "extractedPixels": 68631,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 74,
+    "name": "Worker B",
+    "file": "creatures/worker-b-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      729,
+      620,
+      886,
+      811
+    ],
+    "sourceComponent": 20,
+    "sourcePixels": 13419,
+    "extractedPixels": 13420,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 75,
+    "name": "Guard A",
+    "file": "creatures/guard-a-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      936,
+      25,
+      1286,
+      535
+    ],
+    "sourceComponent": 2,
+    "sourcePixels": 82884,
+    "extractedPixels": 82886,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 76,
+    "name": "Guard B",
+    "file": "creatures/guard-b-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      965,
+      604,
+      1138,
+      811
+    ],
+    "sourceComponent": 18,
+    "sourcePixels": 15235,
+    "extractedPixels": 15235,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 77,
+    "name": "Queen A",
+    "file": "creatures/queen-a-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      1297,
+      13,
+      1774,
+      678
+    ],
+    "sourceComponent": 1,
+    "sourcePixels": 158866,
+    "extractedPixels": 158866,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  },
+  {
+    "id": 78,
+    "name": "Queen B",
+    "file": "creatures/queen-b-intact.png",
+    "canvas": [
+      512,
+      704
+    ],
+    "sourceBox": [
+      1200,
+      613,
+      1417,
+      812
+    ],
+    "sourceComponent": 19,
+    "sourcePixels": 25467,
+    "extractedPixels": 25468,
+    "artworkStatus": "intact-only",
+    "damageStagesReady": false
+  }
+]

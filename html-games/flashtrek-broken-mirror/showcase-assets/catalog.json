@@ -1,0 +1,4894 @@
+{
+  "ships": [
+    {
+      "id": 1,
+      "name": "Steamrunner Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-1-0.png",
+        "ship-1-1.png",
+        "ship-1-2.png",
+        "ship-1-3.png"
+      ],
+      "original": "original-1.png",
+      "bounds": [
+        -500,
+        520,
+        -653,
+        654
+      ],
+      "mass": 300,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0.010000000000000009,
+          "y": -0.44
+        },
+        {
+          "kind": "beam",
+          "x": 0.010000000000000009,
+          "y": 0.39
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.32999999999999996,
+          "y": -0.26
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.37,
+          "y": -0.25
+        }
+      ],
+      "size": 100,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 2,
+      "name": "Excelsior Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-2-0.png",
+        "ship-2-1.png",
+        "ship-2-2.png",
+        "ship-2-3.png"
+      ],
+      "original": "original-2.png",
+      "bounds": [
+        -430,
+        408,
+        -1080,
+        1080
+      ],
+      "mass": 200,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0.011111111111111072,
+          "y": -0.4166666666666667
+        },
+        {
+          "kind": "beam",
+          "x": -0.1388888888888889,
+          "y": -0.26666666666666666
+        },
+        {
+          "kind": "beam",
+          "x": 0.15555555555555556,
+          "y": -0.26666666666666666
+        },
+        {
+          "kind": "beam",
+          "x": 0.005555555555555536,
+          "y": 0.18888888888888888
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.005555555555555536,
+          "y": 0.3388888888888889
+        }
+      ],
+      "size": 180,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 3,
+      "name": "Miranda Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-3-0.png",
+        "ship-3-1.png",
+        "ship-3-2.png",
+        "ship-3-3.png"
+      ],
+      "original": "original-3.png",
+      "bounds": [
+        -409,
+        347,
+        -461,
+        821
+      ],
+      "mass": 150,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": 0.033333333333333326
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.20666666666666667
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": 0.15333333333333332
+        }
+      ],
+      "size": 150,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 4,
+      "name": "Nebula Class",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-4-0.png",
+        "ship-4-1.png",
+        "ship-4-2.png",
+        "ship-4-3.png"
+      ],
+      "original": "original-4.png",
+      "bounds": [
+        -991,
+        1189,
+        -930,
+        1090
+      ],
+      "mass": 600,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.3370044052863436,
+          "y": -0.08590308370044053
+        },
+        {
+          "kind": "beam",
+          "x": 0.3325991189427313,
+          "y": -0.1035242290748899
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.0022026431718061845,
+          "y": -0.45594713656387664
+        }
+      ],
+      "size": 227,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 5,
+      "name": "Nova Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-5-0.png",
+        "ship-5-1.png",
+        "ship-5-2.png",
+        "ship-5-3.png"
+      ],
+      "original": "original-5.png",
+      "bounds": [
+        -231,
+        209,
+        -420,
+        460
+      ],
+      "mass": 100,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0.00666666666666671,
+          "y": -0.4066666666666667
+        },
+        {
+          "kind": "beam",
+          "x": 0.00666666666666671,
+          "y": -0.31333333333333335
+        },
+        {
+          "kind": "beam",
+          "x": 0.00666666666666671,
+          "y": 0.20666666666666667
+        }
+      ],
+      "size": 75,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 6,
+      "name": "Saber Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-6-0.png",
+        "ship-6-1.png",
+        "ship-6-2.png",
+        "ship-6-3.png"
+      ],
+      "original": "original-6.png",
+      "bounds": [
+        -293,
+        314,
+        -346,
+        345
+      ],
+      "mass": 100,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "beam",
+          "x": 0.020000000000000018,
+          "y": -0.36
+        },
+        {
+          "kind": "beam",
+          "x": 0.020000000000000018,
+          "y": 0.24
+        }
+      ],
+      "size": 50,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 7,
+      "name": "Danube Runabout",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-7-0.png",
+        "ship-7-1.png",
+        "ship-7-2.png",
+        "ship-7-3.png"
+      ],
+      "original": "original-7.png",
+      "bounds": [
+        -160,
+        160,
+        -260,
+        260
+      ],
+      "mass": 100,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.02999999999999997,
+          "y": -0.33
+        }
+      ],
+      "size": 40,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 8,
+      "name": "Deforest Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-8-0.png",
+        "ship-8-1.png",
+        "ship-8-2.png",
+        "ship-8-3.png"
+      ],
+      "original": "original-8.png",
+      "bounds": [
+        -523,
+        543,
+        -680,
+        1000
+      ],
+      "mass": 200.8,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 9,
+      "name": "Kingston Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-9-0.png",
+        "ship-9-1.png",
+        "ship-9-2.png",
+        "ship-9-3.png"
+      ],
+      "original": "original-9.png",
+      "bounds": [
+        -601,
+        582,
+        -910,
+        1029
+      ],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 10,
+      "name": "Tug Class II",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-10-0.png",
+        "ship-10-1.png",
+        "ship-10-2.png",
+        "ship-10-3.png"
+      ],
+      "original": "original-10.png",
+      "bounds": [
+        -333,
+        314,
+        -1090,
+        930
+      ],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 11,
+      "name": "Vega Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-11-0.png",
+        "ship-11-1.png",
+        "ship-11-2.png",
+        "ship-11-3.png"
+      ],
+      "original": "original-11.png",
+      "bounds": [
+        -410,
+        352,
+        -425,
+        586
+      ],
+      "mass": 400.6,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 12,
+      "name": "Aries Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-12-0.png",
+        "ship-12-1.png",
+        "ship-12-2.png",
+        "ship-12-3.png"
+      ],
+      "original": "original-12.png",
+      "bounds": [
+        -350,
+        410,
+        -890,
+        1210
+      ],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 13,
+      "name": "Mozart Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-13-0.png",
+        "ship-13-1.png",
+        "ship-13-2.png",
+        "ship-13-3.png"
+      ],
+      "original": "original-13.png",
+      "bounds": [
+        -626,
+        646,
+        -870,
+        990
+      ],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 14,
+      "name": "Centaur Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-14-0.png",
+        "ship-14-1.png",
+        "ship-14-2.png",
+        "ship-14-3.png"
+      ],
+      "original": "original-14.png",
+      "bounds": [
+        -710,
+        690,
+        -880,
+        1160
+      ],
+      "mass": 150,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.44466666666666665
+        },
+        {
+          "kind": "beam",
+          "x": -0.17933333333333334,
+          "y": -0.322
+        },
+        {
+          "kind": "beam",
+          "x": 0.18266666666666675,
+          "y": -0.31933333333333336
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": 0.036666666666666625
+        }
+      ],
+      "size": 150,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 15,
+      "name": "Ambassador Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-15-0.png",
+        "ship-15-1.png",
+        "ship-15-2.png",
+        "ship-15-3.png"
+      ],
+      "original": "original-15.png",
+      "bounds": [
+        -856,
+        864,
+        -1301,
+        1310
+      ],
+      "mass": 400.6,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 16,
+      "name": "Hideki Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-16-0.png",
+        "ship-16-1.png",
+        "ship-16-2.png",
+        "ship-16-3.png"
+      ],
+      "original": "original-16.png",
+      "bounds": [
+        -322,
+        302,
+        -266,
+        466
+      ],
+      "mass": 100,
+      "debrisKind": 4,
+      "points": [
+        {
+          "kind": "beam",
+          "x": 0.00666666666666671,
+          "y": -0.42
+        }
+      ],
+      "size": 75,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 17,
+      "name": "Ferengi Marauder",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-17-0.png",
+        "ship-17-1.png",
+        "ship-17-2.png",
+        "ship-17-3.png"
+      ],
+      "original": "original-17.png",
+      "bounds": [
+        -701,
+        719,
+        -860,
+        780
+      ],
+      "mass": 450,
+      "debrisKind": 4,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.4
+        },
+        {
+          "kind": "disruptor",
+          "x": -0.355,
+          "y": -0.2
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": 0.44499999999999995
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.365,
+          "y": -0.2
+        }
+      ],
+      "size": 200,
+      "shieldColor": "yellow"
+    },
+    {
+      "id": 18,
+      "name": "Ferengi Shuttle",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-18-0.png",
+        "ship-18-1.png",
+        "ship-18-2.png",
+        "ship-18-3.png"
+      ],
+      "original": "original-18.png",
+      "bounds": [
+        -131,
+        149,
+        -180,
+        220
+      ],
+      "mass": 100,
+      "debrisKind": 4,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": 0,
+          "y": -0.26
+        }
+      ],
+      "size": 50,
+      "shieldColor": "yellow"
+    },
+    {
+      "id": 19,
+      "name": "Ferengi Vagabond",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-19-0.png",
+        "ship-19-1.png",
+        "ship-19-2.png",
+        "ship-19-3.png"
+      ],
+      "original": "original-19.png",
+      "bounds": [
+        -635,
+        636,
+        -600,
+        500
+      ],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 20,
+      "name": "Tholian Isaac Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-20-0.png",
+        "ship-20-1.png",
+        "ship-20-2.png",
+        "ship-20-3.png"
+      ],
+      "original": "original-20.png",
+      "bounds": [
+        -251,
+        269,
+        -660,
+        500
+      ],
+      "mass": 100,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.12,
+          "y": 0
+        },
+        {
+          "kind": "beam",
+          "x": 0.16000000000000003,
+          "y": 0
+        }
+      ],
+      "size": 50,
+      "shieldColor": "yellow"
+    },
+    {
+      "id": 21,
+      "name": "Delpin Cruiser",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-21-0.png",
+        "ship-21-1.png",
+        "ship-21-2.png",
+        "ship-21-3.png"
+      ],
+      "original": "original-21.png",
+      "bounds": [
+        -441,
+        379,
+        -830,
+        670
+      ],
+      "mass": 400.6,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 22,
+      "name": "Delpin Warship",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-22-0.png",
+        "ship-22-1.png",
+        "ship-22-2.png",
+        "ship-22-3.png"
+      ],
+      "original": "original-22.png",
+      "bounds": [
+        -1180,
+        1160,
+        -640,
+        720
+      ],
+      "mass": 100.9,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 23,
+      "name": "Bajoran Sailing Ship",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-23-0.png",
+        "ship-23-1.png",
+        "ship-23-2.png",
+        "ship-23-3.png"
+      ],
+      "original": "original-23.png",
+      "bounds": [
+        -1251,
+        1229,
+        -330,
+        290
+      ],
+      "mass": 25,
+      "debrisKind": 4,
+      "points": [],
+      "size": 50,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 24,
+      "name": "Lysian Fighter",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-24-0.png",
+        "ship-24-1.png",
+        "ship-24-2.png",
+        "ship-24-3.png"
+      ],
+      "original": "original-24.png",
+      "bounds": [
+        -371,
+        369,
+        -480,
+        500
+      ],
+      "mass": 25,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": 0.12,
+          "y": -0.38
+        }
+      ],
+      "size": 50,
+      "shieldColor": "white"
+    },
+    {
+      "id": 25,
+      "name": "Vulcan Warpship",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-25-0.png",
+        "ship-25-1.png",
+        "ship-25-2.png",
+        "ship-25-3.png"
+      ],
+      "original": "original-25.png",
+      "bounds": [
+        -213,
+        241,
+        -341,
+        291
+      ],
+      "mass": 150,
+      "debrisKind": 5,
+      "points": [
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.030000000000000027
+        }
+      ],
+      "size": 100,
+      "shieldColor": "red"
+    },
+    {
+      "id": 26,
+      "name": "Vulcan Explorer",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-26-0.png",
+        "ship-26-1.png",
+        "ship-26-2.png",
+        "ship-26-3.png"
+      ],
+      "original": "original-26.png",
+      "bounds": [
+        -870,
+        850,
+        -1540,
+        1980
+      ],
+      "mass": 600,
+      "debrisKind": 5,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.01470588235294118,
+          "y": -0.2323529411764706
+        },
+        {
+          "kind": "beam",
+          "x": -0.011764705882352955,
+          "y": 0.4205882352941176
+        },
+        {
+          "kind": "beam",
+          "x": -0.20588235294117646,
+          "y": 0.14411764705882357
+        },
+        {
+          "kind": "beam",
+          "x": 0.19117647058823528,
+          "y": 0.14411764705882357
+        }
+      ],
+      "size": 340,
+      "shieldColor": "red"
+    },
+    {
+      "id": 27,
+      "name": "Romulan Der'idex",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-27-0.png",
+        "ship-27-1.png",
+        "ship-27-2.png",
+        "ship-27-3.png"
+      ],
+      "original": "original-27.png",
+      "bounds": [
+        -1481,
+        1619,
+        -1720,
+        1980
+      ],
+      "mass": 900,
+      "debrisKind": 3,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": 0.008000000000000007,
+          "y": -0.454
+        },
+        {
+          "kind": "beam",
+          "x": -0.134,
+          "y": -0.124
+        },
+        {
+          "kind": "beam",
+          "x": 0.14,
+          "y": -0.124
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.0040000000000000036,
+          "y": 0.264
+        },
+        {
+          "kind": "beam",
+          "x": -0.10999999999999999,
+          "y": 0.12
+        },
+        {
+          "kind": "beam",
+          "x": 0.11199999999999999,
+          "y": 0.12
+        }
+      ],
+      "size": 500,
+      "shieldColor": "green"
+    },
+    {
+      "id": 28,
+      "name": "Romulan Norexan",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-28-0.png",
+        "ship-28-1.png",
+        "ship-28-2.png",
+        "ship-28-3.png"
+      ],
+      "original": "original-28.png",
+      "bounds": [
+        -1340,
+        1320,
+        -1010,
+        850
+      ],
+      "mass": 600,
+      "debrisKind": 3,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": -0.40800000000000003,
+          "y": -0.184
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.41200000000000003,
+          "y": -0.184
+        },
+        {
+          "kind": "disruptor",
+          "x": -0.136,
+          "y": 0.028000000000000025
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.14800000000000002,
+          "y": 0.028000000000000025
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.0040000000000000036,
+          "y": -0.28
+        },
+        {
+          "kind": "beam",
+          "x": -0.043999999999999984,
+          "y": 0.21599999999999997
+        },
+        {
+          "kind": "beam",
+          "x": 0.052000000000000046,
+          "y": 0.21599999999999997
+        }
+      ],
+      "size": 250,
+      "shieldColor": "green"
+    },
+    {
+      "id": 29,
+      "name": "Romulan Scout",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-29-0.png",
+        "ship-29-1.png",
+        "ship-29-2.png",
+        "ship-29-3.png"
+      ],
+      "original": "original-29.png",
+      "bounds": [
+        -191,
+        184,
+        -225,
+        235
+      ],
+      "mass": 100,
+      "debrisKind": 3,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": -0.2,
+          "y": -0.08000000000000002
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.18000000000000005,
+          "y": -0.08000000000000002
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": 0.33999999999999997
+        }
+      ],
+      "size": 50,
+      "shieldColor": "green"
+    },
+    {
+      "id": 30,
+      "name": "Jem'Hadar Fighter",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-30-0.png",
+        "ship-30-1.png",
+        "ship-30-2.png",
+        "ship-30-3.png"
+      ],
+      "original": "original-30.png",
+      "bounds": [
+        -431,
+        373,
+        -320,
+        340
+      ],
+      "mass": 200,
+      "debrisKind": 2,
+      "points": [
+        {
+          "kind": "beam",
+          "x": 0.010000000000000009,
+          "y": -0.32999999999999996
+        },
+        {
+          "kind": "beam",
+          "x": 0.008000000000000007,
+          "y": 0.245
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.010000000000000009,
+          "y": -0.32999999999999996
+        }
+      ],
+      "size": 100,
+      "shieldColor": "purple"
+    },
+    {
+      "id": 31,
+      "name": "Galor Class",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-31-0.png",
+        "ship-31-1.png",
+        "ship-31-2.png",
+        "ship-31-3.png"
+      ],
+      "original": "original-31.png",
+      "bounds": [
+        -721,
+        659,
+        -1030,
+        1670
+      ],
+      "mass": 700,
+      "debrisKind": 4,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.22800000000000004,
+          "y": -0.20966666666666667
+        },
+        {
+          "kind": "beam",
+          "x": 0.21266666666666667,
+          "y": -0.21333333333333332
+        },
+        {
+          "kind": "beam",
+          "x": -0.08966666666666667,
+          "y": -0.03066666666666662
+        },
+        {
+          "kind": "beam",
+          "x": 0.06633333333333336,
+          "y": -0.02699999999999997
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.0050000000000000044,
+          "y": -0.43066666666666664
+        }
+      ],
+      "size": 300,
+      "shieldColor": "yellow"
+    },
+    {
+      "id": 32,
+      "name": "Keldon Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-32-0.png",
+        "ship-32-1.png",
+        "ship-32-2.png",
+        "ship-32-3.png"
+      ],
+      "original": "original-32.png",
+      "bounds": [
+        -752,
+        732,
+        -1136,
+        1734
+      ],
+      "mass": 500.5,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 33,
+      "name": "Akira Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-33-0.png",
+        "ship-33-1.png",
+        "ship-33-2.png",
+        "ship-33-3.png"
+      ],
+      "original": "original-33.png",
+      "bounds": [
+        -621,
+        559,
+        -950,
+        790
+      ],
+      "mass": 400.6,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 34,
+      "name": "Defiant Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-34-0.png",
+        "ship-34-1.png",
+        "ship-34-2.png",
+        "ship-34-3.png"
+      ],
+      "original": "original-34.png",
+      "bounds": [
+        -220,
+        239,
+        -290,
+        251
+      ],
+      "mass": 200,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": -0.15999999999999998,
+          "y": -0.24
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.19999999999999996,
+          "y": -0.24
+        },
+        {
+          "kind": "beam",
+          "x": 0.010000000000000009,
+          "y": 0.44999999999999996
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.010000000000000009,
+          "y": -0.45
+        }
+      ],
+      "size": 100,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 35,
+      "name": "Galaxy Class",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-35-0.png",
+        "ship-35-1.png",
+        "ship-35-2.png",
+        "ship-35-3.png"
+      ],
+      "original": "original-35.png",
+      "bounds": [
+        -1221,
+        1159,
+        -1750,
+        1430
+      ],
+      "mass": 700,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.27666666666666667,
+          "y": -0.22066666666666668
+        },
+        {
+          "kind": "beam",
+          "x": 0.2676666666666667,
+          "y": -0.22400000000000003
+        },
+        {
+          "kind": "beam",
+          "x": -0.23333333333333334,
+          "y": 0.38
+        },
+        {
+          "kind": "beam",
+          "x": 0.22666666666666668,
+          "y": 0.38
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.010000000000000009,
+          "y": -0.49666666666666665
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.003333333333333355,
+          "y": 0.3966666666666666
+        },
+        {
+          "kind": "beam",
+          "x": -0.010000000000000009,
+          "y": -0.38666666666666666
+        }
+      ],
+      "size": 300,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 36,
+      "name": "Intrepid Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-36-0.png",
+        "ship-36-1.png",
+        "ship-36-2.png",
+        "ship-36-3.png"
+      ],
+      "original": "original-36.png",
+      "bounds": [
+        -341,
+        319,
+        -790,
+        870
+      ],
+      "mass": 150,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0.008333333333333304,
+          "y": -0.3833333333333333
+        },
+        {
+          "kind": "beam",
+          "x": -0.09999999999999998,
+          "y": -0.2
+        },
+        {
+          "kind": "beam",
+          "x": 0.125,
+          "y": -0.2
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.008333333333333304,
+          "y": 0.41666666666666663
+        },
+        {
+          "kind": "beam",
+          "x": -0.08333333333333331,
+          "y": 0.32499999999999996
+        },
+        {
+          "kind": "beam",
+          "x": 0.09166666666666667,
+          "y": 0.32499999999999996
+        }
+      ],
+      "size": 120,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 37,
+      "name": "Prometheus Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-37-0.png",
+        "ship-37-1.png",
+        "ship-37-2.png",
+        "ship-37-3.png"
+      ],
+      "original": "original-37.png",
+      "bounds": [
+        -338,
+        357,
+        -919,
+        840
+      ],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 38,
+      "name": "Sovereign Class",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-38-0.png",
+        "ship-38-1.png",
+        "ship-38-2.png",
+        "ship-38-3.png"
+      ],
+      "original": "original-38.png",
+      "bounds": [
+        -811,
+        829,
+        -1750,
+        1910
+      ],
+      "mass": 650,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.3787878787878788
+        },
+        {
+          "kind": "beam",
+          "x": -0.12424242424242427,
+          "y": -0.28181818181818186
+        },
+        {
+          "kind": "beam",
+          "x": 0.11515151515151512,
+          "y": -0.28181818181818186
+        },
+        {
+          "kind": "beam",
+          "x": -0.030303030303030276,
+          "y": 0.21212121212121215
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.45454545454545453
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": 0.26363636363636367
+        },
+        {
+          "kind": "beam",
+          "x": 0.06060606060606055,
+          "y": 0.21212121212121215
+        }
+      ],
+      "size": 330,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 39,
+      "name": "B'rel Type",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-39-0.png",
+        "ship-39-1.png",
+        "ship-39-2.png",
+        "ship-39-3.png"
+      ],
+      "original": "original-39.png",
+      "bounds": [
+        -261,
+        239,
+        -260,
+        180
+      ],
+      "mass": 100,
+      "debrisKind": 3,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": -0.4066666666666667,
+          "y": -0.12666666666666665
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.43333333333333335,
+          "y": -0.12666666666666665
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.006666666666666654,
+          "y": -0.31333333333333335
+        }
+      ],
+      "size": 75,
+      "shieldColor": "red"
+    },
+    {
+      "id": 40,
+      "name": "K'Tinga Cruiser",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-40-0.png",
+        "ship-40-1.png",
+        "ship-40-2.png",
+        "ship-40-3.png"
+      ],
+      "original": "original-40.png",
+      "bounds": [
+        -631,
+        569,
+        -960,
+        760
+      ],
+      "mass": 450,
+      "debrisKind": 3,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": -0.010344827586206917,
+          "y": -0.4241379310344828
+        },
+        {
+          "kind": "beam",
+          "x": -0.09310344827586209,
+          "y": 0.14137931034482754
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.010344827586206917,
+          "y": 0.27241379310344827
+        },
+        {
+          "kind": "beam",
+          "x": 0.05862068965517242,
+          "y": 0.14137931034482754
+        }
+      ],
+      "size": 145,
+      "shieldColor": "red"
+    },
+    {
+      "id": 41,
+      "name": "K'Vort Type",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-41-0.png",
+        "ship-41-1.png",
+        "ship-41-2.png",
+        "ship-41-3.png"
+      ],
+      "original": "original-41.png",
+      "bounds": [
+        -520,
+        600,
+        -500,
+        460
+      ],
+      "mass": 200,
+      "debrisKind": 3,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": -0.4066666666666667,
+          "y": -0.14
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.43999999999999995,
+          "y": -0.14
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.020000000000000018,
+          "y": -0.35333333333333333
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.013333333333333308,
+          "y": 0.29333333333333333
+        }
+      ],
+      "size": 150,
+      "shieldColor": "red"
+    },
+    {
+      "id": 42,
+      "name": "Neg'Var Warship",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-42-0.png",
+        "ship-42-1.png",
+        "ship-42-2.png",
+        "ship-42-3.png"
+      ],
+      "original": "original-42.png",
+      "bounds": [
+        -1361,
+        1339,
+        -2470,
+        1630
+      ],
+      "mass": 900,
+      "debrisKind": 3,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.09000000000000002,
+          "y": -0.33999999999999997
+        },
+        {
+          "kind": "beam",
+          "x": 0.07666666666666666,
+          "y": -0.35333333333333333
+        },
+        {
+          "kind": "beam",
+          "x": -0.08666666666666667,
+          "y": 0.1166666666666667
+        },
+        {
+          "kind": "beam",
+          "x": 0.09666666666666668,
+          "y": 0.1166666666666667
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.18,
+          "y": 0.033333333333333326
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.19333333333333336,
+          "y": 0.033333333333333326
+        },
+        {
+          "kind": "beam",
+          "x": 0.0033333333333332993,
+          "y": 0.4866666666666667
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.22666666666666668,
+          "y": 0.33333333333333337
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.21999999999999997,
+          "y": 0.33333333333333337
+        }
+      ],
+      "size": 300,
+      "shieldColor": "red"
+    },
+    {
+      "id": 43,
+      "name": "Vorcha Cruiser",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-43-0.png",
+        "ship-43-1.png",
+        "ship-43-2.png",
+        "ship-43-3.png"
+      ],
+      "original": "original-43.png",
+      "bounds": [
+        -823,
+        817,
+        -1103,
+        1177
+      ],
+      "mass": 600,
+      "debrisKind": 3,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.02400000000000002,
+          "y": -0.46799999999999997
+        },
+        {
+          "kind": "beam",
+          "x": 0.03600000000000003,
+          "y": -0.46799999999999997
+        },
+        {
+          "kind": "beam",
+          "x": -0.14400000000000002,
+          "y": 0.19999999999999996
+        },
+        {
+          "kind": "beam",
+          "x": 0.16000000000000003,
+          "y": 0.19999999999999996
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.28
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": 0.30800000000000005
+        },
+        {
+          "kind": "beam",
+          "x": 0.008000000000000007,
+          "y": 0.20799999999999996
+        }
+      ],
+      "size": 250,
+      "shieldColor": "red"
+    },
+    {
+      "id": 44,
+      "name": "Borg Cube",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-44-0.png",
+        "ship-44-1.png",
+        "ship-44-2.png",
+        "ship-44-3.png"
+      ],
+      "original": "original-44.png",
+      "bounds": [
+        -5229,
+        5165,
+        -4899,
+        5314
+      ],
+      "mass": 5000,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.35250000000000004,
+          "y": -0.3825
+        },
+        {
+          "kind": "beam",
+          "x": 0.1233333333333333,
+          "y": -0.31666666666666665
+        },
+        {
+          "kind": "beam",
+          "x": 0.17500000000000004,
+          "y": 0.18999999999999995
+        },
+        {
+          "kind": "beam",
+          "x": -0.3441666666666667,
+          "y": 0.05833333333333335
+        }
+      ],
+      "size": 1200,
+      "shieldColor": "green"
+    },
+    {
+      "id": 45,
+      "name": "Akuzi Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-45-0.png",
+        "ship-45-1.png",
+        "ship-45-2.png",
+        "ship-45-3.png"
+      ],
+      "original": "original-45.png",
+      "bounds": [
+        -710,
+        690,
+        -950,
+        1030
+      ],
+      "mass": 150,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.43333333333333335
+        },
+        {
+          "kind": "beam",
+          "x": -0.13333333333333336,
+          "y": -0.30666666666666664
+        },
+        {
+          "kind": "beam",
+          "x": 0.16000000000000003,
+          "y": -0.30666666666666664
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": 0.16666666666666663
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": 0.033333333333333326
+        }
+      ],
+      "size": 150,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 46,
+      "name": "New Orleans Class",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-46-0.png",
+        "ship-46-1.png",
+        "ship-46-2.png",
+        "ship-46-3.png"
+      ],
+      "original": "original-46.png",
+      "bounds": [
+        -940,
+        960,
+        -1250,
+        1250
+      ],
+      "mass": 450,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0.0050000000000000044,
+          "y": -0.46499999999999997
+        },
+        {
+          "kind": "beam",
+          "x": -0.21000000000000002,
+          "y": -0.32
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.0050000000000000044,
+          "y": 0.29500000000000004
+        },
+        {
+          "kind": "beam",
+          "x": 0.235,
+          "y": -0.32
+        }
+      ],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 47,
+      "name": "Oberth Tug",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-47-0.png",
+        "ship-47-1.png",
+        "ship-47-2.png",
+        "ship-47-3.png"
+      ],
+      "original": "original-47.png",
+      "bounds": [
+        -350,
+        370,
+        -610,
+        770
+      ],
+      "mass": 100,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.006666666666666654,
+          "y": -0.4026666666666667
+        },
+        {
+          "kind": "beam",
+          "x": -0.00933333333333336,
+          "y": 0.16666666666666663
+        }
+      ],
+      "size": 75,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 48,
+      "name": "Jem'Hadar Battlecruiser",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-48-0.png",
+        "ship-48-1.png",
+        "ship-48-2.png",
+        "ship-48-3.png"
+      ],
+      "original": "original-48.png",
+      "bounds": [
+        -1380,
+        1400,
+        -1840,
+        1840
+      ],
+      "mass": 800,
+      "debrisKind": 2,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.06666666666666665,
+          "y": -0.48
+        },
+        {
+          "kind": "beam",
+          "x": 0.043333333333333335,
+          "y": -0.48
+        },
+        {
+          "kind": "beam",
+          "x": -0.16999999999999998,
+          "y": 0.1466666666666666
+        },
+        {
+          "kind": "beam",
+          "x": 0.15366666666666662,
+          "y": 0.15033333333333332
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.010000000000000009,
+          "y": -0.24333333333333335
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.24333333333333335
+        }
+      ],
+      "size": 300,
+      "shieldColor": "purple"
+    },
+    {
+      "id": 49,
+      "name": "Galaxy Dreadnaught",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-49-0.png",
+        "ship-49-1.png",
+        "ship-49-2.png",
+        "ship-49-3.png"
+      ],
+      "original": "original-49.png",
+      "bounds": [
+        -1290,
+        1310,
+        -1670,
+        1670
+      ],
+      "mass": 700,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.26,
+          "y": -0.21333333333333332
+        },
+        {
+          "kind": "beam",
+          "x": 0.2566666666666667,
+          "y": -0.2
+        },
+        {
+          "kind": "beam",
+          "x": -0.23333333333333334,
+          "y": 0.38
+        },
+        {
+          "kind": "beam",
+          "x": 0.22666666666666668,
+          "y": 0.38
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.033333333333333326,
+          "y": -0.49666666666666665
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.01666666666666672,
+          "y": -0.49666666666666665
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.033333333333333326,
+          "y": 0.3966666666666666
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.01666666666666672,
+          "y": 0.3966666666666666
+        },
+        {
+          "kind": "beam",
+          "x": -0.010000000000000009,
+          "y": -0.38666666666666666
+        },
+        {
+          "kind": "disruptor",
+          "x": -0.09333333333333332,
+          "y": -0.2633333333333333
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.09333333333333338,
+          "y": -0.2633333333333333
+        },
+        {
+          "kind": "beam",
+          "x": 0.00666666666666671,
+          "y": -0.4666666666666667
+        }
+      ],
+      "size": 300,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 50,
+      "name": "Sentient Lifeform",
+      "origin": "Biological remaster",
+      "frames": [
+        "lifeform-50-0-v2.png",
+        "lifeform-50-1-v2.png",
+        "lifeform-50-2-v2.png",
+        "lifeform-50-3-v2.png"
+      ],
+      "original": "original-50.png",
+      "bounds": [
+        -466,
+        487,
+        -828,
+        829
+      ],
+      "mass": 600.4,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 51,
+      "name": "Delpin Luxury Liner",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-51-0.png",
+        "ship-51-1.png",
+        "ship-51-2.png",
+        "ship-51-3.png"
+      ],
+      "original": "original-51.png",
+      "bounds": [
+        -1470,
+        1570,
+        -2640,
+        1520
+      ],
+      "mass": 200,
+      "debrisKind": 7,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.06,
+          "y": -0.12666666666666665
+        },
+        {
+          "kind": "beam",
+          "x": 0.07999999999999996,
+          "y": -0.12666666666666665
+        },
+        {
+          "kind": "beam",
+          "x": -0.06666666666666665,
+          "y": 0.21999999999999997
+        },
+        {
+          "kind": "beam",
+          "x": 0.06666666666666665,
+          "y": 0.21999999999999997
+        }
+      ],
+      "size": 150,
+      "shieldColor": "yellow"
+    },
+    {
+      "id": 52,
+      "name": "Tarellian Cruiser",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-52-0.png",
+        "ship-52-1.png",
+        "ship-52-2.png",
+        "ship-52-3.png"
+      ],
+      "original": "original-52.png",
+      "bounds": [
+        -460,
+        520,
+        -1203,
+        1084
+      ],
+      "mass": 300,
+      "debrisKind": 6,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": 0,
+          "y": -0.0733333333333333
+        }
+      ],
+      "size": 150,
+      "shieldColor": "purple"
+    },
+    {
+      "id": 53,
+      "name": "Reman Warbird",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-53-0.png",
+        "ship-53-1.png",
+        "ship-53-2.png",
+        "ship-53-3.png"
+      ],
+      "original": "original-53.png",
+      "bounds": [
+        -1910,
+        1910,
+        -1210,
+        1090
+      ],
+      "mass": 750,
+      "debrisKind": 3,
+      "points": [
+        {
+          "kind": "disruptor",
+          "x": 0.2487999999999999,
+          "y": -0.061399999999999955
+        },
+        {
+          "kind": "beam",
+          "x": -0.13019999999999998,
+          "y": -0.09439999999999998
+        },
+        {
+          "kind": "beam",
+          "x": 0.14,
+          "y": -0.09439999999999998
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.031799999999999995,
+          "y": 0.2602000000000001
+        },
+        {
+          "kind": "beam",
+          "x": -0.1804,
+          "y": 0.25139999999999996
+        },
+        {
+          "kind": "beam",
+          "x": 0.18059999999999998,
+          "y": 0.2607999999999999
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.033399999999999985,
+          "y": 0.2592000000000001
+        },
+        {
+          "kind": "disruptor",
+          "x": -0.263,
+          "y": -0.063
+        },
+        {
+          "kind": "disruptor",
+          "x": -0.33699999999999997,
+          "y": -0.13139999999999996
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.33699999999999997,
+          "y": -0.13880000000000003
+        },
+        {
+          "kind": "disruptor",
+          "x": -0.40559999999999996,
+          "y": -0.26480000000000004
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.40560000000000007,
+          "y": -0.25
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.04999999999999999,
+          "y": -0.3186
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.050000000000000044,
+          "y": -0.3186
+        },
+        {
+          "kind": "disruptor",
+          "x": -0.2222,
+          "y": 0.2056
+        },
+        {
+          "kind": "disruptor",
+          "x": 0.22220000000000006,
+          "y": 0.2148
+        },
+        {
+          "kind": "beam",
+          "x": -0.06660000000000005,
+          "y": -0.25
+        },
+        {
+          "kind": "beam",
+          "x": 0.06299999999999994,
+          "y": -0.24619999999999997
+        },
+        {
+          "kind": "beam",
+          "x": -0.19080000000000003,
+          "y": -0.176
+        },
+        {
+          "kind": "beam",
+          "x": 0.1926,
+          "y": -0.1778
+        }
+      ],
+      "size": 500,
+      "shieldColor": "green"
+    },
+    {
+      "id": 54,
+      "name": "Tamarian Cruiser",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-54-0.png",
+        "ship-54-1.png",
+        "ship-54-2.png",
+        "ship-54-3.png"
+      ],
+      "original": "original-54.png",
+      "bounds": [
+        -650,
+        650,
+        -1000,
+        1000
+      ],
+      "mass": 100,
+      "debrisKind": 6,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0.010000000000000009,
+          "y": -0.39
+        },
+        {
+          "kind": "beam",
+          "x": -0.15999999999999998,
+          "y": -0.12
+        },
+        {
+          "kind": "beam",
+          "x": 0.18999999999999995,
+          "y": -0.12
+        }
+      ],
+      "size": 100,
+      "shieldColor": "purple"
+    },
+    {
+      "id": 55,
+      "name": "Alien Bioship",
+      "origin": "Biological remaster",
+      "frames": [
+        "bioship-55-0-v2.png",
+        "bioship-55-1-v2.png",
+        "bioship-55-2-v2.png",
+        "bioship-55-3-v2.png"
+      ],
+      "original": "original-55.png",
+      "bounds": [
+        -629,
+        629,
+        -1090,
+        970
+      ],
+      "mass": 1000,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 56,
+      "name": "Constitution Tug",
+      "origin": "AI remaster",
+      "frames": [
+        "ship-56-0.png",
+        "ship-56-1.png",
+        "ship-56-2.png",
+        "ship-56-3.png"
+      ],
+      "original": "original-56.png",
+      "bounds": [
+        -501,
+        520,
+        -1029,
+        1029
+      ],
+      "mass": 150,
+      "debrisKind": 1,
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0.013333333333333308,
+          "y": -0.4533333333333333
+        },
+        {
+          "kind": "beam",
+          "x": -0.13333333333333336,
+          "y": -0.26
+        },
+        {
+          "kind": "beam",
+          "x": 0.14,
+          "y": -0.26
+        }
+      ],
+      "size": 150,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 57,
+      "name": "Constellation Tug",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-57-0.png",
+        "ship-57-1.png",
+        "ship-57-2.png",
+        "ship-57-3.png"
+      ],
+      "original": "original-57.png",
+      "bounds": [
+        -458,
+        478,
+        -722,
+        1001
+      ],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 58,
+      "name": "Olympic Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-58-0.png",
+        "ship-58-1.png",
+        "ship-58-2.png",
+        "ship-58-3.png"
+      ],
+      "original": "original-58.png",
+      "bounds": [
+        -610,
+        630,
+        -1580,
+        1580
+      ],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 59,
+      "name": "Vulcan C'Thia",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-59-0.png",
+        "ship-59-1.png",
+        "ship-59-2.png",
+        "ship-59-3.png"
+      ],
+      "original": "original-59.png",
+      "bounds": [
+        -880,
+        900,
+        -1250,
+        1250
+      ],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 60,
+      "name": "Dreadnaught Class",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-60-0.png",
+        "ship-60-1.png",
+        "ship-60-2.png",
+        "ship-60-3.png"
+      ],
+      "original": "original-60.png",
+      "bounds": [
+        -1460,
+        1480,
+        -2820,
+        2820
+      ],
+      "mass": 600.4,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 61,
+      "name": "Klingon Qonos",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-61-0.png",
+        "ship-61-1.png",
+        "ship-61-2.png",
+        "ship-61-3.png"
+      ],
+      "original": "original-61.png",
+      "bounds": [
+        -2560,
+        2580,
+        -2890,
+        2890
+      ],
+      "mass": 600.4,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 62,
+      "name": "Cardassian Behemoth",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-62-0.png",
+        "ship-62-1.png",
+        "ship-62-2.png",
+        "ship-62-3.png"
+      ],
+      "original": "original-62.png",
+      "bounds": [
+        -1322,
+        1342,
+        -2576,
+        2575
+      ],
+      "mass": 600.4,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 63,
+      "name": "Vulcan Lifeform",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-63-0.png",
+        "ship-63-1.png",
+        "ship-63-2.png",
+        "ship-63-3.png"
+      ],
+      "original": "original-63.png",
+      "bounds": [
+        -466,
+        487,
+        -828,
+        829
+      ],
+      "mass": 600.4,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 64,
+      "name": "Romulan Warhawk",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-64-0.png",
+        "ship-64-1.png",
+        "ship-64-2.png",
+        "ship-64-3.png"
+      ],
+      "original": "original-64.png",
+      "bounds": [
+        -1866,
+        2005,
+        -2180,
+        2440
+      ],
+      "mass": 600.4,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 65,
+      "name": "Dominion Battleship",
+      "origin": "Rebirth",
+      "frames": [
+        "ship-65-0.png",
+        "ship-65-1.png",
+        "ship-65-2.png",
+        "ship-65-3.png"
+      ],
+      "original": "original-65.png",
+      "bounds": [
+        -2710,
+        2850,
+        -3520,
+        2720
+      ],
+      "mass": 1200,
+      "debrisKind": 2,
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.14600000000000002,
+          "y": -0.16599999999999998
+        },
+        {
+          "kind": "beam",
+          "x": 0.15400000000000003,
+          "y": -0.16599999999999998
+        },
+        {
+          "kind": "beam",
+          "x": -0.2,
+          "y": 0.15400000000000003
+        },
+        {
+          "kind": "beam",
+          "x": 0.20799999999999996,
+          "y": 0.15400000000000003
+        },
+        {
+          "kind": "beam",
+          "x": -0.016000000000000014,
+          "y": -0.448
+        },
+        {
+          "kind": "beam",
+          "x": 0.020000000000000018,
+          "y": -0.448
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.008000000000000007,
+          "y": -0.4
+        },
+        {
+          "kind": "torpedo",
+          "x": 0.008000000000000007,
+          "y": 0.20199999999999996
+        },
+        {
+          "kind": "beam",
+          "x": -0.172,
+          "y": -0.020000000000000018
+        },
+        {
+          "kind": "beam",
+          "x": 0.18799999999999994,
+          "y": -0.020000000000000018
+        }
+      ],
+      "size": 500,
+      "shieldColor": "purple"
+    },
+    {
+      "id": 66,
+      "name": "Tholian Conquest",
+      "origin": "Supplied missing ship",
+      "frames": [
+        "ship-66-0.png",
+        "ship-66-1.png",
+        "ship-66-2.png",
+        "ship-66-3.png"
+      ],
+      "original": "original-66.png",
+      "bounds": [
+        -2040,
+        2060,
+        -2570,
+        2570
+      ],
+      "mass": 600.4,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue"
+    },
+    {
+      "id": 67,
+      "name": "Egg A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/egg-a-intact.png",
+        "creatures/egg-a-damage-1.png",
+        "creatures/egg-a-damage-2.png",
+        "creatures/egg-a-damage-3.png"
+      ],
+      "original": "creatures/egg-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 440
+    },
+    {
+      "id": 68,
+      "name": "Egg B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/egg-b-intact.png",
+        "creatures/egg-b-damage-1.png",
+        "creatures/egg-b-damage-2.png",
+        "creatures/egg-b-damage-3.png"
+      ],
+      "original": "creatures/egg-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340
+    },
+    {
+      "id": 69,
+      "name": "Larva A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/larva-a-intact.png",
+        "creatures/larva-a-damage-1.png",
+        "creatures/larva-a-damage-2.png",
+        "creatures/larva-a-damage-3.png"
+      ],
+      "original": "creatures/larva-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 440
+    },
+    {
+      "id": 70,
+      "name": "Larva B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/larva-b-intact.png",
+        "creatures/larva-b-damage-1.png",
+        "creatures/larva-b-damage-2.png",
+        "creatures/larva-b-damage-3.png"
+      ],
+      "original": "creatures/larva-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340
+    },
+    {
+      "id": 71,
+      "name": "Juvenile A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/juvenile-a-intact.png",
+        "creatures/juvenile-a-damage-1.png",
+        "creatures/juvenile-a-damage-2.png",
+        "creatures/juvenile-a-damage-3.png"
+      ],
+      "original": "creatures/juvenile-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 440
+    },
+    {
+      "id": 72,
+      "name": "Juvenile B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/juvenile-b-intact.png",
+        "creatures/juvenile-b-damage-1.png",
+        "creatures/juvenile-b-damage-2.png",
+        "creatures/juvenile-b-damage-3.png"
+      ],
+      "original": "creatures/juvenile-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340
+    },
+    {
+      "id": 73,
+      "name": "Worker A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/worker-a-intact.png",
+        "creatures/worker-a-damage-1.png",
+        "creatures/worker-a-damage-2.png",
+        "creatures/worker-a-damage-3.png"
+      ],
+      "original": "creatures/worker-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340
+    },
+    {
+      "id": 74,
+      "name": "Worker B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/worker-b-intact.png",
+        "creatures/worker-b-damage-1.png",
+        "creatures/worker-b-damage-2.png",
+        "creatures/worker-b-damage-3.png"
+      ],
+      "original": "creatures/worker-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340
+    },
+    {
+      "id": 75,
+      "name": "Guard A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/guard-a-intact.png",
+        "creatures/guard-a-damage-1.png",
+        "creatures/guard-a-damage-2.png",
+        "creatures/guard-a-damage-3.png"
+      ],
+      "original": "creatures/guard-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340
+    },
+    {
+      "id": 76,
+      "name": "Guard B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/guard-b-intact.png",
+        "creatures/guard-b-damage-1.png",
+        "creatures/guard-b-damage-2.png",
+        "creatures/guard-b-damage-3.png"
+      ],
+      "original": "creatures/guard-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340
+    },
+    {
+      "id": 77,
+      "name": "Queen A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/queen-a-intact.png",
+        "creatures/queen-a-damage-1.png",
+        "creatures/queen-a-damage-2.png",
+        "creatures/queen-a-damage-3.png"
+      ],
+      "original": "creatures/queen-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340
+    },
+    {
+      "id": 78,
+      "name": "Queen B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted creature sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/queen-b-intact.png",
+        "creatures/queen-b-damage-1.png",
+        "creatures/queen-b-damage-2.png",
+        "creatures/queen-b-damage-3.png"
+      ],
+      "original": "creatures/queen-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340
+    },
+    {
+      "id": 200,
+      "name": "Red Mutation \u00b7 Egg A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-egg-a-intact.png",
+        "creatures/mutations/red-egg-a-damage-1.png",
+        "creatures/mutations/red-egg-a-damage-2.png",
+        "creatures/mutations/red-egg-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-egg-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "A",
+      "babyFile": "creatures/mutations/red-larva-a-intact.png",
+      "babyId": 202
+    },
+    {
+      "id": 201,
+      "name": "Red Mutation \u00b7 Egg B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-egg-b-intact.png",
+        "creatures/mutations/red-egg-b-damage-1.png",
+        "creatures/mutations/red-egg-b-damage-2.png",
+        "creatures/mutations/red-egg-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-egg-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "B",
+      "babyFile": "creatures/mutations/red-larva-b-intact.png",
+      "babyId": 203
+    },
+    {
+      "id": 202,
+      "name": "Red Mutation \u00b7 Larva A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-larva-a-intact.png",
+        "creatures/mutations/red-larva-a-damage-1.png",
+        "creatures/mutations/red-larva-a-damage-2.png",
+        "creatures/mutations/red-larva-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-larva-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 203,
+      "name": "Red Mutation \u00b7 Larva B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-larva-b-intact.png",
+        "creatures/mutations/red-larva-b-damage-1.png",
+        "creatures/mutations/red-larva-b-damage-2.png",
+        "creatures/mutations/red-larva-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-larva-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 204,
+      "name": "Red Mutation \u00b7 Juvenile A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-juvenile-a-intact.png",
+        "creatures/mutations/red-juvenile-a-damage-1.png",
+        "creatures/mutations/red-juvenile-a-damage-2.png",
+        "creatures/mutations/red-juvenile-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-juvenile-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 205,
+      "name": "Red Mutation \u00b7 Juvenile B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-juvenile-b-intact.png",
+        "creatures/mutations/red-juvenile-b-damage-1.png",
+        "creatures/mutations/red-juvenile-b-damage-2.png",
+        "creatures/mutations/red-juvenile-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-juvenile-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 206,
+      "name": "Red Mutation \u00b7 Worker A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-worker-a-intact.png",
+        "creatures/mutations/red-worker-a-damage-1.png",
+        "creatures/mutations/red-worker-a-damage-2.png",
+        "creatures/mutations/red-worker-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-worker-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 207,
+      "name": "Red Mutation \u00b7 Worker B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-worker-b-intact.png",
+        "creatures/mutations/red-worker-b-damage-1.png",
+        "creatures/mutations/red-worker-b-damage-2.png",
+        "creatures/mutations/red-worker-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-worker-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 208,
+      "name": "Red Mutation \u00b7 Guard A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-guard-a-intact.png",
+        "creatures/mutations/red-guard-a-damage-1.png",
+        "creatures/mutations/red-guard-a-damage-2.png",
+        "creatures/mutations/red-guard-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-guard-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 209,
+      "name": "Red Mutation \u00b7 Guard B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-guard-b-intact.png",
+        "creatures/mutations/red-guard-b-damage-1.png",
+        "creatures/mutations/red-guard-b-damage-2.png",
+        "creatures/mutations/red-guard-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-guard-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 210,
+      "name": "Red Mutation \u00b7 Queen A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-queen-a-intact.png",
+        "creatures/mutations/red-queen-a-damage-1.png",
+        "creatures/mutations/red-queen-a-damage-2.png",
+        "creatures/mutations/red-queen-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-queen-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 211,
+      "name": "Red Mutation \u00b7 Queen B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/red-queen-b-intact.png",
+        "creatures/mutations/red-queen-b-damage-1.png",
+        "creatures/mutations/red-queen-b-damage-2.png",
+        "creatures/mutations/red-queen-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/red-queen-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "red",
+      "mutationName": "Red Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 212,
+      "name": "Venom Green \u00b7 Egg A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-egg-a-intact.png",
+        "creatures/mutations/venom-egg-a-damage-1.png",
+        "creatures/mutations/venom-egg-a-damage-2.png",
+        "creatures/mutations/venom-egg-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-egg-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "A",
+      "babyFile": "creatures/mutations/venom-larva-a-intact.png",
+      "babyId": 214
+    },
+    {
+      "id": 213,
+      "name": "Venom Green \u00b7 Egg B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-egg-b-intact.png",
+        "creatures/mutations/venom-egg-b-damage-1.png",
+        "creatures/mutations/venom-egg-b-damage-2.png",
+        "creatures/mutations/venom-egg-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-egg-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "B",
+      "babyFile": "creatures/mutations/venom-larva-b-intact.png",
+      "babyId": 215
+    },
+    {
+      "id": 214,
+      "name": "Venom Green \u00b7 Larva A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-larva-a-intact.png",
+        "creatures/mutations/venom-larva-a-damage-1.png",
+        "creatures/mutations/venom-larva-a-damage-2.png",
+        "creatures/mutations/venom-larva-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-larva-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "A"
+    },
+    {
+      "id": 215,
+      "name": "Venom Green \u00b7 Larva B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-larva-b-intact.png",
+        "creatures/mutations/venom-larva-b-damage-1.png",
+        "creatures/mutations/venom-larva-b-damage-2.png",
+        "creatures/mutations/venom-larva-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-larva-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "B"
+    },
+    {
+      "id": 216,
+      "name": "Venom Green \u00b7 Juvenile A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-juvenile-a-intact.png",
+        "creatures/mutations/venom-juvenile-a-damage-1.png",
+        "creatures/mutations/venom-juvenile-a-damage-2.png",
+        "creatures/mutations/venom-juvenile-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-juvenile-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "A"
+    },
+    {
+      "id": 217,
+      "name": "Venom Green \u00b7 Juvenile B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-juvenile-b-intact.png",
+        "creatures/mutations/venom-juvenile-b-damage-1.png",
+        "creatures/mutations/venom-juvenile-b-damage-2.png",
+        "creatures/mutations/venom-juvenile-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-juvenile-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "B"
+    },
+    {
+      "id": 218,
+      "name": "Venom Green \u00b7 Worker A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-worker-a-intact.png",
+        "creatures/mutations/venom-worker-a-damage-1.png",
+        "creatures/mutations/venom-worker-a-damage-2.png",
+        "creatures/mutations/venom-worker-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-worker-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "A"
+    },
+    {
+      "id": 219,
+      "name": "Venom Green \u00b7 Worker B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-worker-b-intact.png",
+        "creatures/mutations/venom-worker-b-damage-1.png",
+        "creatures/mutations/venom-worker-b-damage-2.png",
+        "creatures/mutations/venom-worker-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-worker-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "B"
+    },
+    {
+      "id": 220,
+      "name": "Venom Green \u00b7 Guard A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-guard-a-intact.png",
+        "creatures/mutations/venom-guard-a-damage-1.png",
+        "creatures/mutations/venom-guard-a-damage-2.png",
+        "creatures/mutations/venom-guard-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-guard-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "A"
+    },
+    {
+      "id": 221,
+      "name": "Venom Green \u00b7 Guard B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-guard-b-intact.png",
+        "creatures/mutations/venom-guard-b-damage-1.png",
+        "creatures/mutations/venom-guard-b-damage-2.png",
+        "creatures/mutations/venom-guard-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-guard-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "B"
+    },
+    {
+      "id": 222,
+      "name": "Venom Green \u00b7 Queen A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-queen-a-intact.png",
+        "creatures/mutations/venom-queen-a-damage-1.png",
+        "creatures/mutations/venom-queen-a-damage-2.png",
+        "creatures/mutations/venom-queen-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-queen-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "A"
+    },
+    {
+      "id": 223,
+      "name": "Venom Green \u00b7 Queen B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/venom-queen-b-intact.png",
+        "creatures/mutations/venom-queen-b-damage-1.png",
+        "creatures/mutations/venom-queen-b-damage-2.png",
+        "creatures/mutations/venom-queen-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/venom-queen-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "venom",
+      "mutationName": "Venom Green",
+      "variant": "B"
+    },
+    {
+      "id": 224,
+      "name": "Purple Mutation \u00b7 Egg A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-egg-a-intact.png",
+        "creatures/mutations/purple-egg-a-damage-1.png",
+        "creatures/mutations/purple-egg-a-damage-2.png",
+        "creatures/mutations/purple-egg-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-egg-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "A",
+      "babyFile": "creatures/mutations/purple-larva-a-intact.png",
+      "babyId": 226
+    },
+    {
+      "id": 225,
+      "name": "Purple Mutation \u00b7 Egg B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-egg-b-intact.png",
+        "creatures/mutations/purple-egg-b-damage-1.png",
+        "creatures/mutations/purple-egg-b-damage-2.png",
+        "creatures/mutations/purple-egg-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-egg-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "B",
+      "babyFile": "creatures/mutations/purple-larva-b-intact.png",
+      "babyId": 227
+    },
+    {
+      "id": 226,
+      "name": "Purple Mutation \u00b7 Larva A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-larva-a-intact.png",
+        "creatures/mutations/purple-larva-a-damage-1.png",
+        "creatures/mutations/purple-larva-a-damage-2.png",
+        "creatures/mutations/purple-larva-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-larva-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 227,
+      "name": "Purple Mutation \u00b7 Larva B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-larva-b-intact.png",
+        "creatures/mutations/purple-larva-b-damage-1.png",
+        "creatures/mutations/purple-larva-b-damage-2.png",
+        "creatures/mutations/purple-larva-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-larva-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 228,
+      "name": "Purple Mutation \u00b7 Juvenile A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-juvenile-a-intact.png",
+        "creatures/mutations/purple-juvenile-a-damage-1.png",
+        "creatures/mutations/purple-juvenile-a-damage-2.png",
+        "creatures/mutations/purple-juvenile-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-juvenile-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 229,
+      "name": "Purple Mutation \u00b7 Juvenile B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-juvenile-b-intact.png",
+        "creatures/mutations/purple-juvenile-b-damage-1.png",
+        "creatures/mutations/purple-juvenile-b-damage-2.png",
+        "creatures/mutations/purple-juvenile-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-juvenile-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 230,
+      "name": "Purple Mutation \u00b7 Worker A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-worker-a-intact.png",
+        "creatures/mutations/purple-worker-a-damage-1.png",
+        "creatures/mutations/purple-worker-a-damage-2.png",
+        "creatures/mutations/purple-worker-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-worker-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 231,
+      "name": "Purple Mutation \u00b7 Worker B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-worker-b-intact.png",
+        "creatures/mutations/purple-worker-b-damage-1.png",
+        "creatures/mutations/purple-worker-b-damage-2.png",
+        "creatures/mutations/purple-worker-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-worker-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 232,
+      "name": "Purple Mutation \u00b7 Guard A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-guard-a-intact.png",
+        "creatures/mutations/purple-guard-a-damage-1.png",
+        "creatures/mutations/purple-guard-a-damage-2.png",
+        "creatures/mutations/purple-guard-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-guard-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 233,
+      "name": "Purple Mutation \u00b7 Guard B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-guard-b-intact.png",
+        "creatures/mutations/purple-guard-b-damage-1.png",
+        "creatures/mutations/purple-guard-b-damage-2.png",
+        "creatures/mutations/purple-guard-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-guard-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 234,
+      "name": "Purple Mutation \u00b7 Queen A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-queen-a-intact.png",
+        "creatures/mutations/purple-queen-a-damage-1.png",
+        "creatures/mutations/purple-queen-a-damage-2.png",
+        "creatures/mutations/purple-queen-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-queen-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 235,
+      "name": "Purple Mutation \u00b7 Queen B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/purple-queen-b-intact.png",
+        "creatures/mutations/purple-queen-b-damage-1.png",
+        "creatures/mutations/purple-queen-b-damage-2.png",
+        "creatures/mutations/purple-queen-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/purple-queen-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "purple",
+      "mutationName": "Purple Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 236,
+      "name": "White Mutation \u00b7 Egg A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-egg-a-intact.png",
+        "creatures/mutations/white-egg-a-damage-1.png",
+        "creatures/mutations/white-egg-a-damage-2.png",
+        "creatures/mutations/white-egg-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-egg-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "A",
+      "babyFile": "creatures/mutations/white-larva-a-intact.png",
+      "babyId": 238
+    },
+    {
+      "id": 237,
+      "name": "White Mutation \u00b7 Egg B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-egg-b-intact.png",
+        "creatures/mutations/white-egg-b-damage-1.png",
+        "creatures/mutations/white-egg-b-damage-2.png",
+        "creatures/mutations/white-egg-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-egg-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "B",
+      "babyFile": "creatures/mutations/white-larva-b-intact.png",
+      "babyId": 239
+    },
+    {
+      "id": 238,
+      "name": "White Mutation \u00b7 Larva A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-larva-a-intact.png",
+        "creatures/mutations/white-larva-a-damage-1.png",
+        "creatures/mutations/white-larva-a-damage-2.png",
+        "creatures/mutations/white-larva-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-larva-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 239,
+      "name": "White Mutation \u00b7 Larva B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-larva-b-intact.png",
+        "creatures/mutations/white-larva-b-damage-1.png",
+        "creatures/mutations/white-larva-b-damage-2.png",
+        "creatures/mutations/white-larva-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-larva-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 240,
+      "name": "White Mutation \u00b7 Juvenile A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-juvenile-a-intact.png",
+        "creatures/mutations/white-juvenile-a-damage-1.png",
+        "creatures/mutations/white-juvenile-a-damage-2.png",
+        "creatures/mutations/white-juvenile-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-juvenile-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 241,
+      "name": "White Mutation \u00b7 Juvenile B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-juvenile-b-intact.png",
+        "creatures/mutations/white-juvenile-b-damage-1.png",
+        "creatures/mutations/white-juvenile-b-damage-2.png",
+        "creatures/mutations/white-juvenile-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-juvenile-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 242,
+      "name": "White Mutation \u00b7 Worker A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-worker-a-intact.png",
+        "creatures/mutations/white-worker-a-damage-1.png",
+        "creatures/mutations/white-worker-a-damage-2.png",
+        "creatures/mutations/white-worker-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-worker-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 243,
+      "name": "White Mutation \u00b7 Worker B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-worker-b-intact.png",
+        "creatures/mutations/white-worker-b-damage-1.png",
+        "creatures/mutations/white-worker-b-damage-2.png",
+        "creatures/mutations/white-worker-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-worker-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 244,
+      "name": "White Mutation \u00b7 Guard A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-guard-a-intact.png",
+        "creatures/mutations/white-guard-a-damage-1.png",
+        "creatures/mutations/white-guard-a-damage-2.png",
+        "creatures/mutations/white-guard-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-guard-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 245,
+      "name": "White Mutation \u00b7 Guard B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-guard-b-intact.png",
+        "creatures/mutations/white-guard-b-damage-1.png",
+        "creatures/mutations/white-guard-b-damage-2.png",
+        "creatures/mutations/white-guard-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-guard-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 246,
+      "name": "White Mutation \u00b7 Queen A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-queen-a-intact.png",
+        "creatures/mutations/white-queen-a-damage-1.png",
+        "creatures/mutations/white-queen-a-damage-2.png",
+        "creatures/mutations/white-queen-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-queen-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "A"
+    },
+    {
+      "id": 247,
+      "name": "White Mutation \u00b7 Queen B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/white-queen-b-intact.png",
+        "creatures/mutations/white-queen-b-damage-1.png",
+        "creatures/mutations/white-queen-b-damage-2.png",
+        "creatures/mutations/white-queen-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/white-queen-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "white",
+      "mutationName": "White Mutation",
+      "variant": "B"
+    },
+    {
+      "id": 248,
+      "name": "Borg Rendition \u00b7 Egg A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-egg-a-intact.png",
+        "creatures/mutations/borg-rendition-egg-a-damage-1.png",
+        "creatures/mutations/borg-rendition-egg-a-damage-2.png",
+        "creatures/mutations/borg-rendition-egg-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-egg-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "A",
+      "babyFile": "creatures/mutations/borg-rendition-larva-a-intact.png",
+      "babyId": 250
+    },
+    {
+      "id": 249,
+      "name": "Borg Rendition \u00b7 Egg B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-egg-b-intact.png",
+        "creatures/mutations/borg-rendition-egg-b-damage-1.png",
+        "creatures/mutations/borg-rendition-egg-b-damage-2.png",
+        "creatures/mutations/borg-rendition-egg-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-egg-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "B",
+      "babyFile": "creatures/mutations/borg-rendition-larva-b-intact.png",
+      "babyId": 251
+    },
+    {
+      "id": 250,
+      "name": "Borg Rendition \u00b7 Larva A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-larva-a-intact.png",
+        "creatures/mutations/borg-rendition-larva-a-damage-1.png",
+        "creatures/mutations/borg-rendition-larva-a-damage-2.png",
+        "creatures/mutations/borg-rendition-larva-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-larva-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "A"
+    },
+    {
+      "id": 251,
+      "name": "Borg Rendition \u00b7 Larva B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-larva-b-intact.png",
+        "creatures/mutations/borg-rendition-larva-b-damage-1.png",
+        "creatures/mutations/borg-rendition-larva-b-damage-2.png",
+        "creatures/mutations/borg-rendition-larva-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-larva-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "B"
+    },
+    {
+      "id": 252,
+      "name": "Borg Rendition \u00b7 Juvenile A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-juvenile-a-intact.png",
+        "creatures/mutations/borg-rendition-juvenile-a-damage-1.png",
+        "creatures/mutations/borg-rendition-juvenile-a-damage-2.png",
+        "creatures/mutations/borg-rendition-juvenile-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-juvenile-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "A"
+    },
+    {
+      "id": 253,
+      "name": "Borg Rendition \u00b7 Juvenile B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-juvenile-b-intact.png",
+        "creatures/mutations/borg-rendition-juvenile-b-damage-1.png",
+        "creatures/mutations/borg-rendition-juvenile-b-damage-2.png",
+        "creatures/mutations/borg-rendition-juvenile-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-juvenile-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "B"
+    },
+    {
+      "id": 254,
+      "name": "Borg Rendition \u00b7 Worker A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-worker-a-intact.png",
+        "creatures/mutations/borg-rendition-worker-a-damage-1.png",
+        "creatures/mutations/borg-rendition-worker-a-damage-2.png",
+        "creatures/mutations/borg-rendition-worker-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-worker-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "A"
+    },
+    {
+      "id": 255,
+      "name": "Borg Rendition \u00b7 Worker B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-worker-b-intact.png",
+        "creatures/mutations/borg-rendition-worker-b-damage-1.png",
+        "creatures/mutations/borg-rendition-worker-b-damage-2.png",
+        "creatures/mutations/borg-rendition-worker-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-worker-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "B"
+    },
+    {
+      "id": 256,
+      "name": "Borg Rendition \u00b7 Guard A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-guard-a-intact.png",
+        "creatures/mutations/borg-rendition-guard-a-damage-1.png",
+        "creatures/mutations/borg-rendition-guard-a-damage-2.png",
+        "creatures/mutations/borg-rendition-guard-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-guard-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "A"
+    },
+    {
+      "id": 257,
+      "name": "Borg Rendition \u00b7 Guard B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-guard-b-intact.png",
+        "creatures/mutations/borg-rendition-guard-b-damage-1.png",
+        "creatures/mutations/borg-rendition-guard-b-damage-2.png",
+        "creatures/mutations/borg-rendition-guard-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-guard-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "B"
+    },
+    {
+      "id": 258,
+      "name": "Borg Rendition \u00b7 Queen A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-queen-a-intact.png",
+        "creatures/mutations/borg-rendition-queen-a-damage-1.png",
+        "creatures/mutations/borg-rendition-queen-a-damage-2.png",
+        "creatures/mutations/borg-rendition-queen-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-queen-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "A"
+    },
+    {
+      "id": 259,
+      "name": "Borg Rendition \u00b7 Queen B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-rendition-queen-b-intact.png",
+        "creatures/mutations/borg-rendition-queen-b-damage-1.png",
+        "creatures/mutations/borg-rendition-queen-b-damage-2.png",
+        "creatures/mutations/borg-rendition-queen-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-rendition-queen-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "borg-rendition",
+      "mutationName": "Borg Rendition",
+      "variant": "B"
+    },
+    {
+      "id": 260,
+      "name": "Borg Variant \u00b7 Egg A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-egg-a-intact.png",
+        "creatures/mutations/borg-variant-egg-a-damage-1.png",
+        "creatures/mutations/borg-variant-egg-a-damage-2.png",
+        "creatures/mutations/borg-variant-egg-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-egg-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "A",
+      "babyFile": "creatures/mutations/borg-variant-larva-a-intact.png",
+      "babyId": 262
+    },
+    {
+      "id": 261,
+      "name": "Borg Variant \u00b7 Egg B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-egg-b-intact.png",
+        "creatures/mutations/borg-variant-egg-b-damage-1.png",
+        "creatures/mutations/borg-variant-egg-b-damage-2.png",
+        "creatures/mutations/borg-variant-egg-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-egg-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "egg",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "B",
+      "babyFile": "creatures/mutations/borg-variant-larva-b-intact.png",
+      "babyId": 263
+    },
+    {
+      "id": 262,
+      "name": "Borg Variant \u00b7 Larva A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-larva-a-intact.png",
+        "creatures/mutations/borg-variant-larva-a-damage-1.png",
+        "creatures/mutations/borg-variant-larva-a-damage-2.png",
+        "creatures/mutations/borg-variant-larva-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-larva-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "A"
+    },
+    {
+      "id": 263,
+      "name": "Borg Variant \u00b7 Larva B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-larva-b-intact.png",
+        "creatures/mutations/borg-variant-larva-b-damage-1.png",
+        "creatures/mutations/borg-variant-larva-b-damage-2.png",
+        "creatures/mutations/borg-variant-larva-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-larva-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "larva",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "B"
+    },
+    {
+      "id": 264,
+      "name": "Borg Variant \u00b7 Juvenile A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-juvenile-a-intact.png",
+        "creatures/mutations/borg-variant-juvenile-a-damage-1.png",
+        "creatures/mutations/borg-variant-juvenile-a-damage-2.png",
+        "creatures/mutations/borg-variant-juvenile-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-juvenile-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "A"
+    },
+    {
+      "id": 265,
+      "name": "Borg Variant \u00b7 Juvenile B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-juvenile-b-intact.png",
+        "creatures/mutations/borg-variant-juvenile-b-damage-1.png",
+        "creatures/mutations/borg-variant-juvenile-b-damage-2.png",
+        "creatures/mutations/borg-variant-juvenile-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-juvenile-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "juvenile",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "B"
+    },
+    {
+      "id": 266,
+      "name": "Borg Variant \u00b7 Worker A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-worker-a-intact.png",
+        "creatures/mutations/borg-variant-worker-a-damage-1.png",
+        "creatures/mutations/borg-variant-worker-a-damage-2.png",
+        "creatures/mutations/borg-variant-worker-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-worker-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "A"
+    },
+    {
+      "id": 267,
+      "name": "Borg Variant \u00b7 Worker B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-worker-b-intact.png",
+        "creatures/mutations/borg-variant-worker-b-damage-1.png",
+        "creatures/mutations/borg-variant-worker-b-damage-2.png",
+        "creatures/mutations/borg-variant-worker-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-worker-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "worker",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "B"
+    },
+    {
+      "id": 268,
+      "name": "Borg Variant \u00b7 Guard A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-guard-a-intact.png",
+        "creatures/mutations/borg-variant-guard-a-damage-1.png",
+        "creatures/mutations/borg-variant-guard-a-damage-2.png",
+        "creatures/mutations/borg-variant-guard-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-guard-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "A"
+    },
+    {
+      "id": 269,
+      "name": "Borg Variant \u00b7 Guard B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-guard-b-intact.png",
+        "creatures/mutations/borg-variant-guard-b-damage-1.png",
+        "creatures/mutations/borg-variant-guard-b-damage-2.png",
+        "creatures/mutations/borg-variant-guard-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-guard-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "guard",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "B"
+    },
+    {
+      "id": 270,
+      "name": "Borg Variant \u00b7 Queen A",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-queen-a-intact.png",
+        "creatures/mutations/borg-variant-queen-a-damage-1.png",
+        "creatures/mutations/borg-variant-queen-a-damage-2.png",
+        "creatures/mutations/borg-variant-queen-a-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-queen-a-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "A"
+    },
+    {
+      "id": 271,
+      "name": "Borg Variant \u00b7 Queen B",
+      "kind": "creature",
+      "biological": true,
+      "origin": "Extracted mutation sheet",
+      "artworkStatus": "biological-damage-ready",
+      "damageStagesReady": true,
+      "frames": [
+        "creatures/mutations/borg-variant-queen-b-intact.png",
+        "creatures/mutations/borg-variant-queen-b-damage-1.png",
+        "creatures/mutations/borg-variant-queen-b-damage-2.png",
+        "creatures/mutations/borg-variant-queen-b-damage-3.png"
+      ],
+      "original": "creatures/mutations/borg-variant-queen-b-intact.png",
+      "bounds": [
+        -256,
+        256,
+        -352,
+        352
+      ],
+      "previewSize": 340,
+      "creatureType": "queen",
+      "mutation": "borg-variant",
+      "mutationName": "Borg Variant",
+      "variant": "B"
+    },
+    {"id":414,"name":"Tug Class II · Standard Freight","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii.png",null,null,null],"original":"tug-class-ii/tug-class-ii.png","bounds":[0,158,0,446],"previewSize":360},
+    {"id":415,"name":"Tug Class II-S · Short Range Supply","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-s.png",null,null,null],"original":"tug-class-ii/tug-class-ii-s.png","bounds":[0,157,0,387],"previewSize":360},
+    {"id":416,"name":"Tug Class II-A · Armored Freight","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"damage-ready","damageReady":true,"frames":["tug-class-ii/tug-class-ii-a.png","tug-class-ii/tug-class-ii-a-light.png","tug-class-ii/tug-class-ii-a-heavy.png","tug-class-ii/tug-class-ii-a-severe.png"],"original":"tug-class-ii/tug-class-ii-a.png","bounds":[0,182,0,504],"previewSize":360,"debrisKind":1},
+    {"id":417,"name":"Tug Class II-T · Fuel Transport","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-t.png",null,null,null],"original":"tug-class-ii/tug-class-ii-t.png","bounds":[0,163,0,444],"previewSize":360},
+    {"id":418,"name":"Tug Class II-C · Container Hauler","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-c.png",null,null,null],"original":"tug-class-ii/tug-class-ii-c.png","bounds":[0,170,0,488],"previewSize":360},
+    {"id":419,"name":"Tug Class II-R · Rescue / Tow","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-r.png",null,null,null],"original":"tug-class-ii/tug-class-ii-r.png","bounds":[0,158,0,461],"previewSize":360},
+    {"id":420,"name":"Tug Class II-M · Mining Hauler","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-m.png",null,null,null],"original":"tug-class-ii/tug-class-ii-m.png","bounds":[0,169,0,477],"previewSize":360},
+    {"id":421,"name":"Tug Class II-P · Personnel / Supply","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-p.png",null,null,null],"original":"tug-class-ii/tug-class-ii-p.png","bounds":[0,169,0,425],"previewSize":360},
+    {"id":422,"name":"Tug Class II-H · Heavy Freight","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-h.png",null,null,null],"original":"tug-class-ii/tug-class-ii-h.png","bounds":[0,171,0,478],"previewSize":360},
+    {"id":423,"name":"Tug Class II-U · Utility","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-u.png",null,null,null],"original":"tug-class-ii/tug-class-ii-u.png","bounds":[0,141,0,405],"previewSize":360},
+    {"id":424,"name":"Tug Class II-V · Salvage","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-v.png",null,null,null],"original":"tug-class-ii/tug-class-ii-v.png","bounds":[0,126,0,451],"previewSize":360},
+    {"id":425,"name":"Tug Class II-X · Courier","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-x.png",null,null,null],"original":"tug-class-ii/tug-class-ii-x.png","bounds":[0,128,0,333],"previewSize":360}
+  ],
+  "weapons": {
+    "beam": [
+      {
+        "name": "Type X Phaser",
+        "sound": "beam1",
+        "color": 16754219,
+        "thickness": 3
+      },
+      {
+        "name": "Polaron Beam",
+        "sound": "beam2",
+        "color": 12615167,
+        "thickness": 3
+      },
+      {
+        "name": "Phased Beam",
+        "sound": "beam3",
+        "color": 15662891,
+        "thickness": 3
+      },
+      {
+        "name": "Dionic Beam",
+        "sound": "beam4",
+        "color": 13828096,
+        "thickness": 3
+      },
+      {
+        "name": "Disruptor Beam",
+        "sound": "beam5",
+        "color": 3912003,
+        "thickness": 3
+      },
+      {
+        "name": "Particle Beam",
+        "sound": "beam6",
+        "color": 33022,
+        "thickness": 3
+      },
+      {
+        "name": "Cutting Beam",
+        "sound": "borgbeam",
+        "color": 13762493,
+        "thickness": 3
+      },
+      {
+        "name": "Lance Phaser Cannon",
+        "sound": "lance",
+        "color": 16542211,
+        "thickness": 8
+      },
+      {
+        "name": "Type XII Phaser",
+        "sound": "beam1",
+        "color": 15107328,
+        "thickness": 3
+      },
+      {
+        "name": "Max X Phaser",
+        "sound": "beam1",
+        "color": 14565120,
+        "thickness": 4
+      }
+    ],
+    "torpedo": [
+      {
+        "name": "Photon Torpedo",
+        "sound": "torp1",
+        "color": 16754219,
+        "thickness": 2
+      },
+      {
+        "name": "Polaron Torpedo",
+        "sound": "torp2",
+        "color": 12615167,
+        "thickness": 2
+      },
+      {
+        "name": "Plasma Torpedo",
+        "sound": "torp3",
+        "color": 2883388,
+        "thickness": 2
+      },
+      {
+        "name": "Particle Torpedo",
+        "sound": "torp3",
+        "color": 16711680,
+        "thickness": 2
+      },
+      {
+        "name": "Quantum Torpedo",
+        "sound": "torp5",
+        "color": 14609399,
+        "thickness": 2
+      }
+    ],
+    "disruptor": [
+      {
+        "name": "Pulse Phaser",
+        "sound": "disr1",
+        "color": 16754219,
+        "thickness": 2
+      },
+      {
+        "name": "Polaron Cannon",
+        "sound": "disr2",
+        "color": 10890239,
+        "thickness": 2
+      },
+      {
+        "name": "Particle Cannon",
+        "sound": "disr3",
+        "color": 16711680,
+        "thickness": 2
+      },
+      {
+        "name": "Disruptor Cannon",
+        "sound": "disr4",
+        "color": 3912003,
+        "thickness": 4
+      },
+      {
+        "name": "Lysian Laser Cannon",
+        "sound": "disr5",
+        "color": 16754219,
+        "thickness": 1
+      },
+      {
+        "name": "Pulse Phaser",
+        "sound": "disr1",
+        "color": 16764297,
+        "thickness": 4
+      }
+    ]
+  },
+  "units": 0.91976
+}

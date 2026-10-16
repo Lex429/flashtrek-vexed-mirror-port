@@ -1,0 +1,110 @@
+[
+  {
+    "id": 0,
+    "name": "Sun",
+    "radius": 210,
+    "color": 16757548,
+    "kind": "star",
+    "file": "00 - Sun.png",
+    "source": "Export of current code-drawn Sol visual; transparent PNG"
+  },
+  {
+    "id": 1,
+    "name": "Mercury",
+    "radius": 48,
+    "color": 11182234,
+    "kind": "rock",
+    "file": "01 - Mercury.png",
+    "source": "Unmodified supplied Downloads/mercury.png; embedded native sprite and port image"
+  },
+  {
+    "id": 2,
+    "name": "Venus",
+    "radius": 76,
+    "color": 14857318,
+    "kind": "cloud",
+    "file": "02 - Venus.png",
+    "source": "Unmodified supplied Downloads/venus.png; embedded native sprite and port image"
+  },
+  {
+    "id": 3,
+    "name": "Earth",
+    "radius": 90,
+    "color": 6865361,
+    "kind": "earth",
+    "file": "03 - Earth.png",
+    "source": "Existing Earth planet artwork, 1274.png"
+  },
+  {
+    "id": 4,
+    "name": "Moon",
+    "radius": 46,
+    "color": 12435142,
+    "kind": "rock",
+    "file": "04 - Moon.png",
+    "source": "Unmodified supplied Downloads/earth moon.png; embedded native sprite and port image"
+  },
+  {
+    "id": 5,
+    "name": "Mars",
+    "radius": 64,
+    "color": 13654366,
+    "kind": "rock",
+    "file": "05 - Mars.png",
+    "source": "Unmodified supplied Downloads/mars.png; embedded native sprite and port image"
+  },
+  {
+    "id": 6,
+    "name": "Asteroid Belt",
+    "radius": 180,
+    "color": 11243915,
+    "kind": "belt",
+    "file": "06 - Asteroid Belt.png",
+    "source": "Export of current code-drawn Sol visual; transparent PNG"
+  },
+  {
+    "id": 7,
+    "name": "Jupiter",
+    "radius": 135,
+    "color": 14135695,
+    "kind": "gas",
+    "file": "07 - Jupiter.png",
+    "source": "Unmodified supplied Downloads/jupiter.png; embedded native sprite and port image"
+  },
+  {
+    "id": 8,
+    "name": "Saturn",
+    "radius": 115,
+    "color": 14535559,
+    "kind": "rings",
+    "file": "08 - Saturn.png",
+    "source": "Unmodified supplied Downloads/saturn.png; embedded native sprite and port image"
+  },
+  {
+    "id": 9,
+    "name": "Uranus",
+    "radius": 88,
+    "color": 8041172,
+    "kind": "ice",
+    "file": "09 - Uranus.png",
+    "source": "Unmodified supplied Downloads/uransus.png; embedded native sprite and port image"
+  },
+  {
+    "id": 10,
+    "name": "Neptune",
+    "radius": 87,
+    "color": 5015744,
+    "kind": "ice",
+    "file": "10 - Neptune.png",
+    "source": "Unmodified supplied Downloads/neptune.png; embedded native sprite and port image"
+  },
+  {
+    "id": 11,
+    "name": "Pluto",
+    "radius": 40,
+    "color": 11567290,
+    "kind": "rock",
+    "file": "11 - Pluto.png",
+    "source": "Unmodified supplied Downloads/pluto.png; embedded native sprite and encounter image"
+  }
+]
