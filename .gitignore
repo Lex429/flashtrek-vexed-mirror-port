@@ -2,3 +2,5 @@
 Thumbs.db
 *.swf
 *.log
+test-results/
+__pycache__/

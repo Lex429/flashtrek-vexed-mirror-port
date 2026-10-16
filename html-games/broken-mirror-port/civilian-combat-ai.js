@@ -66,7 +66,8 @@
       desired={x:ux*radial-uy*ai.side*.65,y:uy*radial+ux*ai.side*.65};throttle=.55;
     }else if(ai.role==='claimant'){
       // Cut across the target's course rather than chasing its previous position.
-      desired={x:lead.x+target.vx*.25-ship.x,y:lead.y+target.vy*.25-ship.y};
+      const vx=Number.isFinite(target.vx)?target.vx:Math.cos(target.heading||0)*(Number(target.speed)||0),vy=Number.isFinite(target.vy)?target.vy:Math.sin(target.heading||0)*(Number(target.speed)||0);
+      desired={x:lead.x+vx*.25-ship.x,y:lead.y+vy*.25-ship.y};
     }
     if(ai.lineBlockedUntil>clock){desired={x:ux*.25-uy*ai.side,y:uy*.25+ux*ai.side};}
     const length=Math.hypot(desired.x,desired.y)||1;desired.x/=length;desired.y/=length;

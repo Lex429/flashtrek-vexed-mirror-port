@@ -51,6 +51,15 @@
     return {id:'player',x:position.x,y:position.y,heading:state.angle,speed:state.speed||0};
   }
   function scene(state){return window.nativeCivilianTraffic.combatScene(state,{system:state.system});}
+  function applyHit(state,result,event,source){
+    const target=result.target;if(!target)return {ok:false};
+    const impact={from:result.point,kind:event.kind,source:source.id==='player'?'player':'ai',sourceId:source.id};
+    if(target.rockId!=null)return window.nativeAsteroidCombat?.hit(state,target.rockId,event.damage,impact)||{ok:false};
+    if(target.id==='player')return window.nativeCombatShots.onPlayerHit?.(state,event.damage,impact)||{ok:false};
+    if(String(target.id).startsWith('tug:'))return window.nativeSolEconomy?.hit(state,Number(String(target.id).slice(4)),event.damage,impact)||{ok:false};
+    if(target.category==='civilian'||typeof target.id==='number')return window.nativeCivilianTraffic.hit(state,target.id,event.damage,impact);
+    return target.onHit?.(event.damage,impact)||{ok:false};
+  }
   function fire({state,shipHeight,getTarget,dimensions,shielded,owner,onHit}){
     if(window.nativePause?.active||window.nativeShipInventory?.active||window.vexedWarp?.active||document.hidden)return {ok:false,error:'Resume flight before firing.'};
     const target=getTarget(),sourceShip=player(state);if(!target)return {ok:false,error:'Target unavailable.'};
@@ -62,7 +71,7 @@
     shot.clock=()=>combatState(state).clock;shot.startedAt=clock;
     if(event.projectile)shot.projectile=event;
     else shot.targetPoint=from=>{const current=getTarget()||target;return worldPoint(current,shot.lockedImpactLocal||contact(current,from,dimensions(current),shielded(current)).local);};
-    pending.push({state,system:state.system,event,shot,getTarget,dimensions,shielded,owner,onHit,weapon:{...armed.weapon,damage:event.damage}});
+    pending.push({state,system:state.system,event,shot,getTarget,lastTarget:{...target},dimensions,shielded,owner,onHit,weapon:{...armed.weapon,damage:event.damage}});
     return {ok:true,weapon:armed.weapon.name,kind:armed.kind,shot};
   }
   function advance(state,dt){
@@ -70,17 +79,20 @@
     if(!Number.isFinite(dt)||dt<=0||document.hidden||window.nativePause?.active||window.nativeShipInventory?.active)return;
     combatState(state).clock+=dt;
     if(window.vexedWarp?.active){cancel();return;}
-    const scenery=pending.length?scene(state):null,sourceShip=player(state);
+    const sourceShip=player(state);
     for(const entry of [...pending]){
       if(!pending.includes(entry))continue;
-      const target=entry.getTarget();
-      if(!target){entry.event.alive=false;entry.shot.cancelled=true;pending.splice(pending.indexOf(entry),1);continue;}
+      const current=entry.getTarget(),target=current||{...entry.lastTarget,targetable:false};
+      if(current)entry.lastTarget={...current};
       const d=entry.dimensions(target),radii=entry.shielded(target)?window.showcaseShieldRadii(d.width,d.height):{rx:Math.max(8,d.width*.34),ry:Math.max(12,d.height*.44)};
-      const result=rules.stepShot(entry.event,sourceShip,target,scenery,combatState(state).clock,dt,radii,d);
+      const result=rules.stepShot(entry.event,sourceShip,target,scene(state),combatState(state).clock,dt,radii,d);
       if(!result)continue;
       pending.splice(pending.indexOf(entry),1);entry.event.alive=false;
-      if(result.kind==='hit')entry.onHit?.(entry.weapon,result.point,entry.shot);
-      else if(result.point)entry.shot.targetPoint=()=>result.point;
+      if(result.point)entry.shot.targetPoint=()=>result.point;
+      if(result.kind==='hit'){
+        if(current&&result.target?.id===current.id)entry.onHit?.(entry.weapon,result.point,entry.shot);
+        else applyHit(state,result,entry.event,sourceShip);
+      }
     }
   }
   function age(shot,now=performance.now()){return shot.clock?(shot.clock()-shot.startedAt)*1000:now-shot.born;}
@@ -139,5 +151,5 @@
     return true;
   }
 
-  window.nativeCombatShots={arm,fire,advance,cancel,isVisible,create,source,paint,hitDelay,weaponVisual,reset,contact,worldPoint,ready,setVisualCatalog,isReady:()=>styles.size>0};
+  window.nativeCombatShots={arm,fire,advance,cancel,isVisible,create,source,paint,hitDelay,weaponVisual,reset,contact,worldPoint,ready,setVisualCatalog,applyHit,isReady:()=>styles.size>0};
 })();

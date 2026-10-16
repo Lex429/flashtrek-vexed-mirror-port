@@ -276,7 +276,7 @@
   function destroy(economy,ship,stage){
     const lost=ship.tons,good=ship.good;
     hullBursts.length=0;
-    wrecks.push({x:ship.x,y:ship.y,angle:ship.heading+Math.PI/2,stage,time:0,debris:[],particles:[],prepared:false});
+    wrecks.push({id:ship.id,x:ship.x,y:ship.y,angle:ship.heading+Math.PI/2,stage,time:0,debris:[],particles:[],prepared:false});
     if(wrecks.length>12)wrecks.shift();
     Object.assign(ship,{hull:0,shields:0,shieldFlash:null,phase:'destroyed',rebuild:0,speed:0,tons:0,good:null,
       handlingTons:0,assignment:null,path:[]});
@@ -311,10 +311,21 @@
           burst:(point,strength,sparksOnly)=>window.showcaseHullBurst.burst(hullBursts,point,time,.91976,1,strength,sparksOnly)});
       }
     }
-    const reputation=ship.hull<=0?window.nativeFactionStanding.shipDestroyed(state,Number(ship.ownerGovernmentId)||solGovernmentId):null;
-    if(reputation)destroy(economy,ship,stage);
+    const reputation=ship.hull<=0&&impact?.source!=='ai'?window.nativeFactionStanding.shipDestroyed(state,Number(ship.ownerGovernmentId)||solGovernmentId):null;
+    if(ship.hull<=0){
+      destroy(economy,ship,stage);
+      window.nativeEnvironmentalImpacts?.explode(state,{...ship,size:tugDimensions(1).height},{sourceKey:`ship:tug:${ship.id}`});
+    }
     else disable(economy,ship);
     return {ok:true,destroyed:ship.phase==='destroyed',shields:ship.shields,hull:ship.hull,reputation};
+  }
+  function visualImpact(state,id,event){
+    const ship=initialize(state).freighters.find(entry=>entry.id===id);
+    if(!ship||ship.phase==='destroyed'||state.system!==1)return;
+    const contact=tugContactPoint(ship,event.from||event,ship.shields>0),now=performance.now();
+    if(ship.shields>0)ship.shieldFlash={born:now,color:'#50d5ff',x:contact.local.x,y:contact.local.y,
+      dx:contact.dx,dy:contact.dy,kind:event.kind||'debris',energy:1,charge:ship.shields/Math.max(1,tugStats().shields)};
+    else window.showcaseHullBurst.burst(hullBursts,contact.world,now,window.showcaseWeaponAppearance.units,1,.65,true);
   }
   function produce(economy) {
     const p=economy.ports;
@@ -401,11 +412,17 @@
       }
     }
     const now=performance.now();
-    for(const piece of tugStageDebris)if(now>=piece.born)window.showcaseStageFragments.update(piece,elapsed);
+    for(const piece of tugStageDebris)if(now>=piece.born){
+      const oldX=piece.x,oldY=piece.y;window.showcaseStageFragments.update(piece,elapsed);
+      if(state.system===1)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY);
+    }
     for(let i=tugStageDebris.length-1;i>=0;i--)if(now-tugStageDebris[i].born>tugStageDebris[i].ttl)tugStageDebris.splice(i,1);
     for(const wreck of wrecks){
       wreck.time+=elapsed*1000;
-      for(const piece of wreck.debris){piece.x+=piece.vx*elapsed;piece.y+=piece.vy*elapsed;piece.angle+=piece.spin*elapsed;}
+      for(const piece of wreck.debris){
+        const oldX=piece.x,oldY=piece.y;piece.x+=piece.vx*elapsed;piece.y+=piece.vy*elapsed;piece.angle+=piece.spin*elapsed;
+        if(state.system===1)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:`ship:tug:${wreck.id}`});
+      }
       for(const particle of wreck.particles){particle.x+=(particle.vx||0)*elapsed;particle.y+=(particle.vy||0)*elapsed;}
       destruction?.updateTrails(wreck);
       wreck.debris=wreck.debris.filter(piece=>wreck.time-piece.born<piece.ttl);
@@ -596,5 +613,5 @@
       },x,y,zoom,cx);
     }
   }
-  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,buySell,contract,deliver,paint,paintEffects,select,clearTarget,target,hitTest,fire,hit};
+  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,buySell,contract,deliver,paint,paintEffects,select,clearTarget,target,hitTest,fire,hit,visualImpact,dimensions:()=>tugDimensions(1)};
 })();

@@ -67,6 +67,51 @@
   const enhancedShip=()=>!!starter()||[56,57,58,59].includes(state.ship?.id);
   const shipEffects=()=>starter()?.effects||(state.ship?.id===56?window.constitutionTugEffects:state.ship?.id===57?window.tugEffects:state.ship?.id===58?window.olympicEffects:window.cthiaEffects);
   const debrisImpacts=window.createDebrisImpacts();
+  let nearbyAsteroids=[];
+  function reportEnvironmentalImpact(event){
+    $('debris-impact-status').textContent=`${event.source==='explosion'?'Blast':'Debris'} hit: ${event.kind==='shield'?'shield flash':'hull sparks'}. Shields and hull unchanged.`;
+    if(event.kind==='shield')playSound('shieldhit',.08);
+  }
+  const environmentalImpacts=window.createEnvironmentalImpacts({
+    getShips:()=>shooter?[{id:'nearby',...emitter(),radius:Math.max(emitter().w,emitter().h)*.55}]:[],
+    getAsteroids:()=>nearbyAsteroids.filter(rock=>!rock.destroyed),
+    onShipImpact:(_,event)=>reportEnvironmentalImpact(debrisImpacts.impact(event,emitter(),images.get(shooter.frames[0]),state,event.kind)),
+    onAsteroidHit:destroyNearbyAsteroid
+  });
+  function resetNearbyAsteroids(){
+    const l=state.ship?layout():{x:540,y:253};
+    nearbyAsteroids=(asteroidData||[]).slice(0,3).map((rock,i)=>({id:`nearby-rock-${i}`,file:rock.file,x:l.x+[-185,180,-145][i],y:l.y+[-105,105,140][i],size:[36,46,32][i],radius:[18,23,16][i],destroyed:false}));
+  }
+  function destroyNearbyAsteroid(rock,event){
+    if(rock.destroyed)return;rock.destroyed=true;rock.destroyedAt=state.time;
+    const im=images.get(rock.file);
+    if(im)for(let i=0;i<9;i++){
+      const piece=extractRockShard(im,im.width*(.2+Math.random()*.6),im.height*(.2+Math.random()*.6),im.width*.1);if(!piece)continue;
+      const angle=i*Math.PI*2/9,speed=65+Math.random()*85;
+      state.debris.push({x:rock.x,y:rock.y,texture:piece.texture,w:piece.w*rock.size,h:piece.h*rock.size,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,angle,spin:(Math.random()-.5)*6,born:state.time,ttl:1900,asteroidShard:true});
+    }
+    rockBurst(rock);burst(rock,.65);playSound('explodesmall',.05);
+    $('debris-impact-status').textContent=`${event.kind==='explosion'?'Blast':'Debris'} destroyed a nearby asteroid. Ship impacts cause no damage.`;
+  }
+  function stepEnvironmentalDebris(piece,oldX,oldY){
+    environmentalImpacts.stepDebris(piece,oldX,oldY,state.time,{skipShips:true});
+    const impact=debrisImpacts.step(piece,oldX,oldY,emitter(),images.get(shooter.frames[0]),state);
+    if(impact)reportEnvironmentalImpact(impact);
+  }
+  function drawEnvironmentalScene(){
+    for(const rock of nearbyAsteroids)if(!rock.destroyed){const im=images.get(rock.file);if(im)shipImage(im,rock.x,rock.y,rock.size,rock.size);}
+    environmentalImpacts.draw(ctx,state.time);
+  }
+  function drawNearbyShip(source){
+    const flash=debrisImpacts.currentFlash(),c=Math.cos(source.a),s=Math.sin(source.a),dx=(flash?.x||0)-source.centerX,dy=(flash?.y||0)-source.centerY;
+    const impact=flash?{...flash,x:dx*c+dy*s,y:-dx*s+dy*c,kind:flash.source}:null;
+    ctx.save();ctx.translate(source.centerX,source.centerY);ctx.rotate(source.a);
+    if(impact)window.drawShowcaseShieldSurface(ctx,0,0,source.w,source.h,shieldColor(shooter),1,state.time,{refract:true,impact});
+    shipImage(images.get(shooter.frames[0]),0,0,source.w,source.h);
+    if(impact)window.drawShowcaseShieldSurface(ctx,0,0,source.w,source.h,shieldColor(shooter),1,state.time,{front:true,impact});
+    ctx.restore();debrisImpacts.draw(ctx,source,state.time,shieldColor(shooter));
+    label('FIRING SHIP · '+shooter.name.toUpperCase(),source.centerX,source.centerY+64);
+  }
   const cthiaOptions={lights:true,damage:true,anchors:false,impact:null};
   let cthiaFragments=[[],[],[],[]],stationFragmentTemplates=[[],[],[],[],[]];
   const artworkLightLayers=new Map();
@@ -192,7 +237,7 @@
     const a=new Audio(base+file+'.mp3');a.volume=volume;audio.add(a);const remove=()=>audio.delete(a);a.onended=remove;a.onerror=remove;a.play().catch(remove);
   }
   function stopSequence(){state.sequence=null;$('sequence').textContent='â–¶ Play damage sequence';}
-  function clearEffects(){window.tugIIADamage?.reset();state.weaponReadyAt={};state.eggHatch=null;state.evolution=null;state.evolutionLanding=null;state.miningSequence=null;state.miningSplit=null;state.asteroidOreField=null;state.asteroidTransition=null;state.asteroidBlast=null;state.stationImpact=null;state.stationFragments=[];state.stationSparks=[];state.stationGlassCracks=[];state.stationArcs=[];cthiaOptions.impact=null;if(window.larvaMotion){window.larvaMotion.mode='idle';window.larvaMotion.offset=0;window.larvaMotion.xOffset=0;window.larvaMotion.born=state.time;}state.bioLeakAt=0;state.bioDeath=null;state.cthiaBlast=null;state.shots=[];state.particles=[];state.debris=[];state.flash=null;debrisImpacts.reset();$('debris-impact-status').textContent='Shield flashes or hull sparks. No damage.';}
+  function clearEffects(){window.tugIIADamage?.reset();state.weaponReadyAt={};state.eggHatch=null;state.evolution=null;state.evolutionLanding=null;state.miningSequence=null;state.miningSplit=null;state.asteroidOreField=null;state.asteroidTransition=null;state.asteroidBlast=null;state.stationImpact=null;state.stationFragments=[];state.stationSparks=[];state.stationGlassCracks=[];state.stationArcs=[];cthiaOptions.impact=null;if(window.larvaMotion){window.larvaMotion.mode='idle';window.larvaMotion.offset=0;window.larvaMotion.xOffset=0;window.larvaMotion.born=state.time;}state.bioLeakAt=0;state.bioDeath=null;state.cthiaBlast=null;state.shots=[];state.particles=[];state.debris=[];state.flash=null;debrisImpacts.reset();environmentalImpacts.reset();resetNearbyAsteroids();$('debris-impact-status').textContent='Blast waves and debris destroy nearby asteroids. Ship shields flash or hulls spark without damage.';}
   function reset(repairOnly=false){
     stopSequence();clearEffects();state.hull=100;state.shields=100;state.shieldCharge=100;state.shieldsEnabled=true;state.cloaked=false;state.destroyed=false;state.hits=0;lastHit=null;$('hit-result').textContent='Fire a weapon to measure its hit.';$('shields').checked=true;
     if(!repairOnly){
@@ -337,6 +382,7 @@
     try{
       const assets=animatedStructure()?[...state.ship.frames,shooter.frames[0]]:structure()||artworkOnlyShip()?[state.ship.frames[0]]:asteroid()?[...state.ship.frames,shooter.frames[0],state.ship.oreImage]:[...state.ship.frames,state.ship.original,shooter.frames[0],...(egg()?[babyFile()]:[]),...([67,69].includes(id)?Object.values(window.creatureEvolution.files):[]),...(creature()?[]:Array.from({length:6},(_,i)=>`debris-${state.ship.debrisKind}-${i}.png`))];await Promise.all(assets.map(loadImage));
       if(token!==selectionToken)return;
+      await Promise.all((asteroidData||[]).slice(0,3).map(rock=>loadImage(rock.file)));resetNearbyAsteroids();
       if(animatedStructure()){state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));prepareEarthStarbaseFragments();if([286,300].includes(state.ship.id))prepareArtworkLights();state.shields=0;state.shieldCharge=0;state.shieldsEnabled=false;state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} is ready. Hits tear away matching armor sections while exposed fires glow. All powered lights fail in the severe stage.`);return;}
       if(structure()){state.shields=0;state.shieldsEnabled=false;state.ready=true;$('loading').hidden=true;updateUI();explain(state.ship.kind==='turret'?`${state.ship.name} equipment icon is available for the turret animation pass.`:`${state.ship.name} artwork is available. Damage animations will be built in the next pass.`);return;}
       if(artworkOnlyShip()){window.tugClassIILights.prepare(id,images.get(state.ship.frames[0]));state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} has live lights at its painted lamps, nacelle tips and drive strips. Use Ship lights to toggle the effect; damage stages are pending.`);return;}
@@ -708,6 +754,7 @@
     if(!state.ready||state.destroyed)return;
     const l=layout(),mass=clamp((state.ship.mass-1)/1199,0,1),strength=4+6*mass,bursts=Math.round(12+18*mass);
     state.eggHatch=null;state.hull=0;state.destroyed=true;state.cloaked=false;state.shields=0;state.shots=[];
+    environmentalImpacts.explode({x:l.x,y:l.y,born:state.time,radius:Math.max(490,Math.hypot(l.x-emitter().centerX,l.y-emitter().centerY)+80),duration:1050});
     if(asteroid()){
       state.miningSequence=null;state.miningSplit=null;state.asteroidTransition=null;state.asteroidBlast={born:state.time};
       emitAsteroidShards(images.get(state.ship.frames[3])||images.get(frameFile()),l,null,22,1.9,2.2);
@@ -863,7 +910,7 @@
     state.particles=state.particles.filter(p=>state.time-p.born<p.ttl);
     if(animatedStructure()){
       if(!state.destroyed&&stage()>0&&cthiaOptions.damage&&Math.random()<dt*(stage()===3?4:2)){const sites=stationBreaches().filter(b=>b.stage<=stage()),site=sites[Math.floor(Math.random()*sites.length)];stationSparkBurst(site,1+Math.floor(Math.random()*3));if(Math.random()<.4)stationElectricArcs(site,1);}
-      for(const piece of state.stationFragments){const released=state.time-piece.born-piece.delay;if(released<0)continue;piece.x+=piece.vx*dt;piece.y+=piece.vy*dt;piece.angle+=piece.spin*dt;piece.vx*=Math.max(0,1-dt*.12);piece.vy*=Math.max(0,1-dt*.12);
+      for(const piece of state.stationFragments){const released=state.time-piece.born-piece.delay;if(released<0)continue;const oldX=piece.x,oldY=piece.y;piece.x+=piece.vx*dt;piece.y+=piece.vy*dt;piece.angle+=piece.spin*dt;stepEnvironmentalDebris(piece,oldX,oldY);piece.vx*=Math.max(0,1-dt*.12);piece.vy*=Math.max(0,1-dt*.12);
         if(released<2400&&piece.edgeSites?.length&&state.time>=piece.trailAt){piece.trailAt=state.time+95+Math.random()*45;const site=piece.edgeSites[Math.floor(Math.random()*piece.edgeSites.length)],lx=site.x*piece.w,ly=site.y*piece.h,ca=Math.cos(piece.angle),sa=Math.sin(piece.angle),x=piece.x+lx*ca-ly*sa,y=piece.y+lx*sa+ly*ca;state.particles.push({x,y,vx:-piece.vx*.13,vy:-piece.vy*.13,size:(3+Math.random()*3)*state.zoom,born:state.time,ttl:700+Math.random()*550,phase:Math.random()*6,realistic:'smoke'});if(released<1600)state.particles.push({x,y,vx:piece.vx*.1,vy:piece.vy*.1,size:(2.5+Math.random()*4)*state.zoom,born:state.time,ttl:400+Math.random()*500,phase:Math.random()*6,realistic:'fire'});if(released<1100&&Math.random()<.7)state.particles.push({x,y,vx:piece.vx*.2+(Math.random()-.5)*36,vy:piece.vy*.2+(Math.random()-.5)*36,size:.75*state.zoom,born:state.time,ttl:330+Math.random()*260,realistic:'spark'});}
       }
       state.stationFragments=state.stationFragments.filter(piece=>state.time-piece.born<piece.ttl);
@@ -873,8 +920,9 @@
       state.stationArcs=state.stationArcs.filter(arc=>state.time-arc.born<arc.ttl);
     }
     for(const p of state.debris){if(state.time<p.born)continue;
-      if(p.cthia&&!p.wreck){window.showcaseStageFragments.update(p,dt);continue;}
-      const oldX=p.x,oldY=p.y;p.x+=p.vx*dt;p.y+=p.vy*dt;p.angle+=p.spin*dt;if(p.asteroidShard){if(state.miningSequence){const l=layout(),dx=(p.x-l.x)/(l.w*.63),dy=(p.y-l.y)/(l.h*.70),r=Math.hypot(dx,dy);if(r>.88){p.x=l.x+dx/r*l.w*.55;p.y=l.y+dy/r*l.h*.62;const dot=p.vx*dx/r+p.vy*dy/r;p.vx=(p.vx-2*dot*dx/r)*.42;p.vy=(p.vy-2*dot*dy/r)*.42;}}const drag=Math.max(0,1-.32*dt);p.vx*=drag;p.vy*=drag;continue;}const impact=debrisImpacts.step(p,oldX,oldY,emitter(),images.get(shooter.frames[0]),state);if(impact){$('debris-impact-status').textContent=impact.kind==='shield'?'Debris hit: shield flash. Shields and hull unchanged.':'Debris hit: hull sparks. Hull unchanged.';if(impact.kind==='shield')playSound('shieldhit',.08);}p.vx*=Math.max(0,1-(p.farTravel?.055:p.structural?(p.small?.35:.65):.2)*dt);p.vy*=Math.max(0,1-(p.farTravel?.055:p.structural?(p.small?.35:.65):.2)*dt);}
+      if(p.cthia&&!p.wreck){const oldX=p.x,oldY=p.y;window.showcaseStageFragments.update(p,dt);stepEnvironmentalDebris(p,oldX,oldY);continue;}
+      const oldX=p.x,oldY=p.y;p.x+=p.vx*dt;p.y+=p.vy*dt;p.angle+=p.spin*dt;stepEnvironmentalDebris(p,oldX,oldY);if(p.asteroidShard){if(state.miningSequence){const l=layout(),dx=(p.x-l.x)/(l.w*.63),dy=(p.y-l.y)/(l.h*.70),r=Math.hypot(dx,dy);if(r>.88){p.x=l.x+dx/r*l.w*.55;p.y=l.y+dy/r*l.h*.62;const dot=p.vx*dx/r+p.vy*dy/r;p.vx=(p.vx-2*dot*dx/r)*.42;p.vy=(p.vy-2*dot*dy/r)*.42;}}const drag=Math.max(0,1-.32*dt);p.vx*=drag;p.vy*=drag;continue;}p.vx*=Math.max(0,1-(p.farTravel?.055:p.structural?(p.small?.35:.65):.2)*dt);p.vy*=Math.max(0,1-(p.farTravel?.055:p.structural?(p.small?.35:.65):.2)*dt);}
+    environmentalImpacts.update(state.time);
     state.debris=state.debris.filter(p=>state.time-p.born<p.ttl);window.cthiaDestruction.updateTrails(state);if(biological()){biology().updateTrails(state);biology().updateLiving(state,world,stage(),state.zoom,cthiaOptions);}
   }
   function gradient(x,y,r,hex,alpha=1){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'#ffffff');g.addColorStop(.18,hex);g.addColorStop(1,hex+'00');ctx.globalAlpha=alpha;ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
@@ -999,6 +1047,7 @@
     for(const s of stars){ctx.globalAlpha=s.a;ctx.fillStyle='#bcd6f2';ctx.fillRect(s.x,s.y,s.r,s.r);}ctx.globalAlpha=1;
     ctx.strokeStyle='#25495b28';ctx.lineWidth=1;for(let x=30;x<900;x+=90){ctx.beginPath();ctx.moveTo(x,60);ctx.lineTo(x,475);ctx.stroke();}for(let y=70;y<475;y+=90){ctx.beginPath();ctx.moveTo(30,y);ctx.lineTo(870,y);ctx.stroke();}
     if(!state.ready)return;
+    drawEnvironmentalScene();
     if(structure()&&!animatedStructure()||artworkOnlyShip()){
       const l=layout();shipImage(images.get(state.ship.frames[0]),l.x,l.y,l.w,l.h,state.angle);
       if(artworkOnlyShip())window.tugClassIILights.draw(ctx,state.ship.id,l,state.angle,state.time,cthiaOptions.lights);
@@ -1006,7 +1055,7 @@
       return;
     }
     if(asteroid()){
-      const l=layout(),source=emitter();shipImage(images.get(shooter.frames[0]),source.centerX,source.centerY,source.w,source.h,source.a);label('FIRING SHIP Â· '+shooter.name.toUpperCase(),source.centerX,source.centerY+64);
+      const l=layout(),source=emitter();drawNearbyShip(source);
       if(!state.destroyed||state.miningSequence)drawAsteroidSprite(l);
       if(state.miningSequence||state.miningSplit)drawMiningShield(l);
       drawAsteroidDebris();drawAsteroidBlast(l);drawMiningEffects(l,source);drawDestroyedAsteroidOres(l);
@@ -1016,14 +1065,7 @@
       ctx.globalAlpha=1;return;
     }
     ctx.save();window.cthiaDestruction.shake(ctx,state);
-    const l=layout(),source=emitter(),nearbyFlash=debrisImpacts.currentFlash();{
-      const impact=nearbyFlash?{...nearbyFlash,x:nearbyFlash.x-source.centerX,y:nearbyFlash.y-source.centerY}:null;
-      if(impact)window.drawShowcaseShieldSurface(ctx,source.centerX,source.centerY,source.w,source.h,shieldColor(shooter),1,state.time,{refract:true,impact});
-      shipImage(images.get(shooter.frames[0]),source.centerX,source.centerY,source.w,source.h,source.a);
-      label('FIRING SHIP Â· '+shooter.name.toUpperCase(),source.centerX,source.centerY+64);
-      if(impact)window.drawShowcaseShieldSurface(ctx,source.centerX,source.centerY,source.w,source.h,shieldColor(shooter),1,state.time,{front:true,impact});
-      debrisImpacts.draw(ctx,source,state.time,shieldColor(shooter));
-    }
+    const l=layout(),source=emitter();drawNearbyShip(source);
     if(state.compare){shipImage(images.get(state.ship.original),285,253,l.w,l.h,state.angle);label('ORIGINAL REFERENCE',285,460);label('UPDATED Â· '+(state.destroyed?'DESTROYED':names[stage()].toUpperCase()),l.x,460);ctx.strokeStyle='#38505e';ctx.setLineDash([3,7]);ctx.beginPath();ctx.moveTo(450,75);ctx.lineTo(450,435);ctx.stroke();ctx.setLineDash([]);}
     else label(state.evolution?`${state.evolution.phase.toUpperCase()} Â· ${state.evolution.phase==='hatching'?'EGG A':state.evolution.phase==='juvenile'||state.evolution.phase==='complete'?'JUVENILE A':'LARVA A'}`:state.ship.name.toUpperCase(),l.x,460);
     if(!state.destroyed){
@@ -1068,7 +1110,7 @@
   document.querySelectorAll('[data-stage]').forEach(b=>{if(b.tagName==='BUTTON')b.onclick=()=>{if(!state.ready)return;const before=state.destroyed?3:stage(),asteroidShowcase=asteroid();stopSequence();if(!asteroidShowcase)clearEffects();state.destroyed=false;state.hull=[100,65,40,15][Number(b.dataset.stage)];state.shields=state.shieldsEnabled?100:0;if(asteroidShowcase){state.shots=[];state.asteroidOreField=null;beginAsteroidTransition(before,stage());}else{if(tugDamageShip())window.tugIIADamage.change(before,stage(),layout(),state.angle,state.time);breakEarthStarbase(before,stage());breakCthia(before,stage());}updateUI();explain(asteroidShowcase?`${['Intact','Cracked','Fractured','Breaking apart'][stage()]} asteroid state selected. Matching rock fragments fly from the old state as the new image appears.`:animatedStructure()?`${names[stage()]} ${state.ship.name} selected. Armor from the new breach breaks free as the fires glow beneath it.`:`${names[stage()]} at ${state.hull}% ${creature()?'tissue integrity':'hull'}. Compare the four thumbnails: the art stays aligned across every stage.`);};});
   $('hull').oninput=()=>{if(!state.ready)return;const before=state.destroyed?3:stage();stopSequence();state.eggHatch=null;state.shots=[];if(asteroid())state.asteroidOreField=null;state.hull=Number($('hull').value);if(state.hull===0)destroy(before);else{state.destroyed=false;beginAsteroidTransition(before,stage());if(stage()<before){state.debris=state.debris.filter(p=>!p.cthia);if(animatedStructure()){state.stationFragments=[];state.stationSparks=[];state.stationGlassCracks=[];state.stationArcs=[];}}if(tugDamageShip())window.tugIIADamage.change(before,stage(),layout(),state.angle,state.time);breakEarthStarbase(before,stage());breakCthia(before,stage());updateUI();explain(`${state.hull}% ${asteroid()?'asteroid integrity':creature()?'tissue integrity':'hull'}: ${names[stage()]}. The stage changes below 75%, 50% and 25%.`);}};
   $('hit-strength').oninput=()=>{state.damage=Number($('hit-strength').value);$('damage-output').value=state.damage+'%';};
-  $('debris-target-shields').onchange=()=>{debrisImpacts.setShields($('debris-target-shields').checked);$('debris-impact-status').textContent=$('debris-target-shields').checked?'Nearby ship shields up. Debris causes shield flashs only.':'Nearby ship shields down. Debris causes sparks only.';};
+  $('debris-target-shields').onchange=()=>{debrisImpacts.setShields($('debris-target-shields').checked);$('debris-impact-status').textContent=$('debris-target-shields').checked?'Nearby ship shields up. Blasts and debris cause shield flashes without damage.':'Nearby ship shields down. Blasts and debris cause hull sparks without damage.';};
   $('cloak').onclick=()=>{
     if(!state.ready||state.destroyed||creature())return;stopSequence();
     state.cloaked=!state.cloaked;
@@ -1095,6 +1137,7 @@
   $('sound').onclick=()=>{state.sound=!state.sound;$('sound').setAttribute('aria-pressed',String(state.sound));$('sound').textContent=state.sound?'Sound on':'Sound off';if(!state.sound){for(const a of audio)a.pause();audio.clear();}};
   window.showcaseState=()=>({ready:state.ready,ship:state.ship?.id,creatureMotion:movingCreature()?{...window.larvaMotion}:null,larvaMotion:larva()?{...window.larvaMotion}:null,hatching:egg()&&state.eggHatch?biology().hatchSnapshot(state):null,kind:state.ship?.kind||'ship',tugIIADamage:tugDamageShip()?window.tugIIADamage.snapshot():null,intactOnly:intactOnly(),combat:combat&&state.ship&&stats()?{hull:hullPoints(),maxHull:stats().hull,shields:shieldPoints(),maxShields:stats().shields,firingShip:shooter.id,weaponsRating:firingStats().weaponsRating,lastHit,visualOverride:$('visual-damage').checked}:null,hull:state.hull,shields:state.shields,shieldsEnabled:state.shieldsEnabled,cloaked:state.cloaked,stage:stage(),destroyed:state.destroyed,paused:state.paused,slow:state.slow,rotate:state.rotate,compare:state.compare,target:state.target,shots:state.shots.length,particles:state.particles.length,debris:state.debris.length,asteroidFragments:state.debris.filter(p=>p.asteroidShard&&!p.ore).length,asteroidOre:state.asteroidOreField?.minerals.length||0,asteroidTransition:!!state.asteroidTransition,cthiaPieces:state.debris.filter(p=>p.cthia).length,stationFragments:state.stationFragments.length,stationSparks:state.stationSparks.length,stationArcs:state.stationArcs.length,cthiaWreck:state.debris.filter(p=>p.wreck).map(p=>({name:p.name,stage:p.sourceStage,x:p.x,y:p.y,angle:p.angle,pixels:p.pixels,structural:!!p.structural,edgePixels:p.edgePixels||0,tumbleRate:p.tumbleRate||0,small:!!p.small,farTravel:!!p.farTravel,vx:p.vx,vy:p.vy,ttl:p.ttl,w:p.w,h:p.h})),nearbyShip:debrisImpacts.snapshot(),biological:biological(),bioDeath:state.bioDeath?{born:state.bioDeath.born,rupture:state.bioDeath.rupture,stage:state.bioDeath.stage}:null,cthiaCutAudit:enhancedShip()?(biological()?biology().audit():window.cthiaDestruction.audit()):null,realisticParticles:state.particles.filter(p=>p.realistic).length,cthiaFragmentPixels:enhancedShip()?cthiaFragments.map(parts=>parts.reduce((n,p)=>n+p.pixels,0)):null,sequence:!!state.sequence,angle:state.angle,time:state.time,hits:state.hits,enhancedEffects:enhancedShip()&&!state.destroyed?shipEffects().snapshot(stage(),state.time,cthiaOptions):null,constitutionTug:state.ship?.id===56&&!state.destroyed?shipEffects().snapshot(stage(),state.time,cthiaOptions):null,tug:state.ship?.id===57&&!state.destroyed?shipEffects().snapshot(stage(),state.time,cthiaOptions):null,olympic:state.ship?.id===58&&!state.destroyed?shipEffects().snapshot(stage(),state.time,cthiaOptions):null,cthia:state.ship?.id===59&&!state.destroyed?window.cthiaEffects.snapshot(stage(),state.time,cthiaOptions):null});
   window.evolutionState=()=>state.evolution?{...state.evolution,age:state.time-state.evolution.born,total:window.creatureEvolution.total(state.evolution.origin)}:null;
+  window.showcaseEnvironment=()=>({nearbyAsteroids:nearbyAsteroids.map(rock=>({...rock})),...environmentalImpacts.snapshot()});
   (async()=>{
   try{
       const responses=await Promise.all([fetch(base+'catalog.json?v=tug-ii-a-anim-3'),fetch(base+'combat-data.json?v=weapon-independent-1'),fetch(base+'asteroids.json?v=ore-types-2'),fetch(base+'structures.json?v=vulcan-halfbreak-1')]);if(responses.some(r=>!r.ok))throw Error('Could not load ship, asteroid, structure, or combat data');[catalog,combat,asteroidData,structureData]=await Promise.all(responses.map(r=>r.json()));catalog.weapons=combat.weapons;catalog.ships.push(...asteroidData.map((rock,index)=>({id:100+index,name:rock.name,kind:'asteroid',origin:'Curated mining artwork',oreType:rock.oreType,oreLabel:rock.oreLabel,oreRole:rock.oreRole,oreImage:rock.oreImage,frames:rock.name==='Asteroid 01'?['asteroids/asteroid_01_intact.png','asteroids/asteroid_01_light.png','asteroids/asteroid_01_heavy.png','asteroids/asteroid_01_severe.png']:[rock.file,`${rock.file.slice(0,-4)}_light.png`,`${rock.file.slice(0,-4)}_heavy.png`,`${rock.file.slice(0,-4)}_severe.png`],original:rock.file,bounds:[0,rock.width,0,rock.height],previewSize:Math.min(235,Math.max(rock.width,rock.height)),debrisKind:1,mass:1})));catalog.ships.push(...structureData.map(item=>({id:item.id,name:item.name,kind:item.kind,origin:item.source,structureGroup:item.group,frames:item.damageFrames||[item.file,null,null,null],damageReady:!!item.damageFrames,original:item.file,bounds:[0,item.width,0,item.height],previewSize:item.kind==='turret'?155:260,artworkStatus:item.damageFrames?'damage-ready':'artwork-preview',debrisKind:1,mass:item.damageFrames?850:1,size:item.damageFrames?260:undefined})));shooter=catalog.ships.find(s=>s.id===6);

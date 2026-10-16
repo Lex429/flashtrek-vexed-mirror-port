@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vexed Mirror · Ship & Combat Showcase</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 36'%3E%3Cpath d='M16 2 29 32 16 24 3 32Z' fill='none' stroke='%23eb8c96' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="damage-showcase.css?v=five-civilian-ships-1">
+<script src="cthia-effects.js?v=shot-impact-1" defer></script>
+<script src="cthia-destruction.js?v=sail-damage-only-1" defer></script>
+<script src="olympic-effects.js?v=1" defer></script>
+<script src="tug-effects.js?v=1" defer></script>
+<script src="constitution-tug-effects.js?v=1" defer></script>
+<script src="starter-effects.js?v=tug-freight-1" defer></script>
+<script src="earth-profiles.js?v=animation-refresh-20261014" defer></script>
+<script src="klingon-profiles.js?v=1" defer></script>
+<script src="romulan-profiles.js?v=1" defer></script>
+<script src="vulcan-profiles.js?v=1" defer></script>
+<script src="cardassian-profiles.js?v=1" defer></script>
+<script src="ferengi-dominion-profiles.js?v=1" defer></script>
+<script src="independent-profiles.js?v=sail-damage-only-1" defer></script>
+<script src="earth-effects.js?v=animation-refresh-20261014" defer></script>
+<script src="bioship-effects.js?v=egg-alignment-2" defer></script>
+<script src="mutation-profiles.js?v=1" defer></script>
+<script src="creature-effects.js?v=evolution-10" defer></script>
+<script src="egg-effects.js?v=evolution-9" defer></script>
+<script src="creature-evolution.js?v=evolution-10" defer></script>
+<script src="lifeform-effects.js?v=biology-1" defer></script>
+<script src="galaxy-fracture.js?v=1" defer></script>
+<script src="earth-fractures.js?v=sail-damage-only-1" defer></script>
+<script src="weapon-effects.js?v=showcase-parity-2" defer></script>
+<script src="showcase-hull-burst.js?v=shared-tug-1" defer></script>
+<script src="showcase-stage-fragments.js?v=regular-tug-1" defer></script>
+<script src="shield-flash.js?v=moving-surface-4" defer></script>
+<script src="debris-impacts.js?v=environmental-impacts-1" defer></script>
+<script src="ship-picker.js?v=five-civilian-ships-1" defer></script>
+<script src="tug-class-ii-lights.js?v=4" defer></script>
+<script src="tug-ii-a-damage.js?v=shared-tug-2" defer></script>
+<script src="target-frame.js?v=shared-target-frame-1" defer></script>
+<script src="damage-showcase.js?v=environmental-impacts-1" defer></script>
+</head>
+<body>
+<header class="site-header"><a class="identity" href="index.html"><span class="insignia" aria-hidden="true">△</span><span>VEXED MIRROR<small>SHIP & COMBAT SHOWCASE</small></span></a><a class="back" href="index.html">Return to the game <span aria-hidden="true">↗</span></a></header>
+<main>
+<section class="intro"><div><p class="eyebrow">78 SHIPS / 84 CREATURES / 19 ASTEROIDS / 24 STRUCTURES</p><h1>See every hit.</h1><p class="lead">Explore ships, creatures and asteroids in the damage showcase. The 12 Tug Class II variants have live lighting. Tug Class II-A has four damage stages with flying armor and breach fires; the other 11 still await damage artwork. All four starbases, four shipyards, two defense platforms, and nine business and civic stations have damage stages and breakup effects.</p></div><div class="intro-note"><span class="live-dot"></span> INTERACTIVE VISUAL DEMO<small>Installed artwork and game effect formulas.<br>Adjust hit strength to inspect the damage.</small></div></section>
+<section class="workbench" aria-label="Interactive damage showcase">
+<div class="viewer">
+<div class="viewer-heading"><div><p class="eyebrow">SELECTED SHIP</p><h2 id="ship-name">Loading ships…</h2><p id="ship-role" class="ship-role" hidden>SHIP ROLE</p></div><span class="source-tag" id="ship-source">Loading</span></div>
+<div class="panel-block weapon-console" aria-label="Fire a weapon">
+<p class="eyebrow">FIRE A WEAPON</p>
+<div class="weapon-actions"><div class="weapon-choice"><span>Weapon</span><details id="weapon-picker" class="weapon-picker"><summary><img id="selected-weapon-icon" alt=""><span id="selected-weapon-name">Loading weapons...</span><span aria-hidden="true">?</span></summary><div id="weapon-options" class="weapon-options" aria-label="Choose a weapon"></div></details><select id="weapon-select" hidden disabled aria-label="Weapon"></select></div><button id="fire-weapon" data-fire="beam" class="fire beam" disabled>Fire</button></div>
+<div id="weapon-recharge" class="weapon-recharge" data-state="ready"><div class="recharge-caption"><span>Recharge</span><span id="weapon-recharge-status">Ready to fire</span></div><div id="weapon-recharge-bar" class="recharge-track" role="progressbar" aria-label="Selected weapon recharge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="Ready to fire"><span id="weapon-recharge-fill"></span></div></div>
+<div class="cloak-controls"><button id="cloak" aria-pressed="false">Cloak off</button><small id="cloak-status" role="status">Cloaking lowers shields. Firing or raising shields reveals the ship.</small></div>
+<div class="combat-meters" aria-label="Live ship health"><div class="hull-readout"><label class="range-label">Hull <output id="hull-output">100%</output></label><div class="meter"><span id="hull-bar"></span></div></div><div class="shield-readout"><div class="shield-row"><label><input type="checkbox" id="shields" checked> Shields on</label><output id="shield-output">100%</output></div><div class="meter shield-meter"><span id="shield-bar"></span></div></div></div>
+<output id="hit-result" class="hit-result" aria-live="polite">Select a weapon and fire.</output>
+<details class="weapon-advanced"><summary>Weapon settings &amp; ratings</summary>
+<label class="picker-label" for="firing-ship">Firing ship</label><select id="firing-ship"></select><p id="firing-rating" class="combat-note"></p>
+<div class="weapon-rating"><img id="weapon-icon" alt=""><div><strong id="weapon-rating"></strong><small id="weapon-details"></small></div></div>
+<details class="visual-settings"><summary>Visual damage override</summary><label class="combat-note"><input id="visual-damage" type="checkbox"> Use percentage damage instead of weapon ratings</label><label class="range-label" for="hit-strength">Hull damage per hit <output id="damage-output">26%</output></label><input id="hit-strength" type="range" min="5" max="50" value="26" step="1"></details><details class="equipment-ratings"><summary>Special equipment ratings</summary><p class="combat-note">These are utility and area effects, not single-shot weapons. Ratings shown here are their original table values.</p><div id="equipment-list"></div></details>
+<p class="combat-note"><a href="weapon-icons.html">View all weapon icons ?</a></p></details>
+<div hidden><select id="beam-style"></select><select id="torpedo-style"></select><select id="disruptor-style"></select></div>
+</div>
+<div class="scene"><canvas id="scene" width="900" height="540" role="img" aria-label="Animated ship and weapon demonstration"></canvas><div id="loading">Preparing the ship gallery…</div><span class="scene-label" id="scene-label">LIVE DAMAGE PREVIEW</span><span class="stage-badge" id="stage-badge">INTACT</span></div>
+<div class="playback"><button id="pause" aria-pressed="false" title="Pause or resume the animation">Ⅱ Pause</button><button id="slow" aria-pressed="false">¼ Slow motion</button><button id="rotate" aria-pressed="false">↻ Rotate ship</button><button id="compare" aria-pressed="false">Original / updated</button><label class="zoom">Zoom <input id="zoom" type="range" min="70" max="150" value="100" aria-label="Ship zoom"></label></div>
+<div id="cthia-controls" class="playback" hidden><strong id="animation-example">C'Thia animation example</strong><button id="ship-lights" aria-pressed="true">Ship lights</button><button id="damage-effects" aria-pressed="true">Damage effects</button><button id="effect-locations" aria-pressed="false">Show effect locations</button><small id="cthia-status">Cyan markers: lights · Amber markers: breaches</small></div>
+<div class="playback" id="debris-controls"><strong>Blast &amp; debris impacts</strong><label><input type="checkbox" id="debris-target-shields" checked> Nearby ship shields</label><small id="debris-impact-status" role="status">Blasts and debris destroy nearby asteroids. Ship shields flash or hulls spark without damage.</small></div>
+<div class="damage-strip" aria-label="Choose a damage stage">
+<button class="damage-card" data-stage="0" aria-pressed="true"><img alt="Intact ship" id="thumb-0"><span><b>01 · Intact</b><small>75–100% hull</small></span></button>
+<button class="damage-card" data-stage="1" aria-pressed="false"><img alt="Lightly damaged ship" id="thumb-1"><span><b>02 · Light</b><small>50–under 75%</small></span></button>
+<button class="damage-card" data-stage="2" aria-pressed="false"><img alt="Heavily damaged ship" id="thumb-2"><span><b>03 · Heavy</b><small>25–under 50%</small></span></button>
+<button class="damage-card" data-stage="3" aria-pressed="false"><img alt="Severely damaged ship" id="thumb-3"><span><b>04 · Severe</b><small>Under 25% hull</small></span></button>
+</div>
+<div class="explanation" role="status" aria-live="polite"><span class="explanation-mark" aria-hidden="true">↗</span><p id="explanation">Choose a ship or fire a weapon to explore its damage stages.</p></div>
+</div>
+<aside class="control-panel">
+<div class="panel-block ship-picker"><p class="eyebrow">01 / CHOOSE YOUR SHIP</p>
+<label class="picker-label" for="fleet-filter">Collection</label><select id="fleet-filter" aria-label="Artwork collection"></select><small class="civilian-note">Civilian filter: five selected classes. Tugs have a separate work-ship label; Oberth is in both groups.</small>
+<div class="fleet-progress"><span id="fleet-progress"></span><progress id="fleet-progress-bar" max="169" value="0"></progress></div>
+<label class="picker-label" for="animation-filter">Animation status</label><select id="animation-filter"><option value="all">All entries</option><option value="pending">Needs animation</option><option value="animated">Animated</option></select>
+<label class="picker-label" for="ship-select">Choose artwork</label><select id="ship-select" disabled aria-label="Choose artwork"></select>
+<small id="ship-results" aria-live="polite"></small>
+<div class="ship-nav"><button id="previous" aria-label="Previous ship">← Previous</button><button id="next" aria-label="Next ship">Next →</button></div>
+<div class="animation-status-card"><span id="selected-fleet"></span><b id="ship-animation-status"></b><p id="ship-animation-detail"></p></div>
+</div>
+<div class="panel-block health-panel"><p class="eyebrow">02 / INSPECT THE DAMAGE</p><p id="ship-health" class="combat-note"></p><label class="range-label" for="hull">Adjust hull manually</label><input id="hull" type="range" min="0" max="100" value="100" step="1"><div class="action-pair"><button id="repair">Repair hull</button><button id="destroy" class="danger">Destroy ship</button></div><div id="creature-health-controls" hidden><label for="creature-max-health">Maximum health</label><input id="creature-max-health" type="number" min="1" max="100000" step="1"><small>Starting balance · editable for weapon testing</small></div><div id="larva-motion-controls" class="playback" hidden><button data-motion="newborn">Newborn</button><button data-motion="idle" aria-pressed="true">Idle</button><button data-motion="forward">Forward</button><button data-motion="turn">Turn around</button><button data-motion="crawl">Crawl</button><button data-motion="settle">Settle</button></div><button id="hatch" class="sequence" hidden>Hatch egg</button><button id="evolve" class="sequence" hidden>Evolve: Egg A → Larva A → Juvenile A</button><button id="mine-asteroid" class="sequence" hidden>⛏ Start mining sequence</button><button id="sequence" class="sequence">▶ Play damage sequence</button></div>
+<div class="panel-block last-block"><p class="eyebrow">03 / TARGET & SOUND</p><div class="target-controls" aria-label="Target relationship"><button data-target="enemy" aria-pressed="true">Enemy</button><button data-target="fleet" aria-pressed="false">Fleet</button><button data-target="neutral" aria-pressed="false">Neutral</button></div><div class="utility"><button id="sound" aria-pressed="false">Sound off</button><button id="reset">Reset demo</button></div></div>
+</aside>
+</section>
+<section class="improvements" aria-labelledby="improvements-title"><div class="section-intro"><p class="eyebrow">WHAT CHANGED</p><h2 id="improvements-title">A closer look at the improvements.</h2><p>The showcase makes each part of the upgrade easy to inspect.</p></div><div class="improvement-grid">
+<article><span class="number">01</span><h3>A complete ship roster</h3><p>32 requested classes have rebuilt artwork matched to your approved fleet references. The original 66 classes have four damage stages; Tug Class II-A has four damage stages, live lights, flying hull pieces and breach fires; the other 11 Tug Class II variants have intact artwork and live lights. The game uses compact textures; separate 8K masters are upscaled exports.</p></article>
+<article><span class="number">02</span><h3>Damage that stays aligned</h3><p>Hull art changes below 75%, 50% and 25%. The ship keeps the same position and size across all four stages. Repairs restore its healthier appearance.</p></article>
+<article><span class="number">03</span><h3>Weapon hits you can read</h3><p>Brief beam flashes, spinning torpedoes, colored bolts, shield tint and hull sparks follow the upgraded game's effect formulas. Shield and hull readouts show each ship?s original capacities. Hit results report shield absorption and hull damage.</p></article>
+<article><span class="number">04</span><h3>A more detailed destruction</h3><p>Explosions burst across the ship's silhouette. Rebirth debris spins outward, slows and fades, with the original explosion audio available through the sound button.</p></article>
+</div></section>
+<footer><span>Vexed Mirror · Weapon test showcase</span><p>Weapons use their own damage and recharge time. Base hull and shields; upgrades and regeneration are not simulated. The guided sequence uses visual damage.</p><a href="index.html">Play Vexed Mirror ↗</a></footer>
+</main>
+</body></html>

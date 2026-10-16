@@ -31,10 +31,10 @@
     if(d<0)return null;
     const t=(-b-Math.sqrt(d))/(2*a);return t>=0&&t<=1?t:null;
   }
-  function targetSweep(from,to,target,dimensions,radii){
-    const angle=target.heading+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle);
+  function targetSweep(from,to,target,dimensions,radii,padding=0){
+    const angle=(target.heading||0)+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle);
     const previous={x:Number.isFinite(target.previousX)?target.previousX:target.x,y:Number.isFinite(target.previousY)?target.previousY:target.y};
-    const local=(point,origin)=>{const x=point.x-origin.x,y=point.y-origin.y;return{x:(x*c+y*s)/(radii.rx*.96),y:(-x*s+y*c)/(radii.ry*.96)};};
+    const local=(point,origin)=>{const x=point.x-origin.x,y=point.y-origin.y;return{x:(x*c+y*s)/(radii.rx*.96+padding),y:(-x*s+y*c)/(radii.ry*.96+padding)};};
     return circleSweep(local(from,previous),local(to,target),{x:0,y:0},1);
   }
   function obstacleHit(from,to,rocks,padding=0){
@@ -55,15 +55,41 @@
       vx:Math.cos(angle)*spec.speed,vy:Math.sin(angle)*spec.speed,age:0,ttl:spec.range/spec.speed+.25,
       projectile:true,alive:true,turn:spec.turn,radius:spec.radius,speed:spec.speed,launchedAt:clock,kind};
   }
-  function stepProjectile(event,target,dt,rocks,radii,dimensions){
+  // Resolve the first physical contact, including objects that were clear at launch.
+  function firstContact(from,to,source,target,scene,radii,dimensions,padding=0){
+    let best=null;
+    const consider=(candidate,t)=>{if(t!=null&&(!best||t<best.t))best={kind:'hit',t,target:candidate,point:{x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t}};};
+    const candidates=[...(scene.bystanders||[]),...(scene.destructibles||[])].filter(other=>other.id!==source?.id&&other.id!==target?.id&&other.targetable!==false);
+    if(target&&target.targetable!==false)candidates.push({...target,dimensions,radii});
+    for(const candidate of candidates){
+      if(candidate.rockId!=null)continue; // Asteroids use their physical rock outline below.
+      const d=candidate.dimensions,r=candidate.radii;
+      const t=r?targetSweep(from,to,candidate,d,r,padding):circleSweep(from,to,candidate,Math.max(1,candidate.radius||15)+padding);
+      consider(candidate,t);
+    }
+    for(const rock of scene.rocks||[]){
+      if(rock.targetable===false)continue;
+      consider({...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid'},circleSweep(from,to,rock,rock.size*.43+padding));
+    }
+    // Permit a rock target supplied without a full scene (such as an isolated test).
+    if(target?.rockId!=null&&target.targetable!==false&&!(scene.rocks||[]).some(rock=>rock.slotId===target.rockId))consider(target,circleSweep(from,to,target,target.size*.43+padding));
+    return best;
+  }
+  function stepProjectile(event,target,dt,rocks,radii,dimensions,scene=null,source=null){
     const from={x:event.x,y:event.y};
-    if(event.turn){
+    if(event.turn&&target&&target.targetable!==false){
       const angle=Math.atan2(event.vy,event.vx),desired=Math.atan2(target.y-event.y,target.x-event.x);
       const next=angle+clamp(wrap(desired-angle),-event.turn*dt,event.turn*dt);
       event.vx=Math.cos(next)*event.speed;event.vy=Math.sin(next)*event.speed;
     }
     event.x+=event.vx*dt;event.y+=event.vy*dt;event.age+=dt;
-    const to={x:event.x,y:event.y},terrain=obstacleHit(from,to,rocks,event.radius);
+    const to={x:event.x,y:event.y};
+    if(scene){
+      const collision=firstContact(from,to,source,target,scene,radii,dimensions,event.radius);
+      if(collision){event.x=collision.point.x;event.y=collision.point.y;return collision;}
+      return event.age>=event.ttl?{kind:'miss'}:null;
+    }
+    const terrain=obstacleHit(from,to,rocks,event.radius);
     const contact=targetSweep(from,to,target,dimensions,radii);
     if(terrain&&(contact==null||terrain.t<=contact))return {kind:'blocked',point:{x:from.x+(to.x-from.x)*terrain.t,y:from.y+(to.y-from.y)*terrain.t}};
     if(contact!=null)return {kind:'hit',point:{x:from.x+(to.x-from.x)*contact,y:from.y+(to.y-from.y)*contact}};
@@ -80,25 +106,28 @@
   }
   function startShot(weapon,kind,source,target,clock,muzzle){
     const spec=weaponSpec(weapon,kind);
-    const event={kind,damage:spec.damage,spec,muzzle,launchedAt:clock,alive:true};
-    if(kind==='beam')event.dueAt=clock+.07;
+    const event={kind,damage:spec.damage,spec,muzzle,sourceId:source.id,targetId:target.id,launchedAt:clock,alive:true};
+    if(kind==='beam'){
+      event.dueAt=clock+.07;
+      event.from={x:source.x+Math.cos(source.heading)*muzzle,y:source.y+Math.sin(source.heading)*muzzle};
+      const angle=Math.atan2(target.y-event.from.y,target.x-event.from.x);
+      event.beamEnd={x:event.from.x+Math.cos(angle)*spec.range,y:event.from.y+Math.sin(angle)*spec.range};
+    }
     else Object.assign(event,launch(source,target,{...spec,muzzle},kind,clock));
     return event;
   }
   function stepShot(event,source,target,scene,clock,dt,radii,dimensions){
     if(!event.alive||!Number.isFinite(dt)||dt<=0)return null;
-    const terrain=blockers(scene,source,target);
-    if(event.projectile)return stepProjectile(event,target,dt,terrain,radii,dimensions);
+    if(event.projectile)return stepProjectile(event,target,dt,[],radii,dimensions,scene,source);
     if(clock<event.dueAt)return null;
-    if(!canFire(source,target,event.spec,target,[]))return {kind:'miss'};
-    const muzzle=event.muzzle||0,from={x:source.x+Math.cos(source.heading)*muzzle,y:source.y+Math.sin(source.heading)*muzzle};
-    const obstacle=obstacleHit(from,target,terrain);
-    return obstacle?{kind:'blocked',point:{x:from.x+(target.x-from.x)*obstacle.t,y:from.y+(target.y-from.y)*obstacle.t}}:{kind:'hit',point:from};
+    const muzzle=event.muzzle||0,from=event.from||{x:source.x+Math.cos(source.heading)*muzzle,y:source.y+Math.sin(source.heading)*muzzle};
+    const to=event.beamEnd||target;
+    return to?(firstContact(from,to,source,target,scene,radii,dimensions)||{kind:'miss',point:to}):{kind:'miss'};
   }
   function cooldownKey(slot,weapon){return slot+':'+weapon.id;}
   function isReady(owner,slot,weapon,clock){return (owner.weaponReadyAt?.[cooldownKey(slot,weapon)]||0)<=clock;}
   function consume(owner,slot,weapon,kind,clock){
     owner.weaponReadyAt||={};owner.weaponReadyAt[cooldownKey(slot,weapon)]=clock+weaponSpec(weapon,kind).recharge;
   }
-  window.nativeWeaponRules={weaponSpec,intercept,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile,firingSolution,startShot,stepShot,isReady,consume,wrap};
+  window.nativeWeaponRules={weaponSpec,intercept,circleSweep,targetSweep,obstacleHit,firstContact,canFire,launch,stepProjectile,firingSolution,startShot,stepShot,isReady,consume,wrap};
 })();
