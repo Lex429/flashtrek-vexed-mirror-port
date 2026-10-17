@@ -2,7 +2,7 @@
    targeting, mining, radar and painting; simulation alone changes the poses. */
 (() => {
   'use strict';
-  let activeState=null,active=new Map(),contacts=new Map(),history=[],waitingForGeometry=false;
+  let activeState=null,active=new Map(),contacts=new Map(),history=[],waitingForGeometry=false,stepStarts=new Map(),pairHistory=[];
   const anchors=new WeakMap();
   const time=state=>window.nativeSimulation.seconds(state);
   const gone=(state,id)=>state.minedAsteroids?.includes(id)||state.destroyedAsteroids?.includes(id);
@@ -11,7 +11,7 @@
   function ensure(state){
     if(activeState===state&&(!waitingForGeometry||!window.nativeSolAsteroids.placements.length))return;
     for(const {rock} of active.values()){const anchor=anchors.get(rock);window.nativeSolAsteroids.relocate(rock,{...anchor,previousX:anchor.x,previousY:anchor.y});}
-    activeState=state;active=new Map();contacts=new Map();history=[];
+    activeState=state;active=new Map();contacts=new Map();history=[];stepStarts=new Map();pairHistory=[];
     if(state.asteroidMotion?.version!==1)state.asteroidMotion={version:1,rocks:{}};
     state.asteroidMotion.rocks||={};
     waitingForGeometry=!window.nativeSolAsteroids.placements.length;
@@ -32,14 +32,41 @@
   }
   function advance(state,dt){
     if(!state||!(dt>0)||window.nativeSimulation.blocked())return;
-    ensure(state);const at=time(state);
+    ensure(state);const at=time(state);stepStarts=new Map();
     for(const {rock,pose} of active.values()){
+      stepStarts.set(rock.slotId,{x:rock.x,y:rock.y});
       const elapsed=Math.max(0,at-pose.at);
       if(!elapsed)continue;
       if(!gone(state,rock.slotId)){pose.x+=pose.vx*elapsed;pose.y+=pose.vy*elapsed;pose.angle=window.nativeShipMotion.wrap(pose.angle+pose.spin*elapsed);}
       pose.at=at;window.nativeSolAsteroids.relocate(rock,pose);
     }
+    collideRocks(state,dt);
     if(active.size)window.nativeShipSystems?.invalidate(state);
+  }
+  function physical(rock,dt){
+    const pose=active.get(rock.slotId)?.pose,start=stepStarts.get(rock.slotId),vx=pose?.vx||0,vy=pose?.vy||0;
+    return {...rock,vx,vy,spin:pose?.spin||0,previousX:start?.x??rock.x-vx*dt,previousY:start?.y??rock.y-vy*dt};
+  }
+  function collideRocks(state,dt){
+    const queue=[...active.values()].filter(({rock,pose})=>!gone(state,rock.slotId)&&Math.hypot(pose.vx,pose.vy)>.001).map(({rock})=>rock),seen=new Set();
+    const drifts=new Map();for(const rock of queue){const start=stepStarts.get(rock.slotId)||rock;drifts.set(rock.system,Math.max(drifts.get(rock.system)||0,Math.hypot(rock.x-start.x,rock.y-start.y)));}
+    const budget=Math.min(2048,Math.max(64,queue.length*12));let solved=0;
+    for(let index=0;index<queue.length&&solved<budget;index++){
+      const a=queue[index];if(gone(state,a.slotId))continue;
+      let body=physical(a,dt);
+      const candidates=window.nativeSolAsteroids.sweptNearby(a.system,{x:body.previousX,y:body.previousY},a,a.size*.43+55+(drifts.get(a.system)||0))
+        .filter(b=>a!==b&&!gone(state,b.slotId)&&!seen.has([a.slotId,b.slotId].sort((x,y)=>x-y).join(':')))
+        .map(b=>({b,result:window.nativeShipMotion.asteroidPairContact(body,physical(b,dt),dt)})).filter(e=>e.result).sort((x,y)=>x.result.t-y.result.t);
+      for(const {b} of candidates){
+        const key=[a.slotId,b.slotId].sort((x,y)=>x-y).join(':');if(seen.has(key))continue;
+        const result=window.nativeShipMotion.asteroidPairContact(physical(a,dt),physical(b,dt),dt);if(!result)continue;
+        seen.add(key);solved++;if(!stepStarts.has(b.slotId))stepStarts.set(b.slotId,{x:b.x,y:b.y});
+        store(state,a,result.a);store(state,b,result.b);
+        pairHistory.push({a:a.slotId,b:b.slotId,system:a.system,at:time(state),closing:result.closing});if(pairHistory.length>80)pairHistory.shift();
+        if(result.closing>.001){queue.push(b);queue.push(a);}
+        if(solved>=budget)break;
+      }
+    }
   }
   function freeze(state,rock){ensure(state);if(active.has(rock.slotId))store(state,rock,{vx:0,vy:0,spin:0});}
   function collide(state,dt){
@@ -55,13 +82,13 @@
       // Teleports/system arrivals do not become a sweep through an entire belt.
       if(travel>Math.max(500,Math.hypot(ship.vx,ship.vy)*dt*3+50))ship={...ship,previousX:ship.x,previousY:ship.y};
       const nearby=window.nativeSolAsteroids.nearby(system,ship,Math.min(reach,1000));
-      const physical=rock=>{const pose=active.get(rock.slotId)?.pose;return {...rock,vx:pose?.vx||0,vy:pose?.vy||0,spin:pose?.spin||0};};
-      const candidates=nearby.filter(rock=>!gone(state,rock.slotId)).map(rock=>({rock,contact:window.nativeShipMotion.asteroidContact(ship,physical(rock),dt)})).filter(e=>e.contact).sort((a,b)=>a.contact.t-b.contact.t);
+      const candidates=nearby.filter(rock=>!gone(state,rock.slotId)).map(rock=>({rock,contact:window.nativeShipMotion.asteroidContact(ship,physical(rock,dt),dt)})).filter(e=>e.contact).sort((a,b)=>a.contact.t-b.contact.t);
       for(const {rock} of candidates){
         if(gone(state,rock.slotId))continue;
-        const result=window.nativeShipMotion.asteroidContact(ship,physical(rock),dt);if(!result)continue;
+        const result=window.nativeShipMotion.asteroidContact(ship,physical(rock,dt),dt);if(!result)continue;
         store(state,rock,result.rock);
         const entity=ship.entity,offsetX=ship.x-entity.x,offsetY=ship.y-entity.y;
+        window.nativeShipMotion.applyImpulse(entity,{x:result.ship.vx-ship.vx,y:result.ship.vy-ship.vy},at,{x:result.ship.x-ship.x,y:result.ship.y-ship.y});
         Object.assign(entity,{x:result.ship.x-offsetX,y:result.ship.y-offsetY,vx:result.ship.vx,vy:result.ship.vy,speed:Math.hypot(result.ship.vx,result.ship.vy)});
         const key=ship.category+':'+ship.id+':'+rock.slotId,last=contacts.get(key)??-Infinity;
         contacts.set(key,at);
@@ -77,5 +104,5 @@
     }
     for(const [key,atContact] of contacts)if(at-atContact>1)contacts.delete(key);
   }
-  window.nativeAsteroidMotion=Object.freeze({ensure,advance,collide,freeze,snapshot:()=>({moving:active.size,contacts:history.map(e=>({...e}))})});
+  window.nativeAsteroidMotion=Object.freeze({ensure,advance,collide,freeze,snapshot:()=>({moving:active.size,contacts:history.map(e=>({...e})),rockContacts:pairHistory.map(e=>({...e}))})});
 })();

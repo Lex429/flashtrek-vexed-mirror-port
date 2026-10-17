@@ -33,8 +33,8 @@
     if(resetAngular)entity.motionAngularVelocity=0;
     return entity;
   }
-  function stop(entity){entity.speed=0;entity.vx=0;entity.vy=0;return entity;}
-  function step(entity,command={},profile={},dt){
+  function stop(entity,{preserveImpulse=false}={}){entity.speed=0;entity.vx=0;entity.vy=0;if(!preserveImpulse)delete entity.motionKick;return entity;}
+  function integrate(entity,command={},profile={},dt){
     const idle={arrived:false,distance:null,headingError:0,moved:false};
     if(!entity||!validPoint(entity)||!Number.isFinite(dt)||dt<=0)return idle;
     if(command.goal&&!validPoint(command.goal))return idle;
@@ -52,7 +52,7 @@
     let desiredHeading=goal?Math.atan2(dy,dx):command.heading;
     if(goal&&distance<=radius&&entity.speed<=arrivalSpeed){
       if(command.snap??profile.snap){entity.x=goal.x;entity.y=goal.y;}
-      stop(entity);entity.previousX=oldX;entity.previousY=oldY;
+      stop(entity,{preserveImpulse:true});entity.previousX=oldX;entity.previousY=oldY;
       return {arrived:true,distance,headingError:0,moved:oldX!==entity.x||oldY!==entity.y};
     }
     const error=Number.isFinite(desiredHeading)?wrap(desiredHeading-oldHeading):0;
@@ -67,7 +67,7 @@
     }else if(command.turn)change=clamp(finite(command.turn),-1,1)*turnRate*dt;
     entity[key]=wrap(oldHeading+change);
     entity.previousX=oldX;entity.previousY=oldY;
-    if(command.hold){stop(entity);return {arrived:false,distance,headingError:error,moved:false};}
+    if(command.hold){stop(entity,{preserveImpulse:true});return {arrived:false,distance,headingError:error,moved:false};}
     if(command.coast){
       entity.x+=entity.vx*dt;entity.y+=entity.vy*dt;
       const damping=Math.exp(-Math.max(0,finite(profile.damping))*dt);
@@ -107,8 +107,38 @@
     entity.speed=Math.hypot(entity.vx,entity.vy);
     const remaining=goal?Math.hypot(goal.x-entity.x,goal.y-entity.y):null;
     const arrived=!!goal&&remaining<=radius+1e-8&&entity.speed<=arrivalSpeed;
-    if(arrived){if(command.snap??profile.snap){entity.x=goal.x;entity.y=goal.y;}stop(entity);}
+    if(arrived){if(command.snap??profile.snap){entity.x=goal.x;entity.y=goal.y;}stop(entity,{preserveImpulse:true});}
     return {arrived,distance:remaining,headingError:error,moved:entity.x!==oldX||entity.y!==oldY};
+  }
+  function kickSample(kick,at){
+    if(!kick)return {x:0,y:0,vx:0,vy:0};
+    if(kick.mode!=='scheduled')return {x:0,y:0,vx:finite(kick.vx),vy:finite(kick.vy)};
+    const duration=Math.max(.001,finite(kick.duration,3)),t=clamp(finite(at,finite(kick.at))-finite(kick.at),0,duration),fade=1-t/duration;
+    const ax=finite(kick.vx)+2*finite(kick.x)/duration,ay=finite(kick.vy)+2*finite(kick.y)/duration;
+    const x=finite(kick.x)+ax*t,y=finite(kick.y)+ay*t;
+    return {x:x*fade*fade,y:y*fade*fade,vx:ax*fade*fade-2*x*fade/duration,vy:ay*fade*fade-2*y*fade/duration};
+  }
+  function applyImpulse(entity,velocity,at,position={x:0,y:0}){
+    if(!entity||!validPoint(velocity))return;
+    const previous=kickSample(entity.motionKick,at),leg=entity.localLeg||entity.lifeLeg;
+    if(Math.hypot(velocity.x,velocity.y,position.x,position.y)<1e-8)return;
+    entity.motionKick=leg?{version:1,mode:'scheduled',at,duration:Math.max(.05,Math.min(3,leg.startedAt+leg.duration-at)),
+      x:previous.x+position.x,y:previous.y+position.y,vx:previous.vx+velocity.x,vy:previous.vy+velocity.y}:
+      {version:1,mode:'free',vx:previous.vx+velocity.x,vy:previous.vy+velocity.y};
+  }
+  function step(entity,command={},profile={},dt){
+    if(entity?.motionKick&&validPoint(entity)&&entity.speed===0&&dt>0&&Number.isFinite(dt)&&(!command.goal||validPoint(command.goal))){delete entity.motionKick;entity.vx=0;entity.vy=0;}
+    if(!entity?.motionKick||!validPoint(entity)||!(dt>0)||!Number.isFinite(dt)||command.goal&&!validPoint(command.goal))return integrate(entity,command,profile,dt);
+    const sampled=kickSample(entity.motionKick,finite(entity.motionTime,finite(entity.motionKick.at))),kick={version:1,mode:'free',vx:sampled.vx,vy:sampled.vy};
+    const oldX=entity.x,oldY=entity.y;
+    prepare(entity);entity.vx-=kick.vx;entity.vy-=kick.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
+    const result=integrate(entity,command,profile,dt),rate=command.brake?4:command.hold||command.goal?3:0,decay=Math.exp(-rate*dt),travel=rate?(1-decay)/rate:dt;
+    entity.x+=kick.vx*travel;entity.y+=kick.vy*travel;kick.vx*=decay;kick.vy*=decay;
+    entity.vx+=kick.vx;entity.vy+=kick.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
+    entity.motionKick=Math.hypot(kick.vx,kick.vy)>.001?kick:undefined;
+    result.moved=entity.x!==oldX||entity.y!==oldY;
+    if(command.goal){result.distance=Math.hypot(command.goal.x-entity.x,command.goal.y-entity.y);result.arrived=result.arrived&&result.distance<=(command.arrivalRadius??profile.arrivalRadius??.75);}
+    return result;
   }
   function followPath(entity,path,index,profile,dt,{start}={}){
     if(!Array.isArray(path)||!path.length)return {arrived:true,index:0,progress:1,moved:false};
@@ -147,12 +177,12 @@
     return {version:2,valid:true,start,goal:{x:goal.x,y:goal.y},startedAt:finite(startedAt),distance,heading,headingStart,turnSeconds:Math.abs(wrap(heading-headingStart))/turnRate,
       initialSpeed,peakSpeed,acceleration,braking,accelSeconds,cruiseSeconds,brakeSeconds,accelDistance,duration:accelSeconds+cruiseSeconds+brakeSeconds};
   }
-  function sampleLeg(entity,leg,now){
+  function sampleLegBase(entity,leg,now){
     if(!validPoint(entity)||!leg||leg.valid===false||!validPoint(leg.start)||!validPoint(leg.goal)||!Number.isFinite(now))return {arrived:false,invalid:true,progress:0};
     const distance=Math.hypot(leg.goal.x-leg.start.x,leg.goal.y-leg.start.y);
     if(distance<=arrivalEpsilon||(Number.isFinite(leg.startedAt)&&Number.isFinite(leg.duration)&&leg.duration>0&&now>=leg.startedAt+leg.duration)){
       entity.previousX=entity.x;entity.previousY=entity.y;entity.x=leg.goal.x;entity.y=leg.goal.y;
-      entity[headingKey(entity)]=wrap(finite(leg.heading,finite(entity[headingKey(entity)])));stop(entity);
+      entity[headingKey(entity)]=wrap(finite(leg.heading,finite(entity[headingKey(entity)])));stop(entity,{preserveImpulse:true});
       return {arrived:true,progress:1,distance:0};
     }
     if(!Number.isFinite(leg.duration)||leg.duration<=0||!(leg.distance>0)||!Number.isFinite(leg.startedAt)||!['distance','heading','headingStart','turnSeconds','initialSpeed','peakSpeed','acceleration','braking','accelSeconds','cruiseSeconds','brakeSeconds','accelDistance'].every(key=>Number.isFinite(leg[key])))return {arrived:false,invalid:true,progress:0};
@@ -166,9 +196,21 @@
     entity.x=leg.start.x+(leg.goal.x-leg.start.x)*progress;entity.y=leg.start.y+(leg.goal.y-leg.start.y)*progress;
     entity[key]=wrap(leg.headingStart+wrap(leg.heading-leg.headingStart)*(leg.turnSeconds?clamp(elapsed/leg.turnSeconds,0,1):elapsed?1:0));
     entity.speed=arrived?0:speed;entity.vx=Math.cos(leg.heading)*entity.speed;entity.vy=Math.sin(leg.heading)*entity.speed;
-    if(arrived)stop(entity);
+    if(arrived)stop(entity,{preserveImpulse:true});
     return {arrived,progress,distance:Math.max(0,leg.distance-traveled)};
   }
+  function sampleLeg(entity,leg,now){
+    const result=sampleLegBase(entity,leg,now);if(result.invalid||!entity.motionKick)return result;
+    if(entity.motionKick.mode!=='scheduled')entity.motionKick={...entity.motionKick,mode:'scheduled',x:0,y:0,at:leg.startedAt,duration:Math.max(.05,Math.min(3,leg.duration))};
+    const kick=kickSample(entity.motionKick,now);
+    if(entity.motionKick.mode==='scheduled'){
+      entity.x+=kick.x;entity.y+=kick.y;entity.vx+=kick.vx;entity.vy+=kick.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
+      if(now>=entity.motionKick.at+entity.motionKick.duration)delete entity.motionKick;
+      if(result.arrived&&Math.hypot(kick.x,kick.y)>.001)result.arrived=false;
+    }
+    return result;
+  }
+  const asteroidMass=rock=>Math.max(.05,(rock.size/40)**3);
   // Swept ellipse/circle contact uses the same oriented shield/hull radii as
   // weapons. Both bodies receive a mass-weighted impulse; no health is changed.
   function asteroidContact(ship,rock,dt){
@@ -177,7 +219,7 @@
     const rx=Math.max(1,ship.radii.rx+radius),ry=Math.max(1,ship.radii.ry+radius);
     const local=(x,y)=>({x:(x*c+y*s)/rx,y:(-x*s+y*c)/ry});
     const rockVX=finite(rock.vx),rockVY=finite(rock.vy);
-    const from=local(finite(ship.previousX,ship.x)-rock.x+rockVX*dt,finite(ship.previousY,ship.y)-rock.y+rockVY*dt),to=local(ship.x-rock.x,ship.y-rock.y);
+    const from=local(finite(ship.previousX,ship.x)-finite(rock.previousX,rock.x-rockVX*dt),finite(ship.previousY,ship.y)-finite(rock.previousY,rock.y-rockVY*dt)),to=local(ship.x-rock.x,ship.y-rock.y);
     const dx=to.x-from.x,dy=to.y-from.y,a=dx*dx+dy*dy,b=2*(from.x*dx+from.y*dy),outside=from.x*from.x+from.y*from.y-1;
     let t=0;
     if(outside>0){const disc=b*b-4*a*outside;if(!a||disc<0)return null;t=(-b-Math.sqrt(disc))/(2*a);if(t<0||t>1)return null;}
@@ -187,7 +229,7 @@
     if(length<1e-9){nx=ship.vx-rockVX;ny=ship.vy-rockVY;length=Math.hypot(nx,ny);if(!length){nx=1;ny=0;length=1;}}
     nx/=length;ny/=length;
     const rvx=finite(ship.vx)-rockVX,rvy=finite(ship.vy)-rockVY,closing=Math.max(0,rvx*nx+rvy*ny);
-    const rockMass=Math.max(.05,(rock.size/40)**3),shipMass=Math.max(.5,finite(ship.definition?.mass,8*(ship.dimensions.width*ship.dimensions.height/2400)**1.5));
+    const rockMass=asteroidMass(rock),shipMass=Math.max(.5,finite(ship.definition?.mass,8*(ship.dimensions.width*ship.dimensions.height/2400)**1.5));
     const inverse=1/rockMass+1/shipMass,impulse=1.18*closing/inverse;
     const tangent=-rvx*ny+rvy*nx,friction=clamp(tangent/inverse,-impulse*.08,impulse*.08);
     const ix=nx*impulse-ny*friction,iy=ny*impulse+nx*friction;
@@ -200,5 +242,21 @@
       damageFraction:Math.min(1,(Math.max(0,closing-70)/180)**2*shipMass/(shipMass+rockMass)),
       point:{x:rock.x-nx*radius,y:rock.y-ny*radius}};
   }
-  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,arrivalEpsilon,asteroidContact};
+  function asteroidPairContact(a,b,dt){
+    if(!(dt>0)||!validPoint(a)||!validPoint(b)||!(a.size>0)||!(b.size>0))return null;
+    const ax=finite(a.previousX,a.x-finite(a.vx)*dt),ay=finite(a.previousY,a.y-finite(a.vy)*dt),bx=finite(b.previousX,b.x-finite(b.vx)*dt),by=finite(b.previousY,b.y-finite(b.vy)*dt);
+    const fx=bx-ax,fy=by-ay,dx=b.x-a.x-fx,dy=b.y-a.y-fy,r=(a.size+b.size)*.43;
+    const outside=fx*fx+fy*fy-r*r,qa=dx*dx+dy*dy,qb=2*(fx*dx+fy*dy);let t=0;
+    if(outside>0){const disc=qb*qb-4*qa*outside;if(!qa||disc<0)return null;t=(-qb-Math.sqrt(disc))/(2*qa);if(t<0||t>1)return null;}
+    let nx=fx+dx*t,ny=fy+dy*t,length=Math.hypot(nx,ny);if(length<1e-9){nx=1;ny=0;length=1;}nx/=length;ny/=length;
+    const ma=asteroidMass(a),mb=asteroidMass(b),inverse=1/ma+1/mb,rvx=finite(a.vx)-finite(b.vx),rvy=finite(a.vy)-finite(b.vy),closing=Math.max(0,rvx*nx+rvy*ny);
+    const tangent=-rvx*ny+rvy*nx+finite(a.spin)*a.size*.43+finite(b.spin)*b.size*.43;
+    const impulse=1.18*closing/inverse,friction=clamp(tangent/(3.5*inverse),-impulse*.08,impulse*.08),ix=nx*impulse-ny*friction,iy=ny*impulse+nx*friction;
+    const avx=finite(a.vx)-ix/ma,avy=finite(a.vy)-iy/ma,bvx=finite(b.vx)+ix/mb,bvy=finite(b.vy)+iy/mb,remaining=dt*(1-t),penetration=Math.max(0,r-length)+.02;
+    const pa={x:ax+(a.x-ax)*t,y:ay+(a.y-ay)*t},pb={x:bx+(b.x-bx)*t,y:by+(b.y-by)*t};
+    return {t,closing,normal:{x:nx,y:ny},massA:ma,massB:mb,
+      a:{x:pa.x+avx*remaining-nx*penetration*mb/(ma+mb),y:pa.y+avy*remaining-ny*penetration*mb/(ma+mb),vx:avx,vy:avy,spin:clamp(finite(a.spin)-friction/(ma*a.size*.43)*2.5,-5,5)},
+      b:{x:pb.x+bvx*remaining+nx*penetration*ma/(ma+mb),y:pb.y+bvy*remaining+ny*penetration*ma/(ma+mb),vx:bvx,vy:bvy,spin:clamp(finite(b.spin)-friction/(mb*b.size*.43)*2.5,-5,5)}};
+  }
+  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample};
 })();

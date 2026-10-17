@@ -153,6 +153,14 @@
     for(let x=Math.floor((point.x-radius-50)/cellSize);x<=Math.floor((point.x+radius+50)/cellSize);x++)for(let y=Math.floor((point.y-radius-50)/cellSize);y<=Math.floor((point.y+radius+50)/cellSize);y++)for(const rock of grid.get(x+':'+y)||[])if(Math.hypot(rock.x-point.x,rock.y-point.y)<=radius+rock.size)result.push(rock);
     return result;
   }
+  function sweptNearby(system,from,to,radius){
+    const distance=Math.hypot(to.x-from.x,to.y-from.y);
+    // Long calendar skips scan the small lazy geometry field rather than an
+    // enormous empty grid rectangle. Ordinary physics uses neighboring cells.
+    if(distance+radius<cellSize*3)return nearby(system,{x:(from.x+to.x)/2,y:(from.y+to.y)/2},radius+distance/2);
+    const dx=to.x-from.x,dy=to.y-from.y,denominator=dx*dx+dy*dy;
+    return forSystem(system).filter(rock=>{const t=denominator?Math.max(0,Math.min(1,((rock.x-from.x)*dx+(rock.y-from.y)*dy)/denominator)):0;return Math.hypot(rock.x-from.x-t*dx,rock.y-from.y-t*dy)<=radius+rock.size;});
+  }
   function image(file){
     if(!images.has(file)){
       const art=new Image();
@@ -193,7 +201,7 @@
       ctx.drawImage(art,-size/2,-size/2,size,size);ctx.restore();
     }
   }
-  window.nativeSolAsteroids={paint,hitTest,frame,image,forSystem,find,nearby,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size};},get ready(){return ready;},get placements(){return placements;},abundance};
+  window.nativeSolAsteroids={paint,hitTest,frame,image,forSystem,find,nearby,sweptNearby,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size};},get ready(){return ready;},get placements(){return placements;},abundance};
   ready=fetch(catalogUrl).then(response=>{if(!response.ok)throw new Error('Asteroid catalog unavailable');return response.json();})
     .then(populate).catch(error=>console.warn('Sol asteroid artwork unavailable',error));
 })();

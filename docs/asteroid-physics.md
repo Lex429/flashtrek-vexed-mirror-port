@@ -28,10 +28,25 @@ impact. Persistent overlaps share a 250 ms contact gate for effects/damage.
 Ship shield flashes and hull sparks use the existing renderer and contact
 surfaces. These environmental contacts do not subtract ship health.
 
+Whole drifting asteroids collide with other whole rocks, including rocks in
+offscreen systems. Swept circle contacts exchange equal/opposite impulses using
+each rock's cubic size mass, restitution 0.18, and rotational friction. Small
+rocks accelerate more; large rocks resist more. Glancing hits transfer spin and
+deflect trajectories. These body contacts do not generate ore or apply the
+fragment-specific 25% damage rule. The existing weapon/debris rules remain
+separate. Queries use the spatial grid for ordinary steps and bounded field
+scans for long calendar sweeps; no artwork is needed. Each pair resolves once
+per step, with at most 2048 pair resolutions per step for crowded chains.
+
 `asteroid-motion.js` dispatches contacts for registered actors in the active
 system once per physics step. Civilian and freight task owners retain their
-scheduled route deadlines and economic reservations. They receive the immediate
-contact response; scheduled motion continues to execute their existing commands.
+scheduled route deadlines and economic reservations. Saved `motionKick.version:1`
+retains external ship momentum separately from engine velocity, so steering does
+not erase a sideways shove. Manual flight coasts until braking; goal/holding
+commands damp the external velocity. Scheduled ships sample a smooth displacement
+and recovery over up to three seconds, ending at their existing route goal and
+deadline. Inspection reads the same saved curve without replaying displacement.
+Explicit motion stops clear knockback, including ordinary zero-speed resets.
 NPC miners approach the rock's current position again if it has moved beyond
 cutting range. Player mining stops if its target is destroyed or leaves range.
 
@@ -56,6 +71,9 @@ The Node regressions cover quarter-health fragment deduplication, arbitrary
 weapon strength, exactly-once ore, momentum conservation, small/large masses,
 glancing spin, high-speed sweeps, shield/hull boundaries, drift across grid cells,
 offscreen movement, pause, independent saves and frozen destruction origins.
+Additional checks cover whole-rock momentum/energy, glancing spin, an offscreen
+three-rock chain, incoming small/large rocks, continued sideways ship drift,
+braking, and deterministic scheduled NPC knockback through JSON restoration.
 The production-policy fixture runs 30 minutes with all civilian identities,
 funded jobs and unique ore claims, including a midway JSON reload. Legacy economy
 fixtures keep their established defaults unless `physics:true` is requested.
@@ -63,7 +81,9 @@ fixtures keep their established defaults unless `physics:true` is requested.
 `browser-asteroid-physics.py` exercises actual weak beam/disruptor/torpedo models,
 all three ship categories with shield/hull art, camera movement and rotated
 shield contacts, four real debris samples, and disk save/Continue with velocity
-preserved. Existing mining, freight, population, render and map suites remain
+preserved. Incoming 20/70-unit rocks are also tested against player, civilian and
+freight ships, along with an actual offscreen three-rock chain. Existing mining,
+freight, population, render and map suites remain
 required. Screenshots and reports stay under ignored `test-results/`.
 
 A diagnostic six-second Edge comparison used the unchanged 169-ship save
@@ -72,3 +92,9 @@ at 1280 x 850. Simulation p95 was 0.7 ms before / 0.8 ms after in flight and
 0.4 / 0.5 ms on the Dev map. These short samples show the additional contact
 work's cost; they do not establish a smoothness improvement or remove previously
 documented frame-delivery stalls.
+
+The whole-rock follow-up used the same save and viewport: six-second simulation
+p95 samples were 0.6 ms before / 0.5 ms after in flight and 0.3 / 0.5 ms on the
+Dev map. These small, noisy samples are diagnostic only; no smoothness gain is
+claimed. Functional offscreen-mining checks remain the performance regression
+gate for avoiding artwork or pixel work outside the viewport.

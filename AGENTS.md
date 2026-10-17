@@ -57,6 +57,10 @@ with `regional:true` for current policy, while legacy fixtures retain old contra
 
 `asteroid-motion.js` owns saved displaced rock poses and contact dispatch;
 `ship-motion.js` owns the swept contact, mass response and spin calculation.
+Whole rocks exchange momentum through `asteroidPairContact`, including offscreen
+drift; query swept geometry without requesting artwork. Ship `motionKick`
+belongs to shared motion and must survive steering/save/load while scheduled
+NPC samples recover their route without replaying offsets or changing escrow.
 `sol-asteroids.relocate` must update the same spatial index used by mining,
 targeting and radar. Preserve seeded geometry/IDs when starting a different save.
 Combat weapon contacts use `asteroid-combat.weaponHit`; debris uses `debrisHit`

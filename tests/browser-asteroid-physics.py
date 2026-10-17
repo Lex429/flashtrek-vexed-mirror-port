@@ -105,6 +105,34 @@ try:
           nativeEnvironmentalImpacts.debris(s,piece,r.x-100,r.y);near(s.asteroidDamage[rockId],5,'Repeated overlap');
           for(let i=0;i<3;i++)nativeEnvironmentalImpacts.debris(s,debris(),r.x-100,r.y);
           check(s.destroyedAsteroids.filter(id=>id===rockId).length===1,'Four debris impacts did not destroy exactly once');
+          const incoming=[];
+          for(const category of ['player','civilian','tug'])for(const size of [20,70]){
+            const initial=fresh(),r=nativeSolAsteroids.find(rockId),x=r.x,y=r.y,oldSize=r.size;
+            const s={...initial,asteroidMotion:{version:1,rocks:{[rockId]:{system:1,x,y:y-100,angle:r.angle,vx:0,vy:70,spin:0,at:nativeSimulation.seconds(initial)}}}};
+            nativeAsteroidMotion.ensure(s);r.size=size;
+            let entity=s;if(category!=='player'){entity={...clone(templates[category]),id:8899,system:1,phase:'cruise',hull:1000};if(category==='tug')s.solEconomy.freighters=[entity];else s.civilianTraffic.ships=[entity];}
+            Object.assign(entity,{shields:1000,vx:0,vy:0,speed:0,heading:0,angle:0});
+            if(category==='player')putPlayer(s,x,y);else Object.assign(entity,{x,y});entity.previousX=x;entity.previousY=y;
+            await nativeShipEffects.prepare(nativeShipDefinitions.describe(s,entity,{category}).shipType,category);
+            let steps=0;
+            const tick=()=>{nativeSimulation.advance(s,1/60);nativeAsteroidMotion.advance(s,1/60);nativeShipSystems.move(s,entity,category,{},undefined,1/60);nativeAsteroidMotion.collide(s,1/60);nativeShipEffects.advance(s,1/60);};
+            while(!entity.motionKick&&steps++<150)tick();check(entity.motionKick,'Incoming '+size+' rock did not push '+category);
+            const velocity=entity.vy,before=nativeShipDefinitions.describe(s,entity,{category}).y;
+            for(let i=0;i<12;i++)tick();const d=nativeShipDefinitions.describe(s,entity,{category});
+            check(d.y>before+velocity*.15,'Normal steering cancelled incoming sideways knockback: '+category+' / '+size);check(d.vy>0,'Knockback velocity vanished');
+            const visual=nativeShipEffects.snapshot(d);check(visual.flash,'Incoming rock did not use the ship shield effect');
+            const restored=clone(entity);check(restored.motionKick.vy>0,'Ship knockback is not serializable');
+            incoming.push({category,size,velocity,continuedDrift:d.y-before});r.size=oldSize;
+          }
+          for(const category of ['player','civilian','tug']){const cases=incoming.filter(c=>c.category===category);check(cases[1].velocity>cases[0].velocity,'Larger rock did not push '+category+' harder');}
+          const chainState=fresh(),chainRocks=nativeSolAsteroids.forSystem(43).slice(0,3),at=nativeSimulation.seconds(chainState),positions=[0];
+          for(let i=1;i<3;i++)positions.push(positions[i-1]+(chainRocks[i-1].size+chainRocks[i].size)*.43+8);
+          const chained={...chainState,asteroidMotion:{version:1,rocks:Object.fromEntries(chainRocks.map((r,i)=>[r.slotId,{system:43,x:positions[i],y:0,angle:r.angle,vx:i?0:60,vy:0,spin:0,at}]))}};
+          nativeAsteroidMotion.ensure(chained);
+          for(let i=0;i<180;i++){nativeSimulation.advance(chained,1/60);nativeAsteroidMotion.advance(chained,1/60);}
+          check(chainRocks.every(r=>r.vx>0),'Offscreen whole-rock chain did not transfer motion to every rock');
+          check(nativeAsteroidMotion.snapshot().rockContacts.length>=2,'Rock chain omitted physical contacts');
+          const chain={velocities:chainRocks.map(r=>r.vx),contacts:nativeAsteroidMotion.snapshot().rockContacts.length,playerSystem:chained.system,rockSystem:43};
           // Actual disk save/Continue is checked below, after a normal physical push.
           const live=nativeNpcDev.getState();live.system=43;live.landed=false;live.localCruise=null;live.arrivalApproach=null;
           nativeAsteroidMotion.ensure(live);const moving=nativeSolAsteroids.forSystem(43).find(r=>!live.minedAsteroids?.includes(r.slotId)&&!live.destroyedAsteroids?.includes(r.slotId));
@@ -112,7 +140,7 @@ try:
           const d=nativeShipDefinitions.describe(live,live,{category:'player'});Object.assign(live,{x:moving.x-d.radii.ry-moving.size*.43+1,y:moving.y,previousX:moving.x-200,previousY:moving.y,angle:0,speed:40,vx:40,vy:0});
           nativeAsteroidMotion.collide(live,.1);check(live.asteroidMotion.rocks[moving.slotId],'Live state push did not persist');
           const save={id:moving.slotId,pose:clone(live.asteroidMotion.rocks[moving.slotId])};document.querySelector('#save').click();
-          return {scenarios,weapons,debrisQuarterDamage:true,debrisDeduplicated:true,save};
+          return {scenarios,weapons,incoming,chain,debrisQuarterDamage:true,debrisDeduplicated:true,save};
         }''')
         page.locator('#asteroid-physics-output').screenshot(path=str(OUTPUT/'contacts.png'))
         page.reload()

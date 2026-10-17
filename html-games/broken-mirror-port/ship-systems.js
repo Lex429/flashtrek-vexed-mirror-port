@@ -71,11 +71,11 @@
     if(!(dt>0)||window.nativeSimulation.blocked())return {arrived:false,moved:0};
     const descriptor=window.nativeShipDefinitions.describe(state,entity,{category});
     const pose={x:descriptor.x,y:descriptor.y,heading:descriptor.heading,speed:entity.speed||0,
-      vx:entity.vx,vy:entity.vy,motionAngularVelocity:entity.motionAngularVelocity};
+      vx:entity.vx,vy:entity.vy,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionTime:window.nativeSimulation.seconds(state)};
     const origin={x:descriptor.x-entity.x,y:descriptor.y-entity.y};
     const result=window.nativeShipMotion.step(pose,command,profile||descriptor.definition.movement,dt);
     Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionAngularVelocity:pose.motionAngularVelocity,
-      previousX:pose.previousX,previousY:pose.previousY});
+      previousX:pose.previousX,previousY:pose.previousY,motionKick:pose.motionKick});
     if(category==='player')entity.angle=pose.heading;else entity.heading=pose.heading;
     invalidate(state,descriptor.system);
     return result;
