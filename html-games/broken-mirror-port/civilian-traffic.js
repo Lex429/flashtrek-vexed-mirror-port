@@ -121,14 +121,14 @@
     warpSound(state,ship,'departure');
     note(state,`${ship.name} departed ${systemName(ship.system)} for ${systemName(destination)}.`);
   }
-  const rockById=id=>window.nativeSolAsteroids?.placements.find(rock=>rock.slotId===id);
+  const rockById=id=>window.nativeSolAsteroids?.find?.(id)||window.nativeSolAsteroids?.placements.find(rock=>rock.slotId===id);
   const rockGone=(state,rock)=>!rock||state.minedAsteroids?.includes(rock.slotId)||state.destroyedAsteroids?.includes(rock.slotId);
   const freeHold=ship=>Math.max(0,stats(ship.shipType).cargo-(ship.cargo?.tons||0)-(ship.oreHold||0));
   const canMine=ship=>window.nativeShipDefinitions.get(ship.shipType,'civilian').capabilities.canMine!==false;
   const disabledHull=ship=>Math.max(1,stats(ship.shipType).hull*.25);
   const operational=ship=>ship&&!['disabled','destroyed','warp','arriving'].includes(ship.phase)&&ship.hull>disabledHull(ship);
   const availableForDispute=(traffic,ship)=>operational(ship)&&!ship.disputeId&&!ship.retaliationId&&(ship.disputeCooldownUntil||0)<=traffic.clock;
-  const isMiningRock=(state,id)=>initialize(state).ships.some(ship=>ship.system===1&&ship.miningRockSlot===id&&['mining-flight','mining','collecting'].includes(ship.phase));
+  const isMiningRock=(state,id)=>initialize(state).ships.some(ship=>ship.miningRockSlot===id&&['mining-flight','mining','collecting'].includes(ship.phase));
   function availableRock(state,region){
     return (window.nativeSolAsteroids?.placements||[]).find(rock=>rock.region===region&&!rockGone(state,rock)&&!isMiningRock(state,rock.slotId)&&rock.slotId!==window.nativeAsteroidCombat?.miningId)||null;
   }
@@ -496,9 +496,8 @@
       if(selected===vessel.id&&!warpEffect)window.nativeAsteroidCombat?.drawTargetFrame(ctx,{name:vessel.name,size:Math.hypot(d.width,d.height)/Math.SQRT2,kind:vessel.phase==='disabled'?'DISABLED CIVILIAN':'CIVILIAN',color:'#ffd66e',shield:vessel.shields/Math.max(1,stats(vessel.shipType).shields),hull:vessel.hull/Math.max(1,stats(vessel.shipType).hull),selectedAt},x,y,zoom,cx);
     }
   }
-  function miningIds(state){return initialize(state).ships.filter(vessel=>vessel.system===1&&vessel.phase==='mining').map(vessel=>vessel.miningRockSlot);}
+  function miningIds(state){return initialize(state).ships.filter(vessel=>vessel.system===state.system&&vessel.phase==='mining').map(vessel=>vessel.miningRockSlot);}
   function paintMining(ctx,{state,ship,cx,cy,zoom,w=cx*2,h=cy*2}){
-    if(state.system!==1)return;
     const now=window.nativeSimulation.now(state),clock=window.nativeSimulation.seconds(state);
     for(const vessel of localShips(state)){
       if(vessel.phase!=='mining'&&(vessel.phase!=='collecting'||clock-(vessel.miningStartedAt??clock)>=8.5))continue;

@@ -56,11 +56,13 @@ use owned credits and restore condition after a saved deadline. Idle work retrie
 when no affordable stock, unmet demand or available resource is useful.
 
 Job selection considers cargo already aboard first, condition, role preference,
-capacity, available stock, destination shortages, distance and money. The initial
-connected commercial foundation is Earth/Sol, Orion and Vulcan (system IDs
-1, 2 and 4); `connectedSystems` is saved configuration. Existing ships elsewhere
-may work toward those systems and their home/base. Content expansion does not
-require another scheduler.
+capacity, available stock, destination shortages, distance and money. Regional
+mining expands the original Earth/Sol, Orion and Vulcan foundation to all 52
+systems in saved `connectedSystems`. Existing station residents return to their
+operating bases after current work, mine local reserved rocks and deliver to
+funded local refineries. Traders consider nearby systems. The original population,
+tasks and home identities remain intact. See [regional mining](regional-mining.md)
+for geology, migration, typed mineral settlement and technology ownership.
 
 `civilianTraffic.life.markets` stores real stock, targets, credits, reserved source
 stock, `incoming` tons per good and `fundsReserved`. Available purchase funds are

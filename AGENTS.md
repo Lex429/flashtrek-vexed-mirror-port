@@ -28,3 +28,15 @@ player quotes come from `sol-economy.quote` and use marginal lot pricing. Preser
 existing treasury balances and escrow. Run `player-market.test.cjs`,
 `port-docking.test.cjs` and `browser-earth-jam.py`; the latter restores the actual
 36-ship audited jam and exercises the ordinary market buttons outside Dev mode.
+
+`regional-minerals.js` owns immutable geological profiles and mineral technology
+data. `sol-asteroids.js` preserves the original 262 Sol slots through its legacy
+`placements` accessor; use `forSystem(system)`, `find(id)` and `nearby` for active
+world content. Regional IDs are `system * 100000 + index`. Never reseed depleted
+rocks, change their IDs, or load distant artwork to advance NPC mining.
+`npc-lives.js` owns local refinery settlement and material/credit consumption for
+engineering. Typed raw minerals refine into the existing industrial Ore good;
+they do not create a competing currency or duplicate ore entitlements.
+Run `regional-mining.test.cjs` with its regional fixture enabled and
+`browser-regional-mining.py`; older economy fixtures deliberately retain the
+legacy three-system configuration to cover existing contracts and saves.

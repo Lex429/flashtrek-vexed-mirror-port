@@ -73,8 +73,8 @@ try:
           state.civilianTraffic.ships=[];state.civilianTraffic.disputes=[];state.civilianTraffic.retaliations=[];
           state.solEconomy.freighters=[];
           const origin=vexedSolFlight.shipPosition(state),sampleRock=nativeSolAsteroids.placements[0];
-          const rock={...sampleRock,slotId:999991,x:origin.x+100,y:origin.y,size:35,maxHull:1};
-          const rocks=nativeSolAsteroids.placements;
+          const rock={...sampleRock,slotId:state.system*100000+99999,x:origin.x+100,y:origin.y,size:35,maxHull:1};
+          const rocks=nativeSolAsteroids.forSystem(state.system);
           const beam=VexedMirrorWeapons.find(weapon=>weapon.damage>0&&nativeCombatShots.weaponVisual(weapon).kind==='beam');
           nativeWeaponLoadout.refit(state,[beam.id,null,null]);
           const target={id:'probe-target',x:origin.x+180,y:origin.y,heading:0};

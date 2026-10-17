@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{execFileSync}=require('node:child_process'),{createHash}=require('node:crypto');
 const root=path.join(__dirname,'../html-games/broken-mirror-port');
-async function fixture({saved,full=true,economic=true,revision}={}){
+async function fixture({saved,full=true,economic=true,revision,regional=false}={}){
  const source=(file,optional=false)=>{if(!revision)return fs.readFileSync(path.join(root,file),'utf8');try{return execFileSync('git',['show',`${revision}:html-games/broken-mirror-port/${file}`],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']});}catch(error){if(optional)return null;throw error;}};
  const hub=source('system-hub.js'),rows=vm.runInNewContext('['+hub.match(/const sol = \[([\s\S]*?)\]\.map/)[1]+']');
  const sol=rows.map(([id,name,x,y,port])=>({id,name,x,y,port}));
@@ -9,7 +9,7 @@ async function fixture({saved,full=true,economic=true,revision}={}){
   showcaseWeaponAppearance:{units:.91976},showcaseShieldRadii:(w,h)=>({rx:w*.6,ry:h*.6}),createShowcaseWeaponVisual:i=>({...i}),showcaseHullBurst:{burst(){},update(){}}};
  const context=vm.createContext({window,document:{hidden:false},console,performance,
   fetch:async url=>({ok:true,json:async()=>JSON.parse(fs.readFileSync(path.join(root,'../flashtrek-broken-mirror/showcase-assets',url.split('/').pop().split('?')[0]),'utf8'))})});
- for(const file of ['world-data.js','weapon-catalog.js','simulation-clock.js','simulation-frame.js','ship-motion.js','ship-definitions.js','ship-detail.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','port-docking.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','sol-asteroids.js','asteroid-combat.js','manual-flight.js','npc-lives.js']){const code=source(file,['simulation-frame.js','ship-detail.js','port-docking.js'].includes(file));if(code)vm.runInContext(code,context,{filename:file});}
+ for(const file of ['world-data.js',...(regional?['regional-minerals.js']:[]),'weapon-catalog.js','simulation-clock.js','simulation-frame.js','ship-motion.js','ship-definitions.js','ship-detail.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','port-docking.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','sol-asteroids.js','asteroid-combat.js','manual-flight.js','npc-lives.js']){const code=source(file,['simulation-frame.js','ship-detail.js','port-docking.js'].includes(file));if(code)vm.runInContext(code,context,{filename:file});}
  await window.nativeCombatShots.ready;await new Promise(resolve=>setImmediate(resolve));
  const state=saved||{system:1,shipType:7,x:0,y:0,angle:0,speed:0,hull:100,shields:100,weapons:[1],localPrestige:{},minedAsteroids:[],destroyedAsteroids:[]};
  window.nativeSimulation.ensure(state);window.nativeSolEconomy.initialize(state);window.nativeCivilianTraffic.initialize(state);

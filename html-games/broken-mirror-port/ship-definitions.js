@@ -26,7 +26,7 @@
     const type=Number(entity.shipType??(category==='tug'?10:entity.type??entity.id)),definition=get(type,category);
     for(const upgrade of definition.statUpgrades){const level=number(entity[upgrade.levelField]);
       if(level>0)definition[upgrade.stat]=upgrade.base+upgrade.perLevel*Math.min(upgrade.maxLevel??Infinity,level);}
-    return definition;
+    return category==='player'&&window.nativeRegionalMinerals?window.nativeRegionalMinerals.stats(entity,definition):definition;
   }
   function dimensions(entity,category='player'){
     if(entity.dimensions)return {...entity.dimensions};

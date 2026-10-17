@@ -42,6 +42,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-galaxy-controls.py
+      - name: Remote regional mining, local refinery and mineral engineering
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-regional-mining.py
       - name: Player lighting, damage stages and warp pixel regressions
         env:
           BROWSER_CHANNEL: ''

@@ -100,9 +100,9 @@
       if(conflict){if(result.kind==='hit')conflict.hits=(conflict.hits||0)+1;else conflict.misses=(conflict.misses||0)+1;}
     }});
   register('asteroid',{collect:(state,system)=>{
-    if(system!==1)return [];
+    if(system!==1&&!window.nativeSolAsteroids?.forSystem)return [];
     const gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
-    return (window.nativeSolAsteroids?.placements||[]).filter(rock=>!gone.has(rock.slotId)).map(rock=>({...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid',system:1,heading:rock.angle||0,
+    return (window.nativeSolAsteroids?.forSystem?.(system)||window.nativeSolAsteroids?.placements||[]).filter(rock=>!gone.has(rock.slotId)).map(rock=>({...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid',system,heading:rock.angle||0,
       dimensions:{width:rock.size,height:rock.size},radius:rock.size*.43,entity:rock,targetable:true}));
   },hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.hit(state,target.rockId,amount,impact)});
   window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,scene,resolve,applyHit,visualImpact,resolved,move,inspectAll,invalidate});

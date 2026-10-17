@@ -1,4 +1,4 @@
-/* Showcase asteroid artwork placed throughout Sol. Positions stay fixed across saves. */
+/* Stable asteroid geometry. Old Sol slots are immutable; regional belts are lazy data. */
 (() => {
   'use strict';
   const catalogUrl='../flashtrek-broken-mirror/showcase-assets/asteroids.json';
@@ -23,6 +23,8 @@
   const abundance={trellium:43,dilithium:30,tritanium:16,gallicite:9,benamite:3};
   const images=new Map();
   let placements=[];
+  let catalogData=null,ready;
+  const systems=new Map(),indexes=new Map(),grids=new Map(),beltData=new Map(),cellSize=700;
   let seed=61357;
   const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   function shuffle(values){for(let i=values.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}return values;}
@@ -100,7 +102,49 @@
         addExtra(x,y,'Asteroid Belt',oreType);break;
       }
     }
-    placements=points;
+    for(const point of points)point.system=1;
+    placements=points;catalogData=rocksByOre;
+  }
+  function forSystem(system=1){
+    system=Number(system);if(!catalogData)return system===1?placements:[];
+    if(!systems.has(system)){
+      const geology=window.nativeRegionalMinerals;
+      if(!geology)return system===1?placements:[];
+      const profile=geology.profile(system),random=geology.seed(system*811+413977),legacy=system===1?placements:[],rocks=[...legacy],types=geology.oreSequence(system,profile.count,legacy),belts=[];
+      const origin=system===1?{x:-6220,y:-925}:{x:-220,y:75};
+      const neighbors=geology.neighbors(system,4),position=geology.position(system);
+      const lanes=neighbors.map(id=>{const p=geology.position(id);return Math.atan2(p.y-position.y,p.x-position.x);});
+      const localLanes=system===1?routes.map(([a,b])=>{const from=regions.find(r=>r.name===a),to=regions.find(r=>r.name===b);return {a:{x:from.x-220,y:from.y+75},b:{x:to.x-220,y:to.y+75}};}):[];
+      const lineDistance=(p,a,b)=>{const dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy)));return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);};
+      const clear=p=>system===1?clearOfPlanets(p.x,p.y)&&localLanes.every(l=>lineDistance(p,l.a,l.b)>230):Math.hypot(p.x+220,p.y-75)>850&&lanes.every(angle=>Math.abs(Math.atan2(Math.sin(p.angle-angle),Math.cos(p.angle-angle)))>.11);
+      for(let belt=0;belt<2;belt++){
+        const radius=system===1?[14200,21000][belt]:[2100+(system%6)*220,4400+(system%5)*260][belt],width=system===1?500:280+(system%4)*65;
+        const name=(system===1?'Sol':window.VexedMirrorWorld.systems.find(s=>s.id===system)?.name||'Frontier')+' '+(belt===0?'inner':'outer')+' belt';
+        belts.push({name,system,x:origin.x,y:origin.y,radius,width,mainOres:Object.entries(profile.weights).filter(([,n])=>n>=30).map(([ore])=>ore)});
+        const count=belt===0?Math.ceil(profile.count*.6):Math.floor(profile.count*.4);
+        for(let slot=0;slot<count;slot++){
+          let point=null;
+          for(let attempt=0;attempt<240;attempt++){
+            const angle=random()*Math.PI*2,distance=radius+(random()-.5)*width*2,candidate={x:origin.x+Math.cos(angle)*distance,y:origin.y+Math.sin(angle)*distance,angle};
+            if(!clear(candidate)||rocks.some(r=>Math.hypot(r.x-candidate.x,r.y-candidate.y)<65))continue;point=candidate;break;
+          }
+          if(!point)continue;
+          const index=rocks.length-legacy.length,oreType=types[index],group=catalogData.get(oreType),art=group[Math.floor(random()*group.length)],size=28+random()*20;
+          rocks.push({...art,...point,slotId:system*100000+index,system,region:name,oreType,size,maxHull:Math.max(9,Math.round(size*.45)),angle:random()*Math.PI*2});
+        }
+      }
+      const byId=new Map(rocks.map(r=>[r.slotId,r])),grid=new Map();
+      for(const rock of rocks){const key=Math.floor(rock.x/cellSize)+':'+Math.floor(rock.y/cellSize),bucket=grid.get(key)||[];bucket.push(rock);grid.set(key,bucket);}
+      systems.set(system,rocks);indexes.set(system,byId);grids.set(system,grid);beltData.set(system,belts);
+    }
+    return systems.get(system);
+  }
+  function find(id,system){if(id===null||id===undefined)return null;system=Number(system??(Number(id)>=100000?Math.floor(Number(id)/100000):1));const field=forSystem(system);return indexes.get(system)?.get(Number(id))||field.find(r=>r.slotId===Number(id))||null;}
+  function nearby(system,point,radius){
+    const rocks=forSystem(system),grid=grids.get(Number(system));if(!grid||!point||!Number.isFinite(radius))return rocks;
+    const result=[];
+    for(let x=Math.floor((point.x-radius-50)/cellSize);x<=Math.floor((point.x+radius+50)/cellSize);x++)for(let y=Math.floor((point.y-radius-50)/cellSize);y<=Math.floor((point.y+radius+50)/cellSize);y++)for(const rock of grid.get(x+':'+y)||[])if(Math.hypot(rock.x-point.x,rock.y-point.y)<=radius+rock.size)result.push(rock);
+    return result;
   }
   function image(file){
     if(!images.has(file)){
@@ -111,9 +155,10 @@
     return images.get(file);
   }
   function screenSize(rock,zoom){return rock.size*Math.min(zoom,2.2);}
-  function hitTest({ship,cx,cy,zoom,x,y,mined=[]}){
+  function hitTest({ship,cx,cy,zoom,x,y,mined=[],system=1}){
     if(!ship)return null;
-    for(const rock of placements){
+    const point={x:ship.x+(x-cx)/zoom,y:ship.y+(y-cy)/zoom};
+    for(const rock of nearby(system,point,70)){
       if(mined.includes(rock.slotId))continue;
       const sx=cx+(rock.x-ship.x)*zoom,sy=cy+(rock.y-ship.y)*zoom;
       if(Math.hypot(x-sx,y-sy)<=Math.max(11,screenSize(rock,zoom)*.6))return rock;
@@ -126,10 +171,10 @@
     if(stage)return rock.file.replace(/\.png$/,`_${stage}.png`);
     return rock.id===100?'asteroids/asteroid_01_intact.png':rock.file;
   }
-  function paint(ctx,{ship,cx,cy,zoom,w,h,mined=[],damage={},hiddenId=null,hiddenIds=[]}){
+  function paint(ctx,{ship,cx,cy,zoom,w,h,mined=[],damage={},hiddenId=null,hiddenIds=[],system=1}){
     if(!ship||!placements.length)return;
     const hidden=new Set(hiddenIds);
-    for(const rock of placements){
+    for(const rock of nearby(system,ship,Math.hypot(w,h)/(2*zoom)+70)){
       if(mined.includes(rock.slotId)||rock.slotId===hiddenId||hidden.has(rock.slotId))continue;
       const x=cx+rock.x-ship.x,y=cy+rock.y-ship.y;
       const screenX=cx+(x-cx)*zoom,screenY=cy+(y-cy)*zoom,extent=screenSize(rock,zoom);
@@ -141,7 +186,7 @@
       ctx.drawImage(art,-size/2,-size/2,size,size);ctx.restore();
     }
   }
-  window.nativeSolAsteroids={paint,hitTest,frame,image,get placements(){return placements;},abundance};
-  fetch(catalogUrl).then(response=>{if(!response.ok)throw new Error('Asteroid catalog unavailable');return response.json();})
+  window.nativeSolAsteroids={paint,hitTest,frame,image,forSystem,find,nearby,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size};},get ready(){return ready;},get placements(){return placements;},abundance};
+  ready=fetch(catalogUrl).then(response=>{if(!response.ok)throw new Error('Asteroid catalog unavailable');return response.json();})
     .then(populate).catch(error=>console.warn('Sol asteroid artwork unavailable',error));
 })();

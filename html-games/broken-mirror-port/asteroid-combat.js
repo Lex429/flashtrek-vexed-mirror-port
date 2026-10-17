@@ -2,20 +2,21 @@
 (() => {
   'use strict';
   let targetId=null,selectedAt=0,bursts=[],collections=[],collectionFields=[],mining=null;
-  let activeState=null;
+  let activeState=null,targetSystem=1;
   const now=()=>window.nativeSimulation.now(activeState);
-  const placements=()=>window.nativeSolAsteroids?.placements||[];
-  const target=()=>placements().find(rock=>rock.slotId===targetId)||null;
+  const placements=(system=activeState?.system??1)=>window.nativeSolAsteroids?.forSystem?.(system)||(Number(system)===1?window.nativeSolAsteroids?.placements:[])||[];
+  const rockById=(id,system)=>window.nativeSolAsteroids?.find?.(id,system)||placements(system).find(rock=>rock.slotId===Number(id))||null;
+  const target=()=>targetId===null?null:rockById(targetId,targetSystem);
   const gone=(state,id)=>state.destroyedAsteroids?.includes(id)||state.minedAsteroids?.includes(id);
   const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const orePosition=(rock,index,mined=false)=>{const [dx,dy]=(mined?[[-.1144,-.1144],[.1144,-.1144],[-.1144,.1144],[.1144,.1144]]:[[0,-.172],[-.172,.095],[.172,.095]])[index]||[0,0];return{x:rock.x+dx*rock.size,y:rock.y+dy*rock.size};};
   const oreShieldRadius=rock=>rock.size*.36;
   const weaponVisual=weapon=>window.nativeCombatShots.weaponVisual(weapon);
   const miningTiming=Object.freeze({cutSeconds:7.15,animationSeconds:8.5,transportSeconds:4.5});
-  function select(rock){if(targetId!==rock.slotId)selectedAt=now();targetId=rock.slotId;return rock;}
+  function select(rock){targetSystem=rock.system??activeState?.system??1;if(targetId!==rock.slotId)selectedAt=now();targetId=rock.slotId;return rock;}
   function deselect(){targetId=null;}
   function autoTarget(state,ship,{cx,cy,zoom,w,h}){
-    const nearby=placements().filter(rock=>!gone(state,rock.slotId)&&distance(rock,ship)<=650);
+    const nearby=placements(state.system).filter(rock=>!gone(state,rock.slotId)&&distance(rock,ship)<=650);
     const visible=nearby.filter(rock=>{
       const x=cx+(rock.x-ship.x)*zoom,y=cy+(rock.y-ship.y)*zoom;
       return x>=0&&x<=w&&y>=0&&y<=h;
@@ -110,23 +111,23 @@
     }
     if(!fromMining){
       bursts.push({rock,born:now(),pieces:makeRockShards(rock)});
-      window.nativeEnvironmentalImpacts?.explode(state,{...rock,system:1},{sourceKey:'asteroid:'+rock.slotId});
+      window.nativeEnvironmentalImpacts?.explode(state,{...rock,system:rock.system??1},{sourceKey:'asteroid:'+rock.slotId});
     }
     if(bursts.length>12)bursts.shift();
     onFinish?.(rock,!!state.asteroidOreDrops?.[rock.slotId],fromMining);
   }
   function destroy(state,rockOrId,onFinish){
-    const rock=typeof rockOrId==='object'?rockOrId:placements().find(entry=>entry.slotId===rockOrId);
+    const rock=typeof rockOrId==='object'?rockOrId:rockById(rockOrId);
     if(!rock||gone(state,rock.slotId))return {ok:false,destroyed:false};
     finishRock(state,rock,false,onFinish);return {ok:true,destroyed:true};
   }
   function completeMining(state,rockOrId,onFinish){
-    const rock=typeof rockOrId==='object'?rockOrId:placements().find(entry=>entry.slotId===rockOrId);
+    const rock=typeof rockOrId==='object'?rockOrId:rockById(rockOrId);
     if(!rock||gone(state,rock.slotId))return {ok:false};
     finishRock(state,rock,true,onFinish);return {ok:true,rock,oreMask:state.asteroidOreDrops[rock.slotId]};
   }
   function hit(state,id,damage,impact=null,onFinish){
-    const rock=placements().find(entry=>entry.slotId===id);
+    const rock=rockById(id);
     if(!rock||gone(state,id))return {ok:false,destroyed:false};
     state.asteroidDamage||={};
     state.asteroidDamage[id]=(Number(state.asteroidDamage[id])||0)+Math.max(0,Number(damage)||0);
@@ -140,7 +141,7 @@
     if(window.nativeCivilianTraffic?.isMiningRock(state,rock.slotId))return{ok:false,error:'A civilian miner is working this asteroid.'};
     if(mining)return{ok:false,error:'Mining laser is cutting this asteroid.'};
     const result=window.nativeCombatShots.fire({state,shipHeight,owner:'asteroid',
-      getTarget:()=>state.system===1&&!gone(state,rock.slotId)?{...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,heading:rock.angle||0}:null,
+      getTarget:()=>state.system===(rock.system??1)&&!gone(state,rock.slotId)?{...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,heading:rock.angle||0}:null,
       dimensions:()=>({width:rock.size,height:rock.size}),shielded:()=>false,
       onResolved(result){if(result.kind==='hit'&&result.target?.rockId===rock.slotId&&result.damage?.destroyed)onFinish?.(rock,!!state.asteroidOreDrops?.[rock.slotId],false);}});
     return result;
@@ -150,6 +151,7 @@
     activeState=state;
     const rock=target();
     if(!rock||gone(state,rock.slotId))return{ok:false,error:'Target an intact asteroid to mine.'};
+    if((rock.system??state.system)!==state.system)return{ok:false,error:'Choose an asteroid in this system.'};
     if(window.nativeCivilianTraffic?.isMiningRock(state,rock.slotId))return{ok:false,error:'A civilian miner is working this asteroid.'};
     if(window.nativeShipDefinitions.get(state.shipType,'player').capabilities.canMine===false)return{ok:false,error:'This ship cannot use mining equipment.'};
     if(!state.miningTool)return{ok:false,error:'Buy the mining laser at a planet shop first.'};
@@ -163,7 +165,7 @@
   function oreHit(state,ship,{cx,cy,zoom,x,y}){
     for(const [id,count] of Object.entries(state.asteroidOreDrops||{})){
       if(!count)continue;
-      const rock=placements().find(entry=>entry.slotId===Number(id));if(!rock)continue;
+      const rock=rockById(Number(id),state.system);if(!rock)continue;
       const mined=state.minedAsteroids?.includes(rock.slotId);
       if(mined){
         const sx=cx+(rock.x-ship.x)*zoom,sy=cy+(rock.y-ship.y)*zoom;
@@ -195,10 +197,11 @@
   function advance(state,dt){
     if(window.nativeSimulation.blocked()||!(dt>0))return;
     activeState=state;const time=now();
+    if(targetId!==null&&targetSystem!==state.system)deselect();
     const operation=state.miningOperation;
     if(operation&&operation.system!==state.system){delete state.miningOperation;mining=null;}
     else if(operation&&(!mining||mining.state!==state)){
-      const rock=placements().find(entry=>entry.slotId===operation.rockId);
+      const rock=rockById(operation.rockId,operation.system);
       if(rock)mining={rock,ship:operation.source,born:operation.born,finished:operation.finished,state,effect:null};
       else delete state.miningOperation;
     }
@@ -216,7 +219,7 @@
         if(time-burst.born>piece.ttl)continue;
         const x=burst.rock.x+piece.x*burst.rock.size+Math.cos(piece.angle)*piece.speed*t;
         const y=burst.rock.y+piece.y*burst.rock.size+Math.sin(piece.angle)*piece.speed*t;
-        piece.environmentPiece||={system:1,size:Math.max(2,Math.hypot(piece.w,piece.h)*burst.rock.size*.4)};
+        piece.environmentPiece||={system:burst.rock.system??1,size:Math.max(2,Math.hypot(piece.w,piece.h)*burst.rock.size*.4)};
         Object.assign(piece.environmentPiece,{x,y});
         window.nativeEnvironmentalImpacts?.debris(state,piece.environmentPiece,piece.worldX??burst.rock.x+piece.x*burst.rock.size,piece.worldY??burst.rock.y+piece.y*burst.rock.size,{sourceKey:'asteroid:'+burst.rock.slotId});
         piece.worldX=x;piece.worldY=y;
@@ -228,14 +231,14 @@
   }
   function paint(ctx,{state,ship,cx,cy,zoom,w=cx*2,h=cy*2}){
     const time=window.nativeSimulation.now(state);const now=time;
-    if(state.system!==1)return;
     const visible=(x,y,r)=>window.nativeEffectVisibility.circle(x,y,r,{w,h});
     const rock=target();
-    if(rock&&!gone(state,rock.slotId)&&mining?.rock.slotId!==rock.slotId&&!window.nativeCivilianTraffic?.isMiningRock(state,rock.slotId)){
+    if(rock&&(rock.system??1)===state.system&&!gone(state,rock.slotId)&&mining?.rock.slotId!==rock.slotId&&!window.nativeCivilianTraffic?.isMiningRock(state,rock.slotId)){
       const x=cx+rock.x-ship.x,y=cy+rock.y-ship.y;
       drawCombatTargetFrame(ctx,{name:rock.name,size:rock.size,kind:'ASTEROID',hull:1-(Number(state.asteroidDamage?.[rock.slotId])||0)/Math.max(1,rock.maxHull),selectedAt},x,y,zoom,cx);
     }
     for(const burst of bursts){
+      if((burst.rock.system??1)!==state.system)continue;
       const age=now-burst.born,t=age/1000,x=cx+burst.rock.x-ship.x,y=cy+burst.rock.y-ship.y;
       if(age<260&&visible(x,y,(16+burst.rock.size*.72)/zoom)){const blast=age/260;ctx.save();ctx.globalAlpha=1-blast;ctx.strokeStyle='#e5b979';ctx.lineWidth=(2+5*(1-blast))/zoom;
         ctx.beginPath();ctx.ellipse(x,y,(12+blast*burst.rock.size*.72)/zoom,(10+blast*burst.rock.size*.72)/zoom,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
@@ -257,7 +260,8 @@
 
     }
     for(const [id,count] of Object.entries(state.asteroidOreDrops||{})){
-      const r=placements().find(entry=>entry.slotId===Number(id));if(!r)continue;
+      if(!count)continue;
+      const r=rockById(Number(id),state.system);if(!r)continue;
       const art=window.nativeSolAsteroids.image(r.oreImage);
       if(state.minedAsteroids?.includes(r.slotId)&&count)drawOreShieldRing(ctx,cx+r.x-ship.x,cy+r.y-ship.y,oreShieldRadius(r),zoom);
       for(let i=0;i<(state.minedAsteroids?.includes(r.slotId)?4:3);i++){
@@ -270,8 +274,8 @@
         ctx.restore();
       }
     }
-    for(const field of collectionFields){const fade=1-clamp((now-field.born-1800)/500,0,1);drawOreShieldRing(ctx,cx+field.rock.x-ship.x,cy+field.rock.y-ship.y,oreShieldRadius(field.rock),zoom,fade);}
-    for(const entry of collections)drawOreTransport(ctx,entry,{ship,cx,cy,now});
+    for(const field of collectionFields){if((field.rock.system??1)!==state.system)continue;const fade=1-clamp((now-field.born-1800)/500,0,1);drawOreShieldRing(ctx,cx+field.rock.x-ship.x,cy+field.rock.y-ship.y,oreShieldRadius(field.rock),zoom,fade);}
+    for(const entry of collections.filter(item=>(item.rock.system??1)===state.system))drawOreTransport(ctx,entry,{ship,cx,cy,now});
   }
   window.nativeAsteroidCombat={select,deselect,autoTarget,clear,collect,collectField,fire,hit,destroy,completeMining,miningTiming,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
 })();

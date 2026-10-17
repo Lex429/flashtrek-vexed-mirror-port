@@ -1,0 +1,11 @@
+.encounter-mining-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-color:#588c9d #0b1a29;padding-right:7px}
+.encounter-mining-scroll>.encounter-repair{flex:none;margin-bottom:12px}
+.regional-mining{color:#c8e5ec;font:13px/1.5 system-ui,sans-serif}
+.regional-mining h3{margin:18px 0 6px;font-size:16px;color:#c4efdf}
+.regional-mining p{margin:0 0 12px;font-size:12px;color:#b1cdd7}
+.regional-mining .encounter-repair{margin:8px 0;padding:12px;flex:none}
+.regional-mining .encounter-repair strong{font-size:13px}
+.regional-mining .encounter-repair span,.regional-mining .encounter-repair small{font-size:11px;line-height:1.5}
+.regional-mining .encounter-repair button{margin-top:8px;min-height:32px;font-size:12px}
+.regional-mining>[data-prospect]{border:1px solid #76d6b7;color:#e3fff6;background:#194b44;padding:10px 14px}
+@media(max-width:620px){.regional-mining h3{font-size:15px}.regional-mining .encounter-repair{padding:10px}}

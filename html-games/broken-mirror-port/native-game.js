@@ -43,7 +43,7 @@ function message(s){const status=document.querySelector('#connection');status.te
 function toast(s){const n=document.querySelector('#notice');n.textContent=s;clearTimeout(toastTimer);toastTimer=setTimeout(()=>n.textContent='',2600)}
 function save(silent=false){if(!game)return;if(game.devMode)unlockDev(game);localStorage.setItem('broken-mirror-native-save',JSON.stringify(game));document.querySelector('[data-menu="continue"]').disabled=false;if(!silent)toast('Command data saved')}
 function savedGame(){try{const value=JSON.parse(localStorage.getItem('broken-mirror-native-save'));return value&&typeof value==='object'&&navigation.system(value.system)&&Number.isFinite(Number(value.antimatter))?value:null}catch{return null}}
-function updateVisuals(){const token=++visualGeneration;flightShip=null;window.vexedFlightAssets.loadShip(game.shipType,game.hull).then(asset=>{if(token===visualGeneration)flightShip=asset}).catch(()=>{});window.vexedFlightAssets.loadPlanet(game.system).catch(()=>{});if(game.system===1)window.vexedFlightAssets.loadLocalBody(game.localBody??3).catch(()=>{})}
+function updateVisuals(){const token=++visualGeneration;flightShip=null;window.vexedFlightAssets.loadShip(game.shipType,game.hull*(world.ships.find(s=>s.id===game.shipType)?.hull||shipStats(game).hull)/Math.max(1,shipStats(game).hull)).then(asset=>{if(token===visualGeneration)flightShip=asset}).catch(()=>{});window.vexedFlightAssets.loadPlanet(game.system).catch(()=>{});if(game.system===1)window.vexedFlightAssets.loadLocalBody(game.localBody??3).catch(()=>{})}
 window.nativeCombatShots.onPlayerImpact=impact=>window.nativePlayerCombat.visualImpact(game,impact);
 window.nativeCombatShots.onPlayerHit=(state,damage,impact)=>{
  const before=state.hull,result=window.nativePlayerCombat.hit(state,damage,impact);
@@ -61,7 +61,7 @@ window.startNativeNewGame=()=>window.nativeSetup.open();
 window.startNativeFactionGame=factionStart;
 window.startNativeDevGame=begin;
 window.resumeNativeGame=resume;
-function refresh(){document.querySelector('#captain').textContent=`${game.captain} | ${game.government}`;document.querySelector('#shipLine').textContent=game.shipName;document.querySelector('#mineBtn').textContent=game.system===1&&window.nativeAsteroidCombat?.target?'Mine asteroid':'Scan';window.vexedHud.update(game);window.nativeShipInventory?.refresh();}
+function refresh(){document.querySelector('#captain').textContent=`${game.captain} | ${game.government}`;document.querySelector('#shipLine').textContent=game.shipName;document.querySelector('#mineBtn').textContent=window.nativeAsteroidCombat?.target?'Mine asteroid':'Scan';window.vexedHud.update(game);window.nativeShipInventory?.refresh();}
 function size(){return window.nativeView.fit(canvas,ctx)}
 let starTime=0;
 let lastCruiseSave=0;
@@ -160,7 +160,7 @@ function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0
  }
  const solPosition=game?.system===1?window.vexedSolFlight?.shipPosition(game):null;
  const cameraX=(solPosition?.x??game?.x??0)+(warpFlight?.cameraX||0),cameraY=(solPosition?.y??game?.y??0)+(warpFlight?.cameraY||0),cx=w/2,cy=h/2;
- syncAsteroidMineButton(solPosition,{w,h,cx,cy,zoom});
+ syncAsteroidMineButton(solPosition||game,{w,h,cx,cy,zoom});
  const planetX=cx-220-cameraX,planetY=cy+75-cameraY,planetSize=180;
  const planetObject={x:planetX,y:planetY,width:planetSize,height:planetSize};
  const screenPlanetX=cx+(planetX-cx)*zoom,screenPlanetY=cy+(planetY-cy)*zoom,screenPlanetSize=planetSize*zoom;
@@ -184,7 +184,7 @@ function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0
  if(visualBodies){for(const entry of visualBodies){const object={x:entry.x,y:entry.y,width:entry.size,height:entry.size};window.vexedSpace.planetHalo(ctx,object,game.system);ctx.save();ctx.translate(entry.x,entry.y);const art=window.vexedSolFlight.art(entry.body.id);if(art)ctx.drawImage(art,-entry.size/2,-entry.size/2,entry.size,entry.size);else{ctx.fillStyle=entry.body.id===0?'#edba65':'#315d83';ctx.beginPath();ctx.arc(0,0,entry.size*.35,0,Math.PI*2);ctx.fill()}ctx.restore();window.vexedSpace.planetLight(ctx,object,{zoom,cx,cy})}}
  else if(planetX>-planetSize&&planetX<w+planetSize&&planetY>-planetSize&&planetY<h+planetSize){window.vexedSpace.planetHalo(ctx,planetObject,game.system);ctx.save();ctx.translate(planetX,planetY);const planetArt=window.vexedFlightAssets.planet(game.system);if(planetArt){ctx.drawImage(planetArt,-planetSize/2,-planetSize/2,planetSize,planetSize)}else{ctx.fillStyle='#315d83';ctx.beginPath();ctx.arc(0,0,28,0,7);ctx.fill();ctx.fillStyle='#65b5d2';ctx.beginPath();ctx.ellipse(-8,-8,9,4,-.5,0,7);ctx.fill()}ctx.restore();window.vexedSpace.planetLight(ctx,planetObject,{zoom,cx,cy})}
  // All ships, their lights and combat effects pass in front of planets.
- if(solBodies)window.nativeSolAsteroids?.paint(ctx,{ship:solPosition,cx,cy,zoom,w,h,mined:[...(game.minedAsteroids||[]),...(game.destroyedAsteroids||[])],damage:game.asteroidDamage||{},hiddenId:window.nativeAsteroidCombat?.miningId,hiddenIds:window.nativeCivilianTraffic.miningIds(game)});
+ window.nativeSolAsteroids?.paint(ctx,{system:game.system,ship:solPosition||game,cx,cy,zoom,w,h,mined:[...(game.minedAsteroids||[]),...(game.destroyedAsteroids||[])],damage:game.asteroidDamage||{},hiddenId:window.nativeAsteroidCombat?.miningId,hiddenIds:window.nativeCivilianTraffic.miningIds(game)});
  if(solBodies)window.nativeSolEconomy.paint(ctx,{state:game,ship:solPosition,cx,cy,w,h,zoom});
  window.nativeCivilianTraffic.paint(ctx,{state:game,ship:solPosition||game,cx,cy,w,h,zoom});
  const playerDescriptor=window.nativeShipDefinitions.describe(game,game,{category:'player'});
@@ -194,8 +194,8 @@ function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0
  window.vexedFlightAssets.drawWarpRing(ctx,warpFlight?.ring?{...warpFlight.ring,x:warpFlight.ring.x+cx-300,y:warpFlight.ring.y+cy-225}:null,shipW);
  window.nativeCombatShots.paintAll(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,now});
  window.nativeShipEffects.paint(game,ctx,{ship:solPosition||game,cx,cy,zoom,w,h});
- if(solBodies)window.nativeCivilianTraffic.paintMining(ctx,{state:game,ship:solPosition,cx,cy,zoom,w,h});
- if(solBodies)window.nativeAsteroidCombat?.paint(ctx,{state:game,ship:solPosition,cx,cy,zoom,now,w,h});
+ window.nativeCivilianTraffic.paintMining(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,w,h});
+ window.nativeAsteroidCombat?.paint(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,now,w,h});
  window.nativeEnvironmentalImpacts?.paint(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,w,h});
  ctx.restore();
  ctx.fillStyle='#b4c6d7';ctx.font='12px system-ui';ctx.fillText(`FLIGHT · ${Math.round(warpFlight?.speed??game.speed)} u/s`,16,24);ctx.fillText(`SYSTEM ${String(game.system).padStart(2,'0')} · ${sys(game.system).name.toUpperCase()}`,16,43);ctx.fillStyle='#24374a';ctx.fillRect(16,h-safeBottom-24,130,5);ctx.fillStyle='#6dd8ed';ctx.fillRect(16,h-safeBottom-24,130*Math.max(0,Math.min(1,game.shields/Math.max(1,shipStats(game).shields))),5);ctx.fillStyle='#ef7885';ctx.fillRect(16,h-safeBottom-15,130*Math.max(0,Math.min(1,game.hull/Math.max(1,shipStats(game).hull))),4);ctx.fillStyle='#9eb1c2';ctx.fillText('SHIELDS',154,h-safeBottom-18);ctx.fillText('HULL',154,h-safeBottom-7);
@@ -328,7 +328,7 @@ function hubBuyShip(id,port){
  const tugMaterials=[[1,15],[2,12],[3,6],[7,5],[8,2]];
  if(id===10&&game.system===1&&port===5&&!game.devMode){const inventory=window.nativeSolEconomy.initialize(game).ports[5];if(tugMaterials.some(([good,amount])=>inventory[good]<amount))return{ok:false,error:'Mars needs more metal, components, computers, deuranium, or hull sections to assemble a Tug Class II.'};for(const [good,amount] of tugMaterials)inventory[good]-=amount}
  if(!game.devMode)game.latinum-=ship.price;
- window.nativeWeaponLoadout.refit(game,ship.defaultWeapons);game.shipType=ship.id;game.shipClass=ship.name;game.tugEngineLevel=0;game.hull=ship.hull;game.shields=ship.shields;game.speed=0;game.vitalsVersion=2;
+ window.nativeWeaponLoadout.refit(game,ship.defaultWeapons);game.shipType=ship.id;game.shipClass=ship.name;game.tugEngineLevel=0;game.hull=shipStats(game).hull;game.shields=shipStats(game).shields;game.speed=0;game.vitalsVersion=2;
  updateVisuals();refresh();save(true);message(`${ship.name} purchased at ${game.system===1?window.nativeSystemHub.sol[port].name:sys(game.system).name}.`);
  return{ok:true,message:`You now command the ${ship.name}.`};
 }
@@ -358,7 +358,7 @@ function openHub(tab='navigation'){
  cancelTargetPress();
  if(tab==='navigation'){showMap();return;}
  window.nativeGalaxyMap?.close(false);window.nativePlanetEncounter?.close(false);modal.hidden=true;keys={};
- window.nativeSystemHub.open({getState:()=>game,price:hubPrice,cruise:hubCruise,trade:hubTrade,freightTrade:hubFreightTrade,buyShip:hubBuyShip,upgradeTug:hubUpgradeTug,contract:hubContract,deliver:hubDeliver,openMap:showMap,openEncounter},tab);
+ window.nativeSystemHub.open({getState:()=>game,price:hubPrice,cruise:hubCruise,trade:hubTrade,freightTrade:hubFreightTrade,buyShip:hubBuyShip,upgradeTug:hubUpgradeTug,sellMineral:hubSellMineral,upgradeMinerals:hubUpgradeMinerals,prospect:hubProspect,contract:hubContract,deliver:hubDeliver,openMap:showMap,openEncounter},tab);
 }
 function hubBuyMiningTool(port){
  if(!hubHere(port))return{ok:false,error:'Reach this port to buy the mining laser.'};
@@ -368,19 +368,35 @@ function hubBuyMiningTool(port){
  game.miningTool=true;save(true);refresh();message('Mining laser installed. Target an asteroid and choose Mine asteroid.');
  return{ok:true,message:'Mining laser installed. Target an asteroid and choose Mine asteroid.'};
 }
+function hubSellMineral(type,port,tons){
+ if(!hubHere(port))return{ok:false,error:'Reach this port to sell minerals.'};
+ const result=window.nativeNpcLives.sellMineral(game,type,port,tons);if(result.ok){save(true);refresh();}return result;
+}
+function hubUpgradeMinerals(kind,port){
+ if(!hubHere(port))return{ok:false,error:'Reach this port to install mineral technology.'};
+ const result=window.nativeNpcLives.upgradeMinerals(game,kind,port);if(result.ok){updateVisuals();save(true);refresh();}return result;
+}
+function hubProspect(){
+ const ship=game.system===1?window.vexedSolFlight.shipPosition(game):game,gone=new Set([...(game.minedAsteroids||[]),...(game.destroyedAsteroids||[])]);
+ const rock=(window.nativeSolAsteroids.forSystem(game.system)||[]).filter(r=>!r.demo&&!gone.has(r.slotId)&&!window.nativeCivilianTraffic.isMiningRock(game,r.slotId)).sort((a,b)=>Math.hypot(a.x-ship.x,a.y-ship.y)-Math.hypot(b.x-ship.x,b.y-ship.y))[0];
+ if(!rock)return{ok:false,error:'No unclaimed asteroids remain in this system.'};
+ const dx=rock.x-ship.x,dy=rock.y-ship.y,distance=Math.hypot(dx,dy),factor=Math.max(0,1-220/Math.max(1,distance));
+ game.arrivalApproach={system:game.system,x:game.x+dx*factor,y:game.y+dy*factor};game.landed=false;game.speed=window.vexedRebirthWarp.arrivalSpeed;
+ window.nativeSystemHub.close(false);window.nativePlanetEncounter.close(false);window.nativeAsteroidCombat.select(rock);save(true);message('Approaching '+rock.region+'. Stop near the asteroid, then choose Mine.');return{ok:true};
+}
 function openEncounter(){
  if(!game||busy())return;
  cancelTargetPress();
  window.nativeSystemHub?.close(false);window.nativeGalaxyMap?.close(false);modal.hidden=true;keys={};
- window.nativePlanetEncounter.open({getState:()=>game,price:hubPrice,trade:hubTrade,buyShip:hubBuyShip,buyWeapon:hubBuyWeapon,buyMiningTool:hubBuyMiningTool,repair:hubRepair,quote:hubCargoPay,contract:hubContract,deliver:hubDeliver});
+ window.nativePlanetEncounter.open({getState:()=>game,price:hubPrice,trade:hubTrade,buyShip:hubBuyShip,buyWeapon:hubBuyWeapon,buyMiningTool:hubBuyMiningTool,repair:hubRepair,sellMineral:hubSellMineral,upgradeMinerals:hubUpgradeMinerals,prospect:hubProspect,quote:hubCargoPay,contract:hubContract,deliver:hubDeliver});
 }
 function trade(){if(!game||busy())return;window.nativeGalaxyMap?.close(false);const hailed=window.nativePlanetComm?.active;if(!game.landed&&!game.devMode&&!hailed&&!marketFromPlanet){toast('Click the planet or dock nearby [E]');return}if(hailed)marketFromPlanet=true;window.nativePlanetComm?.close(false);dialog.innerHTML=`<p style="color:var(--cyan);letter-spacing:.12em">LOCAL EXCHANGE · ${sys(game.system).name.toUpperCase()}</p><h2>Cargo market</h2><p>Exchange goods at local rates. One unit per transaction.</p><div class="market">${goods.map((g,i)=>{const price=([18,24,45,8][i])+((game.system*7+i*13)%19);return`<div><b>${g}</b><br><small>In hold: ${game.devMode?'∞':game[g.toLowerCase()]}</small></div><div>${game.devMode?'FREE':price+' L'}</div><button data-buy="${g}" data-price="${price}">Buy</button><button data-sell="${g}" data-price="${Math.max(1,price-4)}">Sell</button>`}).join('')}</div><p id="marketmsg" class="muted"></p><div class="row"><button data-close>Close</button></div>`;dialog.querySelector('[data-close]').onclick=close;dialog.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>tradeOne(b.dataset.buy,Number(b.dataset.price),true));dialog.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>tradeOne(b.dataset.sell,Number(b.dataset.price),false));modal.hidden=false}
 function tradeOne(item,price,buy){const key=item.toLowerCase(),msg=dialog.querySelector('#marketmsg');if(game.devMode){msg.textContent=`${item} is unlimited in Dev mode.`;return}if(buy&&game.latinum<price){msg.textContent='Not enough latinum.';return}if(buy&&game.stocks[item]<=0){msg.textContent='Market depleted.';return}if(!buy&&game[key]<1){msg.textContent='No cargo available to sell.';return}game[key]+=buy?1:-1;game.latinum+=buy?-price:price;game.stocks[item]+=buy?-1:1;msg.textContent=`${buy?'Bought':'Sold'} 1 ${item}.`;refresh();save();trade()}
 function dock(){if(!game||busy())return;if(game.localCruise||game.arrivalApproach){toast('Finish the current approach before docking');return}if(game.landed){game.landed=false;message('Undocked.');return}if(game.system===1){const body=window.nativeSystemHub.sol.find(node=>node.id===Number(game.localBody??3)),ship=window.vexedSolFlight.shipPosition(game);if(!body?.port){toast('There is no port at this body');return}if(Math.hypot(body.x-220-ship.x,body.y+75-ship.y)>Math.max(180,window.vexedSolFlight.bodySize(body)*1.4,localApproachDistance(body)+20)){toast('Fly closer to '+body.name+' to dock');return}}game.landed=true;game.speed=0;message(`Docked at ${game.system===1?window.nativeSystemHub.sol[game.localBody??3].name:sys(game.system).name}. Local services available.`);refresh()}
 function mineTarget(){
- const rock=game.system===1?window.nativeAsteroidCombat?.target:null;
+ const rock=window.nativeAsteroidCombat?.target;
  if(!rock)return false;
- const ship=window.vexedSolFlight.shipPosition(game);
+ const ship=game.system===1?window.vexedSolFlight.shipPosition(game):game;
  if(game.landed||game.localCruise||game.arrivalApproach||game.speed>20){toast('Stop near the asteroid to mine it');return true}
  const result=window.nativeAsteroidCombat.mine(game,ship,(rock,hasOre)=>{
   const notice=hasOre?'Ore released. Click anywhere inside the blue shield to transport all ore aboard.':'Asteroid mined.';
@@ -390,7 +406,7 @@ function mineTarget(){
  return true;
 }
 function syncAsteroidMineButton(ship,{w,h,cx,cy,zoom}){
- const rock=game?.system===1?window.nativeAsteroidCombat?.target:null;
+ const rock=window.nativeAsteroidCombat?.target;
  const visible=rock&&ship&&modal.hidden&&!game.landed&&!travelling()&&!busy()&&!paused()&&!devGalaxyView&&!window.nativeGalaxyMap?.isOpen&&!window.nativeSystemHub?.active&&!window.nativePlanetEncounter?.active&&window.nativeAsteroidCombat?.miningId!==rock.slotId;
  if(!visible){asteroidMineButton.hidden=true;return}
  const sx=cx+(rock.x-ship.x)*zoom,sy=cy+(rock.y-ship.y)*zoom;
@@ -414,7 +430,7 @@ function syncAsteroidMineButton(ship,{w,h,cx,cy,zoom}){
 function nearbyTargets(ship){
  const inRange=entry=>Math.hypot(entry.x-ship.x,entry.y-ship.y)<=650;
  const excluded=new Set([...(game.minedAsteroids||[]),...(game.destroyedAsteroids||[])]);
- const targets=(game.system===1?window.nativeSolAsteroids?.placements||[]:[])
+ const targets=(window.nativeSolAsteroids?.forSystem?.(game.system)||(game.system===1?window.nativeSolAsteroids?.placements:[])||[])
   .filter(rock=>!excluded.has(rock.slotId)&&!window.nativeCivilianTraffic.isMiningRock(game,rock.slotId)&&inRange(rock))
   .map(rock=>({key:`asteroid:${rock.slotId}`,kind:'asteroid',entry:rock}));
  for(const tug of game.system===1?window.nativeSolEconomy.initialize(game).freighters:[])
@@ -428,7 +444,7 @@ function nearbyTargets(ship){
  return targets.sort((a,b)=>Number(visible(b))-Number(visible(a))||Math.hypot(a.entry.x-ship.x,a.entry.y-ship.y)-Math.hypot(b.entry.x-ship.x,b.entry.y-ship.y)||a.key.localeCompare(b.key));
 }
 function currentTargetKey(){
- const tug=game.system===1?window.nativeSolEconomy.target(game):null,rock=game.system===1?window.nativeAsteroidCombat.target:null,civilian=window.nativeCivilianTraffic.target(game);
+ const tug=game.system===1?window.nativeSolEconomy.target(game):null,rock=window.nativeAsteroidCombat.target,civilian=window.nativeCivilianTraffic.target(game);
  return tug?`tug:${tug.id}`:civilian?`civilian:${civilian.id}`:rock?`asteroid:${rock.slotId}`:null;
 }
 const targetShiftKeys=new Set();
@@ -582,6 +598,9 @@ canvas.addEventListener('click',event=>{
   const ship=window.vexedSolFlight.shipPosition(game);
   const tug=window.nativeSolEconomy.hitTest(game,{ship,cx:view.w/2,cy:view.h/2,zoom:1,x,y});
   if(tug){window.nativeAsteroidCombat?.deselect();window.nativeCivilianTraffic.select(null);window.nativeSolEconomy.select(tug.id);keys={};canvas.focus({preventScroll:true});const notice=`Tug II #${tug.id+1} targeted. Space fires; tap Shift to switch, hold to clear.`;message(notice);toast(notice);refresh();return;}
+ }
+ {
+  const ship=player;
   const ore=window.nativeAsteroidCombat?.oreHit(game,ship,{cx:view.w/2,cy:view.h/2,zoom:1,x,y});
   if(ore){
    if(Math.hypot(ore.rock.x-ship.x,ore.rock.y-ship.y)>360){toast('Move within 360 units to collect ore.');return}
@@ -593,7 +612,7 @@ canvas.addEventListener('click',event=>{
    const notice=`${ore.indices.length} ${ore.rock.oreLabel} transported aboard.`;
    message(notice);toast(notice);refresh();save(true);return;
   }
-  const rock=window.nativeSolAsteroids?.hitTest({ship,cx:view.w/2,cy:view.h/2,zoom:1,x,y,mined:[...(game.minedAsteroids||[]),...(game.destroyedAsteroids||[]),...window.nativeCivilianTraffic.miningIds(game)]});
+  const rock=window.nativeSolAsteroids?.hitTest({system:game.system,ship,cx:view.w/2,cy:view.h/2,zoom:1,x,y,mined:[...(game.minedAsteroids||[]),...(game.destroyedAsteroids||[]),...window.nativeCivilianTraffic.miningIds(game)]});
   if(rock){
    window.nativeSolEconomy.select(null);
    window.nativeCivilianTraffic.select(null);

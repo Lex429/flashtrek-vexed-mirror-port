@@ -9,7 +9,7 @@
   const qty=value=>Math.max(0,Math.floor(Number(value)||0));
   const fmt=value=>qty(value).toLocaleString();
   const weapon=id=>window.VexedMirrorWeapons?.find(item=>item.id===Number(id));
-  const shipFor=state=>window.VexedMirrorWorld.ships.find(item=>item.id===Number(state.shipType))||window.VexedMirrorWorld.ships.find(item=>item.id===7);
+  const shipFor=state=>window.nativeShipDefinitions?.forEntity(state)||window.VexedMirrorWorld.ships.find(item=>item.id===Number(state.shipType))||window.VexedMirrorWorld.ships.find(item=>item.id===7);
   const place=id=>window.nativeSystemHub?.sol.find(node=>node.id===Number(id))?.name||'Unknown destination';
   const planetArt=id=>{const node=window.nativeSystemHub?.sol.find(entry=>entry.id===Number(id));return node?`../flashtrek-broken-mirror/art-review/sol-planets/${String(node.id).padStart(2,'0')} - ${encodeURIComponent(node.name)}.png`:'assets/ui/freight.svg'};
   const itemIcons={antimatter:'startup/resources/antimatter.png',dilithium:'assets/ui/dilithium.svg',deuranium:'startup/resources/deuranium.png',food:'assets/ui/food.svg',latinum:'startup/resources/latinum.png'};

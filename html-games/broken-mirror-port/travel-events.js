@@ -11,7 +11,7 @@
     const target = systems.get(journey.id);
     const firstVisit = !next.discovered.includes(target.id);
     const events = [];
-    const maxHull = world.ships.find(ship => ship.id === next.shipType)?.hull || 100;
+    const maxHull = window.nativeShipDefinitions?.forEntity(next).hull || world.ships.find(ship => ship.id === next.shipType)?.hull || 100;
     const add = (kind, title, text, effects = {}) => events.push({kind, title, text, effects});
     next.antimatter -= game.devMode ? 0 : journey.fuel;
     if(window.nativeWorldTime)window.nativeWorldTime.advanceDays(next,journey.travelDays,random);

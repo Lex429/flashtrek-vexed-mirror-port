@@ -44,8 +44,9 @@
     const current = systems.get(game.system);
     const travel = current.mapPosition && selected.mapPosition ?
       (Math.abs(current.mapPosition.x - selected.mapPosition.x) + Math.abs(current.mapPosition.y - selected.mapPosition.y)) / 5 : -1;
-    const travelDays = travel < 0 ? -1 : Math.floor(travel);
-    const antimatterUse = Number(ships.get(game.shipType).antimatterUseOrPopulationEffect);
+    const effective=window.nativeShipDefinitions?.forEntity(game)||ships.get(game.shipType);
+    const travelDays = travel < 0 ? -1 : Math.floor(travel/(effective.warpSpeedMultiplier||1));
+    const antimatterUse = Number(effective.antimatterUseOrPopulationEffect);
     const fuel = travelDays < 0 ? -1 : game.devMode ? 0 : Math.floor(travelDays / antimatterUse / 3);
     let error = '';
     if (selected.id === game.system) error = 'You are already in this system.';
@@ -93,7 +94,7 @@
         population: known(selected.id) ? game.planetPopulationCounts[selected.id] : -1,
         description, days: travel, travelDays, fuel, canTravel: !error, error, deliveries: [],
         manualDistance:window.nativeManualFlight.guidance(game,selected.id)?.distance||0,
-        manualSeconds:(window.nativeManualFlight.guidance(game,selected.id)?.distance||0)/Math.max(36,Number(ships.get(game.shipType).speedOrOtherStationValue)*4.5)}
+        manualSeconds:(window.nativeManualFlight.guidance(game,selected.id)?.distance||0)/Math.max(36,Number(effective.speedOrOtherStationValue)*4.5)}
     };
   }
 

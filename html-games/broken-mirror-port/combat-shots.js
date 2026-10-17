@@ -79,7 +79,8 @@
       const {weapon,slot,instance}=choices[index];if(!(weapon.damage>0))continue;
       const visual=weaponVisual(weapon);if(!visual.style)continue;visible=true;
       if(!loadouts.ready(instance,clock))continue;available=true;
-      const spec=rules.weaponSpec(weapon,visual.kind);
+      const damageMultiplier=window.nativeShipDefinitions?.forEntity(state,holder,{category:holder===state?'player':'civilian'}).weaponDamageMultiplier||1;
+      const spec=rules.weaponSpec(weapon,visual.kind,{damageMultiplier});
       if(!eligible(spec,visual.kind,weapon,slot))continue;
       loadouts.consume(instance,spec,clock);loadout.nextSlot=(index+1)%choices.length;
       return {ok:true,weapon,slot,instance,spec,...visual};

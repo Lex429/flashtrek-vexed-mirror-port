@@ -14,9 +14,9 @@
     return {x:target.x+v.x*time,y:target.y+v.y*time};
   }
   // All shooters resolve the same model data. Arc is a half-angle in radians.
-  function weaponSpec(weapon,kind){
+  function weaponSpec(weapon,kind,{damageMultiplier=1}={}){
     const turret=/turrent|turret/i.test(weapon.name||'');
-    return {damage:Math.max(0,Number(weapon.damage)||0),
+    return {damage:Math.max(0,Number(weapon.damage)||0)*damageMultiplier,
       range:kind==='beam'?520:kind==='torpedo'?650:430,
       arc:(turret?180:kind==='beam'?110:50)*Math.PI/180,
       speed:kind==='torpedo'?225:340,turn:kind==='torpedo'?.85:0,

@@ -9,9 +9,9 @@
     const scene=window.nativeShipSystems?.scene(state,{system:state.system})||window.nativeCivilianTraffic?.combatScene(state,{system:state.system});
     ships=(scene?.bystanders||[]).map(target=>({...target,id:target.id==='player'||String(target.id).startsWith('tug:')?target.id:`civilian:${target.id}`,system:state.system,descriptor:target}));
     const gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
-    const source=window.nativeSolAsteroids?.placements;
-    if(source!==rockSource){rockSource=source;rockTargets=(source||[]).map(rock=>({...rock,id:rock.slotId,system:1,radius:rock.size*.45}));}
-    asteroids=state.system===1?rockTargets.filter(rock=>!gone.has(rock.slotId)):[];
+    const source=window.nativeSolAsteroids?.forSystem?.(state.system)||(state.system===1?window.nativeSolAsteroids?.placements:[]);
+    if(source!==rockSource){rockSource=source;rockTargets=(source||[]).map(rock=>({...rock,id:rock.slotId,system:state.system,radius:rock.size*.45}));}
+    asteroids=rockTargets.filter(rock=>!gone.has(rock.slotId));
     targetsDirty=false;
   }
   const impacts=window.createEnvironmentalImpacts({

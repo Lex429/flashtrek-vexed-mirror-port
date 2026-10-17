@@ -39,6 +39,7 @@ python tests/browser-smoke.py
 python tests/browser-ship-contract.py
 python tests/browser-npc-lives.py
 python tests/browser-galaxy-controls.py
+python tests/browser-regional-mining.py
 python tests/browser-render-paths.py --visual-only
 python tests/browser-stability.py
 ```
@@ -64,3 +65,9 @@ panel shows only the selected ship's current activity, destination, cargo,
 docking status and recent events. **Follow ship** keeps it centered; dragging
 stops following. **Fit galaxy** restores the overview. Extra ship details and
 **View in flight** are inside **More ship details**.
+
+All 52 systems now have regional asteroid belts, local mining and funded mineral
+refineries. The Mining shop and system Market explain each region's richest ores,
+offer **Find an unclaimed asteroid**, and install mineral-funded ship upgrades.
+See the [regional mining guide](docs/regional-mining.md) for ore balance, technology,
+NPC jobs, save compatibility and verification.

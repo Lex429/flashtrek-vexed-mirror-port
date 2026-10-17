@@ -273,18 +273,6 @@
         if (selected) target = {name:body.name, dx:x, dy:y};
         contactCount++;
       }
-      const mined=state.minedAsteroids||[];
-      const asteroids=(window.nativeSolAsteroids?.placements||[])
-        .filter(rock=>!mined.includes(rock.slotId)&&Math.hypot(rock.x-ship.x,rock.y-ship.y)<2500)
-        .sort((a,b)=>Math.hypot(a.x-ship.x,a.y-ship.y)-Math.hypot(b.x-ship.x,b.y-ship.y))
-        .slice(0,5);
-      ctx.save();ctx.fillStyle='#b5bdc4';ctx.strokeStyle='#638394';ctx.lineWidth=.6;
-      for(const rock of asteroids){
-        const x=centerX+(rock.x-ship.x)/unitsPerPixel,y=centerY+(rock.y-ship.y)/unitsPerPixel;
-        if(x<9||x>151||y<21||y>94)continue;
-        ctx.beginPath();ctx.moveTo(x,y-2);ctx.lineTo(x+2,y);ctx.lineTo(x,y+2);ctx.lineTo(x-2,y);ctx.closePath();ctx.fill();ctx.stroke();
-      }
-      ctx.restore();
       if (cruiseBody) {
         const goal = window.vexedSolFlight.bodyPosition(cruiseBody);
         routeLine(goal.x - ship.x, goal.y - ship.y);
@@ -295,6 +283,18 @@
       target = {name:state.planet || 'Planet', dx, dy};
       contactCount = 1;
     }
+      const mined=[...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])];
+      const asteroids=(window.nativeSolAsteroids?.nearby?.(state.system,player,2500)||[])
+        .filter(rock=>!mined.includes(rock.slotId)&&Math.hypot(rock.x-player.x,rock.y-player.y)<2500)
+        .sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))
+        .slice(0,5);
+      ctx.save();ctx.fillStyle='#b5bdc4';ctx.strokeStyle='#638394';ctx.lineWidth=.6;
+      for(const rock of asteroids){
+        const x=centerX+(rock.x-player.x)/unitsPerPixel,y=centerY+(rock.y-player.y)/unitsPerPixel;
+        if(x<9||x>151||y<21||y>94)continue;
+        ctx.beginPath();ctx.moveTo(x,y-2);ctx.lineTo(x+2,y);ctx.lineTo(x,y+2);ctx.lineTo(x-2,y);ctx.closePath();ctx.fill();ctx.stroke();
+      }
+      ctx.restore();
     if(manual){
       routeLine(manual.dx,manual.dy);
       marker(manual.dx,manual.dy,true);

@@ -12,6 +12,9 @@
     paymentRecoverySeconds:120,paymentRetrySeconds:30,economyEnabled:true,economyInterval:120,economyBudget:4};
   let callbacks={};
   const system=id=>world.systems.find(s=>s.id===Number(id));
+  const minerals=()=>window.nativeRegionalMinerals;
+  const rocksIn=id=>window.nativeSolAsteroids?.forSystem?.(id)||(Number(id)===1?window.nativeSolAsteroids?.placements:[])||[];
+  const rockById=(id,system)=>window.nativeSolAsteroids?.find?.(id,system)||rocksIn(system).find(r=>r.slotId===id);
   function anchor(id){
     const own=window.nativeManualFlight?.anchor(id);if(own)return own;
     const earth=system(1)?.mapPosition||{x:0,y:0},p=system(id)?.mapPosition||({51:{x:-250,y:-125},52:{x:-220,y:-160}}[id]);
@@ -85,6 +88,16 @@
     const traffic=state.civilianTraffic;
     const life=traffic.life||={version:1,config:{...DEFAULTS},markets:{},reservations:{},strandedCargo:[],transactionSequence:0,metrics:{}};
     if(life.configVersion!==2){life.config={...DEFAULTS,...life.config};life.configVersion=2;}life.markets||={};life.reservations||={};life.strandedCargo||=[];life.metrics||={};
+    if(minerals()&&life.regionalVersion!==1){
+      life.regionalVersion=1;life.config.connectedSystems=world.systems.map(s=>s.id);
+      // Preserve existing tasks, poses, cargo and racial homes. Operating bases
+      // remember where each existing crew was stationed, without seeding ships.
+      const resident=new Set();
+      for(const ship of traffic.ships){
+        ship.operatingBase??=Number(ship.stationSystem||ship.homeBase?.system||ship.system);
+        if(!resident.has(ship.operatingBase)&&stats(ship).capabilities.canMine!==false){ship.regionalResident=true;resident.add(ship.operatingBase);}
+      }
+    }
     life.economicLedger||={version:1,produced:costs.map(()=>0),consumed:costs.map(()=>0),householdSpending:0,cycles:0};
     life.economicLedger.initialMarketCredits??=0;life.economicLedger.initialMarketGoods||=costs.map(()=>0);
     life.economicLedger.lost||=costs.map(()=>0);
@@ -104,6 +117,10 @@
         }
       }
     }
+    if(minerals()&&!life.regionalMarketsInitialized){
+      life.regionalMarketsInitialized=true;
+      for(const entry of world.systems)for(const port of portsIn(state,entry.id))market(state,entry.id,port);
+    }
     return life;
   }
   function market(state,systemId,port=0){
@@ -116,6 +133,7 @@
       if(systemId!==1)for(let good=0;good<costs.length;good++)life.economicLedger.initialMarketGoods[good]+=m.stock[good];
     }
     m.incoming||=costs.map(()=>0);m.fundsReserved=finite(m.fundsReserved);
+    if(minerals()&&m.regionalMarketVersion!==1){m.regionalMarketVersion=1;m.target[0]=Math.max(160,finite(m.target[0]));}
     // Sol goods are the SAME inventory used by the player and existing tugs.
     if(systemId===1&&state.solEconomy?.ports?.[port]){m.stock=state.solEconomy.ports[port];state.solEconomy.stockReserved||={};state.solEconomy.stockReserved[port]=m.reserved;state.solEconomy.incomingReserved||={};state.solEconomy.incomingReserved[port]=m.incoming;}
     marketStates.set(m,state);return m;
@@ -124,7 +142,7 @@
   const cargoTons=ship=>finite(ship.cargo?.tons)+finite(ship.oreHold);
   const capacity=ship=>Math.max(0,finite(stats(ship).cargo)-cargoTons(ship));
   const buyPrice=(m,g)=>costs[g];
-  const sellPrice=(m,g)=>Math.ceil(costs[g]*(finite(m.stock[g])<m.target[g]?1.35:1));
+  const sellPrice=(m,g,oreType)=>g===0&&minerals()?.ores[oreType]?minerals().orePrice(m.system,oreType):Math.ceil(costs[g]*(finite(m.stock[g])<m.target[g]?1.35:1));
   const availableFunds=m=>Math.max(0,finite(m.credits)-finite(m.fundsReserved));
   const demand=(m,g)=>{
     const tugs=m.system===1?marketStates.get(m)?.solEconomy?.freighters||[]:[];
@@ -133,13 +151,14 @@
   };
   // One atomic settlement for player retail and owned civilian freight. Quotes
   // are policy; this boundary owns the actual conserved inventory/credit transfer.
-  function exchange(state,m,actor,{good,tons,payment,buy,player=false,free=false,capacity:room=0,reservationId,cargo}){
+  function exchange(state,m,actor,{good,tons,payment,buy,player=false,free=false,capacity:room=0,reservationId,cargo,mineral}){
     if(!Number.isInteger(good)||!costs[good]||!Number.isSafeInteger(tons)||tons<=0||!Number.isSafeInteger(payment)||payment<0)return {ok:false,error:'Invalid cargo transaction.'};
     const reservation=reservationId?initialize(state).reservations[reservationId]:null;
     if(reservationId&&(!reservation||reservation.owner!==actor.id||reservation.good!==good||reservation.tons!==tons))return {ok:false,error:'Cargo contract no longer matches.'};
     const ownStock=reservation?.sourceReserved!==false&&reservation?.system===m.system&&reservation?.port===m.port?reservation.tons:0;
     const ownFunds=reservation?.destinationReserved&&reservation.destination.system===m.system&&reservation.destination.port===m.port?reservation.payment:0;
-    const creditKey=player?'latinum':'credits',balance=finite(actor[creditKey]),held=player?finite(actor.solFreightHold?.[good]):actor.cargo?.good===good?finite(actor.cargo.tons):0;
+    if(mineral&&(!player||buy||good!==0||!minerals()?.ores[mineral]))return {ok:false,error:'Invalid mineral refinery transaction.'};
+    const creditKey=player?'latinum':'credits',balance=finite(actor[creditKey]),held=mineral?minerals().held(actor,mineral):player?finite(actor.solFreightHold?.[good]):actor.cargo?.good===good?finite(actor.cargo.tons):0;
     if(buy){
       if(available(m,good)+ownStock<tons)return {ok:false,error:'The port does not have that much unreserved cargo.'};
       if(room<tons)return {ok:false,error:'Your cargo hold is full.'};
@@ -154,7 +173,8 @@
     m.stock[good]+=buy?-tons:tons;m.credits+=buy?payment:-payment;
     if(!free)actor[creditKey]=balance+(buy?-payment:payment);
     else state.solEconomy.flows.devPurchaseSubsidy=(state.solEconomy.flows.devPurchaseSubsidy||0)+payment;
-    if(player){actor.solFreightHold||={};actor.solFreightHold[good]=held+(buy?tons:-tons);}
+    if(mineral){if(mineral==='dilithium')actor.dilithium=held-tons;else{actor.minerals||={};actor.minerals[mineral]=held-tons;}const ledger=initialize(state).economicLedger;ledger.playerMineralsRefined||={};ledger.playerMineralsRefined[mineral]=finite(ledger.playerMineralsRefined[mineral])+tons;}
+    else if(player){actor.solFreightHold||={};actor.solFreightHold[good]=held+(buy?tons:-tons);}
     else if(buy)actor.cargo={...cargo,good,tons,owner:actor.id,purchasedFor:payment};
     else if(held===tons)actor.cargo=null;else actor.cargo.tons-=tons;
     return {ok:true,payment,tons};
@@ -168,7 +188,7 @@
   }
   function reserveBuyer(state,ship,destination,at){
     const cargo=ship.cargo,job=ship.task;if(!cargo||cargo.tons<=0)return false;
-    const payment=cargo.tons*sellPrice(destination,cargo.good);
+    const payment=cargo.tons*sellPrice(destination,cargo.good,cargo.oreType);
     if(demand(destination,cargo.good)<cargo.tons||availableFunds(destination)<payment)return false;
     release(state,ship);
     const reservation={version:2,owner:ship.id,system:job.origin.system,port:job.origin.port,good:cargo.good,tons:cargo.tons,sourceReserved:false,destination:{system:destination.system,port:destination.port},destinationReserved:true,payment,unitPrice:payment/cargo.tons};
@@ -251,7 +271,8 @@
   }
   function chooseDelivery(state,ship,at){
     const life=initialize(state),from=ship.system,port=portFor(state,from,ship.port);
-    const source=market(state,from,port),connected=[...new Set([from,...life.config.connectedSystems,ship.homeBase.system])];let best=null;
+    const allowed=new Set(life.config.connectedSystems),routes=minerals()?minerals().neighbors(from,6).filter(id=>allowed.has(id)):life.config.connectedSystems;
+    const source=market(state,from,port),connected=[...new Set([from,...routes,ship.operatingBase??ship.homeBase.system])];let best=null;
     for(const to of connected){if(!system(to))continue;
       for(const toPort of portsIn(state,to)){
         if(to===from&&toPort===port)continue;
@@ -260,7 +281,8 @@
         for(let good=0;good<costs.length;good++){
           const tons=Math.floor(Math.min(16,capacity(ship),available(source,good),demand(destination,good),ship.credits/buyPrice(source,good),availableFunds(destination)/sellPrice(destination,good)));
           if(tons<=0)continue;
-          const score=tons*(sellPrice(destination,good)-buyPrice(source,good)+2)/(1+distance/100000);
+          const baseDistance=minerals()?minerals().distance(to,ship.operatingBase??from)*1000:0;
+          const score=tons*(sellPrice(destination,good)-buyPrice(source,good)+2)/(1+distance/(minerals()?25000:100000))/(1+baseDistance/80000);
           if(!best||score>best.score)best={to,toPort,good,tons,score};
         }
       }
@@ -328,7 +350,7 @@
     recovery.attempts++;let buyer=null;
     const destinations=[...new Set([ship.system,...life.config.connectedSystems,ship.homeBase.system,job.origin.system])];
     for(const id of destinations){if(!system(id))continue;const ports=portsIn(state,id);
-      for(const port of new Set(ports)){const m=market(state,id,port),price=sellPrice(m,cargo.good);if(demand(m,cargo.good)<cargo.tons||availableFunds(m)<cargo.tons*price)continue;
+      for(const port of new Set(ports)){const m=market(state,id,port),price=sellPrice(m,cargo.good,cargo.oreType);if(demand(m,cargo.good)<cargo.tons||availableFunds(m)<cargo.tons*price)continue;
         const point=docking().center(id,port),distance=Math.hypot(anchor(id).x+point.x-anchor(ship.system).x-ship.x,anchor(id).y+point.y-anchor(ship.system).y-ship.y),score=price/(1+distance/100000);
         if(!buyer||score>buyer.score)buyer={market:m,score};}}
     if(buyer&&reserveBuyer(state,ship,buyer.market,at)){
@@ -360,16 +382,25 @@
     const at=now(state);interrupt(state,ship,reason,at);schedule(state,ship,at+.01);return true;
   }
   function chooseMining(state,ship,at){
-    if(ship.system!==1||capacity(ship)<1||stats(ship).capabilities.canMine===false)return false;
-    const life=initialize(state),rocks=window.nativeSolAsteroids?.placements||[],rock=rocks.find(r=>!r.demo&&!state.minedAsteroids?.includes(r.slotId)&&!state.destroyedAsteroids?.includes(r.slotId)&&!life.reservations[`rock:${r.slotId}`]&&r.slotId!==window.nativeAsteroidCombat?.miningId);
+    if((!minerals()&&ship.system!==1)||capacity(ship)<1||stats(ship).capabilities.canMine===false)return false;
+    const life=initialize(state),rocks=rocksIn(ship.system),gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
+    const candidates=rocks.filter(r=>!r.demo&&!gone.has(r.slotId)&&!life.reservations[`rock:${r.slotId}`]&&r.slotId!==window.nativeAsteroidCombat?.miningId);
+    if(minerals())candidates.sort((a,b)=>Math.hypot(a.x-ship.x,a.y-ship.y)-Math.hypot(b.x-ship.x,b.y-ship.y));
+    const rock=candidates[0];
     if(!rock)return false;
+    let port=1;
+    if(minerals()){
+      const buyers=portsIn(state,ship.system).map(id=>market(state,ship.system,id)).filter(m=>demand(m,0)>=Math.min(4,capacity(ship))&&availableFunds(m)>=sellPrice(m,0,rock.oreType)*Math.min(4,capacity(ship)));
+      buyers.sort((a,b)=>{const x=docking().center(ship.system,a.port),y=docking().center(ship.system,b.port);return Math.hypot(x.x-rock.x,x.y-rock.y)-Math.hypot(y.x-rock.x,y.y-rock.y);});
+      if(!buyers.length)return false;port=buyers[0].port;
+    }
     docking().release(state,ship);
-    const job=task(state,ship,'mining',`Available ${rock.oreLabel||'ore'} claim and free cargo space`,{system:1,port:ship.port},{system:1,port:1},{rockId:rock.slotId,capacity:capacity(ship)},at);
+    const job=task(state,ship,'mining',`Available ${rock.oreLabel||'ore'} claim and a local refinery`,{system:ship.system,port:ship.port},{system:ship.system,port},{rockId:rock.slotId,oreType:rock.oreType,capacity:capacity(ship)},at);
     ship.miningReservation=rock.slotId;ship.miningRockSlot=rock.slotId;life.reservations[`rock:${rock.slotId}`]={owner:ship.id,taskId:job.id};
     localLeg(state,ship,{x:rock.x+110,y:rock.y+40},at,'mining-flight');return true;
   }
   function mine(state,ship,at){
-    const rock=window.nativeSolAsteroids?.placements?.find(r=>r.slotId===ship.task.requirements.rockId);
+    const rock=rockById(ship.task.requirements.rockId,ship.system);
     if(!rock||!window.nativeAsteroidCombat.completeMining(state,rock).ok){interrupt(state,ship,'resource unavailable',at);return;}
     ship.task.cutAt=at;ship.task.phase='collecting';ship.phase='collecting';
     event(state,ship,'mining-cut',`Cut the reserved asteroid; ore transport is in progress`,at);
@@ -382,8 +413,13 @@
     ship.oreHold=finite(ship.oreHold)+indices.length;ship.mined=finite(ship.mined)+indices.length;ship.task.minedAt=at;ship.task.minedTons=indices.length;
     delete initialize(state).reservations[`rock:${rock.slotId}`];delete ship.miningReservation;ship.miningRockSlot=null;
     event(state,ship,'mined',`Consumed asteroid claim and collected ${indices.length} t ore once`,at);
-    ship.cargo={good:0,tons:ship.oreHold,owner:ship.id,toSystem:1,toPort:1,fromSystem:1,fromPort:ship.port};ship.oreHold=0;
-    ship.task.destination={system:1,port:1};approachDock(state,ship,1,at,'unloading');
+    const port=ship.task.destination.port;
+    ship.cargo={good:0,tons:ship.oreHold,owner:ship.id,toSystem:ship.system,toPort:port,fromSystem:ship.system,fromPort:ship.port,...(minerals()?{oreType:rock.oreType,name:rock.oreLabel}: {})};ship.oreHold=0;
+    approachDock(state,ship,port,at,'unloading');
+  }
+  function returnToBase(state,ship,base,at){
+    const port=base===1?3:0;docking().release(state,ship);
+    task(state,ship,'reposition','Return to the crew operating base for local work',{system:ship.system,port:ship.port},{system:base,port},{},at);depart(state,ship,at);
   }
   function choose(state,ship,at){
     if(ship.oreHold>0&&!ship.cargo){ship.cargo={good:0,tons:ship.oreHold,owner:ship.id,fromSystem:ship.system,fromPort:ship.port,toSystem:1,toPort:1};ship.oreHold=0;}
@@ -399,7 +435,14 @@
         {cost,quote,hull:ship.hull+missingHull*fraction,shields:ship.shields+missingShields*fraction},at);
         ship.credits-=cost;m.credits+=cost;ship.task.phase='repairing';ship.phase='docked';schedule(state,ship,at+8);return;}}
     const custom=roles.get(ship.role);if(custom?.(state,ship,{at,startDelivery,chooseMining,schedule}))return;
+    if(minerals()&&(ship.regionalResident||ship.role==='mining')){
+      const base=ship.operatingBase??ship.stationSystem??ship.system;
+      if(ship.system!==base){returnToBase(state,ship,base,at);return;}
+      if(chooseMining(state,ship,at))return;
+      task(state,ship,'idle','Waiting for a local mining claim or funded ore buyer',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},{},at);ship.task.phase='idle';ship.phase='docked';schedule(state,ship,at+30);park(state,ship,at);return;
+    }
     if(ship.role==='mining'&&chooseMining(state,ship,at))return;
+    if(minerals()&&ship.system!==(ship.operatingBase??ship.system)&&finite(ship.legs)%4===0){returnToBase(state,ship,ship.operatingBase,at);return;}
     if(chooseDelivery(state,ship,at).ok)return;
     task(state,ship,'idle','No affordable stock, destination shortage, repair or available mining claim',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},{},at);ship.task.phase='idle';ship.phase='docked';schedule(state,ship,Math.max(at,now(state))+initialize(state).config.idleSeconds);park(state,ship,at);
   }
@@ -447,7 +490,7 @@
       if(!arriveLeg(state,ship,at))return;delete ship.localLeg;job.phase='mining';ship.phase='mining';ship.miningStartedAt=at;ship.miningSourceX=ship.x;ship.miningSourceY=ship.y;schedule(state,ship,at+window.nativeAsteroidCombat.miningTiming.cutSeconds);return;
     }
     if(job.phase==='mining'){mine(state,ship,at);return;}
-    if(job.phase==='collecting'){const rock=window.nativeSolAsteroids?.placements?.find(r=>r.slotId===job.requirements.rockId);if(rock)claimMined(state,ship,rock,at);else interrupt(state,ship,'resource unavailable',at);return;}
+    if(job.phase==='collecting'){const rock=rockById(job.requirements.rockId,ship.system);if(rock)claimMined(state,ship,rock,at);else interrupt(state,ship,'resource unavailable',at);return;}
     if(job.phase==='repairing'){ship.hull=job.requirements.hull;ship.shields=job.requirements.shields;event(state,ship,'repaired','Paid repair completed',at);finish(state,ship,at);return;}
     if(job.phase==='idle'){finish(state,ship,at);return;}
     choose(state,ship,at);
@@ -494,8 +537,8 @@
       // specialty exports; Sol's existing production is not run a second time.
       for(const id of life.config.connectedSystems){const m=market(state,id,id===1?3:0);
         if(id!==1){const made=Math.max(0,Math.min(Math.floor(12*scale),300-finite(m.stock[m.specialty])));m.stock[m.specialty]+=made;ledger.produced[m.specialty]+=made;}
-        for(let good=0;good<costs.length;good++)if(good!==m.specialty){
-          const used=Math.min(Math.floor(4*scale),available(m,good)),payment=used*Math.ceil(costs[good]*1.35);
+        for(let good=0;good<costs.length;good++)if(good!==m.specialty||minerals()&&good===0){
+          const used=Math.min(Math.floor((minerals()&&good===0?12:4)*scale),available(m,good)),payment=used*Math.ceil(costs[good]*1.35);
           m.stock[good]-=used;m.credits+=payment;ledger.consumed[good]+=used;ledger.householdSpending+=payment;
         }
         m.lastEconomyAt=life.nextEconomyAt;
@@ -532,6 +575,31 @@
   function visit(state,id){const ship=find(state,id);return ship?callbacks.visit?.(state,ship,{galaxy:galaxyPosition(state,ship)})??{ok:false,error:'Local visitor is not configured'}:{ok:false,error:'Ship unavailable'};}
   function registerRole(name,policy){if(typeof name!=='string'||typeof policy!=='function')throw new TypeError('Role needs a name and decision function');roles.set(name,policy);}
   function refreshLocation(state,ship){initialize(state);indexMove(runtime.get(state),ship);}
-  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,resumeWork,market,exchange,refreshLocation,availableFunds,demand,
+  function mineralQuote(state,type,port,tons=1){
+    const ore=minerals()?.ores[type],amount=Number(tons);
+    if(!ore||!Number.isSafeInteger(amount)||amount<1)return {ok:false,error:'Choose a valid mineral amount.'};
+    const m=market(state,state.system,port),unit=minerals().orePrice(state.system,type),payment=unit*amount;
+    return {ok:true,type,name:ore.name,tons:amount,unit,total:payment,held:minerals().held(state,type),funded:availableFunds(m)>=payment,room:m.stock[0]+m.incoming[0]+amount<=9999};
+  }
+  function sellMineral(state,type,port,tons=1){
+    const quote=mineralQuote(state,type,port,tons);if(!quote.ok)return quote;
+    const result=exchange(state,market(state,state.system,port),state,{good:0,tons:quote.tons,payment:quote.total,buy:false,player:true,mineral:type});
+    return result.ok?{...result,message:`Sold ${quote.tons} ${quote.name} to the local refinery for ${quote.total} latinum.`}:result;
+  }
+  function upgradeMinerals(state,kind,port){
+    const quote=minerals()?.upgradeQuote(state,kind);if(!quote)return {ok:false,error:'Unknown mineral technology.'};
+    if(quote.level>=quote.max)return {ok:false,error:'This hull already has the maximum upgrade.'};
+    if(finite(state.latinum)<quote.price||Object.entries(quote.materials).some(([ore,n])=>minerals().held(state,ore)<n))return {ok:false,error:'The upgrade requires the listed minerals and latinum.'};
+    const m=market(state,state.system,port),before=window.nativeShipDefinitions.forEntity(state),ledger=initialize(state).economicLedger;
+    ledger.technologyMineralsConsumed||={};
+    for(const [ore,n] of Object.entries(quote.materials)){
+      if(ore==='dilithium')state.dilithium=minerals().held(state,ore)-n;else{state.minerals||={};state.minerals[ore]=minerals().held(state,ore)-n;}
+      ledger.technologyMineralsConsumed[ore]=finite(ledger.technologyMineralsConsumed[ore])+n;
+    }
+    state.latinum-=quote.price;m.credits+=quote.price;state.mineralUpgrades||={};state.mineralUpgrades[state.shipType]||={};state.mineralUpgrades[state.shipType][kind]=quote.level+1;
+    const after=window.nativeShipDefinitions.forEntity(state);state.hull+=Math.max(0,after.hull-before.hull);state.shields+=Math.max(0,after.shields-before.shields);
+    return {ok:true,message:quote.name+' level '+(quote.level+1)+' installed on this hull.'};
+  }
+  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,resumeWork,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,upgradeMinerals,
     scheduled:state=>{initialize(state);return runtime.get(state).heap.length;}};
 })();
