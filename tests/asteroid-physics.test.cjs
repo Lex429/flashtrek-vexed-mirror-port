@@ -233,6 +233,7 @@ test('destroyed moving rocks freeze ore/burst origins and collisions stay dedupl
 test('thirty minutes of production civilian jobs with physical asteroids retains identities, funded work and ore entitlements through reload',async()=>{
   let f=await fixture({regional:true,access:true,physics:true});
   const identities=copy(f.state.civilianTraffic.ships.map(s=>s.id)),tugs=f.state.solEconomy.freighters.length;
+  let previousDeliveries=-1;
   for(let half=0;half<2;half++){
     for(let i=0;i<3600;i++)f.step(.25);
     assert.deepEqual(copy(f.state.civilianTraffic.ships.map(s=>s.id)),identities);assert.equal(f.state.solEconomy.freighters.length,tugs);
@@ -240,6 +241,8 @@ test('thirty minutes of production civilian jobs with physical asteroids retains
     assert.ok(mined.every(id=>!destroyed.includes(id)));
     for(const ship of f.state.civilianTraffic.ships){assert.ok(Number.isFinite(ship.x)&&Number.isFinite(ship.y));assert.ok(ship.credits>=0);assert.ok((ship.task?.minedTons||0)<=4);}
     for(const mask of Object.values(f.state.asteroidOreDrops||{}))assert.ok(mask>=0&&mask<=15);
+    const deliveries=f.state.civilianTraffic.ships.reduce((n,s)=>n+(s.deliveries||0),0)+f.state.solEconomy.freighters.reduce((n,s)=>n+(s.deliveries||0),0);
+    assert.ok(deliveries>previousDeliveries,'traffic keeps completing funded work in each fifteen-minute interval');previousDeliveries=deliveries;
     if(!half)f=await fixture({regional:true,access:true,physics:true,saved:copy(f.state)});
   }
   assert.ok(f.state.civilianTraffic.ships.reduce((n,s)=>n+(s.mined||0),0)>0);

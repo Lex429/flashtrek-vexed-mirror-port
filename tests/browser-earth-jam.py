@@ -4,6 +4,7 @@ import http.server
 import json
 import os
 from pathlib import Path
+import sys
 import threading
 from playwright.sync_api import sync_playwright
 
@@ -25,7 +26,10 @@ SETUP=r"""saved=>{
   const s=nativeNpcDev.getState();
   for(let i=0;i<seconds*60;i++){
    const dt=nativeSimulation.advance(s,1/60);nativeSimulationFrame.begin(s);nativeSimulationFrame.step(s);
-   nativeSolEconomy.advance(s,dt);nativeCivilianTraffic.advance(s,dt);nativeCombatShots.advance(s,dt);nativeShipEffects.advance(s,dt);nativeAsteroidCombat.advance(s,dt);nativeSimulationFrame.end(s);
+   window.nativeShipTraffic?.advance(s,dt);
+   nativeSolEconomy.advance(s,dt);nativeCivilianTraffic.advance(s,dt);nativeCombatShots.advance(s,dt);nativeShipEffects.advance(s,dt);nativeAsteroidCombat.advance(s,dt);
+   window.nativeShipTraffic?.collide(s,dt);
+   nativeSimulationFrame.end(s);
    if(i%60===0){
     for(const id of ids){const ship=nativeNpcLives.find(s,id),old=before.get(id),p=nativeNpcLives.pose(s,ship);if(Math.hypot(p.x-old.x,p.y-old.y)>1)__jam.moved.add(id);if((ship.deliveries||0)>old.deliveries)__jam.delivered.add(id);if(ship.journey||ship.system!==1||ship.port!==3)__jam.rerouted.add(id);}
     const earth=Object.values(s.portDocking.ships).filter(r=>r.system===1&&r.port===3),queue=earth.filter(r=>r.kind==='queue');__jam.maxQueue=Math.max(__jam.maxQueue,queue.length);__jam.check(queue.length<=12,'Unbounded Earth docking queue');
@@ -53,8 +57,13 @@ SETUP=r"""saved=>{
 def main():
     OUTPUT.mkdir(exist_ok=True)
     saved=json.loads((ROOT/'tests/fixtures/earth-jam-c415.json').read_text())
-    server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(QuietHandler,directory=str(ROOT)))
-    threading.Thread(target=server.serve_forever,daemon=True).start()
+    server=None
+    if len(sys.argv)>1:
+        base=sys.argv[1].rstrip('/')
+    else:
+        server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(QuietHandler,directory=str(ROOT)))
+        threading.Thread(target=server.serve_forever,daemon=True).start()
+        base=f'http://127.0.0.1:{server.server_port}'
     report={'scenarios':{},'errors':[]}
     try:
         with sync_playwright() as p:
@@ -63,7 +72,7 @@ def main():
             page=browser.new_page(viewport={'width':1280,'height':850})
             page.add_init_script("""(()=>{const raf=requestAnimationFrame.bind(window);window.requestAnimationFrame=fn=>raf(t=>{if(fn.name==='draw'){window.__jamDraw=fn;window.__jamTime=t;if(window.__jamFrozen)return;}fn(t);});})();""")
             page.on('pageerror',lambda e:report['errors'].append(str(e)))
-            page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+            page.goto(base+'/html-games/broken-mirror-port/index.html')
             page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
             page.evaluate('startNativeDevGame()')
             page.wait_for_function('()=>nativeNpcDev.getState() && nativeSolAsteroids.placements.length')
@@ -103,7 +112,8 @@ def main():
             assert not report['errors'],report['errors']
             browser.close()
     finally:
-        server.shutdown()
+        if server:
+            server.shutdown()
         (OUTPUT/'earth-jam-browser.json').write_text(json.dumps(report,indent=2))
     print(json.dumps(report))
 

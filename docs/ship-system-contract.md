@@ -23,6 +23,7 @@ The live game and damage showcase share their weapon and shield shaders in
 | Explosion/debris contact collection, common physical dispatch and ship surface effects | `explosion-impacts.js` and shared `debris-impacts.js`, delegating to `asteroid-motion.js` / `ship-motion.js` | Supply the explosion/debris source; environmental asteroid damage stops at 25% remaining health |
 | Asteroid hit points, asteroid destruction, mining progress and ore entitlement | `asteroid-combat.js`, registered through `ship-systems.js` | Choose mine/fire and collect completed simulation results |
 | Persistent asteroid drift, indexed world poses and ship contact dispatch | `asteroid-motion.js`, using contact impulses from `ship-motion.js` and `sol-asteroids.relocate` | Supply the active simulation step; never move rocks while painting |
+| Ship traffic prediction, passing/yield intent and ship-pair contact dispatch | `ship-traffic.js`, using `ship-motion.js` geometry and `ship-systems.applyContact` | Keep job/berth ownership; request a revised saved leg through the task owner |
 | Tug deliveries, assignments, cargo loss, rebuilding and economic consequences | `sol-economy.js` | Use shared mechanics; retain delivery policy |
 | Civilian jobs, trading, mining choices, retaliation, faction consequences and dialogue | `civilian-traffic.js` and `civilian-combat-ai.js` | Decide travel/dock/mine/trade/pursue/flee/fire |
 | Persistent civilian tasks, stock reservations, commercial transactions, interstellar journeys and distant scheduling | `npc-lives.js`, extending `civilianTraffic.ships` | Role policies choose useful work using the common task commands |
@@ -36,6 +37,41 @@ The live game and damage showcase share their weapon and shield shaders in
 effects. It does not contain a second player damage model. In the active game,
 `native-game.js` advances and paints the shared effects collection once per step
 and frame. Do not additionally call the adapter's legacy `advance`/`paint` passes.
+
+## Ship traffic and contact
+
+`ship-traffic.js` uses the existing player, civilians and company tugs. It predicts
+relative closest approach from one simultaneous snapshot, queries local spatial
+buckets, and chooses starboard detours or yielding. Larger/slower-turning ships
+get more clearance; mass and stable category/identity resolve crossing priority.
+The player remains manually controlled. Combat intent passes through the same
+`ship-motion.avoidShips` advice; overlapping spawns steer outward rather than
+remaining stopped inside another ship.
+
+Traffic planning and distant contacts run at 5 Hz on simulation time; active-system
+contacts run each physics step. Distant poses are sampled without preparing art.
+Registered ship descriptions are shared only within the physics step and
+invalidated after movement/contact; a traffic snapshot reuses geometry while
+resampling current poses. Swept bounding circles reject distant pairs first.
+Sweeps use previous authoritative poses and ignore system changes/teleports.
+Ship-pair narrow phase uses 32 supporting axes plus both ships' orientation axes
+for a conservative approximation of their curved shield/hull ellipses.
+Mass, relative speed and angle determine the impulse; restitution is 0.12 and
+bounded tangential friction dissipates energy. Contact never subtracts ship health
+or changes cargo, credits, reputation, ore entitlements or weapon rules. Effects
+reuse native shield flashes/hull sparks and are gated per pair for 250 ms.
+
+Saved version-2 straight legs remain valid. Version-3 legs contain ordinary
+version-2 acceleration/braking segments, including a braking segment before a
+yielding hold. Detours retain the original goal, and `npc-lives.reroute` or
+`sol-economy.reroute` reschedules its real deadline. No cargo handler runs merely
+because the previous straight-route deadline passed. Dock occupancy and berth
+arrival remain owned by `port-docking.js`. Saved `motionKick` is rebased at a new
+route's sampled start, preserving velocity without replaying displacement.
+Sampling/inspection never changes the saved segments or activates traffic.
+
+Regression coverage: `ship-traffic.test.cjs`, `browser-ship-traffic.py`, existing
+Earth-jam/economy/asteroid suites and the same-save NPC performance comparison.
 
 ## Removed duplication
 

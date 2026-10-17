@@ -76,11 +76,6 @@
       if(d<radius){const strength=(1-d/radius)*2.8;desired.x+=ox/d*strength;desired.y+=oy/d*strength;}
     };
     for(const rock of rocks)avoid(rock,rock.size*.5+ship.combatRadius+38);
-    for(const other of bystanders)if(other.id!==ship.id)avoid(other,(other.radius||15)+ship.combatRadius+18);
-    for(const other of bystanders)if(other.id!==ship.id){
-      const dx=ship.x-other.x,dy=ship.y-other.y,d=Math.hypot(dx,dy)||1,separation=(other.radius||8)+ship.combatRadius+18;
-      if(d<separation){desired.x+=dx/d*(1-d/separation)*4;desired.y+=dy/d*(1-d/separation)*4;}
-    }
     for(const body of bodies)avoid(body,body.radius+ship.combatRadius+30);
     const anchor=dispute.anchor,rx=dispute.bounds?.x||440,ry=dispute.bounds?.y||330;
     const ex=(ship.x-anchor.x)/rx,ey=(ship.y-anchor.y)/ry,edge=Math.hypot(ex,ey);
@@ -90,9 +85,10 @@
   }
   function steer(ship,target,dispute,scene){
     if(!Number.isFinite(scene.dt)||scene.dt<=0||!target||!Number.isFinite(target.x)||!Number.isFinite(target.y))return ship.combatAI;
-    const command=decide(ship,target,dispute,scene);
+    let command=decide(ship,target,dispute,scene);
     const definition=window.nativeShipDefinitions?.get(ship.shipType,'civilian');
     const movement=definition?.combatMovement||definition?.profile.combatMovement||window.nativeShipMotion.profiles.combat(ship.shipType,ship.cruiseSpeed||105);
+    if(window.nativeShipDefinitions){const descriptor=window.nativeShipDefinitions.describe(scene.state||{},ship,{category:'civilian'});command=window.nativeShipMotion.avoidShips(descriptor,scene.bystanders||[],command,movement);}
     window.nativeShipMotion.step(ship,command,movement,scene.dt);
     return ship.combatAI;
   }

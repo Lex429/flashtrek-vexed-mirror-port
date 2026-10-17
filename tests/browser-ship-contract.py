@@ -184,6 +184,9 @@ try:
           impacts.push({target:'registered custom shield ellipse',shieldState:'active',authoritativeContact:true,renderedPixels:true});
           nativeShipDefinitions.register(47,{});
           const inherited=scenario('civilian','player','beam','active',true);
+          // Definition speed is measured in clear space. Traffic avoidance is
+          // exercised separately; the former target would now make this ship yield.
+          inherited.state.y+=10000;
           for(let i=0;i<30;i++)nativeShipSystems.move(inherited.state,inherited.source.entity,'civilian',{turn:0,throttle:1},undefined,.05);
           near(inherited.source.entity.speed,73,'New registered ship must inherit its movement definition');
           const projectile=[];

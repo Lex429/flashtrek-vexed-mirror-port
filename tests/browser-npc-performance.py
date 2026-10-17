@@ -83,7 +83,11 @@ INSTALL = r"""() => {
     window[name]=replacement;
   };
   replace('nativeSimulation',{advance:original=>function(state,dt){p.simStart=performance.now();return original(state,dt);}});
-  replace('nativeAsteroidCombat',{advance:original=>function(...args){try{return original(...args);}finally{
+  // End timing after the final physics dispatcher, including ship contacts.
+  // Old revisions predate these dispatchers, so retain their actual final owner.
+  const finalOwner=window.nativeShipTraffic?'nativeShipTraffic':window.nativeAsteroidMotion?'nativeAsteroidMotion':'nativeAsteroidCombat';
+  const finalMethod=finalOwner==='nativeAsteroidCombat'?'advance':'collide';
+  replace(finalOwner,{[finalMethod]:original=>function(...args){try{return original(...args);}finally{
     if(p.simStart!==null){p.simMs+=performance.now()-p.simStart;p.simStart=null;}
   }}});
   replace('nativeShipMotion',{step:original=>function(entity,...args){p.moves.add(entity);return original(entity,...args);}});
@@ -91,7 +95,7 @@ INSTALL = r"""() => {
     prepare:original=>function(...args){if(p.record){p.prepares.push(args);if(!window.nativeShipEffects.ready(...args))p.unreadyPreparations.add(args.join(':'));}return original(...args);},
     paintShip:original=>function(...args){if(p.record)p.paintedShips++;return original(...args);}
   });
-  for(const name of ['nativeCivilianTraffic','nativeSolEconomy','nativeNpcLives','nativeCombatShots','nativeShipEffects']){
+  for(const name of ['nativeCivilianTraffic','nativeSolEconomy','nativeNpcLives','nativeCombatShots','nativeShipEffects','nativeShipTraffic']){
     replace(name,{advance:original=>function(...args){const start=performance.now();try{return original(...args);}finally{
       p.timers[name]=(p.timers[name]||0)+performance.now()-start;
     }}});

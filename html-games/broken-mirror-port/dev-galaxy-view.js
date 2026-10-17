@@ -107,7 +107,8 @@
       homeBase:ship.homeBase,origin:ship.origin,destination:ship.destination,route:ship.route,eta:ship.eta,
       docking:authoritative?.docking??window.nativePortDocking?.inspect(lastState,ship.entity,authoritativeDetails),dockingMove:!!ship.entity.dockingMove,task,journey,cargo,tradeStock:tradeStock(ship,task,cargo),credits:authoritative?.credits??ship.entity.credits??ship.credits,
       hull:authoritative?.condition?.hull??authoritative?.hull??ship.entity.hull??ship.hull,shields:authoritative?.condition?.shields??authoritative?.shields??ship.entity.shields??ship.shields,equipment:authoritative?.equipment??ship.equipment,
-      events:authoritative?.events||ship.events,nextActionAt:authoritative?.nextActionAt??ship.nextActionAt};
+      events:authoritative?.events||ship.events,nextActionAt:authoritative?.nextActionAt??ship.nextActionAt,
+      traffic:(ship.entity.localLeg||ship.entity.lifeLeg)&&ship.entity.trafficControl&&{mode:ship.entity.trafficControl.mode,until:ship.entity.trafficControl.until}};
     // Inspection consumers receive values, never mutable saved inventory/task references.
     return JSON.parse(JSON.stringify(data));
   }
@@ -143,6 +144,7 @@
     if(data.phase==='fighting')return ['In combat','Engaging another ship.'];
     if(data.phase==='ore-theft')return ['Taking ore','Collecting ore claimed by another ship.'];
     if(data.journey)return ['Travelling to '+portName(data.journey.destination??data.journey.destinationSystem),'Flying between star systems.'];
+    if(data.traffic?.until>time())return data.traffic.mode==='yielding'?['Giving way to traffic','Waiting for another ship to clear the route, then continuing the current job.']:['Passing another ship','Taking a detour around traffic, then continuing the current job.'];
     if(data.dockingMove)return ['Clearing the dock','Moving to a holding position so another ship can use the berth.'];
     const phases={
       'pickup-flight':['Flying to collect cargo','Heading to '+source+'.'],loading:['Loading cargo','Taking cargo aboard at '+source+'.'],loaded:['Ready to depart','Cargo is aboard. Next stop: '+goal+'.'],

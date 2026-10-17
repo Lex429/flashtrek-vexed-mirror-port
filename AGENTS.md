@@ -74,3 +74,15 @@ most three cached-art chips per damage-stage change, never at the health floor
 and never as ore. Keep mining timed and ore claims exactly once.
 Run `asteroid-physics.test.cjs` and `browser-asteroid-physics.py`, including the
 30-minute production-policy fixture with `physics:true`, plus existing suites.
+
+`ship-traffic.js` owns shared ship avoidance intent and ship-pair contact dispatch;
+`ship-motion.js` owns prediction, swept shield/hull geometry, mass impulses and
+saved version-3 composite routes. Keep existing version-2 saves valid. Rerouting
+must update the task owner's real deadline through `npc-lives.reroute` or
+`sol-economy.reroute`, retaining the original goal, berth lease and economic escrow.
+Use `ship-systems.applyContact` for all ship displacement/knockback. Contacts
+preserve ship health and cargo; native effects are visual only. The player is
+manual; combat and ordinary traffic share avoidance mechanics. Distant contacts
+must sample authoritative routes without preparing artwork. Run
+`ship-traffic.test.cjs`, `browser-ship-traffic.py`, Earth jam and economy suites,
+plus same-save population/viewport performance checks before/after.

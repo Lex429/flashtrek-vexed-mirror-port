@@ -10,8 +10,11 @@
     return targets;
   }
   function collectShips(state,system=state.system){
+    const frame=window.nativeSimulationFrame?.current(state),cacheKey='ships:'+system,cached=frame?.caches.get(cacheKey);
+    if(cached)return cached;
     const targets=[];
     for(const [category,adapter] of kinds)if(category!=='asteroid')for(const target of adapter.collect(state,system)||[])targets.push({...target,category:target.category||category});
+    if(frame)frame.caches.set(cacheKey,targets);
     return targets;
   }
   function scene(state,{system=state.system}={}){
@@ -19,14 +22,14 @@
     if(cached)return cached.scene;
     const targets=collect(state,system);
     const bodies=system===1?(window.nativeSystemHub?.sol||[]).filter(body=>body.id!==6).map(body=>({x:body.x-220,y:body.y+75,radius:(window.vexedSolFlight?.bodySize(body)||100)*.44})):[];
-    const result={targets,bystanders:targets.filter(target=>target.category!=='asteroid'),rocks:targets.filter(target=>target.category==='asteroid'),destructibles:[],bodies};
+    const result={state,targets,bystanders:targets.filter(target=>target.category!=='asteroid'),rocks:targets.filter(target=>target.category==='asteroid'),destructibles:[],bodies};
     if(frame)frame.caches.set(cacheKey,{scene:result,byId:new Map(targets.map(target=>[idKey(target.id),target]))});
     window.nativeSimulationFrame?.count(state,'sceneCollections');
     return result;
   }
   function invalidate(state,system){
     const frame=window.nativeSimulationFrame?.current(state);if(!frame)return;
-    if(system===undefined)frame.caches.clear();else frame.caches.delete('targets:'+system);
+    if(system===undefined)frame.caches.clear();else{frame.caches.delete('targets:'+system);frame.caches.delete('ships:'+system);}
   }
   function resolve(state,id,system=state.system){
     const frame=window.nativeSimulationFrame?.current(state);
@@ -67,13 +70,21 @@
   }
   function visualImpact(state,target,event){return kinds.get(target.category)?.visualImpact?.(state,target,event);}
   function resolved(state,result,event){for(const adapter of kinds.values())adapter.onResolved?.(state,result,event);}
+  function applyContact(state,ship,pose){
+    const entity=ship.entity,offsetX=ship.category==='player'?ship.x-entity.x:0,offsetY=ship.category==='player'?ship.y-entity.y:0;
+    window.nativeShipMotion.applyImpulse(entity,{x:pose.vx-ship.vx,y:pose.vy-ship.vy},window.nativeSimulation.seconds(state),{x:pose.x-ship.x,y:pose.y-ship.y});
+    Object.assign(entity,{x:pose.x-offsetX,y:pose.y-offsetY,vx:pose.vx,vy:pose.vy,speed:Math.hypot(pose.vx,pose.vy)});
+    invalidate(state,ship.system);
+  }
   function move(state,entity,category,command,profile,dt){
     if(!(dt>0)||window.nativeSimulation.blocked())return {arrived:false,moved:0};
     const descriptor=window.nativeShipDefinitions.describe(state,entity,{category});
     const pose={x:descriptor.x,y:descriptor.y,heading:descriptor.heading,speed:entity.speed||0,
       vx:entity.vx,vy:entity.vy,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionTime:window.nativeSimulation.seconds(state)};
     const origin={x:descriptor.x-entity.x,y:descriptor.y-entity.y};
-    const result=window.nativeShipMotion.step(pose,command,profile||descriptor.definition.movement,dt);
+    profile||=descriptor.definition.movement;
+    command=window.nativeShipTraffic?.steer(state,descriptor,command,profile)||command;
+    const result=window.nativeShipMotion.step(pose,command,profile,dt);
     Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionAngularVelocity:pose.motionAngularVelocity,
       previousX:pose.previousX,previousY:pose.previousY,motionKick:pose.motionKick});
     if(category==='player')entity.angle=pose.heading;else entity.heading=pose.heading;
@@ -110,5 +121,5 @@
     return (window.nativeSolAsteroids?.forSystem?.(system)||window.nativeSolAsteroids?.placements||[]).filter(rock=>!gone.has(rock.slotId)).map(rock=>({...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid',system,heading:rock.angle||0,
       dimensions:{width:rock.size,height:rock.size},radius:rock.size*.43,entity:rock,targetable:true}));
   },hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.weaponHit(state,target.rockId,amount,impact)});
-  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,scene,resolve,applyHit,visualImpact,resolved,move,inspectAll,invalidate});
+  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,scene,resolve,applyHit,visualImpact,resolved,move,applyContact,inspectAll,invalidate});
 })();

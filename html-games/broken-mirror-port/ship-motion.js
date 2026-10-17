@@ -179,6 +179,13 @@
   }
   function sampleLegBase(entity,leg,now){
     if(!validPoint(entity)||!leg||leg.valid===false||!validPoint(leg.start)||!validPoint(leg.goal)||!Number.isFinite(now))return {arrived:false,invalid:true,progress:0};
+    if(leg.version===3){
+      if(!Array.isArray(leg.segments)||!leg.segments.length)return {arrived:false,invalid:true,progress:0};
+      const segment=leg.segments.find(part=>now<part.startedAt+part.duration)||leg.segments.at(-1);
+      const result=sampleLegBase(entity,segment,now);
+      return {...result,arrived:!result.invalid&&now>=leg.startedAt+leg.duration,
+        progress:clamp((now-leg.startedAt)/Math.max(.001,leg.duration),0,1)};
+    }
     const distance=Math.hypot(leg.goal.x-leg.start.x,leg.goal.y-leg.start.y);
     if(distance<=arrivalEpsilon||(Number.isFinite(leg.startedAt)&&Number.isFinite(leg.duration)&&leg.duration>0&&now>=leg.startedAt+leg.duration)){
       entity.previousX=entity.x;entity.previousY=entity.y;entity.x=leg.goal.x;entity.y=leg.goal.y;
@@ -211,6 +218,115 @@
     return result;
   }
   const asteroidMass=rock=>Math.max(.00005,(rock.size/40)**3);
+  const shipMass=ship=>Math.max(.5,finite(ship.definition?.mass,8*(ship.dimensions.width*ship.dimensions.height/2400)**1.5));
+  const shipRadius=ship=>Math.max(1,ship.radii.rx,ship.radii.ry);
+  // Saved piecewise commands use the ordinary acceleration/braking sampler.
+  // The original task goal remains authoritative; detours extend its deadline.
+  function routeLeg(entity,goal,points,profile,at,wait=0){
+    const start={x:entity.x,y:entity.y},pose={...entity},segments=[];let cursor=at;
+    if(wait>0){
+      const speed=Math.max(0,finite(pose.speed)),braking=Math.max(.01,finite(profile.braking,225));
+      if(speed>.01){
+        const heading=Number.isFinite(pose.vx)&&Number.isFinite(pose.vy)&&Math.hypot(pose.vx,pose.vy)>.01?Math.atan2(pose.vy,pose.vx):finite(pose.heading);
+        const distance=speed*speed/(2*braking),stopAt={x:pose.x+Math.cos(heading)*distance,y:pose.y+Math.sin(heading)*distance};
+        const part=planLeg(pose,stopAt,{...profile,maxSpeed:speed},cursor);segments.push(part);cursor+=part.duration;sampleLegBase(pose,part,cursor);
+      }
+      segments.push({...planLeg(pose,pose,profile,cursor),duration:wait});cursor+=wait;stop(pose);
+    }
+    for(const point of [...points,goal]){
+      const part=planLeg(pose,point,profile,cursor);if(part.valid===false)return part;
+      segments.push(part);cursor+=part.duration;sampleLegBase(pose,part,cursor);stop(pose);
+    }
+    return {version:3,valid:true,start,goal:{x:goal.x,y:goal.y},startedAt:at,duration:cursor-at,
+      distance:segments.reduce((n,s)=>n+s.distance,0),segments};
+  }
+  // Predict relative motion, rather than steering away from a ship's old pose.
+  // Every pilot passes to starboard. Stable identity breaks crossing ties.
+  function trafficAdvice(ship,neighbors,profile={}){
+    const leg=ship.entity?.localLeg||ship.entity?.lifeLeg;
+    const target=leg?.version===3?(leg.segments.find(p=>ship.at<p.startedAt+p.duration&&p.distance>arrivalEpsilon)||leg.segments.at(-1))?.goal:leg?.goal;
+    const speed=Math.hypot(ship.vx,ship.vy),distance=target?Math.hypot(target.x-ship.x,target.y-ship.y):Infinity;
+    const heading=target&&distance>1?Math.atan2(target.y-ship.y,target.x-ship.x):ship.heading;
+    const planned=Math.max(speed,leg&&distance>2?profile.maxSpeed||100:0),vx=speed>10?ship.vx:Math.cos(heading)*planned,vy=speed>10?ship.vy:Math.sin(heading)*planned;
+    if(planned<.01)return null;
+    const horizon=Math.min(6,Math.max(.5,distance/Math.max(1,planned))),turnRoom=Number.isFinite(profile.turnRate)?Math.min(45,planned/Math.max(.5,profile.turnRate)*.25):0;
+    let threat=null;
+    for(const other of neighbors){
+      if(other.id===ship.id&&other.category===ship.category||other.system!==ship.system)continue;
+      const rx=other.x-ship.x,ry=other.y-ship.y,rvx=other.vx-vx,rvy=other.vy-vy,sq=rvx*rvx+rvy*rvy;
+      const clearance=shipRadius(ship)+shipRadius(other)+24+turnRoom;
+      const closing=rx*rvx+ry*rvy;
+      if(closing>=0&&Math.hypot(rx,ry)>clearance*.9)continue;
+      const t=sq?clamp(-closing/sq,0,horizon):0,miss=Math.hypot(rx+rvx*t,ry+rvy*t);
+      if(miss>=clearance||Math.hypot(rx,ry)>clearance+planned*horizon+Math.hypot(other.vx,other.vy)*horizon)continue;
+      const score=t+miss/Math.max(1,clearance);
+      if(!threat||score<threat.score){
+        const stationary=Math.hypot(other.vx,other.vy)<5,headOn=vx*other.vx+vy*other.vy<-.35*planned*Math.hypot(other.vx,other.vy);
+        const key=s=>s.category+':'+s.id,otherPriority=other.category==='player'||shipMass(other)>shipMass(ship)*1.4||
+          shipMass(ship)<=shipMass(other)*1.4&&key(ship)>key(other);
+        threat={other,t,miss,clearance,score,heading,yield:!stationary&&!headOn&&otherPriority,
+          stationary,headOn,distance:Math.hypot(rx,ry)};
+      }
+    }
+    return threat;
+  }
+  function avoidShips(ship,neighbors,command,profile){
+    if(command.hold||command.coast)return command;
+    const facing=Number.isFinite(command.heading)?command.heading:command.goal?Math.atan2(command.goal.y-ship.y,command.goal.x-ship.x):ship.heading;
+    const speed=Math.min(profile.maxSpeed||100,command.speed??(profile.maxSpeed||100)*(command.throttle??1));
+    const intended={...ship,vx:Math.cos(facing)*speed,vy:Math.sin(facing)*speed,heading:facing};
+    const advice=trafficAdvice(intended,neighbors,profile);if(!advice||advice.t>2.5)return command;
+    if(advice.distance<advice.clearance*.85){
+      const dx=ship.x-advice.other.x,dy=ship.y-advice.other.y;
+      return {...command,goal:undefined,heading:Math.hypot(dx,dy)>1?Math.atan2(dy,dx):facing,throttle:.65,brake:false,speed:undefined};
+    }
+    const angle=wrap(facing+Math.min(1.15,.45+Math.max(0,1-advice.t/3)*.7));
+    const brake=advice.yield||advice.distance<advice.clearance*1.05;
+    return {...command,goal:undefined,heading:angle,throttle:brake?0:Math.min(command.throttle??1,.7),brake,speed:brake?0:command.speed};
+  }
+  function ellipseSupport(ship,nx,ny){
+    const angle=ship.heading+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle),x=nx*c+ny*s,y=-nx*s+ny*c;
+    const length=Math.hypot(ship.radii.rx*x,ship.radii.ry*y)||1;
+    const lx=ship.radii.rx**2*x/length,ly=ship.radii.ry**2*y/length;
+    return {x:lx*c-ly*s,y:lx*s+ly*c,r:length};
+  }
+  const contactAxes=Array.from({length:32},(_,i)=>({x:Math.cos(i*Math.PI/32),y:Math.sin(i*Math.PI/32)}));
+  // Swept supporting planes of both oriented shield/hull ellipses. Sampled
+  // directions conservatively bound the curves; circles are broad phase only.
+  function shipPairContact(a,b,dt){
+    if(!(dt>0)||!validPoint(a)||!validPoint(b)||!a.radii||!b.radii)return null;
+    const ax=finite(a.previousX,a.x),ay=finite(a.previousY,a.y),bx=finite(b.previousX,b.x),by=finite(b.previousY,b.y);
+    const fx=bx-ax,fy=by-ay,dx=b.x-a.x-fx,dy=b.y-a.y-fy;
+    const sweep=dx*dx+dy*dy,closest=sweep?clamp(-(fx*dx+fy*dy)/sweep,0,1):0;
+    if(Math.hypot(fx+dx*closest,fy+dy*closest)>shipRadius(a)+shipRadius(b))return null;
+    const ac=Math.cos(a.heading+Math.PI/2),as=Math.sin(a.heading+Math.PI/2),bc=Math.cos(b.heading+Math.PI/2),bs=Math.sin(b.heading+Math.PI/2);
+    let enter=0,exit=1,normal=null,shallow=Infinity,overlap=true,shallowNormal=null;
+    for(let i=0;i<36;i++){
+      const axis=i<32?contactAxes[i]:i===32?{x:ac,y:as}:i===33?{x:-as,y:ac}:i===34?{x:bc,y:bs}:{x:-bs,y:bc};
+      const nx=axis.x,ny=axis.y,r=Math.hypot(a.radii.rx*(nx*ac+ny*as),a.radii.ry*(-nx*as+ny*ac))+Math.hypot(b.radii.rx*(nx*bc+ny*bs),b.radii.ry*(-nx*bs+ny*bc));
+      const p=fx*nx+fy*ny,v=dx*nx+dy*ny,depth=r-Math.abs(p);
+      if(depth<0)overlap=false;
+      if(depth<shallow){shallow=depth;const sign=p<0?-1:1;shallowNormal={x:nx*sign,y:ny*sign,r};}
+      if(Math.abs(v)<1e-10){if(Math.abs(p)>r)return null;continue;}
+      const t1=(-r-p)/v,t2=(r-p)/v,lo=Math.min(t1,t2),hi=Math.max(t1,t2);
+      if(lo>enter){enter=lo;const sign=p+v*lo<0?-1:1;normal={x:nx*sign,y:ny*sign,r};}
+      exit=Math.min(exit,hi);if(enter>exit||exit<0||enter>1)return null;
+    }
+    normal=overlap?shallowNormal:normal;if(!normal)return null;
+    const t=overlap?0:Math.max(0,enter),nx=normal.x,ny=normal.y;
+    const ma=shipMass(a),mb=shipMass(b),inverse=1/ma+1/mb,rvx=finite(a.vx)-finite(b.vx),rvy=finite(a.vy)-finite(b.vy);
+    const closing=Math.max(0,rvx*nx+rvy*ny),impulse=1.12*closing/inverse;
+    const tangent=-rvx*ny+rvy*nx,friction=clamp(tangent/inverse,-impulse*.08,impulse*.08),ix=nx*impulse-ny*friction,iy=ny*impulse+nx*friction;
+    const avx=finite(a.vx)-ix/ma,avy=finite(a.vy)-iy/ma,bvx=finite(b.vx)+ix/mb,bvy=finite(b.vy)+iy/mb,remaining=dt*(1-t);
+    const pa={x:ax+(a.x-ax)*t+avx*remaining,y:ay+(a.y-ay)*t+avy*remaining,vx:avx,vy:avy};
+    const pb={x:bx+(b.x-bx)*t+bvx*remaining,y:by+(b.y-by)*t+bvy*remaining,vx:bvx,vy:bvy};
+    const penetration=Math.max(0,normal.r-((pb.x-pa.x)*nx+(pb.y-pa.y)*ny))+.02;
+    if(!closing&&penetration<.03)return null;
+    pa.x-=nx*penetration*mb/(ma+mb);pa.y-=ny*penetration*mb/(ma+mb);pb.x+=nx*penetration*ma/(ma+mb);pb.y+=ny*penetration*ma/(ma+mb);
+    const sa=ellipseSupport(a,nx,ny),sb=ellipseSupport(b,-nx,-ny);
+    return {t,closing,massA:ma,massB:mb,normal:{x:nx,y:ny},a:pa,b:pb,
+      pointA:{x:pa.x+sa.x,y:pa.y+sa.y},pointB:{x:pb.x+sb.x,y:pb.y+sb.y}};
+  }
   const collisionDamageFraction=(closing,otherMass,selfMass)=>Math.min(1,(Math.max(0,closing-70)/180)**2*otherMass/(otherMass+selfMass));
   // Swept ellipse/circle contact uses the same oriented shield/hull radii as
   // weapons. Both bodies receive a mass-weighted impulse; no health is changed.
@@ -230,17 +346,17 @@
     if(length<1e-9){nx=ship.vx-rockVX;ny=ship.vy-rockVY;length=Math.hypot(nx,ny);if(!length){nx=1;ny=0;length=1;}}
     nx/=length;ny/=length;
     const rvx=finite(ship.vx)-rockVX,rvy=finite(ship.vy)-rockVY,closing=Math.max(0,rvx*nx+rvy*ny);
-    const rockMass=asteroidMass(rock),shipMass=Math.max(.5,finite(ship.definition?.mass,8*(ship.dimensions.width*ship.dimensions.height/2400)**1.5));
-    const inverse=1/rockMass+1/shipMass,impulse=1.18*closing/inverse;
+    const rockMass=asteroidMass(rock),bodyMass=shipMass(ship);
+    const inverse=1/rockMass+1/bodyMass,impulse=1.18*closing/inverse;
     const tangent=-rvx*ny+rvy*nx,friction=clamp(tangent/inverse,-impulse*.08,impulse*.08);
     const ix=nx*impulse-ny*friction,iy=ny*impulse+nx*friction;
     const contactDistance=Math.hypot(rx*(nx*c+ny*s),ry*(-nx*s+ny*c));
     const penetration=Math.max(0,contactDistance+(ship.x-rock.x)*nx+(ship.y-rock.y)*ny)+.02;
-    const rockShare=shipMass/(shipMass+rockMass),shipShare=1-rockShare;
-    return {t,normal:{x:nx,y:ny},closing,shipMass,rockMass,
+    const rockShare=bodyMass/(bodyMass+rockMass),shipShare=1-rockShare;
+    return {t,normal:{x:nx,y:ny},closing,shipMass:bodyMass,rockMass,
       rock:{x:rock.x+nx*penetration*rockShare,y:rock.y+ny*penetration*rockShare,vx:rockVX+ix/rockMass,vy:rockVY+iy/rockMass,spin:clamp(finite(rock.spin)+friction/Math.max(.01,rockMass*radius)*2.5,-5,5)},
-      ship:{x:ship.x-nx*penetration*shipShare,y:ship.y-ny*penetration*shipShare,vx:finite(ship.vx)-ix/shipMass,vy:finite(ship.vy)-iy/shipMass},
-      damageFraction:collisionDamageFraction(closing,shipMass,rockMass),
+      ship:{x:ship.x-nx*penetration*shipShare,y:ship.y-ny*penetration*shipShare,vx:finite(ship.vx)-ix/bodyMass,vy:finite(ship.vy)-iy/bodyMass},
+      damageFraction:collisionDamageFraction(closing,bodyMass,rockMass),
       point:{x:rock.x-nx*radius,y:rock.y-ny*radius}};
   }
   function asteroidPairContact(a,b,dt){
@@ -266,5 +382,5 @@
     }
     const result=asteroidPairContact(target,body,dt);return result?{...result,targetPose:result.a,debrisPose:result.b}:null;
   }
-  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,collisionDamageFraction,debrisContact};
+  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,shipPairContact,shipMass,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,collisionDamageFraction,debrisContact};
 })();

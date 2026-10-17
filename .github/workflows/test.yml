@@ -34,6 +34,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-asteroid-physics.py
+      - name: Ship collisions, shared traffic avoidance and blocked-delivery reload
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-ship-traffic.py
       - name: Persistent freighter life, observer inspection and distant delivery
         env:
           BROWSER_CHANNEL: ''

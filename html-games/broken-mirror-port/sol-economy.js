@@ -319,6 +319,7 @@
   }
   function scheduleTug(economy,ship,at){
     ship.lifeLeg=null;
+    delete ship.trafficControl;
     delete ship.lifeSkipPending;
     if(ship.phase==='disabled'){ship.lifeEventAt=null;return;}
     if(ship.phase==='travel'){
@@ -547,5 +548,9 @@
         hull:freighter.hull/Math.max(1,tugStats().hull),selectedAt:tugSelectedAt},x,y,zoom,cx);
     }
   }
-  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1)};
+  function reroute(state,ship,leg){
+    if(!ship.lifeLeg||ship.phase!=='travel'||leg.valid===false)return false;
+    ship.lifeLeg=leg;ship.lifeEventAt=leg.startedAt+leg.duration;return true;
+  }
+  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute};
 })();

@@ -129,6 +129,7 @@ function advanceSimulation(dt,now){
   window.nativeSimulation.advance(game,step);
   window.nativeSimulationFrame?.step(game);
   window.nativeAsteroidMotion?.advance(game,step);
+  window.nativeShipTraffic?.advance(game,step);
   advanceLocalCruise(step,now);advanceArrivalApproach(step,now);
   if(window.nativePopulation.advanceSeconds(game,step)){window.nativePlanetEncounter?.refresh();window.nativeSystemHub?.updatePopulation();}
   window.nativeSolEconomy.advance(game,step);
@@ -143,6 +144,7 @@ function advanceSimulation(dt,now){
    updateManualFlight(now);
   }
   window.nativeAsteroidMotion?.collide(game,step);
+  window.nativeShipTraffic?.collide(game,step);
  }
  if(now-lastEconomySave>8000){lastEconomySave=now;save(true)}
 }

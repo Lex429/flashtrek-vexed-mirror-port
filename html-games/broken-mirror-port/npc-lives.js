@@ -349,6 +349,7 @@
     return best?startDelivery(state,ship.id,{fromSystem:from,fromPort:port,toSystem:best.to,toPort:best.toPort,good:best.good,tons:best.tons,at}):{ok:false};
   }
   function localLeg(state,ship,goal,at,phase){
+    delete ship.trafficControl;
     const definition=stats(ship),configured=definition.profile?.movement??definition.movement;
     const profile=typeof configured==='function'?configured(state,ship,definition):configured||window.nativeShipMotion.profiles.civilian(definition);
     ship.localLeg=window.nativeShipMotion.planLeg(ship,goal,profile,at);
@@ -697,6 +698,10 @@
     const after=window.nativeShipDefinitions.forEntity(state);state.hull+=Math.max(0,after.hull-before.hull);state.shields+=Math.max(0,after.shields-before.shields);
     return {ok:true,message:quote.name+' level '+(quote.level+1)+' installed on this hull.'};
   }
-  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,resumeWork,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,upgradeMinerals,
+  function reroute(state,ship,leg){
+    initialize(state);if(!ship.localLeg||ship.journey||!(ship.task?.status==='active'||ship.dockingMove)||leg.valid===false)return false;
+    ship.localLeg=leg;schedule(state,ship,leg.startedAt+leg.duration);return true;
+  }
+  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,resumeWork,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,upgradeMinerals,reroute,
     scheduled:state=>{initialize(state);return runtime.get(state).heap.length;}};
 })();

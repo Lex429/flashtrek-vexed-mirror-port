@@ -72,10 +72,7 @@
   }
   function freeze(state,rock){ensure(state);if(active.has(rock.slotId))store(state,rock,{vx:0,vy:0,spin:0});}
   function pushShip(state,ship,pose){
-    const entity=ship.entity,offsetX=ship.x-entity.x,offsetY=ship.y-entity.y;
-    window.nativeShipMotion.applyImpulse(entity,{x:pose.vx-ship.vx,y:pose.vy-ship.vy},time(state),{x:pose.x-ship.x,y:pose.y-ship.y});
-    Object.assign(entity,{x:pose.x-offsetX,y:pose.y-offsetY,vx:pose.vx,vy:pose.vy,speed:Math.hypot(pose.vx,pose.vy)});
-    window.nativeShipSystems.invalidate(state,ship.system);
+    window.nativeShipSystems.applyContact(state,ship,pose);
   }
   function debrisContact(state,piece,from,target,type){
     ensure(state);
