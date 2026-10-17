@@ -10,7 +10,7 @@ async function fixture(saved){
     vexedSolFlight:{shipPosition:s=>({x:s.x,y:s.y}),bodySize:()=>128},nativeSolAsteroids:{placements:[],image:()=>({complete:false})},starterShips:new Map(),
     showcaseWeaponAppearance:{units:.91976},showcaseShieldRadii:(w,h)=>({rx:w*.6,ry:h*.6}),createShowcaseWeaponVisual:i=>({...i}),showcaseHullBurst:{burst(){},update(){}}};
   const context=vm.createContext({window,document:{hidden:false},console,performance,fetch:async url=>({ok:true,json:async()=>JSON.parse(fs.readFileSync(path.join(root,'../flashtrek-broken-mirror/showcase-assets',url.split('/').pop().split('?')[0]),'utf8'))})});
-  for(const file of ['world-data.js','weapon-catalog.js','simulation-clock.js','ship-motion.js','ship-definitions.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','asteroid-combat.js','manual-flight.js','npc-lives.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file});
+  for(const file of ['world-data.js','weapon-catalog.js','simulation-clock.js','ship-motion.js','ship-definitions.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','port-docking.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','asteroid-combat.js','manual-flight.js','npc-lives.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file});
   await window.nativeCombatShots.ready;
   const state=saved||{system:1,shipType:7,x:0,y:0,angle:0,speed:0,hull:100,shields:100,weapons:[1],localPrestige:{},minedAsteroids:[],destroyedAsteroids:[]};
   window.nativeSimulation.ensure(state);window.nativeSolEconomy.initialize(state);window.nativeCivilianTraffic.initialize(state);
@@ -74,8 +74,8 @@ test('large advances use a bounded scheduler and map reads never prepare artwork
   for(let i=0;i<10;i++)lives.descriptors(state);assert.equal(prepared,0);
 });
 test('pause and inventory stop tasks and recharge without a second civilian clock',async()=>{
-  const {window,state,ship,start,step}=await fixture();start();window.nativeShipInventory.active=true;const before=JSON.stringify(ship.task),clock=window.nativeSimulation.seconds(state);step(100);
-  assert.equal(window.nativeSimulation.seconds(state),clock);assert.equal(JSON.stringify(ship.task),before);window.nativeShipInventory.active=false;step(4);assert.ok(ship.cargo);
+  const {window,state,ship,start,step,until}=await fixture();start();window.nativeShipInventory.active=true;const before=JSON.stringify(ship.task),clock=window.nativeSimulation.seconds(state);step(100);
+  assert.equal(window.nativeSimulation.seconds(state),clock);assert.equal(JSON.stringify(ship.task),before);window.nativeShipInventory.active=false;until(()=>ship.cargo);assert.ok(ship.cargo);
 });
 test('legacy empty interstellar travel preserves progress, arrives and completes a reposition task',async()=>{
   const first=await fixture(),saved=JSON.parse(JSON.stringify(first.state)),ship=saved.civilianTraffic.ships[0];

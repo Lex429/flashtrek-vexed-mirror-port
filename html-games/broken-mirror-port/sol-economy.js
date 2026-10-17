@@ -67,10 +67,7 @@
   const tugDimensions=()=>window.nativeShipDefinitions.dimensions({shipType:10},'tug');
   const center = id => ({x:coords[id][0]-220,y:coords[id][1]+75});
   const clearance = id => bodySizes[id]/2+105;
-  const station = (id,shipId=0) => {
-    const body=center(id),angle=-Math.PI/2+(shipId%9)*Math.PI*2/9,radius=bodySizes[id]/2+220;
-    return {x:body.x+Math.cos(angle)*radius,y:body.y+Math.sin(angle)*radius};
-  };
+  const station=(id,shipId=0)=>window.nativePortDocking.tugPoint(id,shipId);
   function legacyWaypoint(from,to,arrival=false) {
     const a=center(from),b=center(to),distance=Math.hypot(b.x-a.x,b.y-a.y)||1;
     const id=arrival?to:from,body=arrival?b:a,direction=arrival?-1:1;
@@ -429,12 +426,20 @@
         nextActionAt:ship.lifeEventAt,recentEvents:ship.recentEvents,origin:{system:1,port:ship.from},destination:{system:1,port:ship.to},route:ship.path,eta:Math.max(0,(ship.lifeEventAt||now)-now)};
     });
   }
-  function price(state,port,good,buy) {
-    const available = stock(initialize(state),port,good);
-    const multiplier = Math.max(.55,Math.min(2.2,1.55-available/180));
-    const amount = Math.round(basePrices[good]*multiplier);
-    return buy ? amount : Math.max(1,Math.floor(amount*.82));
+  // Integrate the same stock curve one ton at a time. A sale traverses the
+  // reverse marginal prices with the spread, so batching cannot create profit.
+  function quote(state,port,good,buy,amount=1) {
+    const g=Number(good),n=Number(amount);
+    if(!ports.includes(port)||!Number.isInteger(g)||!goods[g]||!Number.isSafeInteger(n)||n<1||n>9999)return {ok:false,error:'Choose a valid Sol cargo lot.'};
+    const economy=initialize(state),initial=stock(economy,port,g);let total=0;
+    for(let i=0;i<n;i++){
+      const marginalStock=buy?initial-i-1:initial+i;
+      const unit=Math.round(basePrices[g]*Math.max(.55,Math.min(2.2,1.55-marginalStock/180)));
+      total+=buy?unit:Math.max(1,Math.floor(unit*.82));
+    }
+    return {ok:true,total,tons:n,stock:initial};
   }
+  function price(state,port,good,buy){return quote(state,port,good,buy).total;}
   function used(state) {return Object.values(state.solFreightHold||{}).reduce((n,value)=>n+qty(value),0)+(state.localContracts||[]).reduce((n,job)=>n+qty(job.tons),0);}
   function deliveryOffer(state,economy,from,to,good,surplusOnly=false) {
     const capacity=window.VexedMirrorWorld.ships.find(ship=>ship.id===state.shipType)?.cargo||0;
@@ -462,25 +467,15 @@
     }).filter(Boolean).sort((a,b)=>b.score-a.score).slice(0,3).map(({to,good})=>({to,good,surplusOnly:true}));
     return [...regular,...extra];
   }
-  function buySell(state,port,good,buy,amount=10) {
-    const economy=initialize(state), g=Number(good), n=Number(amount);
-    if(!ports.includes(port)||!Number.isInteger(g)||!goods[g]||![10,25,100,500].includes(n)) return {ok:false,error:'Choose a valid Sol cargo lot.'};
-    const cost=price(state,port,g,buy)*n;
-    const capacity=window.VexedMirrorWorld.ships.find(s=>s.id===state.shipType)?.cargo || 0;
-    if(buy) {
-      if(availableStock(economy,port,g)<n) return {ok:false,error:'The port does not have that much unreserved cargo.'};
-      if(used(state)+n>capacity) return {ok:false,error:'Your cargo hold is full.'};
-      if(!state.devMode&&state.latinum<cost) return {ok:false,error:'Not enough latinum.'};
-      economy.ports[port][g]-=n;state.solFreightHold[g]=qty(state.solFreightHold[g])+n;
-      if(!state.devMode){state.latinum-=cost;economy.flows.externalPlayerReceipts=(economy.flows.externalPlayerReceipts||0)+cost;}
-      else economy.flows.devPurchaseSubsidy=(economy.flows.devPurchaseSubsidy||0)+cost;
-    } else {
-      if(qty(state.solFreightHold[g])<n) return {ok:false,error:'You do not have that much cargo aboard.'};
-      const delivered=stock(economy,port,g)+n;
-      state.solFreightHold[g]-=n;economy.ports[port][g]=Math.min(9999,delivered);state.latinum+=cost;
-      economy.flows.lost[g]+=Math.max(0,delivered-9999);economy.flows.externalPlayerPayments=(economy.flows.externalPlayerPayments||0)+cost;
-    }
-    return {ok:true,message:`${buy?'Loaded':'Sold'} ${n} t of ${goods[g]} at ${names[port]} for ${cost} latinum.`};
+  function buySell(state,port,good,buy,amount=10,expectedTotal) {
+    const economy=initialize(state),g=Number(good),n=Number(amount);
+    if(![10,25,100,500].includes(n))return {ok:false,error:'Choose a valid Sol cargo lot.'};
+    const quoted=quote(state,port,g,buy,n);if(!quoted.ok)return quoted;
+    if(expectedTotal!==undefined&&quoted.total!==expectedTotal)return {ok:false,error:'The market changed. Review the updated quote.'};
+    const market=window.nativeNpcLives.market(state,1,port),capacity=window.VexedMirrorWorld.ships.find(s=>s.id===state.shipType)?.cargo||0;
+    const result=window.nativeNpcLives.exchange(state,market,state,{good:g,tons:n,payment:quoted.total,buy,player:true,free:!!state.devMode&&buy,capacity:Math.max(0,capacity-used(state))});
+    if(!result.ok)return result;
+    return {ok:true,total:quoted.total,message:`${buy?'Loaded':'Sold'} ${n} t of ${goods[g]} at ${names[port]} for ${state.devMode&&buy?0:quoted.total} latinum.`};
   }
   function contract(state,from,to,amount) {
     const economy=initialize(state),lane=ports.includes(from)&&ports.includes(to)?deliveryLanes(state,economy,from).find(entry=>entry.to===to):null;
@@ -552,5 +547,5 @@
         hull:freighter.hull/Math.max(1,tugStats().hull),selectedAt:tugSelectedAt},x,y,zoom,cx);
     }
   }
-  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1)};
+  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1)};
 })();

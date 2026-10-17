@@ -244,9 +244,9 @@ function hubTrade(good,buy,port,quantity=1){
  game[key]=Number(game[key])+(buy?quantity:-quantity);game.latinum+=buy?-price*quantity:price*quantity;game.stocks[good]+=buy?-quantity:quantity;
  save(true);refresh();return{ok:true,message:`${buy?'Bought':'Sold'} ${quantity} ${good} for ${price*quantity} latinum.`};
 }
-function hubFreightTrade(good,buy,port,quantity){
+function hubFreightTrade(good,buy,port,quantity,quotedTotal){
  if(game.system!==1||!hubHere(port))return{ok:false,error:'Reach this Sol port to load or sell freight.'};
- const result=window.nativeSolEconomy.buySell(game,port,good,buy,quantity);
+ const result=window.nativeSolEconomy.buySell(game,port,good,buy,quantity,quotedTotal);
  if(result.ok){save(true);refresh()}
  return result;
 }

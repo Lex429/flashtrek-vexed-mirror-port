@@ -34,6 +34,14 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-npc-lives.py
+      - name: Audited Earth traffic jam in local flight and Dev inspector
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-earth-jam.py
+      - name: Galaxy map dragging, zoom, ship search and following
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-galaxy-controls.py
       - name: Player lighting, damage stages and warp pixel regressions
         env:
           BROWSER_CHANNEL: ''

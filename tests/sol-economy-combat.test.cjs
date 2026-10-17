@@ -29,7 +29,7 @@ function fixture() {
   const sandbox = vm.createContext({ window, console, performance: { now: () => 1000 } });
   // Use the actual ship capacities, Sol ownership, freight initialization and
   // faction consequence rules. Rendering assets are never requested by these APIs.
-  for (const file of ['world-data.js', 'ship-definitions.js', 'ship-damage.js', 'ship-effects.js', 'faction-standing.js', 'sol-economy.js']) {
+  for (const file of ['world-data.js', 'ship-definitions.js', 'ship-damage.js', 'ship-effects.js', 'faction-standing.js', 'port-docking.js','sol-economy.js']) {
     vm.runInContext(fs.readFileSync(path.join(port, file), 'utf8'), sandbox);
   }
   const state = { system: 1, localPrestige: {} };

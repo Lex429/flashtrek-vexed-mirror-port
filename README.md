@@ -38,6 +38,7 @@ The browser checks use Python, Playwright, and Microsoft Edge. They start an iso
 python tests/browser-smoke.py
 python tests/browser-ship-contract.py
 python tests/browser-npc-lives.py
+python tests/browser-galaxy-controls.py
 python tests/browser-render-paths.py --visual-only
 python tests/browser-stability.py
 ```
@@ -51,3 +52,15 @@ The [test workflow](.github/workflows/test.yml) runs the Node suite (including f
 Record a comparable scheduling benchmark with `python tests/browser-npc-performance.py --help`. Its before/after runs use the same saved population, viewport and browser. Measurements are diagnostic rather than machine-independent timing thresholds.
 
 The stabilization benchmark is `python tests/browser-stability.py --measure`: three 20-second windows each of flight, crowded combat, mining/debris, warp and the Dev map, plus cold/warm artwork probes. Use `--revision c41559c --label before` and then `--label after` with the same saved fixture. See [performance evidence](docs/npc-performance.md) for measurements and remaining bottlenecks; lower simulation CPU alone does not establish smoother frame delivery.
+
+The [Earth traffic recovery report](docs/earth-traffic-recovery.md) covers shared
+player/NPC market settlement, non-exploitable lot quotes, actual Sol destination
+ports, exclusive berths and the recovered 36-ship saved traffic jam. Run
+`python tests/browser-earth-jam.py` for the local/Dev-map and real market UI checks.
+
+In **Dev tools → View whole galaxy**, drag to pan and scroll or use **+ / −** to
+zoom. Click a numbered group to open its ships, or use **Find a ship**. The right
+panel shows only the selected ship's current activity, destination, cargo,
+docking status and recent events. **Follow ship** keeps it centered; dragging
+stops following. **Fit galaxy** restores the overview. Extra ship details and
+**View in flight** are inside **More ship details**.

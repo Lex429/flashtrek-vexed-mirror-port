@@ -1,3 +1,5 @@
+> Subsequent market and Earth docking work is documented in [Earth traffic recovery](earth-traffic-recovery.md). The measurements below describe the earlier stabilization revision.
+
 # Stabilization verification
 
 The repository and `origin/main` both pointed to exact

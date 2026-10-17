@@ -1,3 +1,5 @@
+> The current market/docking verification and Linux browser comparison are in [Earth traffic recovery](earth-traffic-recovery.md). Historical measurements below remain tied to their original revisions and device.
+
 # Persistent life scheduling: measured verification
 
 The stabilization pass starts from exact `c41559c`, reproduces the economy and

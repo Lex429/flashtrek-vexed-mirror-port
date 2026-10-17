@@ -104,8 +104,9 @@ def main():
             page.locator('#devToolsBtn').click()
             page.locator('#dev-freighter-life-button').click()
             page.evaluate('()=>nativeGalaxyOverview.snapshot(nativeNpcDev.getState())')
-            page.locator('#dev-galaxy-ships [data-search]').fill('ISS Meridian')
-            page.locator('#dev-galaxy-ships [data-ship-id="2"]').click()
+            page.locator('.dev-galaxy-finder summary').click()
+            page.locator('#dev-galaxy-controls [data-search]').fill('ISS Meridian')
+            page.locator('#dev-galaxy-controls [data-ship-id="2"]').click()
             page.locator('#dev-galaxy-ships [data-track]').click()
             if page.evaluate('nativeGalaxyOverview.snapshot(nativeNpcDev.getState()).trackedId') != 2:
                 page.locator('#dev-galaxy-ships [data-track]').click()
@@ -117,6 +118,7 @@ def main():
             }""")
             # Inspecting locally uses the actual Dev button and must preserve the
             # entire NPC task/pose/cargo/equipment before simulation resumes.
+            page.locator('.dev-galaxy-more summary').click()
             page.locator('#dev-galaxy-ships [data-visit]').click()
             local_loading=page.evaluate('()=>__lifeTest.drawLocal()')
             page.screenshot(path=str(OUTPUT/'npc-life-loading-local.png'))

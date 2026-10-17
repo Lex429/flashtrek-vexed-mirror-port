@@ -31,12 +31,12 @@ test('slow-frame catch-up shares Sol work limits across substeps and preserves d
  assert.ok(Math.abs(w.nativeSimulation.seconds(state)-16/60)<1e-8,'authoritative active time still advances every physics step');
 });
 
-test('legacy player retail budgets and capped stock overflow are explicit economic flows',async()=>{
- const f=await fixture({full:false,economic:false}),{window:w,state}=f,economy=state.solEconomy;
- state.latinum=10000;state.solFreightHold={};const before=state.latinum,goods=economy.ports[3][5];
+test('player retail settles against the saved treasury and rejects storage overflow without losing cargo',async()=>{
+ const f=await fixture({full:false,economic:false}),{window:w,state}=f,economy=state.solEconomy,m=f.lives.market(state,1,3);
+ state.latinum=10000;state.solFreightHold={};const before=state.latinum,goods=economy.ports[3][5],bank=m.credits;
  assert.equal(w.nativeSolEconomy.buySell(state,3,5,true,10).ok,true);
- assert.equal(before-state.latinum,economy.flows.externalPlayerReceipts);assert.equal(economy.ports[3][5],goods-10);
- economy.ports[3][5]=9998;const money=state.latinum;
- assert.equal(w.nativeSolEconomy.buySell(state,3,5,false,10).ok,true);assert.equal(economy.ports[3][5],9999);assert.equal(economy.flows.lost[5],9);
- assert.equal(state.latinum-money,economy.flows.externalPlayerPayments);assert.equal(state.solFreightHold[5],0);
+ assert.equal(before-state.latinum,m.credits-bank);assert.equal(economy.ports[3][5],goods-10);assert.equal(economy.flows.externalPlayerReceipts,undefined);
+ economy.ports[3][5]=9998;const money=state.latinum,treasury=m.credits;
+ assert.equal(w.nativeSolEconomy.buySell(state,3,5,false,10).ok,false);assert.equal(economy.ports[3][5],9998);assert.equal(economy.flows.lost[5],0);
+ assert.equal(state.latinum,money);assert.equal(m.credits,treasury);assert.equal(state.solFreightHold[5],10);
 });

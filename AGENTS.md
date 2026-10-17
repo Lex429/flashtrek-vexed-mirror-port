@@ -19,3 +19,12 @@ Delivery contracts reserve source goods, destination purchasing funds and incomi
 `ship-detail.js` owns tactical eligibility from authoritative world poses and the configured radius. Combat outside that boundary breaks contact through the existing task owner; launched shots still belong to `combat-shots.js`. `simulation-frame.js` bounds expensive scheduler work across catch-up substeps. Scene caches last only a physics step and must be invalidated after movement or collision consequences. Never drop authoritative simulation time to hide a scheduling backlog.
 
 Optional pixel preparation uses the bounded cooperative queue exported by the existing stage-fragment library. Keep base ships visible while it runs; preparation and painting cannot apply damage, create resources or replay an explosion. Player lighting/warp uses the bounded shared sprite cache. Require the render-path pixel checks and cold-art preparation browser checks in CI. For smoothness measurements use `tests/browser-stability.py --measure` before/after with the same save, device and viewport; distinguish CPU costs from frame delivery.
+
+`port-docking.js` owns civilian berth/queue/holding occupancy and hull clearance.
+NPC tasks must request a berth and physically reach it before handling cargo.
+Never restore ID-modulo parking coordinates or default normal Sol freight to Earth.
+`npc-lives.exchange` is the shared atomic player/NPC freight settlement boundary;
+player quotes come from `sol-economy.quote` and use marginal lot pricing. Preserve
+existing treasury balances and escrow. Run `player-market.test.cjs`,
+`port-docking.test.cjs` and `browser-earth-jam.py`; the latter restores the actual
+36-ship audited jam and exercises the ordinary market buttons outside Dev mode.

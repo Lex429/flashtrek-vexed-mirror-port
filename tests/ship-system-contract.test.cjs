@@ -7,7 +7,7 @@ const port=path.join(__dirname,'../html-games/broken-mirror-port');
 const read=file=>fs.readFileSync(path.join(port,file),'utf8');
 
 test('controllers cannot restore private movement, firing, damage or shield rendering implementations',()=>{
-  for(const file of ['sol-economy.js','civilian-traffic.js','civilian-combat-ai.js','player-combat.js']){
+  for(const file of ['port-docking.js','sol-economy.js','civilian-traffic.js','civilian-combat-ai.js','player-combat.js']){
     const source=read(file);
     for(const forbidden of ['function weaponSpec(','.createProjectile(','.stepProjectile(','.resolveBeam(','.shields-=','.hull-=','drawShowcaseShieldSurface(','drawShowcaseShieldFlash(','showcaseHullBurst.burst(']){
       assert.ok(!source.includes(forbidden),`${file} must call the shared owner instead of ${forbidden}`);

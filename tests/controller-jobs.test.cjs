@@ -15,7 +15,7 @@ async function fleet(){
     showcaseHullBurst:{burst(){},update(){}},nativeSystemHub:{sol:[]}};
   const context=vm.createContext({window,document,Math:random,console,performance:{now:()=>999999},
     fetch:async url=>({ok:true,json:async()=>JSON.parse(fs.readFileSync(path.join(root,'../flashtrek-broken-mirror/showcase-assets',url.split('/').pop().split('?')[0]),'utf8'))})});
-  for(const file of ['world-data.js','weapon-catalog.js','simulation-clock.js','ship-motion.js','ship-definitions.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','asteroid-combat.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file});
+  for(const file of ['world-data.js','weapon-catalog.js','simulation-clock.js','ship-motion.js','ship-definitions.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','port-docking.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','asteroid-combat.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file});
   await window.nativeCombatShots.ready;
   const state={system:1,shipType:7,x:100000,y:100000,angle:0,speed:0,hull:100,shields:100,weapons:[1],localPrestige:{},minedAsteroids:[],destroyedAsteroids:[]};
   window.nativeSimulation.ensure(state);window.nativeSolEconomy.initialize(state);window.nativeCivilianTraffic.initialize(state);

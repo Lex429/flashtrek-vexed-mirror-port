@@ -14,7 +14,7 @@
     const cut=(pass,f)=>{const i=f*28;return{x:f-.5,y:cuts.bases[pass]+cuts.wave*Math.sin(i*.57)+cuts.wave*.3*Math.sin(i*1.61)};};
     const pieces=[],heat=[];
     for(let row=0;row<4;row++){
-      const piece=document.createElement('canvas');piece.width=w;piece.height=h;const p=piece.getContext('2d');p.beginPath();
+      const piece=document.createElement('canvas');piece.width=w;piece.height=h;const p=piece.getContext('2d',{willReadFrequently:true});p.beginPath();
       const at=(pass,i)=>{const q=cut(pass,i/28);return{x:(q.x+.5)*w,y:(q.y+.5)*h};};
       if(row===0){p.moveTo(0,0);p.lineTo(w,0);p.lineTo(w,at(0,28).y);for(let i=28;i>=0;i--){const q=at(0,i);p.lineTo(q.x,q.y);}}
       else if(row===3){p.moveTo(0,h);p.lineTo(w,h);p.lineTo(w,at(2,28).y);for(let i=28;i>=0;i--){const q=at(2,i);p.lineTo(q.x,q.y);}}
@@ -47,10 +47,11 @@
   }
   function create(image,rock,now){
     const data=artwork(image),preview=Math.min(235,Math.max(data.w,data.h)),unit=rock.size/preview,a=rock.angle,normal={x:-.1*Math.cos(a)-Math.sin(a),y:-.1*Math.sin(a)+Math.cos(a)},tangent={x:Math.cos(a)-.1*Math.sin(a),y:Math.sin(a)+.1*Math.cos(a)};
-    const parts=data.pieces.map((piece,index)=>{const side=index-1.5,speed=(18+Math.abs(side)*8+Math.random()*8)*unit,lateral=(Math.random()-.5)*9*unit;return{x:0,y:0,vx:normal.x*side*speed+tangent.x*lateral,vy:normal.y*side*speed+tangent.y*lateral,rotation:0,spin:(Math.random()-.5)*.2,samples:partSamples(piece)};});
+    data.samples||=data.pieces.map(partSamples);
+    const parts=data.pieces.map((piece,index)=>{const side=index-1.5,speed=(18+Math.abs(side)*8+Math.random()*8)*unit,lateral=(Math.random()-.5)*9*unit;return{x:0,y:0,vx:normal.x*side*speed+tangent.x*lateral,vy:normal.y*side*speed+tangent.y*lateral,rotation:0,spin:(Math.random()-.5)*.2,samples:data.samples[index]};});
     const trail=document.createElement('canvas');trail.width=data.w;trail.height=data.h;
     const arcs=document.createElement('canvas');arcs.width=data.w;arcs.height=data.h;
-    const seams=Array.from({length:3},(_,pass)=>[pass,pass+1].map(row=>({row,image:seamTexture(data,pass,row,preview)})));
+    const seams=data.seams||=(Array.from({length:3},(_,pass)=>[pass,pass+1].map(row=>({row,image:seamTexture(data,pass,row,preview)}))));
     return{data,parts,clock:now,ripples:[],trail,arcs,seams,unit,preview};
   }
   function sweep(data,age){

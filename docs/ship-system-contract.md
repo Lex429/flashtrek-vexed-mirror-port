@@ -306,3 +306,13 @@ controller retains nearby combat, dialogue and explicitly tagged scripted demos.
 Sol freight still uses its original inventories, route policy and rebuild costs.
 It now stores life/task metadata and schedules the same shared local movement
 commands for nearby and distant ships. Rendering cannot advance any of these jobs.
+
+## Market and docking extension
+
+Cargo quotes and job selection remain policy. All actual player/NPC freight
+settlement calls `npc-lives.exchange`, which checks the entire transfer before
+mutating stock, cargo or credits. Docking assignments come from `port-docking.js`;
+controllers execute the resulting travel through the existing scheduled motion
+owner. Per-role parking arithmetic and render-triggered handling are prohibited.
+The Earth recovery and market regressions join the required checks; see
+[traffic recovery](earth-traffic-recovery.md).

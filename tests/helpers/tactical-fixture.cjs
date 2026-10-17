@@ -13,9 +13,9 @@ async function tacticalFixture({revision,state:saved,simulateShots=false}={}){
   const document={hidden:false},context=vm.createContext({window,document,console,performance,
     fetch:async url=>({ok:true,json:async()=>JSON.parse(fs.readFileSync(path.join(root,'../flashtrek-broken-mirror/showcase-assets',url.split('/').pop().split('?')[0]),'utf8'))})});
   const source=file=>revision?execFileSync('git',['show',revision+':html-games/broken-mirror-port/'+file],{cwd:repo,encoding:'utf8',stdio:['ignore','pipe','ignore']}):fs.readFileSync(path.join(root,file),'utf8');
-  const files=['world-data.js','weapon-catalog.js','simulation-clock.js','simulation-frame.js','ship-motion.js','ship-definitions.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','sol-economy.js','civilian-combat-ai.js','ship-detail.js','civilian-traffic.js','asteroid-combat.js','manual-flight.js','npc-lives.js'];
+  const files=['world-data.js','weapon-catalog.js','simulation-clock.js','simulation-frame.js','ship-motion.js','ship-definitions.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','port-docking.js','sol-economy.js','civilian-combat-ai.js','ship-detail.js','civilian-traffic.js','asteroid-combat.js','manual-flight.js','npc-lives.js'];
   for(const file of files){
-    let text;try{text=source(file);}catch(error){if(['ship-detail.js','simulation-frame.js'].includes(file))continue;throw error;}
+    let text;try{text=source(file);}catch(error){if(['ship-detail.js','simulation-frame.js','port-docking.js'].includes(file))continue;throw error;}
     vm.runInContext(text,context,{filename:file});
   }
   await window.nativeCombatShots.ready;

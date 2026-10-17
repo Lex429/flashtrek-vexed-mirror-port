@@ -13,6 +13,7 @@ nearby tactical controllers; they are not ordinary economic traffic.
 | --- | --- |
 | Civilian role policy, saved tasks, reservation ownership, transactions and journeys | `npc-lives.js` |
 | Sol company freight policy, production, deliveries and paid-material rebuilds | `sol-economy.js` |
+| Saved civilian berth occupancy, FIFO queue, holding clearance and dedicated tug terminals | `port-docking.js` |
 | Acceleration, braking, rotation and analytical local command sampling | `ship-motion.js` |
 | Nearby combat decisions and dialogue | `civilian-traffic.js`, `civilian-combat-ai.js` |
 | Weapons, recharge, collisions, health and nearby animation | Existing shared ship modules |
@@ -139,7 +140,8 @@ saved interval scales the following rates from their 30-second base:
 | Household purchases | Pay the market `ceil(basePrice * 1.35)` per consumed ton | External household-sector spending, `economicLedger.householdSpending`; no goods means no treasury income |
 | New market's initial allocation | One-time 25,000 credits; offworld specialty stock 120, other stock 12 | Saved initial conditions, `initialMarketCredits` / `initialMarketGoods`; Sol goods already exist and are not added again |
 | Sol industry and civic consumption | Existing extraction, recipes, food/fuel/medicine demand and rebuilding | `solEconomy.flows.produced`, `.consumed` and `.lost`; recipe inputs and capped actual outputs are counted |
-| Established player Sol retail and freight service | Purchase receipts leave the player's wallet; sales and completed delivery contracts pay the player from legacy external retail/service budgets | `flows.externalPlayerReceipts` and `.externalPlayerPayments`; Dev purchases record `.devPurchaseSubsidy`; capped stock overflow records `.lost` |
+| Player Sol retail | Goods and money transfer atomically between the player and the actual port treasury; committed NPC funds/stock/storage cannot be spent | `npc-lives.exchange`; no external ordinary retail source/sink. Explicit free Dev purchases record `.devPurchaseSubsidy` |
+| Sealed player freight service | Existing completed service contracts retain their external service budget | `flows.externalPlayerPayments`; historical retail flow counters remain saved |
 | Destroyed carried goods | Lost once; no destination receipt or payment | Aggregate `economicLedger.lost[good]` plus bounded `strandedCargo` history; Sol losses use `flows.lost` |
 
 These are deliberate external goods/money sources and goods sinks. Households
@@ -150,10 +152,12 @@ sales and paid repairs transfer existing credits; commercial deliveries do not
 mint rewards. Mining converts actual shared resource entitlements into cargo
 once. Aggregate counters remain available after the bounded event histories roll
 over and begin when this ledger migrates; older world history is not fabricated.
-The established player retail/service budgets are separate external accounts,
-not civilian escrow treasuries. They retain their prior gameplay behavior and
-now identify their wallet sources/sinks rather than silently borrowing reserved
-NPC purchasing funds.
+Ordinary player freight retail and NPC delivery settlement now share
+`npc-lives.exchange`: rejected transactions change no inventory or balance, and
+port funds/stock already committed to another contract are unavailable. Sealed
+player freight-service contracts retain their existing external service budget.
+Historical external-retail counters remain intact; they are not retroactively
+credited to treasuries or used to seed new money.
 Market allocations are lazy initial conditions for the already registered
 population's homes/current ports, not a payment-recovery grant. The full
 population reaches 60 actual market keys (51 offworld markets and nine Sol ports),
@@ -167,7 +171,10 @@ frame and retain `nextEconomyAt` debt for subsequent frames. They use the saved
 simulation clock, including its pause/hidden/inventory gate and 120 seconds/day
 conversion. Satisfied demand and exhausted real supplies can legitimately leave
 ships idle. This is a small connected economy rather than an unlimited industrial
-model for every system. The player's established retail quotes remain intact.
+model for every system. Player lot quotes integrate the stock price curve ton by ton, with a sale spread
+and integer rounding per ton. The UI displays the exact lot total and execution
+rejects a stale quote. Splitting a lot gives exactly the same total. Storage
+overflow rejects the entire retail lot; no retail stock or cargo is silently discarded.
 Outside Sol, the legacy four-resource player market still uses `game.stocks`;
 it is not yet connected to the nine-good NPC freight market. Sol freight stock
 continues to be shared with player freight commerce.
@@ -360,11 +367,11 @@ Start a Dev game, open Dev tools and choose **Follow a persistent freighter
 delivery**. This selects an existing ship and labels it **ISS Meridian**; it does
 not add a ship, stock or credits. If already delivering, it continues that job.
 
-1. Select Meridian in the inspector. Record its task ID, cargo good/tons, source
-   market stock and destination stock. Use **Track ship** and **Local positions**.
-   The inspector's **Source stock** and **Destination stock** fields read those
+1. Open **Find a ship**, search for Meridian and select it. Record its task ID,
+   cargo good/tons and market inventories under **More ship details**. Use
+   **Follow ship** and **Zoom to ship**. **Source stock** and **Buyer stock** read
    real market inventories directly, including outside Sol's player retail UI.
-2. Choose **DEV: inspect locally** to observe loading/departure. Reopen Dev tools
+2. Choose **More ship details → View in flight** to observe loading/departure. Reopen Dev tools
    and the galaxy inspector to track transit and inspect it during travel and
    after arrival. The task ID stays the same through system travel and docking.
 3. On completion verify source stock fell at loading, cargo stayed aboard during
@@ -395,3 +402,40 @@ scheduled events and artwork requests, for normal flight and the Dev map.
 Final measured results and remaining bottlenecks are recorded after verification
 in `docs/npc-performance.md`. Timings are measurements of that machine, not fixed
 performance promises or portable CI thresholds.
+
+## Port selection and traffic-jam recovery
+
+Normal delivery selection considers all nine actual Sol ports, their funds,
+uncommitted demand, already promised deliveries and route distance. A default
+`startDelivery` into Sol chooses an available buyer rather than silently choosing
+Earth. Explicit named-port contracts keep that destination and fixed payment.
+Recovery considers the same complete port set. New jobs can also meet shortages
+between ports in the current system through actual local flight.
+
+`portDocking.version:1` saves one occupancy record per civilian owner. Each port
+has four commercial berths, a FIFO queue capped at twelve, and individually
+spaced overflow/idle holding points. Bounding circles derive from ship dimensions
+with 40 world units of clearance. Allocation excludes nearby physical hulls,
+planet surfaces and the nine dedicated company tug terminals. Those tug terminals
+are uniquely assigned by existing fleet slot and their spacing scales with hull
+size; they do not share the four civilian berths. Allocation runs only at life
+events, with at most sixteen space searches per host animation frame.
+
+Pickup and delivery handling require reaching the assigned berth. Queued ships
+fly to their holding positions and request service every three seconds. They
+cannot load/unload while still approaching or holding. A completed/blocked job
+retains its task identity while a separate saved `dockingMove` takes the ship to
+parking; its old berth remains reserved until that flight finishes. Departure,
+cancellation and destruction release reservations. An abandoned or disabled hull
+still excludes its occupied physical space from new berth allocation.
+
+Restoration reconciles occupancy with the saved population. Legacy docked ships
+receive `dockingVersion:1` and a scheduled recovery action; positions, wallets,
+owned cargo and identities do not change during migration. Existing journeys
+continue. Loading/unloading ships physically approach new berths; unpaid ships
+negotiate a funded buyer or move to an explained holding state. There is no fleet
+reset or treasury refill. Inspector reads expose berth, queue position and clearing
+status without creating ships, moving them or preparing artwork.
+
+See [Earth traffic recovery verification](earth-traffic-recovery.md) for the
+recreated c41559c save, conserved balances, thirty-minute runs and browser checks.

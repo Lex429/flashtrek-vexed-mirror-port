@@ -30,7 +30,7 @@ test('loading consumes only stock escrow; interruption and reload release destin
 test('unfunded legacy cargo has a saved recovery deadline, idles and reroutes to a real funded buyer',async()=>{
  const initial=await fixture({full:false,economic:false}),s=initial.ship;
  for(const id of [1,2,4]){const m=initial.lives.market(initial.state,id,id===1?3:0);m.credits=0;m.stock[5]=m.target[5];}
- for(const port of [1,4,5]){const m=initial.lives.market(initial.state,1,port);m.credits=0;m.stock[5]=m.target[5];}
+ for(const port of initial.window.nativeSolEconomy.ports){const m=initial.lives.market(initial.state,1,port);m.credits=0;m.stock[5]=m.target[5];}
  Object.assign(s,{system:2,port:0,x:-60,y:150,phase:'docked',nextActionAt:0,cargo:{good:5,tons:4,owner:s.id,fromSystem:1,fromPort:3,toSystem:2,toPort:0,purchasedFor:64},task:{id:'civilian:2:legacy',status:'active',kind:'freight',phase:'waiting-payment',origin:{system:1,port:3},destination:{system:2,port:0},requirements:{good:5,tons:4},createdAt:0}});
  initial.lives.initialize(initial.state).reservations={};initial.state.system=47;
  const f=await fixture({saved:plain(initial.state),economic:false});until(f,()=>f.ship.task.recovery?.attempts>0,2);
@@ -83,7 +83,7 @@ test('full-population legacy unpaid deliveries recover after an explicit treasur
   Object.assign(ship,{cargo:{good:5,tons:2,owner:ship.id,fromSystem:origin.system,fromPort:origin.port,toSystem:destination.system,toPort:destination.port,purchasedFor:32},system:destination.system,port:destination.port,x:180,y:-130,phase:'docked',journey:null,localLeg:null,nextActionAt:0,task:{id:`civilian:${ship.id}:unpaid`,kind:'freight',status:'active',phase:'waiting-payment',origin,destination,requirements:{good:5,tons:2},createdAt:0}});
   initial.lives.market(initial.state,ship.homeBase.system,ship.homeBase.port);
  }
- for(const port of [1,3,4,5])initial.lives.market(initial.state,1,port);
+ for(const port of initial.window.nativeSolEconomy.ports)initial.lives.market(initial.state,1,port);
  for(const m of Object.values(life.markets))m.credits=0;
  life.reservations={};initial.state.system=47;
  const f=await fixture({saved:plain(initial.state)}),series=[summary(f)];

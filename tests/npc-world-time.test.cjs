@@ -14,7 +14,7 @@ function freight(saved){
     nativeCombatShots:{contact:(target,from)=>({local:{x:0,y:0},world:{x:target.x,y:target.y},from})},
     nativeShipEffects:{prepare(){artwork++;},hit(){}}};
   const context=vm.createContext({window,document,console});
-  load(context,['world-data.js','simulation-clock.js','ship-motion.js','ship-definitions.js','ship-damage.js','faction-standing.js','sol-economy.js']);
+  load(context,['world-data.js','simulation-clock.js','ship-motion.js','ship-definitions.js','ship-damage.js','faction-standing.js','port-docking.js','sol-economy.js']);
   const state=saved||{system:1,x:0,y:0,localPrestige:{}};
   window.nativeSimulation.ensure(state);const economy=window.nativeSolEconomy.initialize(state);
   if(!saved){
