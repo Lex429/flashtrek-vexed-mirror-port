@@ -34,7 +34,7 @@
     if(orePixels.has(ore.src))return orePixels.get(ore.src);
     if(!ore.complete||!ore.naturalWidth)return null;
     const sample=document.createElement('canvas');sample.width=24;sample.height=24;
-    const sampleCtx=sample.getContext('2d');sampleCtx.drawImage(ore,0,0,24,24);
+    const sampleCtx=sample.getContext('2d',{willReadFrequently:true});sampleCtx.drawImage(ore,0,0,24,24);
     const pixels=sampleCtx.getImageData(0,0,24,24).data,result=[];
     for(let py=0;py<24;py+=2)for(let px=0;px<24;px+=2){
       const at=(py*24+px)*4;if(pixels[at+3]<75)continue;
@@ -55,16 +55,24 @@
     ctx.globalAlpha*=.45;ctx.fillStyle=streak;ctx.fillRect(-r*1.5,-.55,r*3,1.1);
     ctx.globalAlpha*=.5;ctx.fillRect(-.45,-r*.55,.9,r*1.1);ctx.restore();
   }
-  function drawOreTransport(ctx,entry,{ship,cx,cy,now}){
-    const elapsed=now-entry.born,shieldFade=650,ore=window.nativeSolAsteroids.image(entry.rock.oreImage);
-    const pixels=transportPixels(ore);if(!pixels)return;
-    const local=elapsed-shieldFade,progress=clamp(local/1350,0,1);
+  function drawOreSprite(ctx,art,x,y,size,glow,treated){
+    if(window.nativeOreSpriteCache)return window.nativeOreSpriteCache.draw(ctx,art,{x,y,size,glow,treated});
+    if(!art.complete||!art.naturalWidth)return false;
+    ctx.drawImage(art,x-size/2,y-size/2,size,size);return true;
+  }
+  function drawOreTransport(ctx,entry,{ship,cx,cy,now,zoom,w,h}){
+    const elapsed=now-entry.born,local=elapsed-650,progress=clamp(local/1350,0,1);
     if(progress>=1)return;
     const x=cx+entry.position.x-ship.x,y=cy+entry.position.y-ship.y,size=entry.rock.size*.22;
+    // Include shimmer jitter, the flare's longest streak and shadow spill.
+    if(!window.nativeEffectVisibility.circle(cx+(x-cx)*zoom,cy+(y-cy)*zoom,size*2*zoom+36,{w,h}))return;
+    const ore=window.nativeSolAsteroids.image(entry.rock.oreImage);
+    if(!ore.complete||!ore.naturalWidth)return;
     ctx.save();ctx.translate(x,y);
-    if(local<0){ctx.drawImage(ore,-size/2,-size/2,size,size);ctx.restore();return;}
+    if(local<0){drawOreSprite(ctx,ore,0,0,size,0,false);ctx.restore();return;}
+    const pixels=transportPixels(ore);if(!pixels){ctx.restore();return;}
     const solid=1-clamp((progress-.08)/.62,0,1);
-    if(solid>0){ctx.globalAlpha=solid;ctx.shadowColor='#bdeaff';ctx.shadowBlur=3+progress*8;ctx.drawImage(ore,-size/2,-size/2,size,size);}
+    if(solid>0){ctx.globalAlpha=solid;drawOreSprite(ctx,ore,0,0,size,3+progress*8,false);}
     ctx.globalCompositeOperation='lighter';
     const shimmer=Math.sin(Math.PI*progress),fade=1-clamp((progress-.66)/.34,0,1);
     for(const pixel of pixels){
@@ -232,6 +240,7 @@
   function paint(ctx,{state,ship,cx,cy,zoom,w=cx*2,h=cy*2}){
     const time=window.nativeSimulation.now(state);const now=time;
     const visible=(x,y,r)=>window.nativeEffectVisibility.circle(x,y,r,{w,h});
+    const oreVisible=(x,y,r)=>visible(cx+(x-cx)*zoom,cy+(y-cy)*zoom,r*zoom+36);
     const rock=target();
     if(rock&&(rock.system??1)===state.system&&!gone(state,rock.slotId)&&mining?.rock.slotId!==rock.slotId&&!window.nativeCivilianTraffic?.isMiningRock(state,rock.slotId)){
       const x=cx+rock.x-ship.x,y=cy+rock.y-ship.y;
@@ -262,20 +271,29 @@
     for(const [id,count] of Object.entries(state.asteroidOreDrops||{})){
       if(!count)continue;
       const r=rockById(Number(id),state.system);if(!r)continue;
-      const art=window.nativeSolAsteroids.image(r.oreImage);
-      if(state.minedAsteroids?.includes(r.slotId)&&count)drawOreShieldRing(ctx,cx+r.x-ship.x,cy+r.y-ship.y,oreShieldRadius(r),zoom);
+      const x=cx+r.x-ship.x,y=cy+r.y-ship.y;
+      // Reject the entire field before image requests, filters or shield work.
+      if(!oreVisible(x,y,r.size*.5))continue;
+      let art=null;
+      if(state.minedAsteroids?.includes(r.slotId)&&oreVisible(x,y,oreShieldRadius(r)))drawOreShieldRing(ctx,x,y,oreShieldRadius(r),zoom);
       for(let i=0;i<(state.minedAsteroids?.includes(r.slotId)?4:3);i++){
         if(!(count&(1<<i)))continue;
         const p=orePosition(r,i,state.minedAsteroids?.includes(r.slotId)),x=cx+p.x-ship.x,y=cy+p.y-ship.y,s=r.size*.22;
+        if(!oreVisible(x,y,s/2))continue;
+        art||=window.nativeSolAsteroids.image(r.oreImage);
         const growth=clamp((now-(mining?.rock.slotId===r.slotId?mining.born+7150:bursts.find(b=>b.rock.slotId===r.slotId)?.born||0))/800,0,1),drawSize=s*(.015+.985*growth);
-        ctx.save();ctx.globalAlpha=.25+.75*growth;ctx.shadowColor='#65dfff';ctx.shadowBlur=12/zoom;ctx.filter='brightness(1.16) saturate(1.18)';
-        if(art.complete&&art.naturalWidth)ctx.drawImage(art,x-drawSize/2,y-drawSize/2,drawSize,drawSize);
+        ctx.save();ctx.globalAlpha=.25+.75*growth;
+        if(art.complete&&art.naturalWidth)drawOreSprite(ctx,art,x,y,drawSize,12/zoom,true);
         else{ctx.fillStyle='#a9e8ed';ctx.beginPath();ctx.arc(x,y,s*.35,0,Math.PI*2);ctx.fill();}
         ctx.restore();
       }
     }
-    for(const field of collectionFields){if((field.rock.system??1)!==state.system)continue;const fade=1-clamp((now-field.born-1800)/500,0,1);drawOreShieldRing(ctx,cx+field.rock.x-ship.x,cy+field.rock.y-ship.y,oreShieldRadius(field.rock),zoom,fade);}
-    for(const entry of collections.filter(item=>(item.rock.system??1)===state.system))drawOreTransport(ctx,entry,{ship,cx,cy,now});
+    for(const field of collectionFields){
+      if((field.rock.system??1)!==state.system)continue;
+      const x=cx+field.rock.x-ship.x,y=cy+field.rock.y-ship.y,r=oreShieldRadius(field.rock),fade=1-clamp((now-field.born-1800)/500,0,1);
+      if(fade>0&&oreVisible(x,y,r))drawOreShieldRing(ctx,x,y,r,zoom,fade);
+    }
+    for(const entry of collections){if((entry.rock.system??1)===state.system)drawOreTransport(ctx,entry,{ship,cx,cy,now,zoom,w,h});}
   }
   window.nativeAsteroidCombat={select,deselect,autoTarget,clear,collect,collectField,fire,hit,destroy,completeMining,miningTiming,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
 })();

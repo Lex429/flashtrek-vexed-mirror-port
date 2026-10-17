@@ -40,3 +40,8 @@ they do not create a competing currency or duplicate ore entitlements.
 Run `regional-mining.test.cjs` with its regional fixture enabled and
 `browser-regional-mining.py`; older economy fixtures deliberately retain the
 legacy three-system configuration to cover existing contracts and saves.
+
+`ore-sprite-cache.js` owns bounded display-sized ore colour/glow surfaces only.
+Cull ore and collection visuals before artwork requests or sampling; keep expiry
+and all mining/cargo consequences in simulation. Run `ore-rendering.test.cjs` and
+`browser-ore-performance.py` for the offscreen mining/flight regression.

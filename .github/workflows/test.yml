@@ -46,6 +46,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-regional-mining.py
+      - name: Offscreen mining preserves gameplay without drawing ore effects
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-ore-performance.py --label ci
       - name: Player lighting, damage stages and warp pixel regressions
         env:
           BROWSER_CHANNEL: ''
