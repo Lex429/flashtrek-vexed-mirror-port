@@ -50,6 +50,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ore-performance.py --label ci
+      - name: Civilian exclusions and mining-only visits to empty systems
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-civilian-access.py
       - name: Player lighting, damage stages and warp pixel regressions
         env:
           BROWSER_CHANNEL: ''

@@ -43,8 +43,8 @@
     }
     return points;
   }
-  function position(state,system,port,r,kind,id){
-    if(window.nativeSimulationFrame?.take&&!window.nativeSimulationFrame.take(state,'dockAllocations',16))return null;
+  function position(state,system,port,r,kind,id,relocation=false){
+    if(!relocation&&window.nativeSimulationFrame?.take&&!window.nativeSimulationFrame.take(state,'dockAllocations',16))return null;
     const c=center(system,port),points=occupied(state,system,id),spacing=2*r+GAP;
     // A finite search, only when an owner needs a new space (never per frame).
     for(let i=0;i<4096;i++){
@@ -84,6 +84,12 @@
     return d.ships[id]={...p,owner:id,system,port,kind:'parked',ticket:++d.sequence,...(clearing?{clearing}:{})};
   }
   function parked(state,ship){const r=data(state).ships[owner(ship)];if(r)delete r.clearing;}
+  function relocate(state,ship,system,port){
+    // Policy/save repair must finish before an excluded sector can be shown.
+    // Use the same bounded clearance search, independently of normal job budgets.
+    const id=owner(ship),p=position(state,system,port,radius(ship),'holding',id,true);if(!p)return null;
+    return data(state).ships[id]={...p,owner:id,system,port,kind:'parked',ticket:++data(state).sequence};
+  }
   function inspect(state,ship,details=true){
     const d=state.portDocking,r=d?.ships?.[owner(ship)];if(!r)return null;
     if(!details)return {...r,clearing:r.clearing&&{...r.clearing}};
@@ -97,5 +103,5 @@
       if(!ship||ship.journey||['disabled','destroyed'].includes(ship.phase)||ship.system!==r.system||![r.x,r.y,r.radius,r.ticket].every(Number.isFinite))delete d.ships[id];
     }
   }
-  window.nativePortDocking={request,release,park,parked,inspect,reconcile,center,tugPoint,berthLimit:BERTHS,queueLimit:QUEUE};
+  window.nativePortDocking={request,release,park,parked,relocate,inspect,reconcile,center,tugPoint,berthLimit:BERTHS,queueLimit:QUEUE};
 })();

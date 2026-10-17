@@ -36,16 +36,19 @@
     if(!dispute)return;
     dispute.hails||=[];dispute.hails.push({speaker:ship.id,text,dueAt:state.civilianTraffic.clock+.3});
   }
-  function create(id,type,system,port){const hull=stats(type),position=place(system,port,id);return {
+  function create(id,type,system,port,state){
+    const seedSystem=system,access=window.nativeCivilianAccess;
+    if(access&&!access.inhabited(state,system)){system=access.nearestHome(state,system)??system;port=system===1?3:0;}
+    const hull=stats(type),position=place(system,port,id);return {
     id,name:`${hull.name} ${String(id+1).padStart(2,'0')}`,shipType:type,ownerGovernmentId:Number(world.systems.find(entry=>entry.id===homes[type])?.governmentId)||1,
-    homeSystem:homes[type],stationSystem:system,system,port,x:position.x,y:position.y,heading:-Math.PI/2,phase:'docked',timer:4+(id*7)%15,
+    homeSystem:homes[type],seedSystem,stationSystem:system,system,port,x:position.x,y:position.y,heading:-Math.PI/2,phase:'docked',timer:4+(id*7)%15,
     hull:hull.hull,shields:hull.shields,cargo:null,oreHold:0,credits:100+id*25,legs:0,deliveries:0,mined:0,deals:0
   };}
   function initialize(state){
     if(!state.civilianTraffic||!Array.isArray(state.civilianTraffic.ships)){
       state.civilianTraffic={version:1,clock:0,ships:[
-        create(0,18,1,3),create(1,23,1,3),create(2,47,1,4),create(3,52,1,5),
-        create(4,18,14,0),create(5,23,47,0),create(6,47,6,0),create(7,52,14,0)
+        create(0,18,1,3,state),create(1,23,1,3,state),create(2,47,1,4,state),create(3,52,1,5,state),
+        create(4,18,14,0,state),create(5,23,47,0,state),create(6,47,6,0,state),create(7,52,14,0,state)
       ],log:[]};
     }
     const traffic=state.civilianTraffic;
@@ -54,12 +57,14 @@
       for(const ship of traffic.ships)ship.stationSystem=ship.stationSystem||ship.system;
       let id=Math.max(...traffic.ships.map(ship=>ship.id))+1;
       for(const system of systems){
-        const target=density(system),present=traffic.ships.filter(ship=>ship.system===system.id).length;
+        // Keep the original fleet IDs/count; excluded seed slots belong to a
+        // nearby inhabited base instead of creating forbidden/empty residents.
+        const target=density(system),present=traffic.ships.filter(ship=>(ship.seedSystem??ship.stationSystem??ship.system)===system.id).length;
         for(let slot=present;slot<target;slot++){
           const port=system.id===1?solPorts[(slot+1)%solPorts.length]:0;
-          const ship=create(id++,trafficType(system,slot),system.id,port);
-          if(system.id!==1&&slot>0){const angle=(ship.id*.61803398875%1)*Math.PI*2,radius=420+(slot%3)*380;ship.x=-220+Math.cos(angle)*radius;ship.y=75+Math.sin(angle)*radius;ship.goalX=-180+(slot%2)*90;ship.goalY=60+(slot%3)*60;ship.phase='cruise';}
-          else if(system.id!==1&&Number(system.populationBillions)<=0){ship.x+=850;ship.timer=16;}
+          const ship=create(id++,trafficType(system,slot),system.id,port,state);
+          if(ship.system===system.id&&system.id!==1&&slot>0){const angle=(ship.id*.61803398875%1)*Math.PI*2,radius=420+(slot%3)*380;ship.x=-220+Math.cos(angle)*radius;ship.y=75+Math.sin(angle)*radius;ship.goalX=-180+(slot%2)*90;ship.goalY=60+(slot%3)*60;ship.phase='cruise';}
+          else if(ship.system===system.id&&system.id!==1&&Number(system.populationBillions)<=0){ship.x+=850;ship.timer=16;}
           traffic.ships.push(ship);
         }
       }

@@ -41,6 +41,7 @@ python tests/browser-npc-lives.py
 python tests/browser-galaxy-controls.py
 python tests/browser-regional-mining.py
 python tests/browser-ore-performance.py
+python tests/browser-civilian-access.py
 python tests/browser-render-paths.py --visual-only
 python tests/browser-stability.py
 ```
@@ -77,3 +78,7 @@ refineries. The Mining shop and system Market explain each region's richest ores
 offer **Find an unclaimed asteroid**, and install mineral-funded ship upgrades.
 See the [regional mining guide](docs/regional-mining.md) for ore balance, technology,
 NPC jobs, save compatibility and verification.
+
+[Civilian destination rules](docs/civilian-access.md) exclude Dyson, Pirates Haven,
+Harman, Kardon and Vex. Other empty systems receive mining expeditions only;
+civilian bases, refineries and trading use inhabited worlds.

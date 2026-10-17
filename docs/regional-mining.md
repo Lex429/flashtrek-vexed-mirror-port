@@ -54,14 +54,15 @@ it preserves existing hull/shield damage when increasing capacity.
 
 ## NPCs, saves and performance
 
-The existing fleet gains regional work without adding a second population. Each
-original station has a resident chosen from its existing ships. Residents finish
-their saved work, return to their operating base and mine locally when a buyer
-can fund the ore. Traders consider nearby systems; miners reserve individual
-rocks and use the existing depletion and delivery transactions. A resident may
-wait when no buyer or unclaimed rock is available. Sol's industrial freighters
-keep their existing jobs and ports. Belts are finite, so depleted systems do not
-automatically replenish.
+The existing fleet gains regional work without adding a second population.
+Civilian bases and refineries use permitted inhabited systems. Miners reserve
+individual rocks, work locally or make mining-only trips to nearby empty belts,
+then deliver ore to an inhabited buyer. No ordinary traffic visits Dyson,
+Pirates Haven, Harman, Kardon or Vex. See [civilian access](civilian-access.md)
+for exclusions, old-save relocation and expedition ownership. A resident may
+wait at its inhabited base when no buyer or unclaimed rock is available. Sol's
+industrial freighters keep their existing jobs and ports. Belts are finite, so
+depleted systems do not automatically replenish.
 
 `regional-minerals.js` owns pure geology, prices and upgrade recipes.
 `sol-asteroids.js` owns deterministic geometry and spatial queries.

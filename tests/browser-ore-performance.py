@@ -33,7 +33,9 @@ SETUP=r'''(saved)=>{
   if(miners.length!==4)throw Error('Expected four existing miners');
   miners.forEach((ship,i)=>{
     nativeNpcLives.interrupt(s,ship,'performance fixture');
-    const r=rocks[60+i*5];Object.assign(ship,{system:1,operatingBase:1,port:3,x:r.x+110,y:r.y+40,speed:0,oreHold:0});
+    // Keep this short timing scenario on local claims; expedition behavior is
+    // covered separately and would spend the window travelling between systems.
+    const r=rocks[60+i*5];Object.assign(ship,{system:1,operatingBase:1,port:3,x:r.x+110,y:r.y+40,speed:0,oreHold:0,miningTrips:(4-ship.id%3)%3});
     nativeNpcLives.refreshLocation(s,ship);nativeNpcLives.resumeWork(s,ship,'performance fixture ready');
   });
   nativeAsteroidCombat.deselect();

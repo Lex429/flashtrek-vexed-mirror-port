@@ -45,3 +45,12 @@ legacy three-system configuration to cover existing contracts and saves.
 Cull ore and collection visuals before artwork requests or sampling; keep expiry
 and all mining/cargo consequences in simulation. Run `ore-rendering.test.cjs` and
 `browser-ore-performance.py` for the offscreen mining/flight regression.
+
+`civilian-access.js` owns the permanent five-system exclusion and current
+population eligibility. Enforce it in initial placement and the `npc-lives.js`
+task/transaction owner; never hide or delete prohibited residents in rendering.
+Empty systems admit actual reserved mining trips only, returning ore to inhabited
+buyers. Retain cargo, credits and identities when repairing old unsafe saves.
+`port-docking.relocate` owns immediate refuge clearance. Run
+`civilian-access.test.cjs` and `browser-civilian-access.py`; set fixture `access:true`
+with `regional:true` for current policy, while legacy fixtures retain old contracts.
