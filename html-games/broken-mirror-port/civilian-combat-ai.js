@@ -89,6 +89,7 @@
     const definition=window.nativeShipDefinitions?.get(ship.shipType,'civilian');
     const movement=definition?.combatMovement||definition?.profile.combatMovement||window.nativeShipMotion.profiles.combat(ship.shipType,ship.cruiseSpeed||105);
     if(window.nativeShipDefinitions){const descriptor=window.nativeShipDefinitions.describe(scene.state||{},ship,{category:'civilian'});command=window.nativeShipMotion.avoidShips(descriptor,scene.bystanders||[],command,movement);}
+    ship.motionTime=scene.clock;
     window.nativeShipMotion.step(ship,command,movement,scene.dt);
     return ship.combatAI;
   }

@@ -14,7 +14,7 @@
     if(leg)motion().sampleLeg(pose,leg,at);
     return {...base,entity,x:pose.x,y:pose.y,heading:pose.heading,speed:pose.speed,vx:pose.vx||0,vy:pose.vy||0,
       previousX:pose.previousX??pose.x,previousY:pose.previousY??pose.y,hull:entity.hull,shields:entity.shields,
-      radii:window.nativeShipDefinitions.surfaceRadii(base.dimensions,entity.shields>0,base.definition),at};
+      radii:window.nativeShipDefinitions.surfaceRadii(base.dimensions,entity.shields>0,base.definition),angularVelocity:motion().spinSample(pose.motionSpin,at).velocity,at};
   }
   function fleet(state,at){
     const result=[];
@@ -63,9 +63,11 @@
       if(route.valid===false)continue;
       // Rebase a previous environmental kick at the new start; never replay its displacement.
       const kick=motion().kickSample(e.motionKick,at);
+      const spin=motion().spinSample(e.motionSpin,at);
       if(!replaceLeg(state,ship,route))continue;
       Object.assign(e,{x:ship.x,y:ship.y,heading:ship.heading,previousX:ship.previousX,previousY:ship.previousY});
       if(e.motionKick)e.motionKick={version:1,mode:'scheduled',at,duration:Math.max(.05,Math.min(3,route.duration)),x:0,y:0,vx:kick.vx,vy:kick.vy};
+      if(e.motionSpin)e.motionSpin={version:1,mode:'scheduled',at,angle:0,velocity:spin.velocity};
       const maneuver=route.segments.at(-2)||route.segments[0];
       e.trafficControl={version:1,mode:waiting?'yielding':'passing',obstacle:key(other),nextPlanAt:at+(waiting?.6:1),until:maneuver.startedAt+maneuver.duration};rt.plans++;
       window.nativeShipSystems.invalidate(state,ship.system);
@@ -92,10 +94,10 @@
       if(s.system===state.system&&previous?.system===s.system){s.previousX=previous.x;s.previousY=previous.y;}
       const elapsed=s.contactDt||dt,travel=Math.hypot(s.x-s.previousX,s.y-s.previousY);
       if(travel>Math.max(500,Math.hypot(s.vx,s.vy)*elapsed*3+50)){s.previousX=s.x;s.previousY=s.y;}
-      if(s.category!=='player'&&!s.entity.localLeg&&!s.entity.lifeLeg&&s.entity.motionKick&&!['fighting','ore-theft'].includes(s.entity.phase)){
-        const pose={...s,heading:s.heading,motionKick:s.entity.motionKick,motionTime:at};motion().step(pose,{hold:true},s.definition.movement,elapsed);
-        Object.assign(s.entity,{x:pose.x,y:pose.y,vx:pose.vx,vy:pose.vy,speed:pose.speed,motionKick:pose.motionKick,previousX:pose.previousX,previousY:pose.previousY});Object.assign(s,{x:pose.x,y:pose.y,vx:pose.vx,vy:pose.vy,previousX:pose.previousX,previousY:pose.previousY});
-        if(pose.x!==pose.previousX||pose.y!==pose.previousY)window.nativeShipSystems.invalidate(state,s.system);
+      if(s.category!=='player'&&!s.entity.localLeg&&!s.entity.lifeLeg&&(s.entity.motionKick||s.entity.motionSpin)&&!['fighting','ore-theft'].includes(s.entity.phase)){
+        const oldHeading=s.heading,pose={...s,heading:s.heading,motionKick:s.entity.motionKick,motionSpin:s.entity.motionSpin,motionTime:at};motion().step(pose,{hold:true},s.definition.movement,elapsed);
+        Object.assign(s.entity,{x:pose.x,y:pose.y,heading:pose.heading,vx:pose.vx,vy:pose.vy,speed:pose.speed,motionKick:pose.motionKick,motionSpin:pose.motionSpin,previousX:pose.previousX,previousY:pose.previousY});Object.assign(s,{x:pose.x,y:pose.y,heading:pose.heading,vx:pose.vx,vy:pose.vy,previousX:pose.previousX,previousY:pose.previousY,angularVelocity:motion().spinSample(pose.motionSpin,at).velocity});
+        if(pose.x!==pose.previousX||pose.y!==pose.previousY||pose.heading!==oldHeading)window.nativeShipSystems.invalidate(state,s.system);
       }
     }
     const space=grid(ships),seen=new Set();

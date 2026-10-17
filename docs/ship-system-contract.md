@@ -73,6 +73,24 @@ Sampling/inspection never changes the saved segments or activates traffic.
 Regression coverage: `ship-traffic.test.cjs`, `browser-ship-traffic.py`, existing
 Earth-jam/economy/asteroid suites and the same-save NPC performance comparison.
 
+Ship-pair impacts also use the contact point's lever arm and both bodies' moments
+of inertia (`mass * (rx² + ry²) / 4`, or explicit definition `inertia`). Relative
+velocity includes saved angular motion at that point. Normal and bounded friction
+impulses exchange linear and angular momentum without adding kinetic energy.
+An end hit twists the ship; a centered hit primarily moves it. Closing speed
+scales the impulse, so a fast small ship can visibly affect a heavier hull.
+
+Optional saved `motionSpin.version:1` separates collision rotation from engine
+steering. Free spin integrates in shared motion and damps; scheduled spin is a
+pure critically damped offset sampled alongside the leg. Route replanning rebases
+it without replaying rotation, and lightweight inspector poses carry the same
+field. Stopping, pausing and JSON restoration use the existing common boundaries.
+Steering/thrust damp free collision drift at 2/s and spin at 4/s; braking uses
+4/s and 5/s respectively. Unpowered coasting preserves linear collision momentum.
+The existing manual speed, acceleration, turn and braking profiles stay intact.
+See `impact-controls.test.cjs` and `browser-impact-controls.py` for the real-key,
+speed/offset, conservation, saved-spin and rotating shield-attachment regressions.
+
 ## Removed duplication
 
 Previously `sol-economy.js` had tug-specific artwork buffers, contact transforms,

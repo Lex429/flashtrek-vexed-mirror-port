@@ -63,6 +63,7 @@
       category,shipType,system:category==='tug'?1:entity.system??state.system,definition:{...definition,movement},
       x:number(pose.x),y:number(pose.y),heading,speed,vx:number(entity.vx,Math.cos(heading)*speed),vy:number(entity.vy,Math.sin(heading)*speed),
       previousX:number(entity.previousX,number(pose.x)),previousY:number(entity.previousY,number(pose.y)),
+      angularVelocity:window.nativeShipMotion?.spinSample?.(entity.motionSpin,number(state.shipSimulation?.seconds))?.velocity||0,
       hull:number(entity.hull),shields:number(entity.shields),dimensions:d,radius:Math.max(8,Math.max(d.width,d.height)*.35),
       radii:surfaceRadii(d,entity.shields>0,definition)};
   }

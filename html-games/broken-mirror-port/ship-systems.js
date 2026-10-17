@@ -74,19 +74,23 @@
     const entity=ship.entity,offsetX=ship.category==='player'?ship.x-entity.x:0,offsetY=ship.category==='player'?ship.y-entity.y:0;
     window.nativeShipMotion.applyImpulse(entity,{x:pose.vx-ship.vx,y:pose.vy-ship.vy},window.nativeSimulation.seconds(state),{x:pose.x-ship.x,y:pose.y-ship.y});
     Object.assign(entity,{x:pose.x-offsetX,y:pose.y-offsetY,vx:pose.vx,vy:pose.vy,speed:Math.hypot(pose.vx,pose.vy)});
+    if(Number.isFinite(pose.angularVelocity)){
+      window.nativeShipMotion.applySpinImpulse(entity,pose.angularVelocity-(ship.angularVelocity||0),window.nativeSimulation.seconds(state),window.nativeShipMotion.wrap(pose.heading-ship.heading));
+      if(ship.category==='player')entity.angle=pose.heading;else entity.heading=pose.heading;
+    }
     invalidate(state,ship.system);
   }
   function move(state,entity,category,command,profile,dt){
     if(!(dt>0)||window.nativeSimulation.blocked())return {arrived:false,moved:0};
     const descriptor=window.nativeShipDefinitions.describe(state,entity,{category});
     const pose={x:descriptor.x,y:descriptor.y,heading:descriptor.heading,speed:entity.speed||0,
-      vx:entity.vx,vy:entity.vy,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionTime:window.nativeSimulation.seconds(state)};
+      vx:entity.vx,vy:entity.vy,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionSpin:entity.motionSpin,motionTime:window.nativeSimulation.seconds(state)};
     const origin={x:descriptor.x-entity.x,y:descriptor.y-entity.y};
     profile||=descriptor.definition.movement;
     command=window.nativeShipTraffic?.steer(state,descriptor,command,profile)||command;
     const result=window.nativeShipMotion.step(pose,command,profile,dt);
     Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionAngularVelocity:pose.motionAngularVelocity,
-      previousX:pose.previousX,previousY:pose.previousY,motionKick:pose.motionKick});
+      previousX:pose.previousX,previousY:pose.previousY,motionKick:pose.motionKick,motionSpin:pose.motionSpin});
     if(category==='player')entity.angle=pose.heading;else entity.heading=pose.heading;
     invalidate(state,descriptor.system);
     return result;

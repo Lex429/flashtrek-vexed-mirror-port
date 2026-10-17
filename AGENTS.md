@@ -86,3 +86,12 @@ manual; combat and ordinary traffic share avoidance mechanics. Distant contacts
 must sample authoritative routes without preparing artwork. Run
 `ship-traffic.test.cjs`, `browser-ship-traffic.py`, Earth jam and economy suites,
 plus same-save population/viewport performance checks before/after.
+
+Ship-pair angular response belongs to `ship-motion.shipPairContact`; use the
+actual contact lever arms and inertia for momentum/energy-consistent impulses.
+Saved `motionSpin` is separate from steering angular velocity. Sample it in
+`sampleLeg` and inspector poses, carry it through `ship-systems.applyContact`,
+and rebase it when rerouting. Manual steering/thrust counter free collision drift;
+unpowered coasting retains linear momentum. Do not change manual ship profiles
+to compensate for a collision-control bug. Run `impact-controls.test.cjs` and
+`browser-impact-controls.py`, including actual WASD/arrows and post-ram braking.

@@ -33,7 +33,7 @@
     if(resetAngular)entity.motionAngularVelocity=0;
     return entity;
   }
-  function stop(entity,{preserveImpulse=false}={}){entity.speed=0;entity.vx=0;entity.vy=0;if(!preserveImpulse)delete entity.motionKick;return entity;}
+  function stop(entity,{preserveImpulse=false}={}){entity.speed=0;entity.vx=0;entity.vy=0;if(!preserveImpulse){delete entity.motionKick;delete entity.motionSpin;}return entity;}
   function integrate(entity,command={},profile={},dt){
     const idle={arrived:false,distance:null,headingError:0,moved:false};
     if(!entity||!validPoint(entity)||!Number.isFinite(dt)||dt<=0)return idle;
@@ -126,18 +126,42 @@
       x:previous.x+position.x,y:previous.y+position.y,vx:previous.vx+velocity.x,vy:previous.vy+velocity.y}:
       {version:1,mode:'free',vx:previous.vx+velocity.x,vy:previous.vy+velocity.y};
   }
-  function step(entity,command={},profile={},dt){
+  function translationStep(entity,command={},profile={},dt){
     if(entity?.motionKick&&validPoint(entity)&&entity.speed===0&&dt>0&&Number.isFinite(dt)&&(!command.goal||validPoint(command.goal))){delete entity.motionKick;entity.vx=0;entity.vy=0;}
     if(!entity?.motionKick||!validPoint(entity)||!(dt>0)||!Number.isFinite(dt)||command.goal&&!validPoint(command.goal))return integrate(entity,command,profile,dt);
     const sampled=kickSample(entity.motionKick,finite(entity.motionTime,finite(entity.motionKick.at))),kick={version:1,mode:'free',vx:sampled.vx,vy:sampled.vy};
     const oldX=entity.x,oldY=entity.y;
     prepare(entity);entity.vx-=kick.vx;entity.vy-=kick.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
-    const result=integrate(entity,command,profile,dt),rate=command.brake?4:command.hold||command.goal?3:0,decay=Math.exp(-rate*dt),travel=rate?(1-decay)/rate:dt;
+    const result=integrate(entity,command,profile,dt),rate=command.brake?4:command.hold||command.goal?3:command.turn||command.throttle?2:0,decay=Math.exp(-rate*dt),travel=rate?(1-decay)/rate:dt;
     entity.x+=kick.vx*travel;entity.y+=kick.vy*travel;kick.vx*=decay;kick.vy*=decay;
     entity.vx+=kick.vx;entity.vy+=kick.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
     entity.motionKick=Math.hypot(kick.vx,kick.vy)>.001?kick:undefined;
     result.moved=entity.x!==oldX||entity.y!==oldY;
     if(command.goal){result.distance=Math.hypot(command.goal.x-entity.x,command.goal.y-entity.y);result.arrived=result.arrived&&result.distance<=(command.arrivalRadius??profile.arrivalRadius??.75);}
+    return result;
+  }
+  function spinSample(spin,at){
+    if(!spin)return {angle:0,velocity:0};
+    if(spin.mode!=='scheduled')return {angle:0,velocity:finite(spin.velocity)};
+    const t=Math.max(0,finite(at,spin.at)-spin.at),rate=2,angle=finite(spin.angle),c=finite(spin.velocity)+rate*angle,fade=Math.exp(-rate*t);
+    return {angle:(angle+c*t)*fade,velocity:(c-rate*(angle+c*t))*fade};
+  }
+  function applySpinImpulse(entity,velocity,at,angle=0){
+    if(!entity||!Number.isFinite(velocity)||!Number.isFinite(angle))return;
+    if(Math.abs(velocity)+Math.abs(angle)<1e-9)return;
+    const leg=entity.localLeg||entity.lifeLeg;
+    if(leg&&entity.motionSpin&&entity.motionSpin.mode!=='scheduled')entity.motionSpin={...entity.motionSpin,mode:'scheduled',at:leg.startedAt,angle:0};
+    const previous=spinSample(entity.motionSpin,at);
+    entity.motionSpin=leg?{version:1,mode:'scheduled',at,angle:previous.angle+angle,velocity:previous.velocity+velocity}:
+      {version:1,mode:'free',velocity:previous.velocity+velocity};
+  }
+  function step(entity,command={},profile={},dt){
+    if(!entity?.motionSpin||!validPoint(entity)||!(dt>0)||!Number.isFinite(dt)||command.goal&&!validPoint(command.goal))return translationStep(entity,command,profile,dt);
+    const spin=spinSample(entity.motionSpin,finite(entity.motionTime,entity.motionSpin.at)),rate=command.brake?5:command.turn||command.throttle?4:2;
+    const decay=Math.exp(-rate*dt),angle=spin.velocity*(1-decay)/rate,key=headingKey(entity);
+    entity[key]=wrap(finite(entity[key])+angle);
+    const result=translationStep(entity,command,profile,dt),velocity=spin.velocity*decay;
+    if(Math.abs(velocity)>.00001)entity.motionSpin={version:1,mode:'free',velocity};else delete entity.motionSpin;
     return result;
   }
   function followPath(entity,path,index,profile,dt,{start}={}){
@@ -207,7 +231,13 @@
     return {arrived,progress,distance:Math.max(0,leg.distance-traveled)};
   }
   function sampleLeg(entity,leg,now){
-    const result=sampleLegBase(entity,leg,now);if(result.invalid||!entity.motionKick)return result;
+    const result=sampleLegBase(entity,leg,now);if(result.invalid)return result;
+    if(entity.motionSpin){
+      if(entity.motionSpin.mode!=='scheduled')entity.motionSpin={...entity.motionSpin,mode:'scheduled',at:leg.startedAt,angle:0};
+      const spin=spinSample(entity.motionSpin,now);entity[headingKey(entity)]=wrap(entity[headingKey(entity)]+spin.angle);
+      if(Math.abs(spin.angle)+Math.abs(spin.velocity)<.00001)delete entity.motionSpin;
+    }
+    if(!entity.motionKick)return result;
     if(entity.motionKick.mode!=='scheduled')entity.motionKick={...entity.motionKick,mode:'scheduled',x:0,y:0,at:leg.startedAt,duration:Math.max(.05,Math.min(3,leg.duration))};
     const kick=kickSample(entity.motionKick,now);
     if(entity.motionKick.mode==='scheduled'){
@@ -219,6 +249,7 @@
   }
   const asteroidMass=rock=>Math.max(.00005,(rock.size/40)**3);
   const shipMass=ship=>Math.max(.5,finite(ship.definition?.mass,8*(ship.dimensions.width*ship.dimensions.height/2400)**1.5));
+  const shipInertia=ship=>Math.max(.01,finite(ship.definition?.inertia,shipMass(ship)*(ship.radii.rx**2+ship.radii.ry**2)/4));
   const shipRadius=ship=>Math.max(1,ship.radii.rx,ship.radii.ry);
   // Saved piecewise commands use the ordinary acceleration/braking sampler.
   // The original task goal remains authoritative; detours extend its deadline.
@@ -314,18 +345,29 @@
     }
     normal=overlap?shallowNormal:normal;if(!normal)return null;
     const t=overlap?0:Math.max(0,enter),nx=normal.x,ny=normal.y;
-    const ma=shipMass(a),mb=shipMass(b),inverse=1/ma+1/mb,rvx=finite(a.vx)-finite(b.vx),rvy=finite(a.vy)-finite(b.vy);
-    const closing=Math.max(0,rvx*nx+rvy*ny),impulse=1.12*closing/inverse;
-    const tangent=-rvx*ny+rvy*nx,friction=clamp(tangent/inverse,-impulse*.08,impulse*.08),ix=nx*impulse-ny*friction,iy=ny*impulse+nx*friction;
+    const ma=shipMass(a),mb=shipMass(b),ia=shipInertia(a),ib=shipInertia(b),inverse=1/ma+1/mb;
+    const ca={x:ax+(a.x-ax)*t,y:ay+(a.y-ay)*t},cb={x:bx+(b.x-bx)*t,y:by+(b.y-by)*t};
+    const sa=ellipseSupport(a,nx,ny),sb=ellipseSupport(b,-nx,-ny),point={x:(ca.x+sa.x+cb.x+sb.x)/2,y:(ca.y+sa.y+cb.y+sb.y)/2};
+    const ra={x:point.x-ca.x,y:point.y-ca.y},rb={x:point.x-cb.x,y:point.y-cb.y};
+    const wa=finite(a.angularVelocity),wb=finite(b.angularVelocity),cross=(r,x,y)=>r.x*y-r.y*x;
+    const contactVelocity=(vx,vy,w,r)=>({x:vx-w*r.y,y:vy+w*r.x});
+    const va=contactVelocity(finite(a.vx),finite(a.vy),wa,ra),vb=contactVelocity(finite(b.vx),finite(b.vy),wb,rb);
+    const closing=Math.max(0,(va.x-vb.x)*nx+(va.y-vb.y)*ny),rnA=cross(ra,nx,ny),rnB=cross(rb,nx,ny);
+    const impulse=1.12*closing/(inverse+rnA*rnA/ia+rnB*rnB/ib);
+    const normalWA=wa-rnA*impulse/ia,normalWB=wb+rnB*impulse/ib;
+    const na=contactVelocity(finite(a.vx)-nx*impulse/ma,finite(a.vy)-ny*impulse/ma,normalWA,ra),nb=contactVelocity(finite(b.vx)+nx*impulse/mb,finite(b.vy)+ny*impulse/mb,normalWB,rb);
+    const tx=-ny,ty=nx,rtA=cross(ra,tx,ty),rtB=cross(rb,tx,ty),tangent=(na.x-nb.x)*tx+(na.y-nb.y)*ty;
+    const friction=clamp(tangent/(inverse+rtA*rtA/ia+rtB*rtB/ib),-impulse*.08,impulse*.08),ix=nx*impulse+tx*friction,iy=ny*impulse+ty*friction;
     const avx=finite(a.vx)-ix/ma,avy=finite(a.vy)-iy/ma,bvx=finite(b.vx)+ix/mb,bvy=finite(b.vy)+iy/mb,remaining=dt*(1-t);
-    const pa={x:ax+(a.x-ax)*t+avx*remaining,y:ay+(a.y-ay)*t+avy*remaining,vx:avx,vy:avy};
-    const pb={x:bx+(b.x-bx)*t+bvx*remaining,y:by+(b.y-by)*t+bvy*remaining,vx:bvx,vy:bvy};
+    const angularA=wa-cross(ra,ix,iy)/ia,angularB=wb+cross(rb,ix,iy)/ib;
+    const pa={x:ca.x+avx*remaining,y:ca.y+avy*remaining,vx:avx,vy:avy,angularVelocity:angularA,heading:wrap(a.heading+(angularA-wa)*remaining)};
+    const pb={x:cb.x+bvx*remaining,y:cb.y+bvy*remaining,vx:bvx,vy:bvy,angularVelocity:angularB,heading:wrap(b.heading+(angularB-wb)*remaining)};
     const penetration=Math.max(0,normal.r-((pb.x-pa.x)*nx+(pb.y-pa.y)*ny))+.02;
     if(!closing&&penetration<.03)return null;
     pa.x-=nx*penetration*mb/(ma+mb);pa.y-=ny*penetration*mb/(ma+mb);pb.x+=nx*penetration*ma/(ma+mb);pb.y+=ny*penetration*ma/(ma+mb);
-    const sa=ellipseSupport(a,nx,ny),sb=ellipseSupport(b,-nx,-ny);
-    return {t,closing,massA:ma,massB:mb,normal:{x:nx,y:ny},a:pa,b:pb,
-      pointA:{x:pa.x+sa.x,y:pa.y+sa.y},pointB:{x:pb.x+sb.x,y:pb.y+sb.y}};
+    const surfaceA=ellipseSupport({...a,heading:pa.heading},nx,ny),surfaceB=ellipseSupport({...b,heading:pb.heading},-nx,-ny);
+    return {t,closing,massA:ma,massB:mb,inertiaA:ia,inertiaB:ib,contactPoint:point,centerA:ca,centerB:cb,normal:{x:nx,y:ny},a:pa,b:pb,
+      pointA:{x:pa.x+surfaceA.x,y:pa.y+surfaceA.y},pointB:{x:pb.x+surfaceB.x,y:pb.y+surfaceB.y}};
   }
   const collisionDamageFraction=(closing,otherMass,selfMass)=>Math.min(1,(Math.max(0,closing-70)/180)**2*otherMass/(otherMass+selfMass));
   // Swept ellipse/circle contact uses the same oriented shield/hull radii as
@@ -382,5 +424,5 @@
     }
     const result=asteroidPairContact(target,body,dt);return result?{...result,targetPose:result.a,debrisPose:result.b}:null;
   }
-  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,shipPairContact,shipMass,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,collisionDamageFraction,debrisContact};
+  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,collisionDamageFraction,debrisContact};
 })();

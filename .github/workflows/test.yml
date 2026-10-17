@@ -38,6 +38,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-traffic.py
+      - name: Speed and offset impacts, angular response and actual player movement keys
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-impact-controls.py
       - name: Persistent freighter life, observer inspection and distant delivery
         env:
           BROWSER_CHANNEL: ''
