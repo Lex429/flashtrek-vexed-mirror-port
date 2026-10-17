@@ -1,5 +1,12 @@
 # Persistent life scheduling: measured verification
 
+The stabilization pass starts from exact `c41559c`, reproduces the economy and
+tactical-distance failures, and adds longer repeated flight/combat/mining/warp/map
+measurements plus cold artwork probes. Its current results are recorded in
+[stabilization verification](stabilization-results.md). The measurements below
+remain the historical persistent-life comparison against `90998f0`; they are not
+the stabilization baseline and do not establish an FPS improvement.
+
 Measured on Windows, headless Microsoft Edge 155.0.4283.45, a 1280 × 850 viewport,
 device pixel ratio 1, 16 reported hardware threads and 32 GB reported device memory.
 Both revisions used the same saved population: 159 civilians, nine Sol freighters

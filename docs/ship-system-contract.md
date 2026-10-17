@@ -13,6 +13,8 @@ The live game and damage showcase share their weapon and shield shaders in
 | World targets, category adapters and collision dispatch | `ship-systems.js` | Register business consequences and which entities currently exist |
 | Acceleration, turning, braking, speed constraints, goal arrival, path following and inertial steering | `ship-motion.js` | Choose commands and a named movement profile |
 | Saved simulation time and pause gate | `simulation-clock.js` | Supply frame elapsed seconds through `native-game.js` |
+| Work budgets spanning animation-frame catch-up substeps | `simulation-frame.js` | Begin/end the host frame; retain unpaid scheduling debt |
+| Tactical detail eligibility | `ship-detail.js` | Ask the common predicate before steering, firing or collecting combat scenes |
 | Owned weapon identities, fitting, locker transfers, recharge deadlines and legacy equipment migration | `weapon-loadout.js` | Request an equipment operation |
 | Model/upgrade weapon specifications, eligibility, ballistic simulation, interception and swept collisions | `weapon-rules.js` | Choose a weapon/target, or request fire |
 | Firing lifecycle, emitter attachment, pending attacks, resolution, visual shot instances and cleanup | `combat-shots.js` | Call `fire` for player input or `fireFor` for NPC intent |
@@ -26,6 +28,8 @@ The live game and damage showcase share their weapon and shield shaders in
 | Scheduled local movement commands sampled at any detail level | `ship-motion.js` `planLeg` / `sampleLeg` | Choose a goal, definition movement profile and start time |
 | Calendar skips and conversion between days and job time | `world-time.js`, using the saved simulation clock | Advance a committed journey once; its presentation animation does not add economic time |
 | Lightweight ship inspection across registered categories | `ship-systems.js` `inspectAll`, `dev-galaxy-view.js` | Read authoritative position/task state; relocate the Dev observer only |
+| Bounded player lighting, warp layers and lamp surfaces | `ship-sprite-cache.js`, called by `flight-assets.js` | Supply artwork, stage, lighting, scale, heading, simulation time and warp appearance |
+| Cooperative optional damage-pixel preparation | `showcase-stage-fragments.js` queue; `cthia-destruction.js` and artwork profiles supply generators | Request preparation through `ship-effects.js`; keep base artwork visible |
 
 `player-combat.js` is a compatibility adapter for shared definitions, damage and
 effects. It does not contain a second player damage model. In the active game,
@@ -118,6 +122,14 @@ must use distinct IDs. Collection excludes entities that cannot currently be hit
 Collision dispatch refreshes the target before applying a hit so an earlier shot
 destroying it does not cause a second destruction/reward.
 
+During a host animation frame, a target ID index and scene collection may be reused
+within one physics substep. `nativeSimulationFrame.step` clears that cache before
+the next substep. Shared movement, tactical steering and hit dispatch invalidate
+it immediately; an extension that directly changes target membership or geometry
+must call `nativeShipSystems.invalidate(state, system)`. Built-in target resolution
+also refreshes health, shield geometry and poses from the live entity. Never reuse
+a whole-frame collision scene across moving-target substeps.
+
 Collision results carry the struck target, approach direction, world point and
 `contact`, including `local`, `world`, `from`, `dx`, `dy`, `shielded`, `radii` and
 `dimensions`. `ship-damage.apply(descriptor, amount, impact)` preserves the
@@ -141,6 +153,23 @@ Artwork preparation may happen asynchronously. Wreck emission happens in hit or
 simulation advance, including when artwork finishes loading later. Drawing a
 wreck never emits its debris. Mining completion and ore awards likewise happen
 in simulation, never in a paint function.
+
+The live path publishes base artwork before optional fragment/wreck preparation
+finishes. Those pixel loops share one cooperative queue (2 ms target slice, 64
+queued generators); image readback and canvas upload remain indivisible calls.
+The synchronous preparation entry points remain for the showcase and exact pixel
+regressions. Preparation completion cannot mutate health or replay explosion
+consequences. Deferred visual emission drains only during unpaused simulation.
+The damage-art owner bounds retained prepared classes and reports its byte
+estimate; active effects and external live artwork references have separate
+lifetimes. See the performance report for measured cold-path limits.
+
+`planLeg` rejects nonfinite endpoints/time through `valid:false`. Distances at or
+below `1e-6` world units are complete commands with zero duration and velocity.
+`sampleLeg` also repairs old zero-distance legs whose JSON duration became null.
+Callers must handle `invalid` without awarding arrival, goods or resources.
+Repeated waypoints are consumed in bounded batches, with the remaining route
+scheduled for later rather than repeatedly queuing immediate work.
 
 Player and civilian mining share `asteroid-combat.completeMining` and its
 `miningTiming` constants. Completion is idempotent: a second caller cannot create
@@ -247,6 +276,15 @@ inventory, recharge during swaps/locker moves, target destruction, system change
 and JSON save/load. Browser evidence is required for emitter and surface alignment;
 passing only geometry calculations does not establish that the shader is aligned.
 Keep real delivery/mining/trading tests and original faction/ore assertions.
+
+Stabilization checks add full-population funded-delivery/recovery accounting,
+same-system tactical boundary transitions, invalid/restored scheduled movement,
+and cumulative work budgets. Run `browser-npc-lives.py` for persistent journeys,
+`browser-render-paths.py --visual-only` for player lighting/warp comparisons, and
+`browser-stability.py` for cold-art visibility, preparation/damage ordering,
+pause, deduplication and bounded retention. All are included in the test workflow.
+Read [stabilization verification](stabilization-results.md) before interpreting
+timing evidence or changing cache/preparation limits.
 
 ## Deliberate boundaries
 

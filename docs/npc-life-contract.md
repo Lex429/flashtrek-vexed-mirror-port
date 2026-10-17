@@ -18,6 +18,8 @@ nearby tactical controllers; they are not ordinary economic traffic.
 | Weapons, recharge, collisions, health and nearby animation | Existing shared ship modules |
 | Asteroid depletion and one ore entitlement per asteroid | `asteroid-combat.js` |
 | Simulation clock, pause/hidden/inventory gate | `simulation-clock.js` |
+| Shared world-position eligibility for detailed tactical work | `ship-detail.js` |
+| Work budgets across an animation frame's simulation substeps | `simulation-frame.js` |
 | Calendar skip conversion and owner updates | `world-time.js` |
 | Category enumeration without collision/art activation | `ship-systems.js` `inspectAll` |
 | Marker projection, selection, search, zoom, tracking and inspector UI | `dev-galaxy-view.js` |
@@ -59,27 +61,155 @@ connected commercial foundation is Earth/Sol, Orion and Vulcan (system IDs
 may work toward those systems and their home/base. Content expansion does not
 require another scheduler.
 
-`civilianTraffic.life.markets` stores real stock, targets, available credits and
-reservation counts. Non-Sol markets receive a one-time saved initial inventory
-and treasury; loading cannot create additional goods. Sol markets alias the
-existing `solEconomy.ports` arrays used by the player, production and tugs.
-Reservations are linked into `solEconomy.stockReserved` so player purchases,
-freight contracts, company loading and production cannot spend the same stock.
-Alias links are rebuilt on save restoration.
+`civilianTraffic.life.markets` stores real stock, targets, credits, reserved source
+stock, `incoming` tons per good and `fundsReserved`. Available purchase funds are
+`credits - fundsReserved`; demand is `target - stock - incoming`, also subtracting
+active Sol company freight promises at a Sol destination. A new civilian delivery
+atomically reserves all three requirements at acceptance: source goods,
+destination purchasing funds and the remaining destination demand. Another ship
+cannot commit those goods, funds or tons of demand.
 
-Loading reserves available goods for the task and then atomically moves actual
-stock into the ship's capacity-limited cargo. The ship pays the source treasury.
-Unloading moves carried goods into the destination and transfers the destination's
-credits to the ship. A destination without funds holds the cargo and schedules a
-retry. Transaction IDs and saved completion fields prevent repeated unloads.
-Markets can fill their shortages or run out of purchase funds; ships then choose
-other work or idle. This foundation does not simulate an unlimited galaxy-wide
-industrial economy. Sol's existing production and consumption remain active.
-Civilian contract purchases use the base commodity quote and destination sales
-use a shortage premium; both transfer existing treasury funds. The player's
-established retail quotes remain intact. Outside Sol, the legacy four-resource
-player market still uses `game.stocks`; it is not yet connected to the nine-good
-NPC freight market. Sol freight stock is shared with player freight commerce.
+`task.agreement.version:1` saves the agreed unit purchase price, unit sale price,
+total payment and acceptance time. The source quote uses the existing base price;
+the destination quote includes its existing shortage premium. An arrival-time
+price change does not alter that contract. `life.reservations[task.id].version:2`
+contains `system`, `port`, `good`, `tons`, `owner`, `sourceReserved`,
+`destination:{system,port}`, `destinationReserved`, `unitPrice` and `payment`.
+Reservation counters do not create or transfer money: the actual treasury keeps
+the credits until the funded delivery is paid.
+
+At loading, the source stock and ship credits decrease by the agreed quantities;
+owned cargo and source treasury increase by exactly those quantities. Only the
+source-stock reservation is consumed. Destination funds and demand remain
+reserved through travel, docking and reload. Unloading transfers that cargo into
+the destination, transfers the fixed payment to the ship and releases the
+remaining escrow once. Transaction IDs and saved completion fields prevent a
+second unload or payment. Cancellation and interruption release each unconsumed
+reservation once; disabling never awards cargo or payment to the destination.
+
+Sol markets alias the existing `solEconomy.ports` arrays used by the player,
+production and tugs. `stockReserved` and `incomingReserved` link to the civilian
+arrays. Player purchases, recipes and tug loading exclude reserved source stock;
+tug dispatch/loading also subtract civilian inbound tons from demand. Tug
+assignments are provisional internal company freight, rechecked against actual
+stock and demand at loading; they are not paid civilian purchase contracts.
+All aliases and reservation totals are rebuilt from saved contract records on
+restoration. Invalid/missing Sol port IDs resolve to the actual Earth market,
+without creating a second port inventory.
+
+### Unpaid legacy cargo and bounded recovery
+
+`configVersion:2` merges the new defaults and `contractVersion:2` migrates the old
+reservation representation without replacing the population, cargo or journeys.
+Existing funded version 2 contracts retain their exact quotes. Legacy pickup
+contracts acquire destination escrow if real funds and demand remain; otherwise
+they cancel before loading, releasing stock without spending money. Legacy loaded
+cargo is already owned and is never withdrawn or purchased a second time.
+
+Unfunded carried cargo receives `task.recovery.version:1` with `startedAt`,
+`deadlineAt`, `attempts`, `reason` and an eventual `outcome`. The default recovery
+window is 120 active simulation seconds, with at most five attempts spaced by
+30 seconds. A buyer needs real uncommitted money and unmet demand for the entire
+hold. A successful renegotiation saves a new fixed quote and changes the existing
+task's destination. An interstellar reroute uses a real saved journey followed by
+local approach, docking and handling; a local buyer requires actual local flight.
+Identity and paid cargo remain aboard throughout.
+
+Without a legitimate buyer, the task becomes `status:'blocked',
+phase:'payment-idle'`. Its inspector reason explains why cargo is held and when
+it will recheck. It does not retry every frame, invent a payment, discard the
+hold or teleport. At the next 120-second economic cycle it may select a new funded
+sale for the same owned cargo. Recovery deadlines and blocked retry deadlines
+survive save/load. A blocked recheck retains the original task and expired
+recovery deadline; it does not repeatedly open a new waiting-payment window.
+`resumeWork` returns operational combat survivors to this task
+owner, releasing obsolete contracts while retaining health, cargo and owned
+weapon recharge; disabled/destroyed ships cannot be woken by that command.
+
+### Explicit economic sources and sinks
+
+The initial connected industrial loop remains Earth/Sol, Orion and Vulcan. Every
+120 active simulation seconds, the commercial economy settles one cycle. The
+saved interval scales the following rates from their 30-second base:
+
+| Flow | Default 120-second cycle | Accounting |
+| --- | --- | --- |
+| Offworld specialty manufacture/extraction | Up to 48 t components at Orion and 48 t fuel at Vulcan; each output stops at stock 300 | Explicit external production, `economicLedger.produced[good]` |
+| Local household demand at each connected hub | Consume up to 16 unreserved tons of each non-specialty good | Actual stock removed, `economicLedger.consumed[good]` |
+| Household purchases | Pay the market `ceil(basePrice * 1.35)` per consumed ton | External household-sector spending, `economicLedger.householdSpending`; no goods means no treasury income |
+| New market's initial allocation | One-time 25,000 credits; offworld specialty stock 120, other stock 12 | Saved initial conditions, `initialMarketCredits` / `initialMarketGoods`; Sol goods already exist and are not added again |
+| Sol industry and civic consumption | Existing extraction, recipes, food/fuel/medicine demand and rebuilding | `solEconomy.flows.produced`, `.consumed` and `.lost`; recipe inputs and capped actual outputs are counted |
+| Established player Sol retail and freight service | Purchase receipts leave the player's wallet; sales and completed delivery contracts pay the player from legacy external retail/service budgets | `flows.externalPlayerReceipts` and `.externalPlayerPayments`; Dev purchases record `.devPurchaseSubsidy`; capped stock overflow records `.lost` |
+| Destroyed carried goods | Lost once; no destination receipt or payment | Aggregate `economicLedger.lost[good]` plus bounded `strandedCargo` history; Sol losses use `flows.lost` |
+
+These are deliberate external goods/money sources and goods sinks. Households
+are outside the ship/port treasury ledger: their spending is credited only for
+goods they actually consume, rather than periodically resetting a treasury.
+Sol production is not run a second time by the commercial owner. Ship purchases,
+sales and paid repairs transfer existing credits; commercial deliveries do not
+mint rewards. Mining converts actual shared resource entitlements into cargo
+once. Aggregate counters remain available after the bounded event histories roll
+over and begin when this ledger migrates; older world history is not fabricated.
+The established player retail/service budgets are separate external accounts,
+not civilian escrow treasuries. They retain their prior gameplay behavior and
+now identify their wallet sources/sinks rather than silently borrowing reserved
+NPC purchasing funds.
+Market allocations are lazy initial conditions for the already registered
+population's homes/current ports, not a payment-recovery grant. The full
+population reaches 60 actual market keys (51 offworld markets and nine Sol ports),
+so its first use allocates 1,500,000 credits in total across those markets even
+though only three connected hubs receive the new industrial cycles. Existing
+saved market balances are retained; reopening a market, cancelling contracts and
+reloading cannot repeat that allocation.
+
+Production and household settlement execute at most four cycles per animation
+frame and retain `nextEconomyAt` debt for subsequent frames. They use the saved
+simulation clock, including its pause/hidden/inventory gate and 120 seconds/day
+conversion. Satisfied demand and exhausted real supplies can legitimately leave
+ships idle. This is a small connected economy rather than an unlimited industrial
+model for every system. The player's established retail quotes remain intact.
+Outside Sol, the legacy four-resource player market still uses `game.stocks`;
+it is not yet connected to the nine-good NPC freight market. Sol freight stock
+continues to be shared with player freight commerce.
+
+### Repeatable economic regressions
+
+`tests/npc-economy-fixture.cjs` loads the actual simulation owners, the tracked
+Sol coordinates and all 262 deterministic asteroid placements; artwork is mocked.
+It retains the existing 159 civilians, nine tugs and player, and advances at
+`1/60` second for 108,000 steps (30 simulated minutes). Its Git-revision option
+loads every available runtime source from that exact revision, while keeping the
+unchanged asset catalog:
+
+```sh
+node tests/npc-economy-fixture.cjs test-results/economy-before.json --revision c41559c
+node --test tests/npc-economy.test.cjs
+node tests/npc-economy-fixture.cjs test-results/economy-after.json
+```
+
+The test report records five-minute counts of deliveries, useful work, idle
+ships and payment waits. It checks all source/funds/incoming reservations and
+balances all nine goods plus credits against the recorded initial allocations,
+production, consumption, recipes, actual ore claims and losses. Functional CPU
+test execution time is not a frame-rate or browser-smoothness measurement.
+
+A separate migration stress scenario gives the same 159 ships already-paid
+cargo withdrawn from actual source stock, then explicitly depletes every
+treasury in the initial fixture. It saves the legacy arrival-payment form and
+restores it through the real migration. At 600 simulated seconds the verified
+scenario completed 229 deliveries with zero waiting-payment ships: 28 were
+working, 49 normally idle, 51 holding paid cargo in explained payment-idle and
+31 between completed jobs. The remaining held goods are not reported as
+delivered: they lack a funded buyer with unmet demand and stay owned aboard.
+This proves bounded recovery and useful resumed work without pretending that
+filled demand or insolvency must produce another sale.
+
+Other reusable checks cover simultaneous commitments, arrival-price changes,
+preloading cancellation, loaded disabling/destruction, fixed escrow priority
+independent of ship array order on reload, mid-recovery reload, real rerouting,
+market-allocation idempotence, invalid/zero-distance saved legs and animation-frame
+catch-up budgets. Normal local/browser delivery and inspector suites remain
+required alongside these calculation/state regressions.
 
 Mining calls `asteroid-combat.completeMining` once and consumes specific bits of
 the saved ore mask. Player and civilian collection share that entitlement.
@@ -145,23 +275,45 @@ does not select a new job. The inspector can sample a copied pose without updati
 the real job or preparing artwork. Sol tugs sample shared commands over their
 existing obstruction-avoiding waypoints, with a one-second distant pose cache.
 Their inspector reads the exact projected pose rather than that cache.
+Version 2 movement commands complete identical or tiny start/goal distances
+(`<= 1e-6` world units) immediately with finite pose and zero velocity. Invalid
+saved commands interrupt work and release escrow, keeping already owned cargo;
+they cannot load goods, complete mining or deliver while reporting an invalid
+arrival. A legacy zero-distance command whose JSON duration became `null` is
+recognized as arrived and schedules its next real task phase once.
 Displayed native marker projections refresh every 80 ms; a custom adapter that
 supplies only a fixed snapshot coordinate refreshes with its one-second
 enumeration cache.
 
 The civilian scheduler executes at most 64 actions and pops at most 256 heap
-entries per call by default. Sol executes at most 96 fleet events and 64 production
-cycles per call. Large skips retain saved overdue deadlines/production debt and
+entries per animation frame by default; standalone owner calls use the same
+per-call limits when no animation-frame context exists. Its economic settlement
+budget is four cycles across those substeps. Sol executes at most 96 fleet events
+and 64 production cycles per animation frame. Large skips retain saved overdue deadlines/production debt and
 drain it on later updates. No economic event is dropped to meet the budget.
 Consequently very large skips can temporarily show overdue actions while the
 backlog drains. The inspector exposes the next deadline and diagnostics expose
 the backlog. There is no unbounded per-second or per-frame replay loop.
 
+`nativeShipDetail.isDetailed` is the shared eligibility rule for nearby civilian
+and Sol tactical work. It uses the actual player/world pose and a saved leg's
+authoritative sampled pose, the current system and the configured detail radius
+(default 6,500 world units). It rejects transit, inactive ships and a landed
+observer. Dev-map visibility is not an input. Disputes and retaliations check
+both participants before requesting a combat scene, steering or attempting fire.
+Ships can therefore be distant within the same system; sharing a system alone
+does not keep a million-unit fight active.
+
 Offscreen tactical disputes break contact rather than beginning a global combat
-search or inventing random kills. Existing cargo/health and paid weapon recharge
-survive. Nearby shots that have already launched remain under the shared firing
-lifecycle. Future strategic conflict resolution must submit shared damage results
-and interruption consequences; it may not add private weapon mechanics.
+search or inventing random kills. The old fight is removed and operational
+commercial survivors call `resumeWork`; existing cargo, health, identity and
+owned weapon `readyAt` deadlines survive. Crossing back cannot restart that old
+fight, so no boundary hysteresis is needed; a new eligible hit is required for a
+new retaliation. Saved old fights receive the same eligibility check after
+reload. Already launched shots remain under the authoritative firing lifecycle
+and resolve or expire normally. Future strategic conflict resolution must submit
+shared damage results and interruption consequences; it may not add private
+weapon mechanics.
 
 For a drained scheduler at the same timestamp, task/cargo/economic outcomes and
 analytically sampled economic flight positions are identical across detail levels,

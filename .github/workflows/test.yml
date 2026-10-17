@@ -34,6 +34,14 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-npc-lives.py
+      - name: Player lighting, damage stages and warp pixel regressions
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-render-paths.py --visual-only --label ci
+      - name: Cold damage artwork, pause and map preparation boundaries
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-stability.py --label ci
       - uses: actions/upload-artifact@v4
         if: always()
         with:
