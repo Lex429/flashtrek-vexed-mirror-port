@@ -1,11 +1,10 @@
 /* Shared, decoded assets for flight and cinematic travel. */
 (() => {
   'use strict';
-  const imageCache = new Map(), shipCache = new Map(), planetCache = new Map(), localBodyCache = new Map();
-  const warpShipCanvas = document.createElement('canvas');
-  const warpShipContext = warpShipCanvas.getContext('2d');
-  const litShipCanvas = document.createElement('canvas');
-  const litShipContext = litShipCanvas.getContext('2d');
+  const imageCache = new Map(), shipCache = new Map(), shipReferences = new Map(), imagePending = new Map(), shipPending = new Map(), planetCache = new Map(), localBodyCache = new Map();
+  const cacheLimits={sourceBytes:32*1024*1024,sourceEntries:48,shipBytes:24*1024*1024,shipEntries:24};
+  const cacheMetrics={imageHits:0,imageMisses:0,shipHits:0,shipMisses:0,imageEvictions:0,shipEvictions:0};
+  let imageBytes=0,shipBytes=0;
   let catalogPromise, warpRing;
   const shipSizes=new Map(window.VexedFlightReference.shipSizes.map(ship=>[ship.id,ship]));
   function flightDimensions(shipSize,zoom){
@@ -20,18 +19,27 @@
     .catch(error => { catalogPromise = null; throw error; });
 
   function image(url) {
-    if (!imageCache.has(url)) {
-      const pending = new Promise((resolve, reject) => {
+    const cached=imageCache.get(url);
+    if(cached){imageCache.delete(url);imageCache.set(url,cached);cacheMetrics.imageHits++;return Promise.resolve(cached.art);}
+    if(imagePending.has(url))return imagePending.get(url);
+    cacheMetrics.imageMisses++;
+    const pending = new Promise((resolve, reject) => {
         const art = new Image();
         const timer = setTimeout(() => reject(new Error('Artwork loading timed out')), 15000);
         art.onload = () => art.decode().then(() => { clearTimeout(timer); resolve(art); }, error => { clearTimeout(timer); reject(error); });
         art.onerror = () => { clearTimeout(timer); reject(new Error('Artwork unavailable')); };
         art.src = url;
-      });
-      imageCache.set(url, pending);
-      pending.catch(() => imageCache.delete(url));
-    }
-    return imageCache.get(url);
+      }).then(art=>{
+        const bytes=(art.width||art.naturalWidth)*(art.height||art.naturalHeight)*4;
+        if(bytes<=cacheLimits.sourceBytes){
+          while(imageCache.size>=cacheLimits.sourceEntries||imageBytes+bytes>cacheLimits.sourceBytes){
+            const oldest=imageCache.keys().next().value;imageBytes-=imageCache.get(oldest).bytes;imageCache.delete(oldest);cacheMetrics.imageEvictions++;
+          }
+          imageCache.set(url,{art,bytes});imageBytes+=bytes;
+        }
+        return art;
+      }).finally(()=>imagePending.delete(url));
+    imagePending.set(url,pending);return pending;
   }
 
   function loadShip(type = 7, hull = 100, options = {}) {
@@ -40,22 +48,41 @@
     const strength = Math.max(0, Math.min(1, Number(hull) / maximum));
     const damageStage = strength < .25 ? 3 : strength < .5 ? 2 : strength < .75 ? 1 : 0;
     const key = type + ':' + damageStage + (options.showcase ? ':showcase' : '');
-    if (!shipCache.has(key)) {
-      const pending = catalog().then(async data => {
+    const cached=shipCache.get(key);
+    if(cached){shipCache.delete(key);shipCache.set(key,cached);cacheMetrics.shipHits++;return Promise.resolve(cached.asset);}
+    // A current player/effects owner may still hold an evicted asset. Reuse that
+    // object without pinning the whole fleet's decoded artwork in this loader.
+    const retained=shipReferences.get(key)?.deref();
+    if(retained){cacheMetrics.shipHits++;return Promise.resolve(retained);}
+    if(shipPending.has(key))return shipPending.get(key);
+    cacheMetrics.shipMisses++;
+    const pending = catalog().then(async data => {
         const ship = data.ships.find(entry => entry.id === type);
         if (!ship) throw new Error('Ship artwork is not in the catalog');
         const loaded = await image('../flashtrek-broken-mirror/showcase-assets/' + ship.frames[damageStage]);
         const standard = window.starterShips?.get(type);
         const special = ({56:window.constitutionTugEffects,57:window.tugEffects,58:window.olympicEffects,59:window.cthiaEffects})[type];
         const profile = standard || (special ? {effects:special} : null);
-        const aligned = standard?.align(loaded, damageStage) || (type === 57 ? window.alignTugFrame(loaded, damageStage) : type === 58 ? window.alignOlympicFrame(loaded, damageStage) : loaded);
-        const art = options.showcase && damageStage < 3 ? aligned : profile?.effects.unlitFrame(aligned) || aligned;
+        const aligned = standard ? await (standard.alignAsync?.(loaded,damageStage) || standard.align(loaded, damageStage)) :
+          (type === 57 ? window.alignTugFrame(loaded, damageStage) : type === 58 ? window.alignOlympicFrame(loaded, damageStage) : loaded);
+        const art = options.showcase && damageStage < 3 ? aligned :
+          await (profile?.effects.unlitFrameAsync?.(aligned) || profile?.effects.unlitFrame(aligned) || aligned);
         return {type, damageStage, art, profile, width: art.width || art.naturalWidth, height: art.height || art.naturalHeight, name: ship.name};
-      });
-      shipCache.set(key, pending);
-      pending.catch(() => shipCache.delete(key));
-    }
-    return shipCache.get(key);
+      }).then(asset=>{
+        if(typeof WeakRef==='function'){
+          if(shipReferences.size>=256)shipReferences.delete(shipReferences.keys().next().value);
+          shipReferences.set(key,new WeakRef(asset));
+        }
+        const bytes=asset.width*asset.height*4;
+        if(bytes<=cacheLimits.shipBytes){
+          while(shipCache.size>=cacheLimits.shipEntries||shipBytes+bytes>cacheLimits.shipBytes){
+            const oldest=shipCache.keys().next().value;shipBytes-=shipCache.get(oldest).bytes;shipCache.delete(oldest);cacheMetrics.shipEvictions++;
+          }
+          shipCache.set(key,{asset,bytes});shipBytes+=bytes;
+        }
+        return asset;
+      }).finally(()=>shipPending.delete(key));
+    shipPending.set(key,pending);return pending;
   }
 
   function loadPlanet(systemId) {
@@ -77,40 +104,18 @@
   function drawShip(ctx, asset, x, y, width, angle, time, appearance = {}) {
     if (!asset) return;
     const height = appearance.height ?? width * asset.height / asset.width;
-    const fading = appearance.kind && asset.profile;
-    if (fading) {
-      const pad = 32, cw = asset.width + pad*2, ch = asset.height + pad*2;
-      if(warpShipCanvas.width!==cw||warpShipCanvas.height!==ch){warpShipCanvas.width=cw;warpShipCanvas.height=ch;}
-      warpShipContext.clearRect(0,0,cw,ch);
-      warpShipContext.drawImage(asset.art,pad,pad);
-      asset.profile.effects.draw(warpShipContext,{x:cw/2,y:ch/2,w:asset.width,h:asset.height},0,asset.damageStage,time,
-        {lights:appearance.lights !== false,damage:appearance.damage !== false,lightGain:appearance.lightGain??2.8,lightBloom:appearance.lightBloom??2.5});
-    }
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.translate(x, y);ctx.rotate(angle);ctx.scale(appearance.squeezeX ?? 1, 1);
     ctx.globalAlpha *= appearance.alpha ?? 1;
-    const cached=!fading&&!appearance.light&&asset.profile&&window.nativeShipSpriteCache?.draw(ctx,asset,width,height,time,appearance);
-    if(fading){const px=32*width/asset.width,py=32*height/asset.height;ctx.drawImage(warpShipCanvas,-width/2-px,-height/2-py,width+px*2,height+py*2);}
-    else if(!cached)ctx.drawImage(asset.art, -width / 2, -height / 2, width, height);
-    if(appearance.light){
-      const source=appearance.light,tint=Number(source.color);
-      const direction=Math.atan2(source.y-y,source.x-x)-angle,ux=Math.cos(direction),uy=Math.sin(direction);
-      const extent=Math.max(asset.width,asset.height),bright=appearance.warpPulse?Math.min(.34,.22+appearance.warpPulse*.12):.22;
-      if(litShipCanvas.width!==asset.width||litShipCanvas.height!==asset.height){litShipCanvas.width=asset.width;litShipCanvas.height=asset.height;}
-      litShipContext.clearRect(0,0,asset.width,asset.height);
-      litShipContext.drawImage(asset.art,0,0,asset.width,asset.height);
-      litShipContext.globalCompositeOperation='source-in';
-      const gradient=litShipContext.createLinearGradient(asset.width/2+ux*extent*.55,asset.height/2+uy*extent*.55,asset.width/2-ux*extent*.55,asset.height/2-uy*extent*.55);
-      const rgb=`${tint>>16&255},${tint>>8&255},${tint&255}`;
-      gradient.addColorStop(0,`rgba(${rgb},${bright})`);gradient.addColorStop(.54,`rgba(${rgb},.035)`);gradient.addColorStop(1,`rgba(${rgb},0)`);
-      litShipContext.fillStyle=gradient;litShipContext.fillRect(0,0,asset.width,asset.height);
-      litShipContext.globalCompositeOperation='source-over';
-      ctx.drawImage(litShipCanvas,-width/2,-height/2,width,height);
-    }
-    if(!fading&&!cached)asset.profile?.effects.draw(ctx, {x:0, y:0, w: width, h: height}, 0, asset.damageStage, time,
+    const source=appearance.light,localLight=source?{direction:Math.atan2(source.y-y,source.x-x)-angle,color:source.color,
+      bright:appearance.warpPulse?Math.min(.34,.22+appearance.warpPulse*.12):.22}:null;
+    const cached=window.nativeShipSpriteCache?.draw(ctx,asset,width,height,time,{...appearance,localLight});
+    if(!cached){ctx.drawImage(asset.art, -width / 2, -height / 2, width, height);
+      asset.profile?.effects.draw(ctx, {x:0, y:0, w: width, h: height}, 0, asset.damageStage, time,
       {lights: appearance.lights !== false, damage: appearance.damage !== false, lightGain: appearance.lightGain??2.8, lightBloom: appearance.lightBloom??2.5});
+    }
     ctx.restore();
   }
 
@@ -124,6 +129,19 @@
     ctx.restore();
   }
 
-  window.vexedFlightAssets = {loadShip, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing, size:id=>shipSizes.get(Number(id)),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
+  function cacheSnapshot(){
+    const unique=new Set(),count=art=>{if(!art||unique.has(art))return 0;unique.add(art);return (art.width||art.naturalWidth)*(art.height||art.naturalHeight)*4;};
+    let bytes=0;for(const entry of imageCache.values())bytes+=count(entry.art);for(const entry of shipCache.values())bytes+=count(entry.asset.art);
+    const loaderArt=unique.size;let auxiliaryBytes=count(warpRing);
+    for(const art of planetCache.values())auxiliaryBytes+=count(art);for(const art of localBodyCache.values())auxiliaryBytes+=count(art);
+    return {bytes,uniqueArt:loaderArt,totalOwnedByteEstimate:bytes+auxiliaryBytes,
+      auxiliary:{additionalBytes:auxiliaryBytes,planets:planetCache.size,localBodies:localBodyCache.size,warpRing:Boolean(warpRing)},
+      source:{entries:imageCache.size,bytes:imageBytes,pending:imagePending.size},
+      ships:{entries:shipCache.size,bytes:shipBytes,pending:shipPending.size,weakReferences:shipReferences.size},limits:{...cacheLimits,weakReferences:256},counters:{...cacheMetrics}};
+  }
+  // Active ships/effects own their references; eviction only releases this
+  // loader's retention. Pending requests remain deduplicated during a reset.
+  function resetCaches(){imageCache.clear();shipCache.clear();shipReferences.clear();imageBytes=shipBytes=0;for(const key of Object.keys(cacheMetrics))cacheMetrics[key]=0;}
+  window.vexedFlightAssets = {loadShip, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing,cacheSnapshot,resetCaches, size:id=>shipSizes.get(Number(id)),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
   loadWarpRing().catch(()=>{});
 })();

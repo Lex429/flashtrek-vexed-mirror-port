@@ -13,20 +13,26 @@
   };
   const canvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
   for(const [key,d] of Object.entries(profiles)){
-    const base=window.createShowcaseEffects(d),lampFrames=[];
-    function align(image,stage){
+    const base=window.createShowcaseEffects(d),lampFrames=[],alignments=new WeakMap(),unlit=new WeakMap();
+    const complete=iterator=>{let result;do{result=iterator.next();}while(!result.done);return result.value;};
+    const deferred=iterator=>window.nativeDamageArtPreparation?window.nativeDamageArtPreparation.run(iterator):Promise.resolve().then(()=>complete(iterator));
+    function* alignment(image,stage){
       // Cached frames already have the translation applied, including severe.
       const c=image.earthAligned?image:canvas(d.width,d.height);
       if(!image.earthAligned){
-        const g=c.getContext('2d');
+        const g=c.getContext('2d',{willReadFrequently:true});
         if(d.nativeCrop)g.drawImage(image,...d.nativeCrop,0,0,d.width,d.height);
         else g.drawImage(image,...d.shifts[stage]);
         c.earthAligned=true;
       }
-      const rgba=c.getContext('2d').getImageData(0,0,d.width,d.height).data;
-      lampFrames[stage]=d.lights.map(p=>{
+      yield;
+      const rgba=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,d.width,d.height).data;yield;
+      const textures=[];
+      for(const p of d.lights){
         const lit=canvas(p.w,p.h),g=lit.getContext('2d'),pixels=g.createImageData(p.w,p.h);
+        let processed=0;
         for(const [y,x,length] of p.runs)for(let dx=x;dx<x+length;dx++){
+          if((++processed&1023)===0)yield;
           const i=((p.top+y)*d.width+p.left+dx)*4,j=(y*p.w+dx)*4;
           if(matches(rgba,i,p.tint)){
             pixels.data.set(rgba.subarray(i,i+4),j);
@@ -39,17 +45,25 @@
             }
           }
         }
-        g.putImageData(pixels,0,0);
+        g.putImageData(pixels,0,0);yield;
         const dim=canvas(p.w,p.h),dg=dim.getContext('2d');dg.filter='brightness(.2)';dg.drawImage(lit,0,0);
-        return {lit,dim};
-      });
+        textures.push({lit,dim});yield;
+      }
+      lampFrames[stage]=textures;
       return c;
     }
-    function unlitFrame(image){
+    function align(image,stage){return complete(alignment(image,stage));}
+    function alignAsync(image,stage){
+      let stages=alignments.get(image);if(!stages){stages=new Map();alignments.set(image,stages);}
+      if(!stages.has(stage)){const promise=deferred(alignment(image,stage));stages.set(stage,promise);promise.catch(()=>stages.delete(stage));}
+      return stages.get(stage);
+    }
+    function* unlighting(image){
       if(image.coreUnlit)return image;
-      const c=canvas(d.width,d.height),g=c.getContext('2d');g.drawImage(image,0,0);
-      const pixels=g.getImageData(0,0,d.width,d.height),rgba=pixels.data;
+      const c=canvas(d.width,d.height),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(image,0,0);yield;
+      const pixels=g.getImageData(0,0,d.width,d.height),rgba=pixels.data;yield;let processed=0;
       for(const p of d.lights)for(const [y,x,length] of p.runs)for(let dx=x;dx<x+length;dx++){
+        if((++processed&1023)===0)yield;
         const i=((p.top+y)*d.width+p.left+dx)*4;
         if(!matches(rgba,i,p.tint))continue;
         const grey=Math.round((rgba[i]*.2126+rgba[i+1]*.7152+rgba[i+2]*.0722)*.45);
@@ -57,6 +71,8 @@
       }
       g.putImageData(pixels,0,0);c.coreUnlit=true;c.earthAligned=true;return c;
     }
+    const unlitFrame=image=>complete(unlighting(image));
+    function unlitFrameAsync(image){if(!unlit.has(image)){const promise=deferred(unlighting(image));unlit.set(image,promise);promise.catch(()=>unlit.delete(image));}return unlit.get(image);}
     function draw(ctx,layout,angle,stage,time,options){
       base.draw(ctx,layout,angle,stage,time,{...options,lights:false,anchors:false});
       const s=Math.max(0,Math.min(3,stage)),t=time/1000;
@@ -94,7 +110,8 @@
       if(w&&h){const scale=Math.min(d.width/w,d.height/h);c.getContext('2d').drawImage(image,left,top,w,h,(d.width-w*scale)/2,(d.height-h*scale)/2,w*scale,h*scale);}
       c.referenceAligned=true;return c;
     }
-    window.starterShips.set(Number(key),{...d,align,alignReference,effects:Object.freeze({draw,snapshot:base.snapshot,unlitFrame}),
+    const preparationMetrics=()=>({frames:lampFrames.filter(Boolean).length,maxFrames:4,bytes:lampFrames.reduce((sum,stage)=>sum+stage.reduce((n,p)=>n+(p.lit.width*p.lit.height+p.dim.width*p.dim.height)*4,0),0)});
+    window.starterShips.set(Number(key),{...d,align,alignAsync,alignReference,effects:Object.freeze({draw,snapshot:base.snapshot,unlitFrame,unlitFrameAsync,preparationMetrics}),
       breakAnchors:d.damage[3].map(p=>[p.x,p.y]),
       destruction:{sites:d.sites,core:d.core,energyColor:d.energyColor,coreEnabled:d.coreEnabled,sail:d.sail,
         coreIndex:d.coreEnabled===false?-1:d.sites.findIndex(p=>p[0]==='reactor housing')}});

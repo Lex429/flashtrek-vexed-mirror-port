@@ -7,7 +7,7 @@ const port=path.join(__dirname,'../html-games/broken-mirror-port');
 
 function fixture(){
   let time=1000,blocked=false;
-  const drawn=[],emitted=[],explosions=[];
+  const drawn=[],emitted=[],explosions=[],contacts=[];
   const window={
     nativeSimulation:{now:()=>time,blocked:()=>blocked},
     showcaseWeaponAppearance:{units:.91976},
@@ -19,9 +19,9 @@ function fixture(){
       drawShip:(...args)=>drawn.push({kind:'ship',args})},
     showcaseHullBurst:{burst:(list,point,born)=>list.push({...point,born,ttl:500}),update:(p,dt)=>{p.x+=dt*20;},draw:(...args)=>drawn.push({kind:'spark',args})},
     showcaseStageFragments:{prepare:()=>[[],[],[],[]],emit:event=>emitted.push({kind:'stage',event}),update:()=>{},draw:()=>{}},
-    createShipDestruction:()=>({prepare:()=>{},emit:(wreck)=>{emitted.push({kind:'wreck'});wreck.debris.push({x:wreck.x,y:wreck.y,vx:2,vy:3,spin:1,angle:0,born:0,ttl:2000,w:4,h:4});},
+    createShipDestruction:()=>({prepare:()=>{},emit:(wreck)=>{emitted.push({kind:'wreck',wreck});wreck.debris.push({x:wreck.x,y:wreck.y,vx:2,vy:3,spin:1,angle:0,born:0,ttl:2000,w:4,h:4});},
       updateTrails:()=>{},drawParticle:()=>{},drawStructuralWreck:()=>{},drawWreckGlow:()=>{}}),
-    nativeEnvironmentalImpacts:{explode:(...args)=>explosions.push(args),debris:()=>{}},
+    nativeEnvironmentalImpacts:{explode:(...args)=>explosions.push(args),debris:(...args)=>contacts.push(args)},
   };
   const sandbox=vm.createContext({window,console,performance:{now:()=>900000},fetch:async()=>({json:async()=>({})})});
   for(const file of ['world-data.js','ship-motion.js','ship-definitions.js','ship-damage.js','combat-shots.js','ship-effects.js'])vm.runInContext(fs.readFileSync(path.join(port,file),'utf8'),sandbox);
@@ -37,7 +37,7 @@ function fixture(){
   });
   const transforms=[];
   const ctx={save:()=>{},restore:()=>{},translate:(x,y)=>transforms.push({x,y}),rotate:angle=>transforms.push({angle}),drawImage:()=>{}};
-  return {window,definitions,entities,ctx,transforms,drawn,emitted,explosions,setTime:value=>{time=value;},setBlocked:value=>{blocked=value;}};
+  return {window,definitions,entities,ctx,transforms,drawn,emitted,explosions,contacts,setTime:value=>{time=value;},setBlocked:value=>{blocked=value;}};
 }
 
 test('all registered ship types and role profiles share damage and authoritative surfaces',()=>{
@@ -170,4 +170,82 @@ test('rendering never emits destruction, damages targets or advances particles',
     for(let i=0;i<4;i++)window.nativeShipEffects.paint(role.state,ctx,view);
     assert.equal(emitted.length,before);assert.equal(explosions.length,blastCount);assert.equal(role.entity.hull,0);
   }
+});
+
+test('base ship stays visible while optional artwork prepares; queued stage effects run only in simulation',async()=>{
+  const f=fixture(),{window,entities,ctx,emitted}=f,role=entities()[0],descriptor=role.describe();
+  let finishFragments;
+  window.showcaseStageFragments.prepareAsync=()=>new Promise(resolve=>{finishFragments=resolve;});
+  const preparation=window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category);
+  assert.equal(preparation,window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category),'concurrent work deduplicates');
+  for(let i=0;i<8;i++)await Promise.resolve();
+  assert.ok(window.nativeShipEffects.asset(descriptor),'base frame available before optional pixel processing finishes');
+  assert.equal(window.nativeShipEffects.metrics().pending,1);
+  const maximum=descriptor.definition.hull;role.entity.hull=maximum;role.entity.shields=0;
+  const result=window.nativeShipDamage.apply(descriptor,maximum*.8,{kind:'beam'});
+  window.nativeShipEffects.hit(role.state,descriptor,result,{kind:'beam'});
+  assert.equal(window.nativeShipEffects.metrics().deferredStages,1);
+  assert.equal(emitted.filter(event=>event.kind==='stage').length,0);
+  finishFragments([[],[],[],[]]);await preparation;
+  window.nativeShipEffects.paintShip(ctx,descriptor,{ship:{x:0,y:0},cx:300,cy:200});
+  assert.equal(emitted.filter(event=>event.kind==='stage').length,0,'painting cannot emit pending fragments');
+  f.setBlocked(true);window.nativeShipEffects.advance(role.state,.1);
+  assert.equal(emitted.filter(event=>event.kind==='stage').length,0,'paused preparation cannot advance effects');
+  f.setBlocked(false);window.nativeShipEffects.advance(role.state,.1);
+  assert.equal(emitted.filter(event=>event.kind==='stage').length,1);
+  assert.equal(window.nativeShipEffects.metrics().deferredStages,0);
+});
+
+test('destruction while optional artwork is pending applies health and explosion once and emits wreck in advance',async()=>{
+  const f=fixture(),{window,entities,ctx,emitted,explosions}=f,role=entities()[0],descriptor=role.describe();
+  let complete;
+  const factory=window.createShipDestruction;
+  window.createShipDestruction=()=>({...factory(),prepareAsync:()=>new Promise(resolve=>{complete=resolve;})});
+  const preparation=window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category);
+  for(let i=0;i<8;i++)await Promise.resolve();
+  const result=window.nativeShipDamage.apply(descriptor,99999,{kind:'torpedo'});
+  window.nativeShipEffects.hit(role.state,descriptor,result,{kind:'torpedo'});
+  assert.equal(role.entity.hull,0);assert.equal(explosions.length,1);
+  assert.equal(emitted.filter(event=>event.kind==='wreck').length,0);
+  complete();await preparation;
+  window.nativeShipEffects.paint(role.state,ctx,{ship:{x:0,y:0},cx:300,cy:200});
+  assert.equal(emitted.filter(event=>event.kind==='wreck').length,0);
+  f.setTime(1400);window.nativeShipEffects.advance(role.state,.4);
+  assert.equal(emitted.filter(event=>event.kind==='wreck').length,1);
+  assert.ok(Math.abs(emitted.find(event=>event.kind==='wreck').wreck.debris[0].x-(descriptor.x+.8))<1e-8,'late preparation catches up visual motion exactly once');
+  assert.equal(f.contacts[0][2],descriptor.x,'late debris submits its complete swept path to the shared collision owner');
+  assert.equal(explosions.length,1,'optional texture completion never reapplies destruction');
+  assert.equal(role.entity.hull,0);
+});
+
+test('shared optional artwork cache bounds registered class churn and reports owned RGBA estimates',async()=>{
+  const {window,definitions}=fixture();
+  for(let type=1000;type<1030;type++){
+    definitions.register(type,{hull:100});await window.nativeShipEffects.prepare(type,'player');
+  }
+  const metrics=window.nativeShipEffects.metrics();
+  assert.ok(metrics.entries<=metrics.limits.entries);assert.ok(metrics.cacheBytes<=metrics.limits.bytes);
+  assert.ok(metrics.evictions>0);assert.equal(metrics.pending,0);
+});
+
+test('cold destruction retries saturated artwork admission without repeating the damage or explosion',async()=>{
+  const f=fixture(),{window,definitions,entities,emitted,explosions}=f,load=window.vexedFlightAssets.loadShip,release=[];
+  window.vexedFlightAssets.loadShip=(...args)=>new Promise(resolve=>release.push(async()=>resolve(await load(...args))));
+  const blockers=[];
+  for(let type=1000;type<1008;type++){definitions.register(type,{hull:100});blockers.push(window.nativeShipEffects.prepare(type));}
+  const role=entities(1008)[0];definitions.register(1008,{hull:100});
+  const descriptor=role.describe(),result=window.nativeShipDamage.apply(descriptor,99999,{kind:'torpedo'});
+  window.nativeShipEffects.hit(role.state,descriptor,result,{kind:'torpedo'});
+  await Promise.resolve();await Promise.resolve();
+  assert.equal(window.nativeShipEffects.metrics().pending,8);
+  assert.equal(explosions.length,1);assert.equal(role.entity.hull,0);
+  window.nativeShipEffects.advance(role.state,.1);
+  assert.equal(emitted.filter(event=>event.kind==='wreck').length,0);
+  for(const finish of release)await finish();await Promise.all(blockers);
+  window.vexedFlightAssets.loadShip=load;
+  window.nativeShipEffects.advance(role.state,.1);
+  await window.nativeShipEffects.prepare(1008);
+  window.nativeShipEffects.advance(role.state,.1);
+  assert.equal(emitted.filter(event=>event.kind==='wreck').length,1);
+  assert.equal(explosions.length,1);assert.equal(role.entity.hull,0);
 });

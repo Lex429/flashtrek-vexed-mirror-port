@@ -1,29 +1,49 @@
 /* Shared ship artwork, impacts and destruction. All mutation happens in hit/advance. */
 (() => {
   'use strict';
-  const prepared=new Map(),pending=new Map(),visuals=new Map(),bursts=[],fragments=[],wrecks=[];
+  const prepared=new Map(),pending=new Map(),visuals=new Map(),bursts=[],fragments=[],wrecks=[],deferredStages=[];
+  const limits={entries:12,bytes:64*1024*1024,pending:8,deferredStages:48};
+  const counters={loads:0,evictions:0,failures:0,optionalWallMs:0};
   const now=state=>window.nativeSimulation?.now(state)??performance.now();
   const key=(type,category)=>`${Number(type)}:${window.nativeShipDefinitions.get(type,category).artwork.source}`;
   const units=()=>window.showcaseWeaponAppearance?.units??.91976;
+  const fragmentBytes=value=>(value||[]).reduce((total,stage)=>total+stage.reduce((sum,piece)=>sum+(piece.texture?.width||0)*(piece.texture?.height||0)*4,0),0);
+  const assetBytes=value=>value.assets.reduce((sum,asset)=>sum+(asset?.width||0)*(asset?.height||0)*4,0)+fragmentBytes(value.fragments)+(value.destruction?.memoryBytes?.()||0);
+  function prune(){
+    let bytes=0;for(const entry of prepared.values())bytes+=assetBytes(entry);
+    for(const [cacheKey,value] of prepared){if(prepared.size<=limits.entries&&bytes<=limits.bytes)break;
+      if(pending.has(cacheKey))continue;prepared.delete(cacheKey);bytes-=assetBytes(value);counters.evictions++;}
+  }
+  function remember(cacheKey,value){prepared.delete(cacheKey);prepared.set(cacheKey,value);prune();return value;}
   const worldPoint=(descriptor,local)=>window.nativeCombatShots.worldPoint?window.nativeCombatShots.worldPoint(descriptor,local):{
     x:descriptor.x+local.x*Math.cos(descriptor.heading+Math.PI/2)-local.y*Math.sin(descriptor.heading+Math.PI/2),
     y:descriptor.y+local.x*Math.sin(descriptor.heading+Math.PI/2)+local.y*Math.cos(descriptor.heading+Math.PI/2)};
   function prepare(type,category='player'){
     const cacheKey=key(type,category);
-    if(prepared.has(cacheKey))return Promise.resolve(prepared.get(cacheKey));
     if(pending.has(cacheKey))return pending.get(cacheKey);
+    if(prepared.has(cacheKey))return Promise.resolve(prepared.get(cacheKey));
+    if(pending.size>=limits.pending)return Promise.resolve(null);
     if(!window.vexedFlightAssets?.loadShip)return Promise.resolve(null);
     const definition=window.nativeShipDefinitions.get(type,category),maximum=definition.hull||100;
-    const promise=Promise.all([1,.7,.4,.1].map(fraction=>window.vexedFlightAssets.loadShip(type,maximum*fraction,{showcase:definition.artwork.source==='showcase'}))).then(assets=>{
+    const value={assets:[],fragments:null,destruction:null,optionalReady:false};counters.loads++;
+    const requests=[1,.7,.4,.1].map((fraction,stage)=>window.vexedFlightAssets.loadShip(type,maximum*fraction,{showcase:definition.artwork.source==='showcase'}).then(asset=>{
+      value.assets[stage]=asset;
+      // Base art becomes visible without waiting for optional fragment textures.
+      if(stage===0)remember(cacheKey,value);return asset;
+    }));
+    const promise=Promise.all(requests).then(async assets=>{
       const profile=assets[0]?.profile,art=assets.map(asset=>asset.art);
-      const result={assets,fragments:profile?.breakAnchors&&window.showcaseStageFragments?.prepare(art,profile.breakAnchors),destruction:null};
-      if(profile?.destruction&&window.createShipDestruction){result.destruction=window.createShipDestruction();result.destruction.prepare(art,profile.destruction);}
-      prepared.set(cacheKey,result);return result;
-    }).catch(error=>{console.warn('Ship damage artwork unavailable',type,error);return null;}).finally(()=>pending.delete(cacheKey));
+      const started=performance.now(),jobs=[];
+      if(profile?.breakAnchors&&window.showcaseStageFragments){const api=window.showcaseStageFragments;
+        jobs.push(Promise.resolve(api.prepareAsync?api.prepareAsync(art,profile.breakAnchors):api.prepare(art,profile.breakAnchors)).then(fragments=>{value.fragments=fragments;}));}
+      if(profile?.destruction&&window.createShipDestruction){const destruction=window.createShipDestruction();
+        jobs.push(Promise.resolve(destruction.prepareAsync?destruction.prepareAsync(art,profile.destruction):destruction.prepare(art,profile.destruction)).then(()=>{value.destruction=destruction;}));}
+      await Promise.all(jobs);value.optionalReady=true;counters.optionalWallMs+=performance.now()-started;remember(cacheKey,value);return value;
+    }).catch(error=>{counters.failures++;console.warn('Ship damage artwork unavailable',type,error);return value.assets[0]?value:null;}).finally(()=>{pending.delete(cacheKey);prune();});
     pending.set(cacheKey,promise);return promise;
   }
-  function data(descriptor){return prepared.get(key(descriptor.shipType,descriptor.category));}
-  function asset(descriptor){const ready=data(descriptor);if(!ready)prepare(descriptor.shipType,descriptor.category);return ready?.assets[window.nativeShipDefinitions.stage(descriptor)]||null;}
+  function data(descriptor){const cacheKey=key(descriptor.shipType,descriptor.category),value=prepared.get(cacheKey);if(value){prepared.delete(cacheKey);prepared.set(cacheKey,value);}return value;}
+  function asset(descriptor){const ready=data(descriptor);if(!ready)prepare(descriptor.shipType,descriptor.category);return ready?.assets[window.nativeShipDefinitions.stage(descriptor)]||ready?.assets[0]||null;}
   function visual(state,descriptor){
     let value=visuals.get(descriptor.entity);
     if(!value){value={state,descriptor,flash:null};visuals.set(descriptor.entity,value);}
@@ -47,12 +67,40 @@
     return {ok:true,shields:descriptor.entity.shields,hull:descriptor.entity.hull,contact};
   }
   function emitWreck(wreck){
-    const preparedData=prepared.get(wreck.assetKey),destruction=preparedData?.destruction;
+    const preparedData=wreck.artwork||prepared.get(wreck.assetKey),destruction=preparedData?.destruction;
     if(wreck.prepared||!destruction)return;
     const {descriptor}=wreck,d=descriptor.dimensions;
+    const elapsed=wreck.time;wreck.time=0;
     destruction.emit(wreck,{x:wreck.x,y:wreck.y,w:d.width,h:d.height},piece=>worldPoint(descriptor,{x:piece.x*d.width,y:piece.y*d.height}),wreck.stage,1);
-    for(const piece of wreck.debris){piece.system=wreck.system;piece.sourceKey=wreck.sourceKey;}
+    wreck.time=elapsed;wreck.artwork=preparedData;
+    for(const piece of wreck.debris){piece.system=wreck.system;piece.sourceKey=wreck.sourceKey;
+      if(elapsed>0)piece.pendingSweep={x:piece.x,y:piece.y};
+      piece.x+=piece.vx*elapsed/1000;piece.y+=piece.vy*elapsed/1000;piece.angle+=piece.spin*elapsed/1000;}
+    for(const particle of wreck.particles){const age=Math.max(0,elapsed-particle.born)/1000;particle.x+=(particle.vx||0)*age;particle.y+=(particle.vy||0)*age;}
     wreck.prepared=true;
+    return true;
+  }
+  function requestArtwork(event){
+    if(event.artwork||event.artworkRequested)return;
+    event.artworkRequested=true;
+    prepare(event.descriptor.shipType,event.descriptor.category).then(artwork=>{event.artwork=artwork;}).finally(()=>{event.artworkRequested=false;});
+  }
+  function retryArtwork(state,dt,time){
+    if(pending.size>=limits.pending)return;
+    const available=event=>event.state===state&&!event.artwork&&!event.artworkRequested;
+    const event=wrecks.find(event=>available(event)&&event.time+dt*1000<17000)||deferredStages.find(event=>available(event)&&time-event.time<4200);
+    if(event&&(!window.nativeSimulationFrame||window.nativeSimulationFrame.take(state,'damageArtAdmissions',1)))requestArtwork(event);
+  }
+  function emitStage(event){
+    const {state,descriptor,artwork,before,after,time}=event;if(!artwork?.fragments)return false;
+    const d=descriptor.dimensions,first=fragments.length;
+    window.showcaseStageFragments.emit({debris:fragments,fragments:artwork.fragments,before,after,
+      layout:{x:descriptor.x,y:descriptor.y,w:d.width,h:d.height},world:piece=>worldPoint(descriptor,{x:piece.x*d.width,y:piece.y*d.height}),
+      angle:descriptor.heading+Math.PI/2,time,zoom:1,burst:(point,strength,sparksOnly)=>burst(state,descriptor,point,strength,sparksOnly)});
+    const elapsed=Math.max(0,now(state)-time)/1000;
+    for(let i=first;i<fragments.length;i++){const piece=fragments[i];Object.assign(piece,{state,system:descriptor.system,sourceKey:`ship:${descriptor.category}:${descriptor.entity.id}`,updatedAt:now(state)});
+      if(elapsed){piece.pendingSweep={x:piece.x,y:piece.y};window.showcaseStageFragments.update(piece,elapsed);}}
+    return true;
   }
   function hit(state,descriptor,result,event={}){
     if(!result?.ok||!(result.amount>0))return result;
@@ -61,12 +109,10 @@
       if(result.hullDamage>0){
         burst(state,descriptor,result.contacts.hull.world);
         const ready=data(descriptor);
-        if(!result.destroyed&&result.afterStage>result.beforeStage&&ready?.fragments){
-          const d=descriptor.dimensions,first=fragments.length,time=now(state);
-          window.showcaseStageFragments.emit({debris:fragments,fragments:ready.fragments,before:result.beforeStage,after:result.afterStage,
-            layout:{x:descriptor.x,y:descriptor.y,w:d.width,h:d.height},world:piece=>worldPoint(descriptor,{x:piece.x*d.width,y:piece.y*d.height}),
-            angle:descriptor.heading+Math.PI/2,time,zoom:1,burst:(point,strength,sparksOnly)=>burst(state,descriptor,point,strength,sparksOnly)});
-          for(let i=first;i<fragments.length;i++)Object.assign(fragments[i],{state,system:descriptor.system,sourceKey:`ship:${descriptor.category}:${descriptor.entity.id}`});
+        if(!result.destroyed&&result.afterStage>result.beforeStage){
+          const event={state,descriptor:{...descriptor,dimensions:{...descriptor.dimensions}},artwork:ready,before:result.beforeStage,after:result.afterStage,time:now(state)};
+          if(!emitStage(event)){deferredStages.push(event);if(deferredStages.length>limits.deferredStages)deferredStages.shift();
+            requestArtwork(event);}
         }
       }
     }
@@ -74,7 +120,8 @@
       prepare(descriptor.shipType,descriptor.category);
       const sourceKey=descriptor.category==='player'?'ship:player':`ship:${descriptor.category}:${descriptor.entity.id}`;
       const wreck={state,descriptor,assetKey:key(descriptor.shipType,descriptor.category),system:descriptor.system,x:descriptor.x,y:descriptor.y,
-        angle:descriptor.heading+Math.PI/2,stage:result.beforeStage,time:0,debris:[],particles:[],prepared:false,sourceKey};
+        angle:descriptor.heading+Math.PI/2,stage:result.beforeStage,time:0,debris:[],particles:[],prepared:false,sourceKey,artwork:data(descriptor)};
+      requestArtwork(wreck);
       wrecks.push(wreck);if(wrecks.length>36)wrecks.shift();emitWreck(wreck);
       window.nativeEnvironmentalImpacts?.explode(state,{...descriptor.entity,x:descriptor.x,y:descriptor.y,system:descriptor.system,size:Math.max(descriptor.dimensions.width,descriptor.dimensions.height)},{sourceKey});
     }
@@ -83,19 +130,21 @@
   function advance(state,dt){
     if(!(dt>0)||window.nativeSimulation?.blocked?.())return;
     const time=now(state);
+    retryArtwork(state,dt,time);
+    for(let i=deferredStages.length-1;i>=0;i--){const event=deferredStages[i];if(event.state===state&&(time-event.time>=4200||emitStage(event)))deferredStages.splice(i,1);}
     for(const piece of fragments)if(piece.state===state&&time>=piece.born){
-      const oldX=piece.x,oldY=piece.y;window.showcaseStageFragments?.update(piece,dt);
+      const oldX=piece.pendingSweep?.x??piece.x,oldY=piece.pendingSweep?.y??piece.y,elapsed=Math.min(dt,Math.max(0,time-(piece.updatedAt??time-dt*1000))/1000);window.showcaseStageFragments?.update(piece,elapsed);piece.updatedAt=time;delete piece.pendingSweep;
       if(piece.system===state.system)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:piece.sourceKey});
     }
     for(let i=fragments.length-1;i>=0;i--)if(fragments[i].state===state&&time-fragments[i].born>=fragments[i].ttl)fragments.splice(i,1);
     for(const particle of bursts)if(particle.state===state&&time>=particle.born)window.showcaseHullBurst?.update(particle,dt);
     for(let i=bursts.length-1;i>=0;i--)if(bursts[i].state===state&&time-bursts[i].born>=bursts[i].ttl)bursts.splice(i,1);
     for(let i=wrecks.length-1;i>=0;i--){
-      const wreck=wrecks[i];if(wreck.state!==state)continue;wreck.time+=dt*1000;emitWreck(wreck);
-      for(const piece of wreck.debris){const oldX=piece.x,oldY=piece.y;piece.x+=piece.vx*dt;piece.y+=piece.vy*dt;piece.angle+=piece.spin*dt;
+      const wreck=wrecks[i];if(wreck.state!==state)continue;wreck.time+=dt*1000;const elapsed=emitWreck(wreck)?0:dt;
+      for(const piece of wreck.debris){const oldX=piece.pendingSweep?.x??piece.x,oldY=piece.pendingSweep?.y??piece.y;delete piece.pendingSweep;piece.x+=piece.vx*elapsed;piece.y+=piece.vy*elapsed;piece.angle+=piece.spin*elapsed;
         if(wreck.system===state.system)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:wreck.sourceKey});}
-      for(const particle of wreck.particles)if(wreck.time>=particle.born){particle.x+=(particle.vx||0)*dt;particle.y+=(particle.vy||0)*dt;}
-      prepared.get(wreck.assetKey)?.destruction?.updateTrails(wreck);
+      for(const particle of wreck.particles)if(wreck.time>=particle.born){particle.x+=(particle.vx||0)*elapsed;particle.y+=(particle.vy||0)*elapsed;}
+      (wreck.artwork||prepared.get(wreck.assetKey))?.destruction?.updateTrails(wreck);
       wreck.debris=wreck.debris.filter(piece=>wreck.time-piece.born<piece.ttl);wreck.particles=wreck.particles.filter(particle=>wreck.time-particle.born<particle.ttl);
       if(wreck.time>17000)wrecks.splice(i,1);
     }
@@ -123,7 +172,7 @@
     ctx.save();if(zoom===1)ctx.translate(view.cx-view.ship.x,view.cy-view.ship.y);else{ctx.translate(view.cx,view.cy);ctx.scale(zoom,zoom);ctx.translate(-view.ship.x,-view.ship.y);}
     for(const piece of fragments)if(visible(piece)&&onScreen(piece,Math.hypot(piece.w,piece.h)/2))window.showcaseStageFragments?.draw(ctx,piece,time);
     for(const wreck of wrecks){
-      if(!visible(wreck)||!wreck.prepared)continue;const destruction=prepared.get(wreck.assetKey)?.destruction;if(!destruction)continue;
+      if(!visible(wreck)||!wreck.prepared)continue;const destruction=(wreck.artwork||prepared.get(wreck.assetKey))?.destruction;if(!destruction)continue;
       for(const piece of wreck.debris){if(!onScreen(piece,Math.hypot(piece.w,piece.h)/2+28))continue;ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);
         if(piece.structural)destruction.drawStructuralWreck(ctx,piece,wreck.time);
         else{ctx.drawImage(piece.texture,-piece.w/2,-piece.h/2,piece.w,piece.h);destruction.drawWreckGlow(ctx,piece,wreck.time);}ctx.restore();}
@@ -133,7 +182,14 @@
     ctx.restore();
   }
   function snapshot(descriptor){const value=descriptor?visuals.get(descriptor.entity):null;return {flash:value?.flash?{...value.flash}:null,particles:bursts.filter(p=>!descriptor||p.entity===descriptor.entity).length};}
-  function reset(){visuals.clear();bursts.length=0;fragments.length=0;wrecks.length=0;}
+  function reset(){visuals.clear();bursts.length=0;fragments.length=0;wrecks.length=0;deferredStages.length=0;}
+  function metrics(){const values=new Set([...prepared.values(),...wrecks.map(wreck=>wreck.artwork).filter(Boolean),...deferredStages.map(event=>event.artwork).filter(Boolean)]);
+    let bytes=0;for(const value of values)bytes+=assetBytes(value);
+    const profiles=Array.from(window.starterShips?.values?.()||[]).map(profile=>profile.effects?.preparationMetrics?.()).filter(Boolean);
+    return {...counters,entries:prepared.size,pending:pending.size,bytes,cacheBytes:[...prepared.values()].reduce((n,value)=>n+assetBytes(value),0),
+      optionalReady:[...prepared.values()].filter(value=>value.optionalReady).length,deferredStages:deferredStages.length,wrecks:wrecks.length,limits:{...limits},
+      profileLamps:{registeredProfiles:profiles.length,frames:profiles.reduce((n,p)=>n+p.frames,0),maxFramesPerProfile:4,bytes:profiles.reduce((n,p)=>n+p.bytes,0)},
+      preparation:window.nativeDamageArtPreparation?.snapshot?.()||null};}
   const ready=(type,category='player')=>Boolean(prepared.get(key(type,category)));
-  window.nativeShipEffects=Object.freeze({prepare,ready,asset,hit,visualImpact,advance,paintShip,paintSurface,paint,reset,snapshot});
+  window.nativeShipEffects=Object.freeze({prepare,ready,asset,hit,visualImpact,advance,paintShip,paintSurface,paint,reset,snapshot,metrics});
 })();
