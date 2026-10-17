@@ -20,7 +20,7 @@ The live game and damage showcase share their weapon and shield shaders in
 | Firing lifecycle, emitter attachment, pending attacks, resolution, visual shot instances and cleanup | `combat-shots.js` | Call `fire` for player input or `fireFor` for NPC intent |
 | Shield-first damage, hull overflow, nonlethal floors, stage transitions and disabled/destroyed results | `ship-damage.js` | Respond to the result |
 | Ship artwork cache, shared ship rendering, shield/hull impacts, stage fragments and wreck simulation | `ship-effects.js`, using existing showcase shaders and destruction assets | Request a hit/visual event and draw the resulting state |
-| Explosion/debris contact collection and visual-only ship impact dispatch | `explosion-impacts.js` and shared `debris-impacts.js` | Supply the explosion/debris source |
+| Explosion/debris contact collection, common physical dispatch and ship surface effects | `explosion-impacts.js` and shared `debris-impacts.js`, delegating to `asteroid-motion.js` / `ship-motion.js` | Supply the explosion/debris source; environmental asteroid damage stops at 25% remaining health |
 | Asteroid hit points, asteroid destruction, mining progress and ore entitlement | `asteroid-combat.js`, registered through `ship-systems.js` | Choose mine/fire and collect completed simulation results |
 | Persistent asteroid drift, indexed world poses and ship contact dispatch | `asteroid-motion.js`, using contact impulses from `ship-motion.js` and `sol-asteroids.relocate` | Supply the active simulation step; never move rocks while painting |
 | Tug deliveries, assignments, cargo loss, rebuilding and economic consequences | `sol-economy.js` | Use shared mechanics; retain delivery policy |

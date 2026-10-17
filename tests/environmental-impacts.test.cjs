@@ -43,7 +43,7 @@ function context(){
   w.nativeEnvironmentalImpacts.explode(state,{x:0,y:0,system:1},{radius:100,duration:1000});
   w.nativePause={active:true};w.nativeEnvironmentalImpacts.advance(state,.8);w.nativeEnvironmentalImpacts.debris(state,{x:100,y:0,radius:3},0,0);assert.equal(w.nativeEnvironmentalImpacts.snapshot().clock,0);assert.equal(destroyed,0);assert.equal(shipHits,0);assert.equal(playerHits,0);
   w.nativePause.active=false;w.nativeEnvironmentalImpacts.advance(state,.8);
-  assert.equal(destroyed,1);assert.equal(shipHits,1);assert.equal(playerHits,1);assert.equal(w.nativeEnvironmentalImpacts.snapshot().waves,1,'asteroid destruction does not add recursive pressure waves');
+  assert.equal(destroyed,0,'live ship explosions cannot destroy asteroids');assert.equal(shipHits,1);assert.equal(playerHits,1);assert.equal(w.nativeEnvironmentalImpacts.snapshot().waves,1,'blast remains visual without asteroid pressure destruction');
   assert.equal(ship.hull,87);assert.equal(ship.shields,42);
   state.system=2;w.nativeEnvironmentalImpacts.advance(state,.1);assert.equal(w.nativeEnvironmentalImpacts.snapshot().waves,0,'old system effects are cleared');
   const stoppedClock=w.nativeEnvironmentalImpacts.snapshot().clock,queriesBeforeWarp=sceneQueries;w.vexedWarp={active:true};w.nativeEnvironmentalImpacts.advance(state,1);w.nativeEnvironmentalImpacts.debris(state,{x:100,y:0,radius:3},0,0);assert.equal(w.nativeEnvironmentalImpacts.snapshot().clock,stoppedClock);assert.equal(sceneQueries,queriesBeforeWarp);

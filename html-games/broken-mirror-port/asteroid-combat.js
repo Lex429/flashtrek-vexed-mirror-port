@@ -97,13 +97,13 @@
     g.beginPath();vertices.forEach((p,i)=>i?g.lineTo(p.x-left,p.y-top):g.moveTo(p.x-left,p.y-top));g.closePath();g.clip();g.drawImage(im,-left,-top);
     return{texture,x:cx/im.width-.5,y:cy/im.height-.5,w:texture.width/im.width,h:texture.height/im.height};
   }
-  function makeRockShards(rock){
-    const im=window.nativeSolAsteroids.image(rock.file);if(!im.complete||!im.naturalWidth)return[];
+  function makeRockShards(rock,{chips=false}={}){
+    const im=chips?window.nativeSolAsteroids.peekImage?.(rock.file):window.nativeSolAsteroids.image(rock.file);if(!im?.complete||!im.naturalWidth)return[];
     const pieces=[];
-    for(let i=0;i<22;i++){
+    for(let i=0;i<(chips?3:22);i++){
       const cx=im.width*(.15+Math.random()*.7),cy=im.height*(.15+Math.random()*.7),piece=extractRockShard(im,cx,cy,im.width*(.045+Math.random()*.075));if(!piece)continue;
       const angle=Math.atan2(piece.y,piece.x)+(Math.random()-.5)*.75;
-      pieces.push({...piece,angle,speed:(80+Math.random()*190)*1.9,spin:(Math.random()-.5)*7,ttl:(1500+Math.random()*1300)*2.2});
+      pieces.push({...piece,angle,speed:chips?35+Math.random()*55:(80+Math.random()*190)*1.9,spin:(Math.random()-.5)*7,ttl:chips?1000+Math.random()*800:(1500+Math.random()*1300)*2.2});
     }
     return pieces;
   }
@@ -139,15 +139,23 @@
   function hit(state,id,damage,impact=null,onFinish){
     const rock=rockById(id);
     if(!rock||gone(state,id))return {ok:false,destroyed:false};
-    state.asteroidDamage||={};
-    state.asteroidDamage[id]=(Number(state.asteroidDamage[id])||0)+Math.max(0,Number(damage)||0);
-    if(state.asteroidDamage[id]>=Math.max(1,Number(rock.maxHull)||rock.size*.45))return destroy(state,rock,onFinish);
-    return {ok:true,destroyed:false,hull:Math.max(0,(Number(rock.maxHull)||rock.size*.45)-state.asteroidDamage[id])};
+    activeState=state;state.asteroidDamage||={};
+    const maximum=Math.max(1,Number(rock.maxHull)||rock.size*.45),before=Number(state.asteroidDamage[id])||0;
+    // All environmental damage shares this floor. Never heal older saves that
+    // already contain a rock below 25%, and never call the destruction path.
+    const after=before>=maximum*.75?before:Math.min(maximum*.75,before+Math.max(0,Number(damage)||0));
+    state.asteroidDamage[id]=after;
+    const stage=value=>Math.min(3,Math.floor(value/maximum*4+1e-9)),changedStage=stage(after)>stage(before);
+    if(changedStage&&(rock.system??1)===state.system){
+      const pieces=makeRockShards(rock,{chips:true});
+      if(pieces.length){bursts.push({rock:{...rock},born:now(),pieces,chips:true});if(bursts.length>12)bursts.shift();}
+    }
+    return {ok:true,destroyed:false,hull:Math.max(0,maximum-after),damage:after-before,changedStage};
   }
   // Combat hits are lethal regardless of weapon strength. Environmental hits
-  // retain ordinary health accounting, separate from the mining entitlement.
+  // stop at 25% remaining health, separate from the mining entitlement.
   function weaponHit(state,id,damage,impact=null,onFinish){return destroy(state,id,onFinish);}
-  function debrisHit(state,id){const rock=rockById(id);return rock?hit(state,id,Math.max(1,Number(rock.maxHull)||rock.size*.45)*.25):{ok:false};}
+  function debrisHit(state,id,impact){const rock=rockById(id);return rock?hit(state,id,Math.max(1,Number(rock.maxHull)||rock.size*.45)*.25,impact):{ok:false};}
   function fire(state,ship,shipWidth,shipHeight,onFinish){
     activeState=state;
     const rock=target();
@@ -233,15 +241,15 @@
       if(age>=miningTiming.animationSeconds*1000){mining=null;delete state.miningOperation;}
     }
     for(const burst of [...bursts]){
-      const t=(time-burst.born)/1000;
       for(const piece of burst.pieces){
         if(time-burst.born>piece.ttl)continue;
-        const x=burst.rock.x+piece.x*burst.rock.size+Math.cos(piece.angle)*piece.speed*t;
-        const y=burst.rock.y+piece.y*burst.rock.size+Math.sin(piece.angle)*piece.speed*t;
-        piece.environmentPiece||={system:burst.rock.system??1,size:Math.max(2,Math.hypot(piece.w,piece.h)*burst.rock.size*.4)};
-        Object.assign(piece.environmentPiece,{x,y});
-        window.nativeEnvironmentalImpacts?.debris(state,piece.environmentPiece,piece.worldX??burst.rock.x+piece.x*burst.rock.size,piece.worldY??burst.rock.y+piece.y*burst.rock.size,{sourceKey:'asteroid:'+burst.rock.slotId});
-        piece.worldX=x;piece.worldY=y;
+        piece.environmentPiece||={system:burst.rock.system??1,size:Math.max(2,Math.hypot(piece.w,piece.h)*burst.rock.size*.4),
+          x:burst.rock.x+piece.x*burst.rock.size,y:burst.rock.y+piece.y*burst.rock.size,
+          vx:(burst.rock.vx||0)+Math.cos(piece.angle)*piece.speed,vy:(burst.rock.vy||0)+Math.sin(piece.angle)*piece.speed,spin:piece.spin,angle:burst.rock.angle};
+        const p=piece.environmentPiece,oldX=p.x,oldY=p.y,elapsed=Math.min(dt,Math.max(0,(time-(piece.updatedAt??burst.born))/1000));
+        p.x+=p.vx*elapsed;p.y+=p.vy*elapsed;p.angle+=p.spin*elapsed;piece.updatedAt=time;
+        window.nativeEnvironmentalImpacts?.debris(state,p,oldX,oldY,{sourceKey:'asteroid:'+burst.rock.slotId,dt:elapsed});
+        piece.worldX=p.x;piece.worldY=p.y;
       }
     }
     bursts=bursts.filter(burst=>time-burst.born<6200);
@@ -260,13 +268,13 @@
     for(const burst of bursts){
       if((burst.rock.system??1)!==state.system)continue;
       const age=now-burst.born,t=age/1000,x=cx+burst.rock.x-ship.x,y=cy+burst.rock.y-ship.y;
-      if(age<260&&visible(x,y,(16+burst.rock.size*.72)/zoom)){const blast=age/260;ctx.save();ctx.globalAlpha=1-blast;ctx.strokeStyle='#e5b979';ctx.lineWidth=(2+5*(1-blast))/zoom;
+      if(!burst.chips&&age<260&&visible(x,y,(16+burst.rock.size*.72)/zoom)){const blast=age/260;ctx.save();ctx.globalAlpha=1-blast;ctx.strokeStyle='#e5b979';ctx.lineWidth=(2+5*(1-blast))/zoom;
         ctx.beginPath();ctx.ellipse(x,y,(12+blast*burst.rock.size*.72)/zoom,(10+blast*burst.rock.size*.72)/zoom,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
       for(const p of burst.pieces){
         if(age>p.ttl)continue;
-        const px=x+p.x*burst.rock.size+Math.cos(p.angle)*p.speed*t,py=y+p.y*burst.rock.size+Math.sin(p.angle)*p.speed*t;
+        const px=cx+(p.worldX??burst.rock.x+p.x*burst.rock.size)-ship.x,py=cy+(p.worldY??burst.rock.y+p.y*burst.rock.size)-ship.y;
         if(!visible(px,py,Math.hypot(p.w,p.h)*burst.rock.size/2))continue;
-        ctx.save();ctx.globalAlpha=Math.min(1,(p.ttl-age)/500);ctx.translate(px,py);ctx.rotate(burst.rock.angle+p.spin*t);
+        ctx.save();ctx.globalAlpha=Math.min(1,(p.ttl-age)/500);ctx.translate(px,py);ctx.rotate(p.environmentPiece?.angle??burst.rock.angle+p.spin*t);
         ctx.drawImage(p.texture,-p.w*burst.rock.size/2,-p.h*burst.rock.size/2,p.w*burst.rock.size,p.h*burst.rock.size);
         ctx.restore();
       }
@@ -306,5 +314,5 @@
     }
     for(const entry of collections){if((entry.rock.system??1)===state.system)drawOreTransport(ctx,entry,{ship,cx,cy,now,zoom,w,h});}
   }
-  window.nativeAsteroidCombat={select,deselect,autoTarget,clear,collect,collectField,fire,hit,weaponHit,debrisHit,destroy,completeMining,miningTiming,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
+  window.nativeAsteroidCombat={select,deselect,autoTarget,clear,collect,collectField,fire,hit,weaponHit,debrisHit,destroy,completeMining,miningTiming,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,metrics:()=>({bursts:bursts.length,chips:bursts.filter(b=>b.chips).length,pieces:bursts.reduce((n,b)=>n+b.pieces.length,0)}),get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
 })();

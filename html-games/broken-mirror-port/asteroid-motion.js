@@ -62,6 +62,8 @@
         const result=window.nativeShipMotion.asteroidPairContact(physical(a,dt),physical(b,dt),dt);if(!result)continue;
         seen.add(key);solved++;if(!stepStarts.has(b.slotId))stepStarts.set(b.slotId,{x:b.x,y:b.y});
         store(state,a,result.a);store(state,b,result.b);
+        if(result.damageA>0)window.nativeAsteroidCombat.hit(state,a.slotId,a.maxHull*result.damageA,{kind:'asteroid',from:b});
+        if(result.damageB>0)window.nativeAsteroidCombat.hit(state,b.slotId,b.maxHull*result.damageB,{kind:'asteroid',from:a});
         pairHistory.push({a:a.slotId,b:b.slotId,system:a.system,at:time(state),closing:result.closing});if(pairHistory.length>80)pairHistory.shift();
         if(result.closing>.001){queue.push(b);queue.push(a);}
         if(solved>=budget)break;
@@ -69,6 +71,31 @@
     }
   }
   function freeze(state,rock){ensure(state);if(active.has(rock.slotId))store(state,rock,{vx:0,vy:0,spin:0});}
+  function pushShip(state,ship,pose){
+    const entity=ship.entity,offsetX=ship.x-entity.x,offsetY=ship.y-entity.y;
+    window.nativeShipMotion.applyImpulse(entity,{x:pose.vx-ship.vx,y:pose.vy-ship.vy},time(state),{x:pose.x-ship.x,y:pose.y-ship.y});
+    Object.assign(entity,{x:pose.x-offsetX,y:pose.y-offsetY,vx:pose.vx,vy:pose.vy,speed:Math.hypot(pose.vx,pose.vy)});
+    window.nativeShipSystems.invalidate(state,ship.system);
+  }
+  function debrisContact(state,piece,from,target,type){
+    ensure(state);
+    if(type!=='ship'&&gone(state,target.slotId))return null;
+    if(type==='ship'&&(target.descriptor.entity.hull<=0||target.descriptor.entity.journey||['destroyed','disabled','warp','arriving'].includes(target.descriptor.entity.phase)))return null;
+    let body=type==='ship'?target.descriptor:physical(target.entity,piece.dt);
+    if(type==='ship'&&Math.hypot(body.x-body.previousX,body.y-body.previousY)>Math.max(500,Math.hypot(body.vx,body.vy)*piece.dt*3+50))body={...body,previousX:body.x,previousY:body.y};
+    return window.nativeShipMotion.debrisContact(piece,from,body,type);
+  }
+  function resolveDebris(state,piece,target,type,result){
+    ensure(state);
+    if(type==='ship'){
+      const before=target.descriptor;pushShip(state,before,result.targetPose);
+      const next=window.nativeShipDefinitions.describe(state,before.entity,{category:before.category}),id=target.id;
+      Object.assign(target,next,{id,descriptor:next});
+    }
+    else store(state,target.entity,result.targetPose);
+    Object.assign(piece,result.debrisPose);
+    window.nativeShipSystems.invalidate(state,target.system);
+  }
   function collide(state,dt){
     if(!state||!(dt>0)||window.nativeSimulation.blocked())return;
     ensure(state);const at=time(state),system=state.system;
@@ -87,9 +114,7 @@
         if(gone(state,rock.slotId))continue;
         const result=window.nativeShipMotion.asteroidContact(ship,physical(rock,dt),dt);if(!result)continue;
         store(state,rock,result.rock);
-        const entity=ship.entity,offsetX=ship.x-entity.x,offsetY=ship.y-entity.y;
-        window.nativeShipMotion.applyImpulse(entity,{x:result.ship.vx-ship.vx,y:result.ship.vy-ship.vy},at,{x:result.ship.x-ship.x,y:result.ship.y-ship.y});
-        Object.assign(entity,{x:result.ship.x-offsetX,y:result.ship.y-offsetY,vx:result.ship.vx,vy:result.ship.vy,speed:Math.hypot(result.ship.vx,result.ship.vy)});
+        pushShip(state,ship,result.ship);
         const key=ship.category+':'+ship.id+':'+rock.slotId,last=contacts.get(key)??-Infinity;
         contacts.set(key,at);
         if(at-last>.25){
@@ -104,5 +129,5 @@
     }
     for(const [key,atContact] of contacts)if(at-atContact>1)contacts.delete(key);
   }
-  window.nativeAsteroidMotion=Object.freeze({ensure,advance,collide,freeze,snapshot:()=>({moving:active.size,contacts:history.map(e=>({...e})),rockContacts:pairHistory.map(e=>({...e}))})});
+  window.nativeAsteroidMotion=Object.freeze({ensure,advance,collide,freeze,debrisContact,resolveDebris,snapshot:()=>({moving:active.size,contacts:history.map(e=>({...e})),rockContacts:pairHistory.map(e=>({...e}))})});
 })();

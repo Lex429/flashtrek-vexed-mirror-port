@@ -98,7 +98,7 @@
       layout:{x:descriptor.x,y:descriptor.y,w:d.width,h:d.height},world:piece=>worldPoint(descriptor,{x:piece.x*d.width,y:piece.y*d.height}),
       angle:descriptor.heading+Math.PI/2,time,zoom:1,burst:(point,strength,sparksOnly)=>burst(state,descriptor,point,strength,sparksOnly)});
     const elapsed=Math.max(0,now(state)-time)/1000;
-    for(let i=first;i<fragments.length;i++){const piece=fragments[i];Object.assign(piece,{state,system:descriptor.system,sourceKey:`ship:${descriptor.category}:${descriptor.entity.id}`,updatedAt:now(state)});
+    for(let i=first;i<fragments.length;i++){const piece=fragments[i];Object.assign(piece,{state,system:descriptor.system,sourceKey:descriptor.category==='player'?'ship:player':`ship:${descriptor.category}:${descriptor.entity.id}`,updatedAt:now(state)});
       if(elapsed){piece.pendingSweep={x:piece.x,y:piece.y};window.showcaseStageFragments.update(piece,elapsed);}}
     return true;
   }
@@ -134,7 +134,7 @@
     for(let i=deferredStages.length-1;i>=0;i--){const event=deferredStages[i];if(event.state===state&&(time-event.time>=4200||emitStage(event)))deferredStages.splice(i,1);}
     for(const piece of fragments)if(piece.state===state&&time>=piece.born){
       const oldX=piece.pendingSweep?.x??piece.x,oldY=piece.pendingSweep?.y??piece.y,elapsed=Math.min(dt,Math.max(0,time-(piece.updatedAt??time-dt*1000))/1000);window.showcaseStageFragments?.update(piece,elapsed);piece.updatedAt=time;delete piece.pendingSweep;
-      if(piece.system===state.system)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:piece.sourceKey});
+      if(piece.system===state.system)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:piece.sourceKey,dt:elapsed});
     }
     for(let i=fragments.length-1;i>=0;i--)if(fragments[i].state===state&&time-fragments[i].born>=fragments[i].ttl)fragments.splice(i,1);
     for(const particle of bursts)if(particle.state===state&&time>=particle.born)window.showcaseHullBurst?.update(particle,dt);
@@ -142,7 +142,7 @@
     for(let i=wrecks.length-1;i>=0;i--){
       const wreck=wrecks[i];if(wreck.state!==state)continue;wreck.time+=dt*1000;const elapsed=emitWreck(wreck)?0:dt;
       for(const piece of wreck.debris){const oldX=piece.pendingSweep?.x??piece.x,oldY=piece.pendingSweep?.y??piece.y;delete piece.pendingSweep;piece.x+=piece.vx*elapsed;piece.y+=piece.vy*elapsed;piece.angle+=piece.spin*elapsed;
-        if(wreck.system===state.system)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:wreck.sourceKey});}
+        if(wreck.system===state.system)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:wreck.sourceKey,dt:elapsed});}
       for(const particle of wreck.particles)if(wreck.time>=particle.born){particle.x+=(particle.vx||0)*elapsed;particle.y+=(particle.vy||0)*elapsed;}
       (wreck.artwork||prepared.get(wreck.assetKey))?.destruction?.updateTrails(wreck);
       wreck.debris=wreck.debris.filter(piece=>wreck.time-piece.born<piece.ttl);wreck.particles=wreck.particles.filter(particle=>wreck.time-particle.born<particle.ttl);

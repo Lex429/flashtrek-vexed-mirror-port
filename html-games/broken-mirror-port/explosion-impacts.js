@@ -1,7 +1,7 @@
-/* Shared blast/debris contacts. Ship callbacks only show existing impact art. */
+/* Shared blast/debris contacts. Live particles resolve through common motion. */
 (() => {
   'use strict';
-  let activeState=null,activeSystem=null,clock=0,ships=[],asteroids=[],suppressBlast=false;
+  let activeState=null,activeSystem=null,clock=0,ships=[],asteroids=[];
   let rockSource=null,rockTargets=[],targetsDirty=true;
   function refreshTargets(state){
     activeState=state;activeSystem=state.system;
@@ -10,13 +10,15 @@
     ships=(scene?.bystanders||[]).map(target=>({...target,id:target.id==='player'||String(target.id).startsWith('tug:')?target.id:`civilian:${target.id}`,system:state.system,descriptor:target}));
     const gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
     const source=window.nativeSolAsteroids?.forSystem?.(state.system)||(state.system===1?window.nativeSolAsteroids?.placements:[]);
-    if(source!==rockSource){rockSource=source;rockTargets=(source||[]).map(rock=>({get x(){return rock.x;},get y(){return rock.y;},id:rock.slotId,slotId:rock.slotId,system:state.system,radius:rock.size*.45}));}
+    if(source!==rockSource){rockSource=source;rockTargets=(source||[]).map(rock=>({get x(){return rock.x;},get y(){return rock.y;},entity:rock,id:rock.slotId,slotId:rock.slotId,system:state.system,radius:rock.size*.45}));}
     asteroids=rockTargets.filter(rock=>!gone.has(rock.slotId));
     targetsDirty=false;
   }
   const impacts=window.createEnvironmentalImpacts({
     getShips:()=>ships,
     getAsteroids:()=>asteroids,
+    debrisContact:(piece,from,target,type)=>window.nativeAsteroidMotion?.debrisContact(activeState,piece,from,target,type),
+    resolveDebris:(piece,target,type,result)=>window.nativeAsteroidMotion?.resolveDebris(activeState,piece,target,type,result),
     onShipImpact(target,event){
       const visual={...event,born:clock,visualOnly:true};
       if(window.nativeShipSystems)window.nativeShipSystems.visualImpact(activeState,target.descriptor,visual);
@@ -25,29 +27,29 @@
       else window.nativeCivilianTraffic.visualImpact?.(activeState,Number(target.id.slice(9)),visual);
     },
     onAsteroidHit(target,event){
-      // The normal asteroid burst still plays. Suppress a new pressure wave
-      // from blast-destroyed rocks so a dense belt cannot chain indefinitely.
-      suppressBlast=true;
-      try{if(event.kind==='debris')window.nativeAsteroidCombat?.debrisHit(activeState,target.slotId);else window.nativeAsteroidCombat?.destroy(activeState,target.slotId);}finally{suppressBlast=false;}
+      if(event.kind==='debris'&&event.firstHit)window.nativeAsteroidCombat?.debrisHit(activeState,target.slotId,event);
     }
   });
-  function reset(){impacts.reset();activeState=null;activeSystem=null;clock=0;ships=[];asteroids=[];suppressBlast=false;pieceIdentities=new WeakMap();rockSource=null;rockTargets=[];targetsDirty=true;}
+  function reset(){impacts.reset();activeState=null;activeSystem=null;clock=0;ships=[];asteroids=[];pieceIdentities=new WeakMap();rockSource=null;rockTargets=[];targetsDirty=true;}
   function ensureState(state){if(activeState!==state||activeSystem!==state.system){reset();activeState=state;activeSystem=state.system;clock=window.nativeSimulation?.now(state)||0;}}
   function explode(state,source,{radius,duration=850,sourceKey=null}={}){
-    if(!state||suppressBlast)return;ensureState(state);
+    if(!state)return;ensureState(state);
     const system=source.system??state.system;if(system!==state.system)return;
     const size=Number(source.size)||Math.max(Number(source.w)||0,Number(source.h)||0)||60;
-    impacts.explode({x:source.x,y:source.y,born:clock,radius:radius??Math.min(420,Math.max(120,size*2.2+100)),duration,sourceKey,system,affectAsteroids:!String(sourceKey).startsWith('asteroid:')});
+    impacts.explode({x:source.x,y:source.y,born:clock,radius:radius??Math.min(420,Math.max(120,size*2.2+100)),duration,sourceKey,system,affectAsteroids:false});
   }
-  function debris(state,piece,oldX,oldY,{sourceKey=null}={}){
+  function debris(state,piece,oldX,oldY,{sourceKey=null,dt=1/60}={}){
     if(!state||piece.ore||document.hidden||window.nativePause?.active||window.nativeShipInventory?.active||window.vexedWarp?.active)return;ensureState(state);
     if(targetsDirty)refreshTargets(state);
     // Some wreck renderers use local effect clocks for particle birth times.
     // This wrapper preserves them and uses the adapter's paused simulation clock.
-    const sample={x:piece.x,y:piece.y,w:piece.w,h:piece.h,size:piece.size??piece.radius*2};
+    if(!(dt>0)||!Number.isFinite(dt))return;
+    const sample={x:piece.x,y:piece.y,w:piece.w,h:piece.h,size:Math.max(2,Number(piece.size)||Number(piece.radius)*2||Math.hypot(piece.w||0,piece.h||0)*.6||2),
+      vx:Number.isFinite(piece.vx)?piece.vx:(piece.x-oldX)/dt,vy:Number.isFinite(piece.vy)?piece.vy:(piece.y-oldY)/dt,spin:piece.spin||0,dt};
     sample.born=0;
     let identity=pieceIdentities.get(piece);if(!identity){identity=sample;pieceIdentities.set(piece,identity);}else Object.assign(identity,sample);
     impacts.stepDebris(identity,oldX,oldY,clock,{sourceKey,system:piece.system??state.system});
+    Object.assign(piece,{x:identity.x,y:identity.y,vx:identity.vx,vy:identity.vy,spin:identity.spin});
   }
   let pieceIdentities=new WeakMap();
   function advance(state,dt){

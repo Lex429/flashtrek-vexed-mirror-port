@@ -1,5 +1,5 @@
-/* Explosion pressure and swept debris contacts are visual-only for ships.
-   Asteroid destruction is delegated to the scene's existing destruction path. */
+/* Shared contact collection. Live scenes supply physical debris response and
+   environmental damage policy; the artwork showcase supplies its own adapter. */
 (() => {
   'use strict';
   function sweptCircleContact(from,to,center,radius){
@@ -10,8 +10,8 @@
     const t=(-b-Math.sqrt(disc))/(2*a);
     return t>=0&&t<=1?{x:from.x+dx*t,y:from.y+dy*t,t}:null;
   }
-  window.createEnvironmentalImpacts=({getShips=()=>[],getAsteroids=()=>[],onShipImpact=()=>{},onAsteroidHit=()=>{}}={})=>{
-    let waves=[],pieceHits=new WeakMap(),history=[];
+  window.createEnvironmentalImpacts=({getShips=()=>[],getAsteroids=()=>[],onShipImpact=()=>{},onAsteroidHit=()=>{},debrisContact=null,resolveDebris=null}={})=>{
+    let waves=[],pieceHits=new WeakMap(),sourceCleared=new WeakSet(),history=[];
     const key=(type,target)=>`${type}:${target.id??target.slotId}`;
     const radius=target=>Math.max(1,Number(target.radius)||Number(target.size)*.45||Math.hypot(target.w||0,target.h||0)*.5);
     const position=target=>({x:target.centerX??target.x,y:target.centerY??target.y});
@@ -46,11 +46,21 @@
       const from={x:oldX,y:oldY},to={x:piece.x,y:piece.y},padding=Math.min(12,Math.max(piece.w||0,piece.h||0,piece.size||0)*.25),contacts=[];
       for(const [type,targets] of [['ship',getShips()],['asteroid',getAsteroids()]])for(const target of targets){
         if(skipShips&&type==='ship')continue;
-        const id=key(type,target);if(id===sourceKey||hits.has(id)||!matches({system},target))continue;
-        const contact=sweptCircleContact(from,to,position(target),radius(target)+padding);if(contact)contacts.push({type,target,id,contact});
+        const id=key(type,target);if((!resolveDebris&&hits.has(id))||!matches({system},target))continue;
+        if(id===sourceKey&&(!resolveDebris||!sourceCleared.has(piece))){
+          const center=position(target),r=target.descriptor?.radii,bound=r?Math.max(r.rx,r.ry):radius(target);
+          if(resolveDebris&&Math.hypot(to.x-center.x,to.y-center.y)>bound+padding)sourceCleared.add(piece);
+          continue; // Birth immunity ends once the fragment leaves its parent.
+        }
+        const contact=debrisContact?debrisContact(piece,from,target,type):sweptCircleContact(from,to,position(target),radius(target)+padding);if(contact)contacts.push({type,target,id,contact});
       }
       contacts.sort((a,b)=>a.contact.t-b.contact.t);
-      for(const {type,target,id,contact} of contacts){hits.add(id);record(type,target,{x:contact.x,y:contact.y,born:time,kind:'debris',from,visualOnly:true});}
+      for(const {type,target,id,contact} of contacts){
+        const firstHit=!hits.has(id);hits.add(id);
+        if(resolveDebris)resolveDebris(piece,target,type,contact);
+        if(!resolveDebris||contact.closing>.000001)record(type,target,{x:resolveDebris?piece.x:contact.x,y:resolveDebris?piece.y:contact.y,born:time,kind:'debris',from,visualOnly:true,firstHit,closing:contact.closing});
+        if(resolveDebris)return [{type,target,id,contact}]; // Follow the reflected path on the next physics step.
+      }
       return contacts;
     }
     function draw(ctx,time,{offsetX=0,offsetY=0}={}){
@@ -58,7 +68,7 @@
       for(const wave of waves){const t=(time-wave.born)/wave.duration;if(t<0||t>1)continue;ctx.globalAlpha=Math.sin(Math.PI*t)*.24;ctx.strokeStyle='#ffd7a1';ctx.beginPath();ctx.arc(wave.x+offsetX,wave.y+offsetY,Math.max(.1,wave.radius*t),0,Math.PI*2);ctx.stroke();}
       ctx.restore();
     }
-    return Object.freeze({explode,update,stepDebris,draw,hasWaves:()=>waves.length>0,reset:()=>{waves=[];pieceHits=new WeakMap();history=[];},snapshot:()=>({waves:waves.length,impacts:history.map(event=>({...event}))})});
+    return Object.freeze({explode,update,stepDebris,draw,hasWaves:()=>waves.length>0,reset:()=>{waves=[];pieceHits=new WeakMap();sourceCleared=new WeakSet();history=[];},snapshot:()=>({waves:waves.length,impacts:history.map(event=>({...event}))})});
   };
   window.sweptDebrisCircleContact=sweptCircleContact;
   window.createDebrisImpacts=()=>{

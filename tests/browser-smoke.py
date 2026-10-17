@@ -95,7 +95,7 @@ try:
           const before=JSON.stringify([state.hull,state.shields,civilian.hull,civilian.shields,tug.hull,tug.shields]);
           nativeEnvironmentalImpacts.explode(state,{x:origin.x+25,y:origin.y,size:80},{radius:180});
           for(let i=0;i<65;i++){nativeSimulation.advance(state,1/60);nativeEnvironmentalImpacts.advance(state,1/60);}
-          check(state.destroyedAsteroids.includes(rock.slotId),'Blast did not destroy nearby asteroid');
+          check(!state.destroyedAsteroids.includes(rock.slotId),'Blast destroyed nearby asteroid');
           check(JSON.stringify([state.hull,state.shields,civilian.hull,civilian.shields,tug.hull,tug.shields])===before,'Explosion damaged ship health');
           check(nativeShipEffects.snapshot(nativeShipDefinitions.describe(state,civilian,{category:'civilian'})).flash&&nativeShipEffects.snapshot(nativeShipDefinitions.describe(state,tug,{category:'tug'})).flash,'Blast did not flash nearby ship shields');
           const snapshot=nativeEnvironmentalImpacts.snapshot();
@@ -109,7 +109,7 @@ try:
           check(civilian.hull===100&&tug.hull===100,'Unshielded blast contact damaged hull');
           rocks.splice(rocks.indexOf(rock),1);
           return {layers:window.__layers,beam:beam.name,missedBeamDestroyedAsteroid:true,
-            blastDestroyedAsteroid:true,shipHealthUnchanged:true,shipShieldFlashes:true,unshieldedHullUnchanged:true,
+            blastPreservedAsteroid:true,shipHealthUnchanged:true,shipShieldFlashes:true,unshieldedHullUnchanged:true,
             pauseFreezesBlast:true,environmentalImpacts:snapshot.impacts.length};
         }""")
         owned_before = page.evaluate("""() => {

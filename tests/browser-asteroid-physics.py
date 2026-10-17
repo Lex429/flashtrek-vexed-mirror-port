@@ -87,7 +87,17 @@ try:
               near(flashes.at(-1).x,cx+rotated.x-camera.x,'Rotated contact x');near(flashes.at(-1).y,cy+rotated.y-camera.y,'Rotated contact y');
             }else paint();
             ctx.fillStyle='#fff';ctx.font='13px sans-serif';ctx.fillText(category+' / '+(shielded?'shield':'hull'),cx-90,cy+90);
-            scenarios.push({category,shielded,vx:saved.vx,vy:saved.vy,spin:saved.spin,shipHealthUnchanged:true});
+            s.minedAsteroids.push(rockId);nativeEnvironmentalImpacts.reset();
+            const previousVX=entity.vx,previousParticles=nativeShipEffects.snapshot(d).particles;
+            const debris={x:d.x+120,y:d.y,vx:400,vy:0,size:6,system:1};
+            nativeEnvironmentalImpacts.debris(s,debris,d.x-120,d.y,{dt:.6,sourceKey:'ship:foreign'});
+            check(debris.vx<399||Math.abs(debris.vy)>1,category+' did not deflect debris from '+(shielded?'shield':'hull'));check(entity.vx>previousVX,'Debris did not transfer ship momentum');
+            d=nativeShipDefinitions.describe(s,entity,{category});const debrisVisual=nativeShipEffects.snapshot(d);
+            if(shielded){
+              check(debrisVisual.flash?.kind==='debris','Debris shield effect missing');flashes.length=0;paint();
+              const point=nativeCombatShots.worldPoint(d,debrisVisual.flash);near(flashes.at(-1).x,cx+point.x-camera.x,'Debris shield pixel x');near(flashes.at(-1).y,cy+point.y-camera.y,'Debris shield pixel y');
+            }else check(debrisVisual.particles>previousParticles,'Debris hull sparks missing');
+            scenarios.push({category,shielded,vx:saved.vx,vy:saved.vy,spin:saved.spin,shipHealthUnchanged:entity.hull===1000&&entity.shields===(shielded?1000:0),debrisBounce:true});
           }
           const weapons=[];
           for(const kind of ['beam','disruptor','torpedo']){
@@ -100,11 +110,46 @@ try:
             check(s.destroyedAsteroids.includes(rockId),kind+' did not instantly destroy high-health rock on contact');weapons.push({kind,name:model.name,damage:model.damage});
           }
           const s=fresh(),r=nativeSolAsteroids.find(rockId);r.maxHull=20;
-          const debris=()=>({x:r.x+100,y:r.y,size:4,system:1}),piece=debris();
-          nativeEnvironmentalImpacts.debris(s,piece,r.x-100,r.y);near(s.asteroidDamage[rockId],5,'First debris quarter');
-          nativeEnvironmentalImpacts.debris(s,piece,r.x-100,r.y);near(s.asteroidDamage[rockId],5,'Repeated overlap');
-          for(let i=0;i<3;i++)nativeEnvironmentalImpacts.debris(s,debris(),r.x-100,r.y);
-          check(s.destroyedAsteroids.filter(id=>id===rockId).length===1,'Four debris impacts did not destroy exactly once');
+          const debris=()=>({x:r.x+60,y:r.y,size:4,system:1,vx:240,vy:0}),piece=debris();
+          const strike=p=>nativeEnvironmentalImpacts.debris(s,p,r.x-60,r.y,{dt:.5});
+          strike(piece);near(s.asteroidDamage[rockId],5,'First debris quarter');check(piece.vx<0,'Fragment did not physically rebound');
+          Object.assign(piece,debris());strike(piece);near(s.asteroidDamage[rockId],5,'Repeated overlap');
+          for(let i=0;i<12;i++)strike(debris());
+          near(s.asteroidDamage[rockId],15,'Environmental health floor');check(!s.destroyedAsteroids.includes(rockId),'Debris destroyed rock at floor');
+          check(!s.asteroidOreDrops[rockId],'Collision minted collectible ore');
+          const chipsAtFloor=nativeAsteroidCombat.metrics().chips;for(let i=0;i<12;i++)strike(debris());
+          check(nativeAsteroidCombat.metrics().chips===chipsAtFloor,'Floor contacts repeatedly emitted damage chips');
+          check(chipsAtFloor>0&&chipsAtFloor<=3,'Damage states did not shed bounded chips');
+          const dense=fresh();dense.system=43;Object.assign(dense,{x:-180,y:0,angle:0,vx:0,vy:0,speed:0});
+          const field=nativeSolAsteroids.forSystem(43),belt=field.slice(0,25),keep=new Set(belt.map(r=>r.slotId));
+          dense.minedAsteroids=field.filter(r=>!keep.has(r.slotId)).map(r=>r.slotId);dense.destroyedAsteroids=[];dense.asteroidDamage={};dense.asteroidOreDrops={};
+          nativeAsteroidMotion.ensure(dense);
+          for(let i=0;i<belt.length;i++){const x=(i%5)*55,y=(Math.floor(i/5)-2)*55;nativeSolAsteroids.relocate(belt[i],{x,y,previousX:x,previousY:y,angle:belt[i].angle});}
+          await Promise.all(belt.map(r=>nativeSolAsteroids.image(r.file).decode()));
+          const chosen=belt[10],model=VexedMirrorWeapons.filter(m=>m.damage>0&&nativeCombatShots.weaponVisual(m).kind==='beam').sort((a,b)=>a.damage-b.damage)[0];
+          nativeWeaponLoadout.refit(dense,[model.id,null,null]);nativeAsteroidCombat.select(chosen);
+          const shooter=nativeShipDefinitions.describe(dense,dense,{category:'player'}),shot=nativeAsteroidCombat.fire(dense,shooter,shooter.dimensions.width,shooter.dimensions.height);check(shot.ok,'Dense-belt weapon did not fire');
+          let peakPieces=0,peakBursts=0;
+          for(let i=0;i<600;i++){
+            nativeSimulation.advance(dense,1/60);nativeAsteroidMotion.advance(dense,1/60);nativeShipSystems.move(dense,dense,'player',{},undefined,1/60);
+            nativeCombatShots.advance(dense,1/60);nativeEnvironmentalImpacts.advance(dense,1/60);nativeShipEffects.advance(dense,1/60);nativeAsteroidCombat.advance(dense,1/60);nativeAsteroidMotion.collide(dense,1/60);
+            const m=nativeAsteroidCombat.metrics();peakPieces=Math.max(peakPieces,m.pieces);peakBursts=Math.max(peakBursts,m.bursts);
+            check(dense.destroyedAsteroids.length<=1,'One shot caused secondary asteroid explosions');
+          }
+          check(dense.destroyedAsteroids.length===1&&dense.destroyedAsteroids[0]===chosen.slotId,'Weapon destruction authority changed');
+          check(belt.filter(r=>r!==chosen).every(r=>(dense.asteroidDamage[r.slotId]||0)<=r.maxHull*.75+1e-8),'Dense-belt collision bypassed health floor');
+          check(peakBursts<=12&&peakPieces<=264,'Damage chip population escaped its bounds');
+          check(Object.keys(dense.asteroidOreDrops).every(id=>Number(id)===chosen.slotId),'Secondary damage created collectible ore');
+          const damaged=belt.filter(r=>r!==chosen&&dense.asteroidDamage[r.slotId]>0);check(damaged.length>0,'Dense belt did not exercise real debris damage');
+          for(const sourceKey of ['ship:player','ship:civilian:999','ship:tug:999','asteroid:999',null]){
+            nativeEnvironmentalImpacts.explode(dense,{x:100,y:0,size:500,system:43},{sourceKey});nativeSimulation.advance(dense,1);nativeEnvironmentalImpacts.advance(dense,1);
+            check(dense.destroyedAsteroids.length===1,'Explosion source bypassed floor');
+          }
+          const noChainReaction={rocks:belt.length,destroyed:dense.destroyedAsteroids.length,damaged:damaged.length,peakPieces,peakBursts,chipsAtFloor};
+          await Promise.all(belt.filter(r=>r!==chosen).map(r=>nativeSolAsteroids.image(nativeSolAsteroids.frame(r,dense.asteroidDamage[r.slotId])).decode()));
+          const proof=document.createElement('canvas');proof.id='collision-floor-output';proof.width=900;proof.height=500;proof.style.cssText='position:fixed;left:10px;top:100px;z-index:100001;background:#050a12';document.body.append(proof);
+          const proofCtx=proof.getContext('2d');nativeSolAsteroids.paint(proofCtx,{state:dense,system:43,ship:{x:100,y:0},cx:450,cy:250,zoom:1,w:900,h:500,mined:[...dense.minedAsteroids,...dense.destroyedAsteroids],damage:dense.asteroidDamage});
+          proofCtx.fillStyle='#fff';proofCtx.font='17px sans-serif';proofCtx.fillText('One weapon target destroyed; all 24 neighboring asteroids survived.',30,35);
           const incoming=[];
           for(const category of ['player','civilian','tug'])for(const size of [20,70]){
             const initial=fresh(),r=nativeSolAsteroids.find(rockId),x=r.x,y=r.y,oldSize=r.size;
@@ -128,6 +173,7 @@ try:
           const chainState=fresh(),chainRocks=nativeSolAsteroids.forSystem(43).slice(0,3),at=nativeSimulation.seconds(chainState),positions=[0];
           for(let i=1;i<3;i++)positions.push(positions[i-1]+(chainRocks[i-1].size+chainRocks[i].size)*.43+8);
           const chained={...chainState,asteroidMotion:{version:1,rocks:Object.fromEntries(chainRocks.map((r,i)=>[r.slotId,{system:43,x:positions[i],y:0,angle:r.angle,vx:i?0:60,vy:0,spin:0,at}]))}};
+          chained.minedAsteroids=[...chainState.minedAsteroids,...nativeSolAsteroids.forSystem(43).filter(r=>!chainRocks.includes(r)).map(r=>r.slotId)];
           nativeAsteroidMotion.ensure(chained);
           for(let i=0;i<180;i++){nativeSimulation.advance(chained,1/60);nativeAsteroidMotion.advance(chained,1/60);}
           check(chainRocks.every(r=>r.vx>0),'Offscreen whole-rock chain did not transfer motion to every rock');
@@ -140,9 +186,12 @@ try:
           const d=nativeShipDefinitions.describe(live,live,{category:'player'});Object.assign(live,{x:moving.x-d.radii.ry-moving.size*.43+1,y:moving.y,previousX:moving.x-200,previousY:moving.y,angle:0,speed:40,vx:40,vy:0});
           nativeAsteroidMotion.collide(live,.1);check(live.asteroidMotion.rocks[moving.slotId],'Live state push did not persist');
           const save={id:moving.slotId,pose:clone(live.asteroidMotion.rocks[moving.slotId])};document.querySelector('#save').click();
-          return {scenarios,weapons,incoming,chain,debrisQuarterDamage:true,debrisDeduplicated:true,save};
+          return {scenarios,weapons,incoming,chain,noChainReaction,debrisQuarterDamage:true,debrisDeduplicated:true,save};
         }''')
+        page.locator('#collision-floor-output').evaluate('(el)=>el.style.visibility="hidden"')
         page.locator('#asteroid-physics-output').screenshot(path=str(OUTPUT/'contacts.png'))
+        page.locator('#collision-floor-output').evaluate('(el)=>el.style.visibility="visible"')
+        page.locator('#collision-floor-output').screenshot(path=str(OUTPUT/'collision-floor.png'))
         page.reload()
         page.locator('[data-menu="continue"]').click(timeout=30000)
         page.wait_for_function('()=>nativeNpcDev.getState()&&nativeSolAsteroids.placements.length')

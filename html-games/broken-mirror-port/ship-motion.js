@@ -210,7 +210,8 @@
     }
     return result;
   }
-  const asteroidMass=rock=>Math.max(.05,(rock.size/40)**3);
+  const asteroidMass=rock=>Math.max(.00005,(rock.size/40)**3);
+  const collisionDamageFraction=(closing,otherMass,selfMass)=>Math.min(1,(Math.max(0,closing-70)/180)**2*otherMass/(otherMass+selfMass));
   // Swept ellipse/circle contact uses the same oriented shield/hull radii as
   // weapons. Both bodies receive a mass-weighted impulse; no health is changed.
   function asteroidContact(ship,rock,dt){
@@ -239,7 +240,7 @@
     return {t,normal:{x:nx,y:ny},closing,shipMass,rockMass,
       rock:{x:rock.x+nx*penetration*rockShare,y:rock.y+ny*penetration*rockShare,vx:rockVX+ix/rockMass,vy:rockVY+iy/rockMass,spin:clamp(finite(rock.spin)+friction/Math.max(.01,rockMass*radius)*2.5,-5,5)},
       ship:{x:ship.x-nx*penetration*shipShare,y:ship.y-ny*penetration*shipShare,vx:finite(ship.vx)-ix/shipMass,vy:finite(ship.vy)-iy/shipMass},
-      damageFraction:Math.min(1,(Math.max(0,closing-70)/180)**2*shipMass/(shipMass+rockMass)),
+      damageFraction:collisionDamageFraction(closing,shipMass,rockMass),
       point:{x:rock.x-nx*radius,y:rock.y-ny*radius}};
   }
   function asteroidPairContact(a,b,dt){
@@ -254,9 +255,16 @@
     const impulse=1.18*closing/inverse,friction=clamp(tangent/(3.5*inverse),-impulse*.08,impulse*.08),ix=nx*impulse-ny*friction,iy=ny*impulse+nx*friction;
     const avx=finite(a.vx)-ix/ma,avy=finite(a.vy)-iy/ma,bvx=finite(b.vx)+ix/mb,bvy=finite(b.vy)+iy/mb,remaining=dt*(1-t),penetration=Math.max(0,r-length)+.02;
     const pa={x:ax+(a.x-ax)*t,y:ay+(a.y-ay)*t},pb={x:bx+(b.x-bx)*t,y:by+(b.y-by)*t};
-    return {t,closing,normal:{x:nx,y:ny},massA:ma,massB:mb,
+    return {t,closing,normal:{x:nx,y:ny},massA:ma,massB:mb,damageA:collisionDamageFraction(closing,mb,ma),damageB:collisionDamageFraction(closing,ma,mb),
       a:{x:pa.x+avx*remaining-nx*penetration*mb/(ma+mb),y:pa.y+avy*remaining-ny*penetration*mb/(ma+mb),vx:avx,vy:avy,spin:clamp(finite(a.spin)-friction/(ma*a.size*.43)*2.5,-5,5)},
       b:{x:pb.x+bvx*remaining+nx*penetration*ma/(ma+mb),y:pb.y+bvy*remaining+ny*penetration*ma/(ma+mb),vx:bvx,vy:bvy,spin:clamp(finite(b.spin)-friction/(mb*b.size*.43)*2.5,-5,5)}};
   }
-  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample};
+  function debrisContact(piece,from,target,type){
+    const dt=Math.max(.000001,finite(piece.dt,1/60)),body={...piece,previousX:from.x,previousY:from.y};
+    if(type==='ship'){
+      const result=asteroidContact(target,body,dt);return result?{...result,targetPose:result.ship,debrisPose:result.rock}:null;
+    }
+    const result=asteroidPairContact(target,body,dt);return result?{...result,targetPose:result.a,debrisPose:result.b}:null;
+  }
+  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,collisionDamageFraction,debrisContact};
 })();

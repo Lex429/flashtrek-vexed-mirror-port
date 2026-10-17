@@ -80,15 +80,65 @@ test('scheduled NPC knockback is sampled consistently without changing its route
   m.stop(entity);assert.equal(entity.motionKick,undefined);assert.equal(entity.speed,0);
 });
 
-test('four distinct debris fragments remove exactly 25% each; overlap never repeats damage',async()=>{
+test('all debris rebounds, deals quarter-health damage once and stops at 25% remaining health',async()=>{
   const f=await setup(),w=f.window,s=f.state,r=w.nativeSolAsteroids.forSystem(43)[0];r.maxHull=20;
-  const fragment=()=>({x:r.x+100,y:r.y,size:4,system:43});
-  const first=fragment();w.nativeEnvironmentalImpacts.debris(s,first,r.x-100,r.y);
+  const fragment=()=>({x:r.x+60,y:r.y,size:4,system:43,vx:240,vy:0});
+  const strike=piece=>w.nativeEnvironmentalImpacts.debris(s,piece,r.x-60,r.y,{dt:.5,sourceKey:'ship:tug:999'});
+  const first=fragment();strike(first);assert.ok(first.vx<0,'real debris velocity rebounds from the rock');
   assert.equal(s.asteroidDamage[r.slotId],5);
-  w.nativeEnvironmentalImpacts.debris(s,first,r.x-100,r.y);assert.equal(s.asteroidDamage[r.slotId],5);
-  for(let i=2;i<=4;i++){w.nativeEnvironmentalImpacts.debris(s,fragment(),r.x-100,r.y);if(i<4){assert.equal(s.asteroidDamage[r.slotId],i*5);assert.ok(!s.destroyedAsteroids.includes(r.slotId));}}
-  assert.equal(s.destroyedAsteroids.filter(id=>id===r.slotId).length,1);
-  assert.equal(w.nativeAsteroidCombat.debrisHit(s,r.slotId).ok,false);
+  Object.assign(first,fragment());strike(first);assert.equal(s.asteroidDamage[r.slotId],5,'one fragment cannot repeatedly charge damage');
+  for(let i=2;i<=12;i++){const p=fragment();strike(p);assert.equal(s.asteroidDamage[r.slotId],Math.min(i,3)*5);assert.ok(p.vx<0);}
+  assert.ok(!s.destroyedAsteroids.includes(r.slotId));assert.equal(w.nativeAsteroidCombat.debrisHit(s,r.slotId).damage,0);
+  assert.equal(s.asteroidOreDrops?.[r.slotId],undefined);
+  s.asteroidDamage[r.slotId]=18;w.nativeAsteroidCombat.debrisHit(s,r.slotId);assert.equal(s.asteroidDamage[r.slotId],18,'older rocks below the floor are not healed or destroyed');
+  w.nativeAsteroidCombat.completeMining(s,r.slotId);const origin={x:r.x,y:r.y},afterMining=fragment();strike(afterMining);
+  near(r.x,origin.x);near(r.y,origin.y);assert.equal(afterMining.vx,240,'a cached depleted target cannot move the ore origin');
+});
+
+test('ship and asteroid pressure waves cannot destroy or damage neighboring rocks',async()=>{
+  const f=await setup(),w=f.window,s=f.state,r=w.nativeSolAsteroids.forSystem(43)[0];r.maxHull=1;
+  for(const sourceKey of ['ship:player','ship:tug:91','ship:civilian:91','asteroid:91',null]){
+    w.nativeEnvironmentalImpacts.explode(s,{x:r.x,y:r.y,size:200,system:43},{sourceKey});
+    w.nativeSimulation.advance(s,1);w.nativeEnvironmentalImpacts.advance(s,1);
+    assert.ok(!s.destroyedAsteroids.includes(r.slotId));assert.equal(s.asteroidDamage?.[r.slotId],undefined);
+  }
+});
+
+test('fragments leave their parent safely and can physically rebound into it on return',async()=>{
+  const f=await setup(),w=f.window,s=f.state,r=w.nativeSolAsteroids.forSystem(43)[0];r.maxHull=20;
+  const sourceKey='asteroid:'+r.slotId,piece={x:r.x+10,y:r.y,size:4,vx:100,vy:0,system:43};
+  w.nativeEnvironmentalImpacts.debris(s,piece,r.x,r.y,{sourceKey,dt:.1});assert.equal(s.asteroidDamage?.[r.slotId],undefined);
+  const previous=piece.x;piece.x=r.x+50;w.nativeEnvironmentalImpacts.debris(s,piece,previous,r.y,{sourceKey,dt:.4});
+  const start=piece.x;piece.x=r.x-60;piece.vx=-220;w.nativeEnvironmentalImpacts.debris(s,piece,start,r.y,{sourceKey,dt:.5});
+  assert.ok(piece.vx>0);assert.equal(s.asteroidDamage[r.slotId],5);assert.ok(!s.destroyedAsteroids.includes(r.slotId));
+});
+
+test('the environmental floor survives extreme hits and reload while weapons and mining retain destruction authority',async()=>{
+  let f=await setup(),w=f.window,s=f.state,r=w.nativeSolAsteroids.forSystem(43)[0];r.maxHull=20;
+  for(const kind of ['asteroid','ship','debris','explosion']){
+    const result=w.nativeAsteroidCombat.hit(s,r.slotId,1e9,{kind});assert.equal(result.hull,5);assert.equal(result.destroyed,false);
+  }
+  const id=r.slotId;f=await setup(copy(s));w=f.window;s=f.state;r=w.nativeSolAsteroids.find(id);
+  const before=s.asteroidDamage[id];w.nativeAsteroidCombat.hit(s,id,1e9,{kind:'asteroid'});assert.equal(s.asteroidDamage[id],Math.max(before,r.maxHull*.75));
+  assert.equal(w.nativeAsteroidCombat.weaponHit(s,id,.001).destroyed,true);assert.equal(s.destroyedAsteroids.filter(x=>x===id).length,1);
+  const mined=w.nativeSolAsteroids.forSystem(43)[1];assert.equal(w.nativeAsteroidCombat.completeMining(s,mined).oreMask,15);assert.equal(s.asteroidOreDrops[mined.slotId],15);
+});
+
+test('all ship roles use shield/hull debris bounce and the shared mass impulse without losing health',async()=>{
+  for(const category of ['player','civilian','tug'])for(const shielded of [false,true]){
+    const f=await setup(),w=f.window,s=f.state; s.system=category==='tug'?1:43;
+    s.minedAsteroids=w.nativeSolAsteroids.forSystem(s.system).map(r=>r.slotId);
+    let entity=s;
+    if(category!=='player'){
+      s.x=1e6;entity={id:901,system:s.system,shipType:7,phase:'cruise',hull:100};
+      if(category==='tug')s.solEconomy.freighters=[entity];else s.civilianTraffic.ships=[entity];
+    }
+    Object.assign(entity,{x:0,y:0,previousX:0,previousY:0,angle:0,heading:0,vx:0,vy:0,speed:0,shields:shielded?100:0,dimensions:{width:30,height:60}});
+    const piece={x:100,y:0,vx:400,vy:0,size:8,system:s.system};
+    w.nativeEnvironmentalImpacts.debris(s,piece,-100,0,{dt:.5,sourceKey:'ship:civilian:999'});
+    assert.ok(piece.vx<0,`${category} ${shielded?'shield':'hull'} must rebound debris`);
+    assert.ok(entity.vx>0);assert.ok(entity.motionKick);assert.equal(entity.hull,100);assert.equal(entity.shields,shielded?100:0);
+  }
 });
 
 test('all combat-hit strengths destroy rocks, preserve combat ore rules and cannot mint ore twice',async()=>{

@@ -147,14 +147,17 @@ test('environmental impacts flash shields or hull sparks without damage or retal
   assert.equal(state.civilianTraffic.retaliations.length, 0);
 });
 
-test('asteroid damage accumulates and destruction happens once', async () => {
+test('environmental asteroid damage stops at the floor and weapon destruction happens once', async () => {
   const { window } = await environment();
   const state = stateWith([]), rock = { slotId: 2, x: 100, y: 0, size: 20, maxHull: 10 };
   window.nativeSolAsteroids.placements.push(rock);
   let explosions = 0;
   window.nativeEnvironmentalImpacts = { explode: () => explosions++ };
   assert.equal(window.nativeAsteroidCombat.hit(state, 2, 4).hull, 6);
-  assert.equal(window.nativeAsteroidCombat.hit(state, 2, 6).destroyed, true);
+  assert.equal(window.nativeAsteroidCombat.hit(state, 2, 6).hull, 2.5);
+  assert.equal(window.nativeAsteroidCombat.hit(state, 2, 1e6).damage, 0);
+  assert.equal(explosions, 0);
+  assert.equal(window.nativeAsteroidCombat.weaponHit(state, 2, .001).destroyed, true);
   assert.equal(window.nativeAsteroidCombat.destroy(state, 2).ok, false);
   assert.equal(explosions, 1);
 });

@@ -64,7 +64,13 @@ NPC samples recover their route without replaying offsets or changing escrow.
 `sol-asteroids.relocate` must update the same spatial index used by mining,
 targeting and radar. Preserve seeded geometry/IDs when starting a different save.
 Combat weapon contacts use `asteroid-combat.weaponHit`; debris uses `debrisHit`
-for exactly 25% of maximum health per distinct fragment. Shattered-rock pressure
-waves must not bypass that rule. Keep mining timed and ore claims exactly once.
+for up to 25% of maximum health per distinct fragment. All environmental damage
+uses `asteroid-combat.hit` and stops at 25% remaining health, preserving older
+rocks already below that floor. Live pressure waves cannot damage/destroy rocks.
+Ship and asteroid fragments use `ship-motion.debrisContact` through the shared
+environment collector and `asteroid-motion` dispatcher. Reflect the actual
+simulation particle; painting must read its resolved world position. Emit at
+most three cached-art chips per damage-stage change, never at the health floor
+and never as ore. Keep mining timed and ore claims exactly once.
 Run `asteroid-physics.test.cjs` and `browser-asteroid-physics.py`, including the
 30-minute production-policy fixture with `physics:true`, plus existing suites.
