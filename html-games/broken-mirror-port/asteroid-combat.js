@@ -110,6 +110,8 @@
   function finishRock(state,rock,fromMining,onFinish){
     activeState=state;
     if(gone(state,rock.slotId))return;
+    window.nativeAsteroidMotion?.freeze(state,rock);
+    window.nativeShipSystems?.invalidate(state,rock.system??state.system);
     if(targetId===rock.slotId)targetId=null;
     if(fromMining)state.minedAsteroids=[...(state.minedAsteroids||[]),rock.slotId];
     else state.destroyedAsteroids=[...(state.destroyedAsteroids||[]),rock.slotId];
@@ -142,6 +144,10 @@
     if(state.asteroidDamage[id]>=Math.max(1,Number(rock.maxHull)||rock.size*.45))return destroy(state,rock,onFinish);
     return {ok:true,destroyed:false,hull:Math.max(0,(Number(rock.maxHull)||rock.size*.45)-state.asteroidDamage[id])};
   }
+  // Combat hits are lethal regardless of weapon strength. Environmental hits
+  // retain ordinary health accounting, separate from the mining entitlement.
+  function weaponHit(state,id,damage,impact=null,onFinish){return destroy(state,id,onFinish);}
+  function debrisHit(state,id){const rock=rockById(id);return rock?hit(state,id,Math.max(1,Number(rock.maxHull)||rock.size*.45)*.25):{ok:false};}
   function fire(state,ship,shipWidth,shipHeight,onFinish){
     activeState=state;
     const rock=target();
@@ -212,6 +218,11 @@
       const rock=rockById(operation.rockId,operation.system);
       if(rock)mining={rock,ship:operation.source,born:operation.born,finished:operation.finished,state,effect:null};
       else delete state.miningOperation;
+    }
+    if(mining&&!mining.finished){
+      const source=state.system===1?window.vexedSolFlight.shipPosition(state):state;
+      if(gone(state,mining.rock.slotId)||distance(source,mining.rock)>360){mining=null;delete state.miningOperation;}
+      else{mining.ship={x:source.x,y:source.y};if(state.miningOperation)state.miningOperation.source={...mining.ship};}
     }
     if(mining){
       const age=time-mining.born;
@@ -295,5 +306,5 @@
     }
     for(const entry of collections){if((entry.rock.system??1)===state.system)drawOreTransport(ctx,entry,{ship,cx,cy,now,zoom,w,h});}
   }
-  window.nativeAsteroidCombat={select,deselect,autoTarget,clear,collect,collectField,fire,hit,destroy,completeMining,miningTiming,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
+  window.nativeAsteroidCombat={select,deselect,autoTarget,clear,collect,collectField,fire,hit,weaponHit,debrisHit,destroy,completeMining,miningTiming,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
 })();

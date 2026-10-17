@@ -17,6 +17,7 @@
   const inhabited=(state,id)=>!access()||access().inhabited(state,id);
   const rocksIn=id=>window.nativeSolAsteroids?.forSystem?.(id)||(Number(id)===1?window.nativeSolAsteroids?.placements:[])||[];
   const rockById=(id,system)=>window.nativeSolAsteroids?.find?.(id,system)||rocksIn(system).find(r=>r.slotId===id);
+  const gone=(state,id)=>state.minedAsteroids?.includes(id)||state.destroyedAsteroids?.includes(id);
   function anchor(id){
     const own=window.nativeManualFlight?.anchor(id);if(own)return own;
     const earth=system(1)?.mapPosition||{x:0,y:0},p=system(id)?.mapPosition||({51:{x:-250,y:-125},52:{x:-220,y:-160}}[id]);
@@ -476,6 +477,7 @@
   }
   function mine(state,ship,at){
     const rock=rockById(ship.task.requirements.rockId,ship.system);
+    if(rock&&!gone(state,rock.slotId)&&Math.hypot(ship.x-rock.x,ship.y-rock.y)>360){localLeg(state,ship,{x:rock.x+110,y:rock.y+40},at,'mining-flight');return;}
     if(!rock||!window.nativeAsteroidCombat.completeMining(state,rock).ok){interrupt(state,ship,'resource unavailable',at);return;}
     ship.task.cutAt=at;ship.task.phase='collecting';ship.phase='collecting';
     event(state,ship,'mining-cut',`Cut the reserved asteroid; ore transport is in progress`,at);
@@ -577,7 +579,11 @@
     }
     if(job.phase==='unloading'){unload(state,ship,at);return;}
     if(job.phase==='mining-flight'){
-      if(!arriveLeg(state,ship,at))return;delete ship.localLeg;job.phase='mining';ship.phase='mining';ship.miningStartedAt=at;ship.miningSourceX=ship.x;ship.miningSourceY=ship.y;schedule(state,ship,at+window.nativeAsteroidCombat.miningTiming.cutSeconds);return;
+      if(!arriveLeg(state,ship,at))return;
+      const rock=rockById(job.requirements.rockId,ship.system);
+      if(!rock||gone(state,rock.slotId)){interrupt(state,ship,'resource unavailable',at);return;}
+      if(Math.hypot(ship.x-rock.x,ship.y-rock.y)>300){localLeg(state,ship,{x:rock.x+110,y:rock.y+40},at,'mining-flight');return;}
+      delete ship.localLeg;job.phase='mining';ship.phase='mining';ship.miningStartedAt=at;ship.miningSourceX=ship.x;ship.miningSourceY=ship.y;schedule(state,ship,at+window.nativeAsteroidCombat.miningTiming.cutSeconds);return;
     }
     if(job.phase==='mining'){mine(state,ship,at);return;}
     if(job.phase==='collecting'){const rock=rockById(job.requirements.rockId,ship.system);if(rock)claimMined(state,ship,rock,at);else interrupt(state,ship,'resource unavailable',at);return;}

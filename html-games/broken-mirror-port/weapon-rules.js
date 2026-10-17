@@ -42,6 +42,10 @@
     for(const rock of rocks){const t=circleSweep(from,to,rock,rock.size*.43+padding);if(t!=null&&(!best||t<best.t))best={t,rock};}
     return best;
   }
+  function movingRockSweep(from,to,rock,padding=0){
+    const previous={x:Number.isFinite(rock.previousX)?rock.previousX:rock.x,y:Number.isFinite(rock.previousY)?rock.previousY:rock.y};
+    return circleSweep({x:from.x-previous.x,y:from.y-previous.y},{x:to.x-rock.x,y:to.y-rock.y},{x:0,y:0},rock.size*.43+padding);
+  }
   function canFire(ship,target,spec,aim,rocks,bystanders=[]){
     const dx=aim.x-ship.x,dy=aim.y-ship.y;
     if(Math.hypot(dx,dy)>spec.range||Math.abs(wrap(Math.atan2(dy,dx)-ship.heading))>spec.arc)return false;
@@ -74,10 +78,10 @@
     }
     for(const rock of scene.rocks||[]){
       if(rock.targetable===false)continue;
-      consider({...rock,id:rock.id??'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid'},circleSweep(from,to,rock,rock.size*.43+padding));
+      consider({...rock,id:rock.id??'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid'},movingRockSweep(from,to,rock,padding));
     }
     // Permit a rock target supplied without a full scene (such as an isolated test).
-    if(target?.rockId!=null&&target.targetable!==false&&!(scene.rocks||[]).some(rock=>rock.slotId===target.rockId))consider(target,circleSweep(from,to,target,target.size*.43+padding));
+    if(target?.rockId!=null&&target.targetable!==false&&!(scene.rocks||[]).some(rock=>rock.slotId===target.rockId))consider(target,movingRockSweep(from,to,target,padding));
     return best;
   }
   // Collision owns the exact local surface. Damage and rendering consume this result.

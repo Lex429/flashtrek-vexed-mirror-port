@@ -22,6 +22,7 @@ The live game and damage showcase share their weapon and shield shaders in
 | Ship artwork cache, shared ship rendering, shield/hull impacts, stage fragments and wreck simulation | `ship-effects.js`, using existing showcase shaders and destruction assets | Request a hit/visual event and draw the resulting state |
 | Explosion/debris contact collection and visual-only ship impact dispatch | `explosion-impacts.js` and shared `debris-impacts.js` | Supply the explosion/debris source |
 | Asteroid hit points, asteroid destruction, mining progress and ore entitlement | `asteroid-combat.js`, registered through `ship-systems.js` | Choose mine/fire and collect completed simulation results |
+| Persistent asteroid drift, indexed world poses and ship contact dispatch | `asteroid-motion.js`, using contact impulses from `ship-motion.js` and `sol-asteroids.relocate` | Supply the active simulation step; never move rocks while painting |
 | Tug deliveries, assignments, cargo loss, rebuilding and economic consequences | `sol-economy.js` | Use shared mechanics; retain delivery policy |
 | Civilian jobs, trading, mining choices, retaliation, faction consequences and dialogue | `civilian-traffic.js` and `civilian-combat-ai.js` | Decide travel/dock/mine/trade/pursue/flee/fire |
 | Persistent civilian tasks, stock reservations, commercial transactions, interstellar journeys and distant scheduling | `npc-lives.js`, extending `civilianTraffic.ships` | Role policies choose useful work using the common task commands |

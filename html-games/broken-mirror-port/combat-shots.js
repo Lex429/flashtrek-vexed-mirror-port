@@ -91,7 +91,7 @@
     if(window.nativeShipSystems)return window.nativeShipSystems.applyHit(state,result,event,source);
     const target=result.target;if(!target)return {ok:false};
     const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,kind:event.kind,source:source.id==='player'?'player':'ai',sourceId:source.id};
-    if(target.rockId!=null)return window.nativeAsteroidCombat?.hit(state,target.rockId,event.damage,impact)||{ok:false};
+    if(target.rockId!=null)return window.nativeAsteroidCombat?.weaponHit(state,target.rockId,event.damage,impact)||{ok:false};
     if(target.id==='player')return window.nativeCombatShots.onPlayerHit?.(state,event.damage,impact)||{ok:false};
     if(String(target.id).startsWith('tug:'))return window.nativeSolEconomy?.hit(state,Number(String(target.id).slice(4)),event.damage,impact)||{ok:false};
     if(target.category==='civilian'||typeof target.id==='number')return window.nativeCivilianTraffic.hit(state,target.id,event.damage,impact);

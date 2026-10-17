@@ -169,5 +169,36 @@
     if(arrived)stop(entity);
     return {arrived,progress,distance:Math.max(0,leg.distance-traveled)};
   }
-  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,arrivalEpsilon};
+  // Swept ellipse/circle contact uses the same oriented shield/hull radii as
+  // weapons. Both bodies receive a mass-weighted impulse; no health is changed.
+  function asteroidContact(ship,rock,dt){
+    if(!(dt>0)||!validPoint(ship)||!validPoint(rock)||!(rock.size>0)||!ship.radii||!ship.dimensions)return null;
+    const heading=finite(ship.heading)+Math.PI/2,c=Math.cos(heading),s=Math.sin(heading),radius=rock.size*.43;
+    const rx=Math.max(1,ship.radii.rx+radius),ry=Math.max(1,ship.radii.ry+radius);
+    const local=(x,y)=>({x:(x*c+y*s)/rx,y:(-x*s+y*c)/ry});
+    const rockVX=finite(rock.vx),rockVY=finite(rock.vy);
+    const from=local(finite(ship.previousX,ship.x)-rock.x+rockVX*dt,finite(ship.previousY,ship.y)-rock.y+rockVY*dt),to=local(ship.x-rock.x,ship.y-rock.y);
+    const dx=to.x-from.x,dy=to.y-from.y,a=dx*dx+dy*dy,b=2*(from.x*dx+from.y*dy),outside=from.x*from.x+from.y*from.y-1;
+    let t=0;
+    if(outside>0){const disc=b*b-4*a*outside;if(!a||disc<0)return null;t=(-b-Math.sqrt(disc))/(2*a);if(t<0||t>1)return null;}
+    const contact={x:from.x+dx*t,y:from.y+dy*t};
+    // Normal points from the ship towards the rock, using the ellipse gradient.
+    let nx=-(contact.x/rx*c-contact.y/ry*s),ny=-(contact.x/rx*s+contact.y/ry*c),length=Math.hypot(nx,ny);
+    if(length<1e-9){nx=ship.vx-rockVX;ny=ship.vy-rockVY;length=Math.hypot(nx,ny);if(!length){nx=1;ny=0;length=1;}}
+    nx/=length;ny/=length;
+    const rvx=finite(ship.vx)-rockVX,rvy=finite(ship.vy)-rockVY,closing=Math.max(0,rvx*nx+rvy*ny);
+    const rockMass=Math.max(.05,(rock.size/40)**3),shipMass=Math.max(.5,finite(ship.definition?.mass,8*(ship.dimensions.width*ship.dimensions.height/2400)**1.5));
+    const inverse=1/rockMass+1/shipMass,impulse=1.18*closing/inverse;
+    const tangent=-rvx*ny+rvy*nx,friction=clamp(tangent/inverse,-impulse*.08,impulse*.08);
+    const ix=nx*impulse-ny*friction,iy=ny*impulse+nx*friction;
+    const contactDistance=Math.hypot(rx*(nx*c+ny*s),ry*(-nx*s+ny*c));
+    const penetration=Math.max(0,contactDistance+(ship.x-rock.x)*nx+(ship.y-rock.y)*ny)+.02;
+    const rockShare=shipMass/(shipMass+rockMass),shipShare=1-rockShare;
+    return {t,normal:{x:nx,y:ny},closing,shipMass,rockMass,
+      rock:{x:rock.x+nx*penetration*rockShare,y:rock.y+ny*penetration*rockShare,vx:rockVX+ix/rockMass,vy:rockVY+iy/rockMass,spin:clamp(finite(rock.spin)+friction/Math.max(.01,rockMass*radius)*2.5,-5,5)},
+      ship:{x:ship.x-nx*penetration*shipShare,y:ship.y-ny*penetration*shipShare,vx:finite(ship.vx)-ix/shipMass,vy:finite(ship.vy)-iy/shipMass},
+      damageFraction:Math.min(1,(Math.max(0,closing-70)/180)**2*shipMass/(shipMass+rockMass)),
+      point:{x:rock.x-nx*radius,y:rock.y-ny*radius}};
+  }
+  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,arrivalEpsilon,asteroidContact};
 })();

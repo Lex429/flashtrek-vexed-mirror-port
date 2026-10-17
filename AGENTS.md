@@ -30,7 +30,7 @@ existing treasury balances and escrow. Run `player-market.test.cjs`,
 36-ship audited jam and exercises the ordinary market buttons outside Dev mode.
 
 `regional-minerals.js` owns immutable geological profiles and mineral technology
-data. `sol-asteroids.js` preserves the original 262 Sol slots through its legacy
+data. `sol-asteroids.js` preserves the original 262 seeded Sol slots through its legacy
 `placements` accessor; use `forSystem(system)`, `find(id)` and `nearby` for active
 world content. Regional IDs are `system * 100000 + index`. Never reseed depleted
 rocks, change their IDs, or load distant artwork to advance NPC mining.
@@ -54,3 +54,13 @@ buyers. Retain cargo, credits and identities when repairing old unsafe saves.
 `port-docking.relocate` owns immediate refuge clearance. Run
 `civilian-access.test.cjs` and `browser-civilian-access.py`; set fixture `access:true`
 with `regional:true` for current policy, while legacy fixtures retain old contracts.
+
+`asteroid-motion.js` owns saved displaced rock poses and contact dispatch;
+`ship-motion.js` owns the swept contact, mass response and spin calculation.
+`sol-asteroids.relocate` must update the same spatial index used by mining,
+targeting and radar. Preserve seeded geometry/IDs when starting a different save.
+Combat weapon contacts use `asteroid-combat.weaponHit`; debris uses `debrisHit`
+for exactly 25% of maximum health per distinct fragment. Shattered-rock pressure
+waves must not bypass that rule. Keep mining timed and ore claims exactly once.
+Run `asteroid-physics.test.cjs` and `browser-asteroid-physics.py`, including the
+30-minute production-policy fixture with `physics:true`, plus existing suites.

@@ -8,6 +8,7 @@
     const elapsed=window.nativeSimulation.advance(state,days*secondsPerDay);
     if(!elapsed)return 0;
     state.day=(Number(state.day)||0)+days;
+    window.nativeAsteroidMotion?.advance(state,elapsed);
     window.nativePopulation?.advanceDays(state,days,random);
     // Scheduling owners retain any bounded catch-up debt in the save.
     window.nativeSolEconomy?.advance(state,elapsed);

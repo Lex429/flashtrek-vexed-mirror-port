@@ -31,9 +31,9 @@ async function fixture({armTugs=true}={}){
   window.nativeSolEconomy={hit:(_,id,amount,impact)=>damage(state.solEconomy.freighters.find(ship=>ship.id===id),'tug',amount,impact)};
   window.nativeCivilianTraffic={hit:(_,id,amount,impact)=>damage(state.civilianTraffic.ships.find(ship=>ship.id===id),'civilian',amount,impact)};
   window.nativeCombatShots.onPlayerHit=(_,amount,impact)=>damage(state,'player',amount,impact);
-  window.nativeAsteroidCombat={hit:(_,id,amount,impact)=>{
-    const rock=window.nativeSolAsteroids.placements.find(item=>item.slotId===id);rock.hull-=amount;
-    if(rock.hull<=0)state.destroyedAsteroids=[...(state.destroyedAsteroids||[]),id];hits.push({entity:rock,impact});return {ok:true,destroyed:rock.hull<=0,hull:rock.hull};
+  window.nativeAsteroidCombat={weaponHit:(_,id,amount,impact)=>{
+    const rock=window.nativeSolAsteroids.placements.find(item=>item.slotId===id);rock.hull=0;
+    state.destroyedAsteroids=[...(state.destroyedAsteroids||[]),id];hits.push({entity:rock,impact});return {ok:true,destroyed:true,hull:0};
   }};
   // A new registered role participates in the same reusable scenarios automatically.
   window.nativeShipDefinitions.register(99,{name:'New escort',hull:100,shields:80,dimensions:{width:45,height:68},equipment:[1],emitters:{beam:{x:.12,y:-.31},projectile:{x:.12,y:-.31}}});

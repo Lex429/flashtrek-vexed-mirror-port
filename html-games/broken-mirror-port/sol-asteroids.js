@@ -140,6 +140,13 @@
     return systems.get(system);
   }
   function find(id,system){if(id===null||id===undefined)return null;system=Number(system??(Number(id)>=100000?Math.floor(Number(id)/100000):1));const field=forSystem(system);return indexes.get(system)?.get(Number(id))||field.find(r=>r.slotId===Number(id))||null;}
+  // Keep the spatial index authoritative when a saved physical rock moves.
+  // Seeded IDs, sizes and ore geology never change.
+  function relocate(rock,pose){
+    const grid=grids.get(Number(rock.system??1)),key=p=>Math.floor(p.x/cellSize)+':'+Math.floor(p.y/cellSize),before=key(rock),after=key(pose);
+    if(grid&&before!==after){const bucket=grid.get(before),index=bucket?.indexOf(rock)??-1;if(index>=0){bucket.splice(index,1);if(!bucket.length)grid.delete(before);}const next=grid.get(after)||[];if(!next.includes(rock))next.push(rock);grid.set(after,next);}
+    Object.assign(rock,{previousX:pose.previousX??rock.x,previousY:pose.previousY??rock.y,x:pose.x,y:pose.y,angle:pose.angle,vx:pose.vx||0,vy:pose.vy||0,spin:pose.spin||0});
+  }
   function nearby(system,point,radius){
     const rocks=forSystem(system),grid=grids.get(Number(system));if(!grid||!point||!Number.isFinite(radius))return rocks;
     const result=[];
@@ -179,14 +186,14 @@
       const x=cx+rock.x-ship.x,y=cy+rock.y-ship.y;
       const screenX=cx+(x-cx)*zoom,screenY=cy+(y-cy)*zoom,extent=screenSize(rock,zoom);
       if(screenX+extent<0||screenX-extent>w||screenY+extent<0||screenY-extent>h)continue;
-      const art=image(frame(rock,0));
+      const art=image(frame(rock,damage[rock.slotId]));
       if(!art.complete||!art.naturalWidth)continue;
       ctx.save();ctx.translate(x,y);ctx.rotate(rock.angle);
       const size=screenSize(rock,zoom)/zoom;
       ctx.drawImage(art,-size/2,-size/2,size,size);ctx.restore();
     }
   }
-  window.nativeSolAsteroids={paint,hitTest,frame,image,forSystem,find,nearby,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size};},get ready(){return ready;},get placements(){return placements;},abundance};
+  window.nativeSolAsteroids={paint,hitTest,frame,image,forSystem,find,nearby,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size};},get ready(){return ready;},get placements(){return placements;},abundance};
   ready=fetch(catalogUrl).then(response=>{if(!response.ok)throw new Error('Asteroid catalog unavailable');return response.json();})
     .then(populate).catch(error=>console.warn('Sol asteroid artwork unavailable',error));
 })();

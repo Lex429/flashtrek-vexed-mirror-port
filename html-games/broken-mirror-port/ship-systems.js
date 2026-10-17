@@ -9,6 +9,11 @@
     for(const [category,adapter] of kinds)for(const target of adapter.collect(state,system)||[])targets.push({...target,category:target.category||category});
     return targets;
   }
+  function collectShips(state,system=state.system){
+    const targets=[];
+    for(const [category,adapter] of kinds)if(category!=='asteroid')for(const target of adapter.collect(state,system)||[])targets.push({...target,category:target.category||category});
+    return targets;
+  }
   function scene(state,{system=state.system}={}){
     const frame=window.nativeSimulationFrame?.current(state),cacheKey='targets:'+system,cached=frame?.caches.get(cacheKey);
     if(cached)return cached.scene;
@@ -104,6 +109,6 @@
     const gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
     return (window.nativeSolAsteroids?.forSystem?.(system)||window.nativeSolAsteroids?.placements||[]).filter(rock=>!gone.has(rock.slotId)).map(rock=>({...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid',system,heading:rock.angle||0,
       dimensions:{width:rock.size,height:rock.size},radius:rock.size*.43,entity:rock,targetable:true}));
-  },hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.hit(state,target.rockId,amount,impact)});
-  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,scene,resolve,applyHit,visualImpact,resolved,move,inspectAll,invalidate});
+  },hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.weaponHit(state,target.rockId,amount,impact)});
+  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,scene,resolve,applyHit,visualImpact,resolved,move,inspectAll,invalidate});
 })();

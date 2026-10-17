@@ -30,6 +30,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-contract.py
+      - name: Asteroid weapon hits, physical pushes, shield/hull contacts and saved drift
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-asteroid-physics.py
       - name: Persistent freighter life, observer inspection and distant delivery
         env:
           BROWSER_CHANNEL: ''

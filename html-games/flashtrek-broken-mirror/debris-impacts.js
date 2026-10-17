@@ -20,9 +20,9 @@
       history.push({target:key(type,target),...event});if(history.length>80)history.shift();
       if(type==='ship')onShipImpact(target,event);else onAsteroidHit(target,event);
     }
-    function explode({x,y,born=0,radius=500,duration=900,sourceKey=null,system=null}={}){
+    function explode({x,y,born=0,radius=500,duration=900,sourceKey=null,system=null,affectAsteroids=true}={}){
       if(!Number.isFinite(x)||!Number.isFinite(y)||radius<=0)return;
-      waves.push({x,y,born,radius,duration:Math.max(1,duration),sourceKey,system,hits:new Set()});
+      waves.push({x,y,born,radius,duration:Math.max(1,duration),sourceKey,system,affectAsteroids,hits:new Set()});
       if(waves.length>40)waves.shift();
     }
     function update(time){
@@ -30,6 +30,7 @@
         const age=time-wave.born;if(age<0)continue;
         const reach=wave.radius*Math.min(1,age/wave.duration);
         for(const [type,targets] of [['ship',getShips()],['asteroid',getAsteroids()]])for(const target of targets){
+          if(type==='asteroid'&&!wave.affectAsteroids)continue;
           const id=key(type,target);if(id===wave.sourceKey||wave.hits.has(id)||!matches(wave,target))continue;
           const center=position(target),dx=center.x-wave.x,dy=center.y-wave.y,distance=Math.hypot(dx,dy),r=radius(target);
           if(distance-r>reach)continue;
