@@ -55,11 +55,24 @@ invalidated after movement/contact; a traffic snapshot reuses geometry while
 resampling current poses. Swept bounding circles reject distant pairs first.
 Sweeps use previous authoritative poses and ignore system changes/teleports.
 Ship-pair narrow phase uses 32 supporting axes plus both ships' orientation axes
-for a conservative approximation of their curved shield/hull ellipses.
+for a conservative approximation of their curved physical hull ellipses.
 Mass, relative speed and angle determine the impulse; restitution is 0.12 and
 bounded tangential friction dissipates energy. Contact never subtracts ship health
 or changes cargo, credits, reputation, ore entitlements or weapon rules. Effects
-reuse native shield flashes/hull sparks and are gated per pair for 250 ms.
+use a brief hull-local contact glint and are gated per pair for 250 ms.
+Descriptors carry definition-owned `hullRadii` for ship, asteroid and fragment
+contacts, inertia and traffic clearance. These never depend on shield charge;
+combat `radii` and weapon interception keep their existing shield/hull selection.
+NPC prediction adds six units of gap, relative-speed padding up to 24 units and
+the existing turn room to both hull bounds. Player steering stays manual.
+
+Physical dispatchers set `physicalContact:true`. `ship-effects.visualImpact`
+projects that event onto the hull and admits a separate 180 ms contact glint
+at most once every 160 ms per ship. It paints only in the front pass and follows
+the ship's local position/heading. It neither replaces an active weapon flash
+nor paints a full shield bubble. Unmarked legacy visual events and blasts keep
+their previous shield/hull art. See `hull-navigation.test.cjs` and the real-key
+passage in `browser-impact-controls.py`.
 
 Saved version-2 straight legs remain valid. Version-3 legs contain ordinary
 version-2 acceleration/braking segments, including a braking segment before a
@@ -108,7 +121,8 @@ steering also call the common integrator with explicit profiles.
 `nativeShipDefinitions.get(type, category)` combines the existing ship statistics
 with explicit role data. `describe(state, entity, {category})` returns the common
 world target descriptor: `id`, `category`, `entity`, `system`, `shipType`, `x`, `y`,
-`heading`, velocity, prior world position, `dimensions`, current `radii` and `definition`.
+`heading`, velocity, prior world position, `dimensions`, physical `hullRadii`,
+current combat `radii` and `definition`.
 `registered()` includes every native world ship and explicitly registered override.
 `forEntity(state, entity, {category})` resolves effective statistics, including
 definition `statUpgrades`. The player's existing regular tug engine upgrade still

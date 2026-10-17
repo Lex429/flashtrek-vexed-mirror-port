@@ -47,12 +47,12 @@ test('ship collection shares a physics-step view and refreshes after physical di
   w.nativeSimulationFrame.end(s);
 });
 
-test('rotated shield/hull footprints determine ship contact rather than broad-phase circles',async()=>{
+test('rotated physical footprints determine ship contact rather than broad-phase circles',async()=>{
   const {window:w}=await setup(),m=w.nativeShipMotion;
   const a=body({x:0,y:0}),b=body({id:2,x:0,y:35,previousY:35});
   assert.equal(m.shipPairContact(a,b,.1),null,'two slender ships have room beside each other');
   assert.ok(m.shipPairContact({...a,heading:Math.PI/2},b,.1),'rotation changes the contact surface');
-  assert.ok(m.shipPairContact({...a,radii:{rx:25,ry:40}},b,.1),'larger shield surface touches');
+  assert.ok(m.shipPairContact({...a,radii:{rx:25,ry:40}},b,.1),'larger physical footprint touches');
 });
 
 test('head-on traffic passes consistently, avoids contact and reaches both original destinations',async()=>{
@@ -119,7 +119,7 @@ test('actual contacts push every role, preserve health and cargo, and do not rep
     w.nativeShipTraffic.collide(s,.5);assert.ok(other.vx>0);assert.ok(s.vx<100);assert.ok(other.motionKick);
     assert.deepEqual({hull:other.hull,shields:other.shields,cargo:copy(other.cargo)},initial);
     assert.equal(w.nativeShipTraffic.snapshot(s).contacts.length,1);w.nativeShipTraffic.collide(s,.5);assert.equal(w.nativeShipTraffic.snapshot(s).contacts.length,1);
-    const d=w.nativeShipDefinitions.describe(s,other,{category});assert.ok(shielded?w.nativeShipEffects.snapshot(d).flash: true);
+    const d=w.nativeShipDefinitions.describe(s,other,{category});assert.ok(w.nativeShipEffects.snapshot(d).contact);assert.equal(w.nativeShipEffects.snapshot(d).flash,null);
   }
 });
 

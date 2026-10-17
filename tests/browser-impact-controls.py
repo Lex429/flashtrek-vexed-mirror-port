@@ -62,8 +62,8 @@ try:
             s.civilianTraffic.ships=[];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.solEconomy.freighters=[];
             s.minedAsteroids=nativeSolAsteroids.forSystem(1).map(r=>r.slotId);s.destroyedAsteroids=[];
             if(speed!==null){
-              nativeShipDefinitions.register(s.shipType,{mass:1,geometry:{shield:{rx:5,ry:10}}});
-              nativeShipDefinitions.register(10,{mass:12,geometry:{shield:{rx:12,ry:60}}});
+              nativeShipDefinitions.register(s.shipType,{mass:1,geometry:{hull:{rx:5,ry:10},shield:{rx:20,ry:25}}});
+              nativeShipDefinitions.register(10,{mass:12,geometry:{hull:{rx:12,ry:60},shield:{rx:24,ry:70}}});
               Object.assign(s,{angle:Math.PI/2,speed,vx:0,vy:speed,hull:1000,shields:1000,dimensions:{width:10,height:20}});__impactPlayer(s,40,-90);
               const tug=copy(template);for(const k of ['motionKick','motionSpin','lifeLeg','journey'])delete tug[k];
               Object.assign(tug,{x:0,y:0,previousX:0,previousY:0,heading:0,speed:0,vx:0,vy:0,phase:'waiting',hull:1000,shields:1000,lifeEventAt:1e8,dimensions:{width:24,height:120},tons:4});
@@ -102,6 +102,27 @@ try:
         assert arrow_stop['speed'] == 0
         report['keys'] = {'W': up, 'D': right, 'S': stop, 'ArrowUp': arrow_up, 'ArrowLeft': left, 'ArrowRight': arrow_right, 'ArrowDown': arrow_stop}
 
+        page.evaluate('''()=>{
+          const s=__impactActivate(40),t=s.solEconomy.freighters[0];
+          Object.assign(s,{angle:0,speed:0,vx:0,vy:0});delete s.motionKick;delete s.motionSpin;__impactPlayer(s,5800,6000);
+          Object.assign(t,{x:6000,y:5980,previousX:6000,previousY:5980,heading:0});
+          const second=JSON.parse(JSON.stringify(t));Object.assign(second,{id:99999,y:6020,previousY:6020});s.solEconomy.freighters.push(second);
+          window.__passStart=nativeShipTraffic.snapshot(s).contacts.length;
+        }''')
+        passage_start = page.evaluate('__impactSnapshot()')
+        page.evaluate("async()=>{await nativeShipEffects.prepare(10,'tug');}")
+        drive('w', 120)
+        host.screenshot(path=str(OUTPUT/'hull-clear-shield-overlap.png'))
+        passage_end = drive('w', 120)
+        assert passage_end['x'] > 6200 and abs(passage_end['y']-passage_start['y']) < .01
+        report['hullPassage'] = page.evaluate('''()=>{
+          const s=nativeNpcDev.getState(),t=s.solEconomy.freighters;
+          __impactCheck(nativeShipTraffic.snapshot(s).contacts.length===__passStart,'Shield overlap blocked the clear passage');
+          __impactCheck(t.every(e=>e.x===6000&&!e.motionKick),'Clear passage pushed parked tugs');
+          return {contacts:0,shieldOverlapAllowed:true,parkedTugs:t.length};
+        }''')
+        report['hullPassage'].update(start=passage_start, end=passage_end)
+
         impacts = []
         for speed in (40, 150):
             page.evaluate('(speed)=>__impactActivate(speed)', speed)
@@ -120,16 +141,19 @@ try:
         assert impacts[1]['vy'] > impacts[0]['vy']*3
         report['impacts'] = impacts
         page.evaluate('''()=>{
-          window.__impactFlashes=[];const render=drawShowcaseShieldFlash,canvas=document.querySelector('#space'),ctx=canvas.getContext('2d');
+          window.__impactFlashes=[];window.__contactPixels=[];const render=drawShowcaseShieldFlash,canvas=document.querySelector('#space'),ctx=canvas.getContext('2d'),arc=ctx.arc.bind(ctx);
+          ctx.arc=(x,y,r,...args)=>{if(r>0&&r<=5){const m=ctx.getTransform(),p=new DOMPoint(x,y).matrixTransform(m);__contactPixels.push({x:p.x,y:p.y,radius:r*Math.hypot(m.a,m.b)});}return arc(x,y,r,...args);};
           window.drawShowcaseShieldFlash=(context,image,w,h,flash,...rest)=>{
             if(context===ctx)__impactFlashes.push(new DOMPoint(flash.x,flash.y).matrixTransform(context.getTransform()));
             return render(context,image,w,h,flash,...rest);
           };
-          __impactTick(3);__impactFlashes=[];__impactTick(1);
+          __impactTick(3);__impactFlashes=[];__contactPixels=[];__impactTick(1);
           const s=nativeNpcDev.getState(),t=s.solEconomy.freighters[0],d=nativeShipDefinitions.describe(s,t,{category:'tug'}),v=nativeShipEffects.snapshot(d),player=vexedSolFlight.shipPosition(s);
-          __impactCheck(!!v.flash,'Native shield flash missing after twisting contact');
-          const world=nativeCombatShots.worldPoint(d,v.flash),view=nativeView.measure(canvas),x=(view.w/2+world.x-player.x)*canvas.width/view.w,y=(view.h/2+world.y-player.y)*canvas.height/view.h;
-          __impactCheck(__impactFlashes.some(p=>Math.hypot(p.x-x,p.y-y)<2),'Twisting ship shield flash is detached from rendered surface');
+          __impactCheck(!!v.contact&&!v.flash,'Hull contact should show a local glint without a shield bubble');
+          __impactCheck(__impactFlashes.length===0,'Physical contact painted the whole shield');
+          const world=nativeCombatShots.worldPoint(d,v.contact),view=nativeView.measure(canvas),x=(view.w/2+world.x-player.x)*canvas.width/view.w,y=(view.h/2+world.y-player.y)*canvas.height/view.h;
+          __impactCheck(__contactPixels.some(p=>Math.hypot(p.x-x,p.y-y)<2),'Twisting ship contact glint is detached from rendered hull');
+          __impactCheck(__contactPixels.filter(p=>Math.hypot(p.x-x,p.y-y)<2).every(p=>p.radius<=3.001),'Contact glint grew too large at flight display scale');
         }''')
         host.screenshot(path=str(OUTPUT/'fast-off-center-contact.png'))
         page.evaluate('''()=>{const s=nativeNpcDev.getState();__impactPlayer(s,6000,6000);s.previousX=6000;s.previousY=6000;}''')

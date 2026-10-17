@@ -111,8 +111,8 @@
         const last=rt.contacts.get(pair)??-Infinity;
         if(at-last>.25&&result.closing>.5){
           const energy=Math.min(1,result.closing/150);
-          window.nativeShipSystems.visualImpact(state,a,{kind:'ship',visualOnly:true,from:result.pointA,point:result.pointA,energy});
-          window.nativeShipSystems.visualImpact(state,b,{kind:'ship',visualOnly:true,from:result.pointB,point:result.pointB,energy});
+          window.nativeShipSystems.visualImpact(state,a,{kind:'ship',visualOnly:true,physicalContact:true,from:result.pointA,point:result.pointA,energy});
+          window.nativeShipSystems.visualImpact(state,b,{kind:'ship',visualOnly:true,physicalContact:true,from:result.pointB,point:result.pointB,energy});
           rt.history.push({a:key(a),b:key(b),at,system:a.system,closing:result.closing,shieldA:a.shields>0,shieldB:b.shields>0});if(rt.history.length>80)rt.history.shift();
         }
         rt.contacts.set(pair,at);

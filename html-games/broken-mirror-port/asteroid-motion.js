@@ -102,7 +102,7 @@
     for(const original of ships){
       if(!original.entity||original.hull<=0||original.entity.journey||['destroyed','disabled','warp','arriving'].includes(original.entity.phase))continue;
       let ship=original;
-      const travel=Math.hypot(ship.x-ship.previousX,ship.y-ship.previousY),reach=Math.max(ship.radii.rx,ship.radii.ry)+travel+drift+55;
+      const radii=ship.hullRadii||ship.radii,travel=Math.hypot(ship.x-ship.previousX,ship.y-ship.previousY),reach=Math.max(radii.rx,radii.ry)+travel+drift+55;
       // Teleports/system arrivals do not become a sweep through an entire belt.
       if(travel>Math.max(500,Math.hypot(ship.vx,ship.vy)*dt*3+50))ship={...ship,previousX:ship.x,previousY:ship.y};
       const nearby=window.nativeSolAsteroids.nearby(system,ship,Math.min(reach,1000));
@@ -115,7 +115,7 @@
         const key=ship.category+':'+ship.id+':'+rock.slotId,last=contacts.get(key)??-Infinity;
         contacts.set(key,at);
         if(at-last>.25){
-          const event={kind:'asteroid',from:{x:rock.x,y:rock.y},point:result.point,visualOnly:true,energy:Math.min(1,result.closing/150)};
+          const event={kind:'asteroid',from:{x:rock.x,y:rock.y},point:result.point,visualOnly:true,physicalContact:true,energy:Math.min(1,result.closing/150)};
           window.nativeShipSystems.visualImpact(state,ship,event);
           if(result.damageFraction>0)window.nativeAsteroidCombat.hit(state,rock.slotId,rock.maxHull*result.damageFraction,event);
           history.push({ship:ship.id,category:ship.category,rockId:rock.slotId,system,at,shielded:ship.shields>0,closing:result.closing,damageFraction:result.damageFraction});if(history.length>80)history.shift();

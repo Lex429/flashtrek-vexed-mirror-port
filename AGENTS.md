@@ -76,7 +76,7 @@ Run `asteroid-physics.test.cjs` and `browser-asteroid-physics.py`, including the
 30-minute production-policy fixture with `physics:true`, plus existing suites.
 
 `ship-traffic.js` owns shared ship avoidance intent and ship-pair contact dispatch;
-`ship-motion.js` owns prediction, swept shield/hull geometry, mass impulses and
+`ship-motion.js` owns prediction, swept physical hull geometry, mass impulses and
 saved version-3 composite routes. Keep existing version-2 saves valid. Rerouting
 must update the task owner's real deadline through `npc-lives.reroute` or
 `sol-economy.reroute`, retaining the original goal, berth lease and economic escrow.
@@ -95,3 +95,10 @@ and rebase it when rerouting. Manual steering/thrust counter free collision drif
 unpowered coasting retains linear momentum. Do not change manual ship profiles
 to compensate for a collision-control bug. Run `impact-controls.test.cjs` and
 `browser-impact-controls.py`, including actual WASD/arrows and post-ram braking.
+
+Physical ship contact and traffic clearance use definition-owned `hullRadii`,
+independent of shield charge. Combat `radii` still select the shield/hull surface.
+Ship, asteroid and fragment dispatchers mark effects `physicalContact`; shared
+effects keep their brief hull-local glint separate from weapon shield flashes.
+Never change weapon interception to make navigation easier. Run
+`hull-navigation.test.cjs` and real-key hull-clear passage/weapon pixel checks.

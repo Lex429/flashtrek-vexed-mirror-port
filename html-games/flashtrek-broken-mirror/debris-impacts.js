@@ -48,7 +48,7 @@
         if(skipShips&&type==='ship')continue;
         const id=key(type,target);if((!resolveDebris&&hits.has(id))||!matches({system},target))continue;
         if(id===sourceKey&&(!resolveDebris||!sourceCleared.has(piece))){
-          const center=position(target),r=target.descriptor?.radii,bound=r?Math.max(r.rx,r.ry):radius(target);
+          const center=position(target),r=target.descriptor?.hullRadii||target.descriptor?.radii,bound=r?Math.max(r.rx,r.ry):radius(target);
           if(resolveDebris&&Math.hypot(to.x-center.x,to.y-center.y)>bound+padding)sourceCleared.add(piece);
           continue; // Birth immunity ends once the fragment leaves its parent.
         }

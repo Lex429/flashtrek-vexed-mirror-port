@@ -1,4 +1,4 @@
-"""Actual weapon hits, physical rock pushes, shield/hull art and saved drift."""
+"""Actual weapon hits, physical hull pushes, contact glints and saved drift."""
 import functools
 import http.server
 import json
@@ -44,6 +44,8 @@ try:
             if(context===ctx){const p=new DOMPoint(flash.x,flash.y).matrixTransform(context.getTransform());flashes.push({x:p.x,y:p.y});}
             return realFlash(context,image,w,h,flash,...rest);
           };
+          const contactPixels=[],arc=ctx.arc.bind(ctx);
+          ctx.arc=(x,y,r,...args)=>{if(r>0&&r<=5)contactPixels.push(new DOMPoint(x,y).matrixTransform(ctx.getTransform()));return arc(x,y,r,...args);};
           function fresh(){
             nativeCombatShots.reset();nativeShipEffects.reset();nativeEnvironmentalImpacts.reset();nativeAsteroidCombat.clear();
             const s=clone(base);Object.assign(s,{system:1,landed:false,hull:1000,shields:1000,speed:0,vx:0,vy:0,localCruise:null,arrivalApproach:null,x:100000,y:100000});
@@ -61,7 +63,7 @@ try:
             if(category!=='player'){entity={...clone(templates[category]),id:9999,system:1,phase:'cruise',hull:1000};if(category==='tug')s.solEconomy.freighters=[entity];else s.civilianTraffic.ships=[entity];}
             Object.assign(entity,{shields:shielded?1000:0,angle:.65,heading:.65,vx:Math.cos(.65)*45,vy:Math.sin(.65)*45,speed:45});
             let d=nativeShipDefinitions.describe(s,entity,{category});
-            const distance=d.radii.ry+r.size*.43-.5,n={x:Math.cos(.65),y:Math.sin(.65)},x=r.x-n.x*distance,y=r.y-n.y*distance;
+            const distance=d.hullRadii.ry+r.size*.43-.5,n={x:Math.cos(.65),y:Math.sin(.65)},x=r.x-n.x*distance,y=r.y-n.y*distance;
             if(category==='player')putPlayer(s,x,y);else Object.assign(entity,{x,y});
             entity.previousX=x-n.x*5;entity.previousY=y-n.y*5;
             d=nativeShipDefinitions.describe(s,entity,{category});await nativeShipEffects.prepare(d.shipType,category);
@@ -70,33 +72,33 @@ try:
             check(!s.destroyedAsteroids.includes(rockId),category+' gentle contact destroyed rock');
             check(entity.hull===1000&&entity.shields===(shielded?1000:0),'Contact subtracted ship health');
             d=nativeShipDefinitions.describe(s,entity,{category});const visual=nativeShipEffects.snapshot(d);
-            check(shielded?!!visual.flash:visual.particles>0,category+' missing '+(shielded?'shield':'hull')+' impact');
+            check(!!visual.contact&&!visual.flash,category+' missing local hull contact glint');
             nativeSimulation.advance(s,.06);nativeShipEffects.advance(s,.06);
             const index=scenarios.length,cx=185+(index%3)*360,cy=index<3?150:410;
             let camera={x:d.x+20,y:d.y-15},view={state:s,ship:camera,cx,cy,zoom:1,w:1100,h:540};
             const rockArt=nativeSolAsteroids.image(r.file);await rockArt.decode();
             function paint(){nativeSolAsteroids.paint(ctx,{...view,mined:s.minedAsteroids,system:1,damage:s.asteroidDamage});nativeShipEffects.paintShip(ctx,d,view);nativeShipEffects.paint(s,ctx,view);}
-            if(shielded){
-              flashes.length=0;paint();check(flashes.length>0,'Shield shader was not called');
-              const local=visual.flash,world=nativeCombatShots.worldPoint(d,local),p=flashes.at(-1);
-              near(p.x,cx+world.x-camera.x,'Shield pixel x');near(p.y,cy+world.y-camera.y,'Shield pixel y');
-              camera={x:camera.x+27,y:camera.y-19};view={...view,ship:camera};flashes.length=0;paint();
-              near(flashes.at(-1).x,p.x-27,'Camera movement x');near(flashes.at(-1).y,p.y+19,'Camera movement y');
+            {
+              flashes.length=0;contactPixels.length=0;paint();check(flashes.length===0,'Rock contact painted a whole shield');
+              const local=visual.contact,world=nativeCombatShots.worldPoint(d,local),p=contactPixels.at(-1);check(p,'Hull glint was not painted');
+              near(p.x,cx+world.x-camera.x,'Hull contact pixel x');near(p.y,cy+world.y-camera.y,'Hull contact pixel y');
+              camera={x:camera.x+27,y:camera.y-19};view={...view,ship:camera};contactPixels.length=0;paint();
+              near(contactPixels.at(-1).x,p.x-27,'Camera movement x');near(contactPixels.at(-1).y,p.y+19,'Camera movement y');
               if(category==='player')entity.angle+=.3;else entity.heading+=.3;d=nativeShipDefinitions.describe(s,entity,{category});
-              flashes.length=0;paint();const rotated=nativeCombatShots.worldPoint(d,local);
-              near(flashes.at(-1).x,cx+rotated.x-camera.x,'Rotated contact x');near(flashes.at(-1).y,cy+rotated.y-camera.y,'Rotated contact y');
-            }else paint();
+              contactPixels.length=0;paint();const rotated=nativeCombatShots.worldPoint(d,local);
+              near(contactPixels.at(-1).x,cx+rotated.x-camera.x,'Rotated contact x');near(contactPixels.at(-1).y,cy+rotated.y-camera.y,'Rotated contact y');
+            }
             ctx.fillStyle='#fff';ctx.font='13px sans-serif';ctx.fillText(category+' / '+(shielded?'shield':'hull'),cx-90,cy+90);
             s.minedAsteroids.push(rockId);nativeEnvironmentalImpacts.reset();
+            nativeSimulation.advance(s,.17);nativeShipEffects.advance(s,.17);
             const previousVX=entity.vx,previousParticles=nativeShipEffects.snapshot(d).particles;
             const debris={x:d.x+120,y:d.y,vx:400,vy:0,size:6,system:1};
             nativeEnvironmentalImpacts.debris(s,debris,d.x-120,d.y,{dt:.6,sourceKey:'ship:foreign'});
             check(debris.vx<399||Math.abs(debris.vy)>1,category+' did not deflect debris from '+(shielded?'shield':'hull'));check(entity.vx>previousVX,'Debris did not transfer ship momentum');
             d=nativeShipDefinitions.describe(s,entity,{category});const debrisVisual=nativeShipEffects.snapshot(d);
-            if(shielded){
-              check(debrisVisual.flash?.kind==='debris','Debris shield effect missing');flashes.length=0;paint();
-              const point=nativeCombatShots.worldPoint(d,debrisVisual.flash);near(flashes.at(-1).x,cx+point.x-camera.x,'Debris shield pixel x');near(flashes.at(-1).y,cy+point.y-camera.y,'Debris shield pixel y');
-            }else check(debrisVisual.particles>previousParticles,'Debris hull sparks missing');
+            check(debrisVisual.contact?.kind==='debris'&&!debrisVisual.flash,'Debris should use a hull glint');contactPixels.length=0;paint();
+            const point=nativeCombatShots.worldPoint(d,debrisVisual.contact);near(contactPixels.at(-1).x,cx+point.x-camera.x,'Debris hull pixel x');near(contactPixels.at(-1).y,cy+point.y-camera.y,'Debris hull pixel y');
+            check(debrisVisual.particles===previousParticles,'Physical debris contact emitted a hull burst');
             scenarios.push({category,shielded,vx:saved.vx,vy:saved.vy,spin:saved.spin,shipHealthUnchanged:entity.hull===1000&&entity.shields===(shielded?1000:0),debrisBounce:true});
           }
           const weapons=[];
@@ -162,10 +164,11 @@ try:
             let steps=0;
             const tick=()=>{nativeSimulation.advance(s,1/60);nativeAsteroidMotion.advance(s,1/60);nativeShipSystems.move(s,entity,category,{},undefined,1/60);nativeAsteroidMotion.collide(s,1/60);nativeShipEffects.advance(s,1/60);};
             while(!entity.motionKick&&steps++<150)tick();check(entity.motionKick,'Incoming '+size+' rock did not push '+category);
+            check(nativeShipEffects.snapshot(nativeShipDefinitions.describe(s,entity,{category})).contact,'Incoming rock did not use a hull glint');
             const velocity=entity.vy,before=nativeShipDefinitions.describe(s,entity,{category}).y;
             for(let i=0;i<12;i++)tick();const d=nativeShipDefinitions.describe(s,entity,{category});
             check(d.y>before+velocity*.15,'Normal steering cancelled incoming sideways knockback: '+category+' / '+size);check(d.vy>0,'Knockback velocity vanished');
-            const visual=nativeShipEffects.snapshot(d);check(visual.flash,'Incoming rock did not use the ship shield effect');
+            check(!nativeShipEffects.snapshot(d).flash,'Incoming rock painted a shield bubble');
             const restored=clone(entity);check(restored.motionKick.vy>0,'Ship knockback is not serializable');
             incoming.push({category,size,velocity,continuedDrift:d.y-before});r.size=oldSize;
           }
@@ -183,7 +186,7 @@ try:
           const live=nativeNpcDev.getState();live.system=43;live.landed=false;live.localCruise=null;live.arrivalApproach=null;
           nativeAsteroidMotion.ensure(live);const moving=nativeSolAsteroids.forSystem(43).find(r=>!live.minedAsteroids?.includes(r.slotId)&&!live.destroyedAsteroids?.includes(r.slotId));
           live.minedAsteroids=nativeSolAsteroids.forSystem(43).filter(r=>r!==moving).map(r=>r.slotId);
-          const d=nativeShipDefinitions.describe(live,live,{category:'player'});Object.assign(live,{x:moving.x-d.radii.ry-moving.size*.43+1,y:moving.y,previousX:moving.x-200,previousY:moving.y,angle:0,speed:40,vx:40,vy:0});
+          const d=nativeShipDefinitions.describe(live,live,{category:'player'});Object.assign(live,{x:moving.x-d.hullRadii.ry-moving.size*.43+1,y:moving.y,previousX:moving.x-200,previousY:moving.y,angle:0,speed:40,vx:40,vy:0});
           nativeAsteroidMotion.collide(live,.1);check(live.asteroidMotion.rocks[moving.slotId],'Live state push did not persist');
           const save={id:moving.slotId,pose:clone(live.asteroidMotion.rocks[moving.slotId])};document.querySelector('#save').click();
           return {scenarios,weapons,incoming,chain,noChainReaction,debrisQuarterDamage:true,debrisDeduplicated:true,save};

@@ -135,7 +135,7 @@ test('nonpositive weapon damage has no impact and reset removes transient art', 
   assert.ok(api.snapshot().flash);
   assert.equal(api.snapshot().particles, 1);
   api.reset();
-  assert.deepEqual(plain(api.snapshot()), { flash: null, particles: 0 });
+  assert.deepEqual(plain(api.snapshot()), { flash: null, contact: null, particles: 0 });
 });
 
 test('hull sparks expire and are drawn in the front pass without changing health', () => {

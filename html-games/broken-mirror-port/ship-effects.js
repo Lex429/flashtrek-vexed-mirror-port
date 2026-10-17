@@ -46,7 +46,7 @@
   function asset(descriptor){const ready=data(descriptor);if(!ready)prepare(descriptor.shipType,descriptor.category);return ready?.assets[window.nativeShipDefinitions.stage(descriptor)]||ready?.assets[0]||null;}
   function visual(state,descriptor){
     let value=visuals.get(descriptor.entity);
-    if(!value){value={state,descriptor,flash:null};visuals.set(descriptor.entity,value);}
+    if(!value){value={state,descriptor,flash:null,contact:null};visuals.set(descriptor.entity,value);}
     value.descriptor=descriptor;return value;
   }
   function burst(state,descriptor,point,strength=1,sparksOnly=false){
@@ -61,6 +61,12 @@
   }
   function visualImpact(state,descriptor,event={}){
     if(!descriptor?.entity||descriptor.entity.hull<=0||descriptor.entity.phase==='destroyed'||descriptor.system!==state.system)return;
+    if(event.physicalContact){
+      const contact=window.nativeShipDamage.collision(descriptor,event,false),value=visual(state,descriptor),time=now(state);
+      if(!value.contact||time-value.contact.born>=160)value.contact={born:time,x:contact.local.x,y:contact.local.y,
+        kind:event.kind,energy:Math.max(.1,Math.min(1,event.energy??.5)),shielded:descriptor.entity.shields>0};
+      return {ok:true,shields:descriptor.entity.shields,hull:descriptor.entity.hull,contact};
+    }
     const shielded=descriptor.entity.shields>0,contact=window.nativeShipDamage.collision(descriptor,event,shielded);
     if(shielded)flash(state,descriptor,contact,{...event,kind:event.kind||'debris'});
     else burst(state,descriptor,contact.world,event.energy||.65,true);
@@ -148,16 +154,31 @@
       wreck.debris=wreck.debris.filter(piece=>wreck.time-piece.born<piece.ttl);wreck.particles=wreck.particles.filter(particle=>wreck.time-particle.born<particle.ttl);
       if(wreck.time>17000)wrecks.splice(i,1);
     }
-    for(const [entity,value] of visuals)if(value.state===state&&value.flash&&time-value.flash.born>=620)visuals.delete(entity);
+    for(const [entity,value] of visuals)if(value.state===state){
+      if(value.flash&&time-value.flash.born>=620)value.flash=null;
+      if(value.contact&&time-value.contact.born>=180)value.contact=null;
+      if(!value.flash&&!value.contact)visuals.delete(entity);
+    }
   }
   function position(descriptor,view){const zoom=view.zoom??1;return {x:view.x??view.cx+(descriptor.x-view.ship.x)*zoom,y:view.y??view.cy+(descriptor.y-view.ship.y)*zoom};}
   function paintSurface(ctx,descriptor,view,{front=false}={}){
-    const impact=visuals.get(descriptor.entity)?.flash,time=now(descriptor.state),art=view.asset||asset(descriptor),d=view.dimensions||descriptor.dimensions;
-    if(!impact||!art||time-impact.born>=(impact.charge===0?430:620)||view.warpEffect)return;
-    const surfaceRadii=window.nativeShipDefinitions.surfaceRadii(d,true,descriptor.definition);
+    const value=visuals.get(descriptor.entity),impact=value?.flash,contact=value?.contact,time=now(descriptor.state),d=view.dimensions||descriptor.dimensions;
+    const shield=impact&&time-impact.born<(impact.charge===0?430:620),touch=front&&contact&&time-contact.born<180;
+    if((!shield&&!touch)||view.warpEffect)return;
     const p=position(descriptor,view);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(descriptor.heading+Math.PI/2);if(view.zoom!==undefined&&view.zoom!==1)ctx.scale(view.zoom,view.zoom);
-    if(front)window.drawShowcaseShieldFlash?.(ctx,art.art,d.width,d.height,impact,time,{surfaceRadii});
-    window.drawShowcaseShieldSurface?.(ctx,0,0,d.width,d.height,'#50d5ff',Math.max(.08,impact.charge),time,{front,refract:!front,impact,surfaceRadii});ctx.restore();
+    if(shield){
+      const art=view.asset||asset(descriptor),surfaceRadii=window.nativeShipDefinitions.surfaceRadii(d,true,descriptor.definition);
+      if(art){
+        if(front)window.drawShowcaseShieldFlash?.(ctx,art.art,d.width,d.height,impact,time,{surfaceRadii});
+        window.drawShowcaseShieldSurface?.(ctx,0,0,d.width,d.height,'#50d5ff',Math.max(.08,impact.charge),time,{front,refract:!front,impact,surfaceRadii});
+      }
+    }
+    if(touch){
+      const fade=Math.max(0,1-(time-contact.born)/180),matrix=ctx.getTransform(),scale=Math.max(.001,Math.hypot(matrix.a,matrix.b)),radius=Math.min(2+contact.energy*3,3/scale);
+      ctx.globalAlpha*=fade*.65;ctx.fillStyle=contact.shielded?'#b4ecff':'#ffd8a1';
+      ctx.beginPath();ctx.arc(contact.x,contact.y,radius,0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
   }
   function paintShip(ctx,descriptor,view){
     const art=view.asset||asset(descriptor),d=view.dimensions||descriptor.dimensions,p=position(descriptor,view),warp=view.warpEffect,zoom=view.zoom??1;
@@ -181,7 +202,7 @@
     for(const particle of bursts)if(visible(particle)&&onScreen(particle,(particle.size||0)+2)&&(!view.entity||particle.entity===view.entity))window.showcaseHullBurst?.draw(ctx,particle,time);
     ctx.restore();
   }
-  function snapshot(descriptor){const value=descriptor?visuals.get(descriptor.entity):null;return {flash:value?.flash?{...value.flash}:null,particles:bursts.filter(p=>!descriptor||p.entity===descriptor.entity).length};}
+  function snapshot(descriptor){const value=descriptor?visuals.get(descriptor.entity):null;return {flash:value?.flash?{...value.flash}:null,contact:value?.contact?{...value.contact}:null,particles:bursts.filter(p=>!descriptor||p.entity===descriptor.entity).length};}
   function reset(){visuals.clear();bursts.length=0;fragments.length=0;wrecks.length=0;deferredStages.length=0;}
   function metrics(){const values=new Set([...prepared.values(),...wrecks.map(wreck=>wreck.artwork).filter(Boolean),...deferredStages.map(event=>event.artwork).filter(Boolean)]);
     let bytes=0;for(const value of values)bytes+=assetBytes(value);

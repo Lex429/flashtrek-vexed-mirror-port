@@ -52,7 +52,7 @@ test('saved spin is sampled without replay, paused with movement, and player inp
 test('the real contact dispatcher turns and saves a struck tug while preserving its cargo and health',async()=>{
   const f=await fixture({full:false,economic:false,traffic:true}),w=f.window,s=f.state,t=s.solEconomy.freighters[0];
   w.nativePlayerCombat={visualImpact(){}};s.civilianTraffic.ships=[];s.solEconomy.freighters=[t];
-  w.nativeShipDefinitions.register(s.shipType,{mass:1,geometry:{shield:{rx:5,ry:10}}});w.nativeShipDefinitions.register(10,{mass:12,geometry:{shield:{rx:12,ry:60}}});
+  w.nativeShipDefinitions.register(s.shipType,{mass:1,geometry:{hull:{rx:5,ry:10}}});w.nativeShipDefinitions.register(10,{mass:12,geometry:{hull:{rx:12,ry:60}}});
   Object.assign(s,{system:1,x:40,y:30,previousX:40,previousY:-90,angle:Math.PI/2,vx:0,vy:300,speed:300,dimensions:{width:10,height:20},shields:100,hull:100});
   Object.assign(t,{x:0,y:0,previousX:0,previousY:0,heading:0,speed:0,vx:0,vy:0,phase:'waiting',lifeLeg:null,dimensions:{width:24,height:120},shields:100,hull:100,tons:4});
   delete t.motionKick;delete t.motionSpin;w.nativeShipTraffic.collide(s,.4);assert.ok(Math.abs(t.motionSpin?.velocity)>.1);assert.ok(Math.abs(t.heading)>.001);assert.ok(t.vy>0);

@@ -20,7 +20,7 @@
     debrisContact:(piece,from,target,type)=>window.nativeAsteroidMotion?.debrisContact(activeState,piece,from,target,type),
     resolveDebris:(piece,target,type,result)=>window.nativeAsteroidMotion?.resolveDebris(activeState,piece,target,type,result),
     onShipImpact(target,event){
-      const visual={...event,born:clock,visualOnly:true};
+      const visual={...event,born:clock,visualOnly:true,physicalContact:event.kind==='debris'};
       if(window.nativeShipSystems)window.nativeShipSystems.visualImpact(activeState,target.descriptor,visual);
       else if(target.id==='player')window.nativeCombatShots.onPlayerImpact?.(visual);
       else if(target.id.startsWith('tug:'))window.nativeSolEconomy.visualImpact?.(activeState,Number(target.id.slice(4)),visual);

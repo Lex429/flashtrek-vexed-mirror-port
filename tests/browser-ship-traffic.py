@@ -51,6 +51,8 @@ try:
             if(context===ctx)flashes.push(new DOMPoint(flash.x,flash.y).matrixTransform(context.getTransform()));
             return realFlash(context,image,w,h,flash,...rest);
           };
+          const contactPixels=[],arc=ctx.arc.bind(ctx);
+          ctx.arc=(x,y,r,...args)=>{if(r>0&&r<=5)contactPixels.push(new DOMPoint(x,y).matrixTransform(ctx.getTransform()));return arc(x,y,r,...args);};
           function fresh(){
             nativeShipEffects.reset();nativeCombatShots.reset();nativeEnvironmentalImpacts.reset();
             const s=copy(original);Object.assign(s,{system:1,x:10000,y:10000,speed:0,vx:0,vy:0,hull:1000,shields:1000,landed:false,localCruise:null,arrivalApproach:null});
@@ -75,14 +77,15 @@ try:
             const index=scenarios.length,cx=180+(index%3)*360,cy=index<3?180:520,camera={x:20,y:0};
             for(const [e,category] of [[a,categories[0]],[b,categories[1]]]){
               let d=nativeShipDefinitions.describe(s,e,{category}),v=nativeShipEffects.snapshot(d);
-              check(shielded?!!v.flash:v.particles>0,'Missing native shield/hull effect');
+              check(!!v.contact&&!v.flash,'Physical contact should show a local glint');
               const paint=()=>{nativeShipEffects.paintShip(ctx,d,{ship:camera,cx,cy});nativeShipEffects.paint(s,ctx,{ship:camera,cx,cy});};
-              flashes.length=0;paint();
-              if(shielded){
-                const world=nativeCombatShots.worldPoint(d,v.flash),pixel=flashes.at(-1);check(pixel,'Native shield renderer not called');
-                near(pixel.x,cx+world.x-camera.x,'Shield attachment x');near(pixel.y,cy+world.y-camera.y,'Shield attachment y');
+              flashes.length=0;contactPixels.length=0;paint();
+              check(flashes.length===0,'Ship contact painted a shield bubble');
+              {
+                const world=nativeCombatShots.worldPoint(d,v.contact),pixel=contactPixels.at(-1);check(pixel,'Contact glint was not painted');
+                near(pixel.x,cx+world.x-camera.x,'Hull attachment x');near(pixel.y,cy+world.y-camera.y,'Hull attachment y');
                 if(category==='player')e.angle+=.25;else e.heading+=.25;d=nativeShipDefinitions.describe(s,e,{category});
-                flashes.length=0;paint();const moved=nativeCombatShots.worldPoint(d,v.flash);near(flashes.at(-1).x,cx+moved.x-camera.x,'Rotated shield attachment');
+                contactPixels.length=0;paint();const moved=nativeCombatShots.worldPoint(d,v.contact);near(contactPixels.at(-1).x,cx+moved.x-camera.x,'Rotated hull attachment');
               }
             }
             ctx.fillStyle='#fff';ctx.font='13px sans-serif';ctx.fillText(categories.join(' / ')+' / '+(shielded?'shields':'hulls'),cx-140,cy+90);

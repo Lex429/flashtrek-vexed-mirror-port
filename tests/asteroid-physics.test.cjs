@@ -16,7 +16,7 @@ function contact(f,{size=40,speed=80,shields=100,y=0}={}){
   const w=f.window,s=f.state,rock=w.nativeSolAsteroids.forSystem(43)[0];rock.size=size;rock.maxHull=100;
   w.nativeSolAsteroids.relocate(rock,{x:0,y:0,angle:0});
   const entity=s;
-  Object.assign(entity,{x:-45,y,previousX:-80,previousY:y,angle:0,heading:0,speed,vx:speed,vy:0,shields});
+  Object.assign(entity,{x:-40,y,previousX:-80,previousY:y,angle:0,heading:0,speed,vx:speed,vy:0,shields});
   w.nativeAsteroidMotion.collide(s,.25);return {rock,entity,pose:s.asteroidMotion.rocks[rock.slotId]};
 }
 async function movingFixture(bodies,{player=false}={}){
@@ -56,7 +56,7 @@ test('an incoming larger asteroid pushes a stationary ship harder and sideways k
   const hits=[];
   for(const size of [20,70]){
     const f=await movingFixture([{x:0,y:-80,vy:60,size}],{player:true}),w=f.window,s=f.state;
-    w.nativeSimulation.advance(s,1);w.nativeAsteroidMotion.advance(s,1);w.nativeAsteroidMotion.collide(s,1);
+    w.nativeSimulation.advance(s,1.2);w.nativeAsteroidMotion.advance(s,1.2);w.nativeAsteroidMotion.collide(s,1.2);
     assert.ok(s.vy>0);assert.ok(s.motionKick?.vy>0);assert.equal(s.hull,100);assert.equal(s.shields,100);
     const velocity=s.vy,y=s.y;w.nativeSimulation.advance(s,.1);w.nativeShipSystems.move(s,s,'player',{},undefined,.1);
     assert.ok(s.y>y);near(s.vy,velocity);near(s.angle,0);hits.push(velocity);
@@ -199,14 +199,13 @@ test('mining follows a displaced claim and never cuts or grants ore at its aband
   assert.equal(s.miningOperation,undefined);assert.ok(!s.minedAsteroids.includes(playerRock.slotId));assert.equal(s.asteroidOreDrops[playerRock.slotId],undefined);
 });
 
-test('shield and hull contacts use different surfaces without subtracting ship health',async()=>{
+test('shielded and unshielded ships push rocks at the same physical hull without losing health',async()=>{
   const f=await setup(),{rock,entity,pose}=contact(f,{speed:40});
   assert.ok(pose&&pose.vx>0);assert.ok(rock.x>0);assert.equal(entity.hull,100);assert.equal(entity.shields,100);
   assert.equal(f.state.asteroidDamage?.[rock.slotId],undefined);
   assert.equal(f.window.nativeAsteroidMotion.snapshot().contacts[0].shielded,true);
   const g=await setup(),out=contact(g,{speed:40,shields:0});
-  assert.equal(out.pose,undefined,'the same pass reaches shields before it reaches the smaller hull');
-  out.entity.x=-35;out.entity.previousX=-60;g.window.nativeAsteroidMotion.collide(g.state,.25);
+  assert.ok(out.pose&&out.pose.vx>0);near(out.pose.vx,pose.vx);near(out.rock.x,rock.x);
   assert.equal(g.window.nativeAsteroidMotion.snapshot().contacts[0].shielded,false);assert.equal(out.entity.hull,100);
 });
 

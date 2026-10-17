@@ -249,8 +249,9 @@
   }
   const asteroidMass=rock=>Math.max(.00005,(rock.size/40)**3);
   const shipMass=ship=>Math.max(.5,finite(ship.definition?.mass,8*(ship.dimensions.width*ship.dimensions.height/2400)**1.5));
-  const shipInertia=ship=>Math.max(.01,finite(ship.definition?.inertia,shipMass(ship)*(ship.radii.rx**2+ship.radii.ry**2)/4));
-  const shipRadius=ship=>Math.max(1,ship.radii.rx,ship.radii.ry);
+  const hullRadii=ship=>ship.hullRadii||ship.radii;
+  const shipInertia=ship=>Math.max(.01,finite(ship.definition?.inertia,shipMass(ship)*(hullRadii(ship).rx**2+hullRadii(ship).ry**2)/4));
+  const shipRadius=ship=>Math.max(1,hullRadii(ship).rx,hullRadii(ship).ry);
   // Saved piecewise commands use the ordinary acceleration/braking sampler.
   // The original task goal remains authoritative; detours extend its deadline.
   function routeLeg(entity,goal,points,profile,at,wait=0){
@@ -285,7 +286,7 @@
     for(const other of neighbors){
       if(other.id===ship.id&&other.category===ship.category||other.system!==ship.system)continue;
       const rx=other.x-ship.x,ry=other.y-ship.y,rvx=other.vx-vx,rvy=other.vy-vy,sq=rvx*rvx+rvy*rvy;
-      const clearance=shipRadius(ship)+shipRadius(other)+24+turnRoom;
+      const clearance=shipRadius(ship)+shipRadius(other)+6+Math.min(24,Math.hypot(rvx,rvy)*.1)+turnRoom;
       const closing=rx*rvx+ry*rvy;
       if(closing>=0&&Math.hypot(rx,ry)>clearance*.9)continue;
       const t=sq?clamp(-closing/sq,0,horizon):0,miss=Math.hypot(rx+rvx*t,ry+rvy*t);
@@ -322,7 +323,7 @@
     return {x:lx*c-ly*s,y:lx*s+ly*c,r:length};
   }
   const contactAxes=Array.from({length:32},(_,i)=>({x:Math.cos(i*Math.PI/32),y:Math.sin(i*Math.PI/32)}));
-  // Swept supporting planes of both oriented shield/hull ellipses. Sampled
+  // Swept supporting planes of both oriented physical hull ellipses. Sampled
   // directions conservatively bound the curves; circles are broad phase only.
   function shipPairContact(a,b,dt){
     if(!(dt>0)||!validPoint(a)||!validPoint(b)||!a.radii||!b.radii)return null;
@@ -330,6 +331,7 @@
     const fx=bx-ax,fy=by-ay,dx=b.x-a.x-fx,dy=b.y-a.y-fy;
     const sweep=dx*dx+dy*dy,closest=sweep?clamp(-(fx*dx+fy*dy)/sweep,0,1):0;
     if(Math.hypot(fx+dx*closest,fy+dy*closest)>shipRadius(a)+shipRadius(b))return null;
+    a={...a,radii:hullRadii(a)};b={...b,radii:hullRadii(b)};
     const ac=Math.cos(a.heading+Math.PI/2),as=Math.sin(a.heading+Math.PI/2),bc=Math.cos(b.heading+Math.PI/2),bs=Math.sin(b.heading+Math.PI/2);
     let enter=0,exit=1,normal=null,shallow=Infinity,overlap=true,shallowNormal=null;
     for(let i=0;i<36;i++){
@@ -370,12 +372,12 @@
       pointA:{x:pa.x+surfaceA.x,y:pa.y+surfaceA.y},pointB:{x:pb.x+surfaceB.x,y:pb.y+surfaceB.y}};
   }
   const collisionDamageFraction=(closing,otherMass,selfMass)=>Math.min(1,(Math.max(0,closing-70)/180)**2*otherMass/(otherMass+selfMass));
-  // Swept ellipse/circle contact uses the same oriented shield/hull radii as
-  // weapons. Both bodies receive a mass-weighted impulse; no health is changed.
+  // Swept ellipse/circle contact uses the physical hull, independent of shield
+  // charge. Both bodies receive a mass-weighted impulse; no health is changed.
   function asteroidContact(ship,rock,dt){
     if(!(dt>0)||!validPoint(ship)||!validPoint(rock)||!(rock.size>0)||!ship.radii||!ship.dimensions)return null;
     const heading=finite(ship.heading)+Math.PI/2,c=Math.cos(heading),s=Math.sin(heading),radius=rock.size*.43;
-    const rx=Math.max(1,ship.radii.rx+radius),ry=Math.max(1,ship.radii.ry+radius);
+    const shape=hullRadii(ship),rx=Math.max(1,shape.rx+radius),ry=Math.max(1,shape.ry+radius);
     const local=(x,y)=>({x:(x*c+y*s)/rx,y:(-x*s+y*c)/ry});
     const rockVX=finite(rock.vx),rockVY=finite(rock.vy);
     const from=local(finite(ship.previousX,ship.x)-finite(rock.previousX,rock.x-rockVX*dt),finite(ship.previousY,ship.y)-finite(rock.previousY,rock.y-rockVY*dt)),to=local(ship.x-rock.x,ship.y-rock.y);

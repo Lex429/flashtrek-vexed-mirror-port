@@ -30,7 +30,7 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-contract.py
-      - name: Asteroid weapon hits, physical pushes, shield/hull contacts and saved drift
+      - name: Asteroid weapon hits, physical hull pushes, local contact glints and saved drift
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-asteroid-physics.py
@@ -38,7 +38,7 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-traffic.py
-      - name: Speed and offset impacts, angular response and actual player movement keys
+      - name: Hull-clear shield passage, angular impacts and actual player movement keys
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-impact-controls.py

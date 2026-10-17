@@ -65,7 +65,7 @@
       previousX:number(entity.previousX,number(pose.x)),previousY:number(entity.previousY,number(pose.y)),
       angularVelocity:window.nativeShipMotion?.spinSample?.(entity.motionSpin,number(state.shipSimulation?.seconds))?.velocity||0,
       hull:number(entity.hull),shields:number(entity.shields),dimensions:d,radius:Math.max(8,Math.max(d.width,d.height)*.35),
-      radii:surfaceRadii(d,entity.shields>0,definition)};
+      hullRadii:surfaceRadii(d,false,definition),radii:surfaceRadii(d,entity.shields>0,definition)};
   }
   function stage(descriptor){
     const {entity,definition}=descriptor,fraction=number(entity.hull)/Math.max(1,definition.hull);
