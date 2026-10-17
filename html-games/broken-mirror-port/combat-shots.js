@@ -191,6 +191,7 @@
         shot.lockedImpactLocal=result.contact?.local;
         if(entry?.onHit&&current&&String(result.target.id)===String(current.id))result.damage=entry.onHit(event.weapon,result.point,shot,result);
         else result.damage=applyHit(state,result,event,sourceShip);
+        window.nativeShipSystems?.invalidate?.(state,event.system);
       }
       entry?.onResolved?.(result,event,visualFor(state,event,entry));
       window.nativeShipSystems?.resolved?.(state,result,event);

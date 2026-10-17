@@ -128,8 +128,14 @@
   // A scheduled straight movement command. Sampling the same command for nearby
   // and distant ships gives promotion/demotion an identical world pose. All
   // acceleration and braking geometry remains here, outside job controllers.
+  const arrivalEpsilon=1e-6;
   function planLeg(entity,goal,profile={},startedAt=0){
+    if(!validPoint(entity)||!validPoint(goal)||!Number.isFinite(startedAt))return {version:2,valid:false,reason:'Movement needs finite start, goal and simulation time',duration:0,distance:0};
     const start={x:finite(entity.x),y:finite(entity.y)},dx=goal.x-start.x,dy=goal.y-start.y,distance=Math.hypot(dx,dy);
+    if(!Number.isFinite(distance))return {version:2,valid:false,reason:'Movement distance is outside finite world coordinates',duration:0,distance:0};
+    const headingStart=finite(entity.heading,finite(entity.angle));
+    if(distance<=arrivalEpsilon)return {version:2,valid:true,start,goal:{x:goal.x,y:goal.y},startedAt,distance,heading:headingStart,headingStart,
+      turnSeconds:0,initialSpeed:0,peakSpeed:0,acceleration:0,braking:0,accelSeconds:0,cruiseSeconds:0,brakeSeconds:0,accelDistance:0,duration:0};
     const maxSpeed=Math.max(.01,finite(profile.maxSpeed,100)),acceleration=Math.max(.01,finite(profile.acceleration,1000000)),braking=Math.max(.01,finite(profile.braking,acceleration));
     const initialSpeed=clamp(finite(entity.speed),0,Math.min(maxSpeed,Math.sqrt(2*braking*distance)));
     const peakSpeed=Math.min(maxSpeed,Math.sqrt(Math.max(0,(2*distance+initialSpeed*initialSpeed/acceleration)/(1/acceleration+1/braking))));
@@ -137,12 +143,19 @@
     const accelDistance=(initialSpeed+peakSpeed)*accelSeconds/2,brakeDistance=peakSpeed*brakeSeconds/2;
     const cruiseSeconds=Math.max(0,(distance-accelDistance-brakeDistance)/peakSpeed);
     const heading=distance?Math.atan2(dy,dx):finite(entity.heading,finite(entity.angle));
-    const headingStart=finite(entity.heading,finite(entity.angle)),turnRate=Math.max(.001,finite(profile.turnRate,1000000));
-    return {version:1,start,goal:{x:goal.x,y:goal.y},startedAt:finite(startedAt),distance,heading,headingStart,turnSeconds:Math.abs(wrap(heading-headingStart))/turnRate,
+    const turnRate=Math.max(.001,finite(profile.turnRate,1000000));
+    return {version:2,valid:true,start,goal:{x:goal.x,y:goal.y},startedAt:finite(startedAt),distance,heading,headingStart,turnSeconds:Math.abs(wrap(heading-headingStart))/turnRate,
       initialSpeed,peakSpeed,acceleration,braking,accelSeconds,cruiseSeconds,brakeSeconds,accelDistance,duration:accelSeconds+cruiseSeconds+brakeSeconds};
   }
   function sampleLeg(entity,leg,now){
-    if(!entity||!leg)return {arrived:false,progress:0};
+    if(!validPoint(entity)||!leg||leg.valid===false||!validPoint(leg.start)||!validPoint(leg.goal)||!Number.isFinite(now))return {arrived:false,invalid:true,progress:0};
+    const distance=Math.hypot(leg.goal.x-leg.start.x,leg.goal.y-leg.start.y);
+    if(distance<=arrivalEpsilon||(Number.isFinite(leg.startedAt)&&Number.isFinite(leg.duration)&&leg.duration>0&&now>=leg.startedAt+leg.duration)){
+      entity.previousX=entity.x;entity.previousY=entity.y;entity.x=leg.goal.x;entity.y=leg.goal.y;
+      entity[headingKey(entity)]=wrap(finite(leg.heading,finite(entity[headingKey(entity)])));stop(entity);
+      return {arrived:true,progress:1,distance:0};
+    }
+    if(!Number.isFinite(leg.duration)||leg.duration<=0||!(leg.distance>0)||!Number.isFinite(leg.startedAt)||!['distance','heading','headingStart','turnSeconds','initialSpeed','peakSpeed','acceleration','braking','accelSeconds','cruiseSeconds','brakeSeconds','accelDistance'].every(key=>Number.isFinite(leg[key])))return {arrived:false,invalid:true,progress:0};
     const elapsed=clamp(finite(now)-leg.startedAt,0,leg.duration),arrived=elapsed>=leg.duration;
     let traveled=0,speed=0;
     if(elapsed<=leg.accelSeconds){speed=leg.initialSpeed+leg.acceleration*elapsed;traveled=(leg.initialSpeed+speed)*elapsed/2;}
@@ -156,5 +169,5 @@
     if(arrived)stop(entity);
     return {arrived,progress,distance:Math.max(0,leg.distance-traveled)};
   }
-  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg};
+  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,arrivalEpsilon};
 })();

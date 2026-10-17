@@ -10,11 +10,30 @@
     return targets;
   }
   function scene(state,{system=state.system}={}){
+    const frame=window.nativeSimulationFrame?.current(state),cacheKey='targets:'+system,cached=frame?.caches.get(cacheKey);
+    if(cached)return cached.scene;
     const targets=collect(state,system);
     const bodies=system===1?(window.nativeSystemHub?.sol||[]).filter(body=>body.id!==6).map(body=>({x:body.x-220,y:body.y+75,radius:(window.vexedSolFlight?.bodySize(body)||100)*.44})):[];
-    return {targets,bystanders:targets.filter(target=>target.category!=='asteroid'),rocks:targets.filter(target=>target.category==='asteroid'),destructibles:[],bodies};
+    const result={targets,bystanders:targets.filter(target=>target.category!=='asteroid'),rocks:targets.filter(target=>target.category==='asteroid'),destructibles:[],bodies};
+    if(frame)frame.caches.set(cacheKey,{scene:result,byId:new Map(targets.map(target=>[idKey(target.id),target]))});
+    window.nativeSimulationFrame?.count(state,'sceneCollections');
+    return result;
   }
-  function resolve(state,id,system=state.system){return collect(state,system).find(target=>idKey(target.id)===idKey(id))||null;}
+  function invalidate(state,system){
+    const frame=window.nativeSimulationFrame?.current(state);if(!frame)return;
+    if(system===undefined)frame.caches.clear();else frame.caches.delete('targets:'+system);
+  }
+  function resolve(state,id,system=state.system){
+    const frame=window.nativeSimulationFrame?.current(state);
+    if(!frame)return collect(state,system).find(target=>idKey(target.id)===idKey(id))||null;
+    scene(state,{system});
+    const target=frame.caches.get('targets:'+system)?.byId.get(idKey(id));if(!target)return null;
+    const entity=target.entity;
+    if(target.category==='asteroid')return state.minedAsteroids?.includes(target.rockId)||state.destroyedAsteroids?.includes(target.rockId)?null:target;
+    if(entity&&(entity.hull<=0||['destroyed','warp','arriving'].includes(entity.phase)||(entity.system??system)!==system))return null;
+    if(['player','civilian','tug'].includes(target.category))return window.nativeShipDefinitions.describe(state,entity,{category:target.category});
+    return kinds.get(target.category)?.resolve?.(state,id,system)||target;
+  }
   // Inspection is a lightweight read model, not collision collection or simulation activation.
   // Categories with transit/dead entities supply inspect; ordinary extensions inherit collect.
   function inspectAll(state){
@@ -38,7 +57,8 @@
     if(!target)return {ok:false};
     const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,
       kind:event.kind,source:source.id==='player'?'player':'ai',sourceId:source.id};
-    return kinds.get(target.category)?.hit(state,target,event.damage,impact)||{ok:false};
+    const damageResult=kinds.get(target.category)?.hit(state,target,event.damage,impact)||{ok:false};
+    invalidate(state,target.system);return damageResult;
   }
   function visualImpact(state,target,event){return kinds.get(target.category)?.visualImpact?.(state,target,event);}
   function resolved(state,result,event){for(const adapter of kinds.values())adapter.onResolved?.(state,result,event);}
@@ -52,6 +72,7 @@
     Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionAngularVelocity:pose.motionAngularVelocity,
       previousX:pose.previousX,previousY:pose.previousY});
     if(category==='player')entity.angle=pose.heading;else entity.heading=pose.heading;
+    invalidate(state,descriptor.system);
     return result;
   }
   function player(state,system){
@@ -84,5 +105,5 @@
     return (window.nativeSolAsteroids?.placements||[]).filter(rock=>!gone.has(rock.slotId)).map(rock=>({...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid',system:1,heading:rock.angle||0,
       dimensions:{width:rock.size,height:rock.size},radius:rock.size*.43,entity:rock,targetable:true}));
   },hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.hit(state,target.rockId,amount,impact)});
-  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,scene,resolve,applyHit,visualImpact,resolved,move,inspectAll});
+  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,scene,resolve,applyHit,visualImpact,resolved,move,inspectAll,invalidate});
 })();

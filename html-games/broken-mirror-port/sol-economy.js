@@ -37,6 +37,7 @@
     ship.recentEvents||=[];ship.recentEvents.unshift({at:lifeNow(economy),kind,message});ship.recentEvents.length=Math.min(16,ship.recentEvents.length);
   }
   function ensureLives(economy,state){
+    economy.flows||={produced:goods.map(()=>0),consumed:goods.map(()=>0),lost:goods.map(()=>0)};
     if(!Number.isFinite(economy.lifeClock))economy.lifeClock=window.nativeSimulation?.seconds(state)||0;
     economy.lifeMetrics||={detailed:0,distant:0,distantUpdates:0,scheduledEvents:0,deferred:0};
     for(const ship of economy.freighters)if(ship.lifeVersion!==1){
@@ -113,7 +114,7 @@
     return Math.max(2.5,(unloading?1.25:1.75)+Math.max(0,tons)/handlingRate[port]+queue+variation);
   }
   function inbound(economy,port,good,except) {
-    return economy.freighters.reduce((sum,other)=>sum+(other!==except && other.assignment?.to===port && other.assignment.good===good ? qty(other.assignment.tons) : 0),0);
+    return economy.freighters.reduce((sum,other)=>sum+(other!==except && !['disabled','destroyed'].includes(other.phase) && other.assignment?.to===port && other.assignment.good===good ? qty(other.assignment.tons) : 0),qty(economy.incomingReserved?.[port]?.[good]));
   }
   function candidate(economy,from,to,good,ship) {
     const surplus=availableStock(economy,from,good)-targetStock[from][good];
@@ -251,7 +252,7 @@
   function note(economy,message) {economy.log.unshift(message);economy.log.length=Math.min(economy.log.length,12);}
   function beginRebuild(economy,ship){
     if(ship.phase!=='destroyed'||ship.rebuild>0||buildMaterials.some(([good,amount])=>availableStock(economy,5,good)<amount))return false;
-    for(const [good,amount] of buildMaterials)economy.ports[5][good]-=amount;
+    for(const [good,amount] of buildMaterials){economy.ports[5][good]-=amount;economy.flows.consumed[good]+=amount;}
     ship.rebuild=120;
     note(economy,`Mars began constructing replacement Tug ${ship.id+1}.`);
     return true;
@@ -268,6 +269,7 @@
   }
   function destroy(economy,ship,stage){
     const lost=ship.tons,good=ship.good;
+    if(lost>0&&Number.isInteger(good))economy.flows.lost[good]+=lost;
     Object.assign(ship,{hull:0,shields:0,shieldFlash:null,phase:'destroyed',rebuild:0,speed:0,tons:0,good:null,
       handlingTons:0,assignment:null,path:[]});
     if(targetId===ship.id)targetId=null;
@@ -295,15 +297,15 @@
     const p=economy.ports;
     const make=(port,output,amount,inputs=[])=>{
       if(inputs.some(([good,needed])=>availableStock(economy,port,good)<needed))return;
-      for(const [good,needed] of inputs)p[port][good]-=needed;
-      p[port][output]=Math.min(9999,stock(economy,port,output)+amount);
+      for(const [good,needed] of inputs){p[port][good]-=needed;economy.flows.consumed[good]+=needed;}
+      const before=stock(economy,port,output);p[port][output]=Math.min(9999,before+amount);economy.flows.produced[output]+=p[port][output]-before;
     };
     make(1,0,16);make(1,7,5);make(2,4,12);make(3,5,12);
     make(3,6,4,[[5,2]]);make(4,1,8,[[0,10]]);make(4,2,5,[[1,6]]);
     make(5,8,3,[[1,4],[2,3],[3,1],[7,1]]);
     make(7,3,6,[[2,4]]);make(8,4,9);make(9,4,10);
     make(10,3,3,[[2,2]]);
-    for(const port of ports)for(const good of [4,5,6])if(port!==3&&port!==2&&port!==8&&port!==9&&availableStock(economy,port,good)>0)p[port][good]=Math.max(0,p[port][good]-1);
+    for(const port of ports)for(const good of [4,5,6])if(port!==3&&port!==2&&port!==8&&port!==9&&availableStock(economy,port,good)>0){p[port][good]=Math.max(0,p[port][good]-1);economy.flows.consumed[good]++;}
   }
   function load(economy,ship) {
     const job=ship.assignment;
@@ -320,19 +322,36 @@
   }
   function scheduleTug(economy,ship,at){
     ship.lifeLeg=null;
+    delete ship.lifeSkipPending;
     if(ship.phase==='disabled'){ship.lifeEventAt=null;return;}
     if(ship.phase==='travel'){
-      const goal=ship.path[ship.routeIndex];
-      if(goal){ship.lifeLeg=window.nativeShipMotion.planLeg(ship,goal,window.nativeShipDefinitions.get(10,'tug').movement||window.nativeShipMotion.profiles.tug(),at);ship.lifeEventAt=at+ship.lifeLeg.duration;return;}
-      ship.lifeEventAt=at;return;
+      let skipped=0,goal=ship.path[ship.routeIndex];
+      while(goal&&Number.isFinite(goal.x)&&Number.isFinite(goal.y)&&Math.hypot(goal.x-ship.x,goal.y-ship.y)<=window.nativeShipMotion.arrivalEpsilon&&skipped++<64){
+        ship.x=goal.x;ship.y=goal.y;window.nativeShipMotion.stop(ship);ship.routeIndex++;goal=ship.path[ship.routeIndex];
+      }
+      if(skipped>64){ship.lifeSkipPending=true;ship.lifeEventAt=at+1/60;return;}
+      if(!goal){arriveTug(economy,ship);scheduleTug(economy,ship,at);return;}
+      ship.lifeLeg=window.nativeShipMotion.planLeg(ship,goal,window.nativeShipDefinitions.get(10,'tug').movement||window.nativeShipMotion.profiles.tug(),at);
+      if(ship.lifeLeg.valid!==false){ship.lifeEventAt=at+ship.lifeLeg.duration;return;}
+      ship.lifeLeg=null;ship.phase='waiting-route';window.nativeShipMotion.stop(ship);ship.task.status='blocked';ship.task.failureReason='Invalid saved route; cargo remains aboard';
     }
-    const delay=ship.phase==='destroyed'?(ship.rebuild||5):ship.phase==='turning'?(ship.turnTimer||0):ship.dwell||0;
+    const delay=ship.phase==='waiting-route'?30:ship.phase==='destroyed'?(ship.rebuild||5):ship.phase==='turning'?(ship.turnTimer||0):ship.dwell||0;
     ship.lifeEventAt=at+Math.max(.001,delay);
+  }
+  function arriveTug(economy,ship){
+    if(!ports.includes(ship.to)){ship.phase='waiting-route';window.nativeShipMotion.stop(ship);ship.task.status='blocked';ship.task.failureReason='Unknown freight destination; cargo remains aboard';return;}
+    ship.port=ship.to;window.nativeShipMotion.stop(ship);ship.progress=1;
+    if(ship.tons){ship.phase='unloading';ship.handlingTons=ship.tons;ship.dwell=handlingTime(economy,ship.port,ship.tons,ship,true);}
+    else{ship.from=ship.port;ship.to=ship.assignment?.to||ship.port;beginLoading(economy,ship);}
   }
   function tugEvent(economy,ship,at){
     if(ship.phase==='destroyed'){
       if(ship.rebuild>0){ship.rebuild=0;finishRebuild(economy,ship);}else beginRebuild(economy,ship);
     }else if(ship.phase==='waiting')dispatch(economy,ship);
+    else if(ship.phase==='waiting-route'){
+      if(ports.includes(ship.to)&&Number.isFinite(ship.x)&&Number.isFinite(ship.y)){ship.path=route({x:ship.x,y:ship.y},station(ship.to,ship.id));ship.routeIndex=0;ship.phase='travel';}
+      else ship.dwell=30;
+    }
     else if(ship.phase==='loading')load(economy,ship);
     else if(ship.phase==='unloading'){
       if(ship.tons){
@@ -343,18 +362,22 @@
       ship.lastDestination={to:ship.port,good:ship.good};ship.tons=0;ship.deliveries=(ship.deliveries||0)+1;ship.task.status='complete';dispatch(economy,ship);
     }else if(ship.phase==='turning'){ship.turnTimer=0;ship.phase='travel';}
     else if(ship.phase==='travel'){
-      if(ship.lifeLeg)window.nativeShipMotion.sampleLeg(ship,ship.lifeLeg,at);
+      if(ship.lifeSkipPending){scheduleTug(economy,ship,at);return;}
+      if(ship.lifeLeg){
+        const sampled=window.nativeShipMotion.sampleLeg(ship,ship.lifeLeg,at);
+        if(sampled.invalid){ship.lifeLeg=null;ship.phase='waiting-route';window.nativeShipMotion.stop(ship);ship.task.status='blocked';ship.task.failureReason='Invalid saved movement; cargo remains aboard';ship.lifeEventAt=at+30;return;}
+        if(!sampled.arrived){ship.lifeEventAt=Math.max(at+1/60,ship.lifeLeg.startedAt+ship.lifeLeg.duration);return;}
+      }
       ship.routeIndex++;
       if(ship.routeIndex>=ship.path.length){
-        ship.port=ship.to;ship.speed=0;ship.progress=1;
-        if(ship.tons){ship.phase='unloading';ship.handlingTons=ship.tons;ship.dwell=handlingTime(economy,ship.port,ship.tons,ship,true);}
-        else{ship.from=ship.port;ship.to=ship.assignment?.to||ship.port;beginLoading(economy,ship);}
+        arriveTug(economy,ship);
       }
     }
     syncTask(economy,ship);scheduleTug(economy,ship,at);
   }
   function detail(state,ship){
     if(state.system!==1||window.vexedWarp?.active)return 'distant';
+    if(window.nativeShipDetail)return window.nativeShipDetail.isDetailed(state,ship,{category:'tug'})?'detailed':'distant';
     const player=window.vexedSolFlight?.shipPosition(state)||state;
     return Math.hypot(ship.x-player.x,ship.y-player.y)<2400?'detailed':'distant';
   }
@@ -364,7 +387,7 @@
     economy.lifeClock=now;economy.clock+=now-before;
     let changed=false,production=0;
     // Production debt remains saved and drains over later frames; work per call is bounded.
-    while(economy.clock>=30&&production++<64){economy.clock-=30;produce(economy);changed=true;}
+    while(economy.clock>=30&&production++<64&&(!window.nativeSimulationFrame||window.nativeSimulationFrame.take(state,'solProduction',64))){economy.clock-=30;produce(economy);changed=true;}
     const metrics=economy.lifeMetrics;metrics.detailed=0;metrics.distant=0;metrics.deferred=0;metrics.scheduledEvents=0;metrics.distantUpdates=0;
     for(const ship of economy.freighters){
       if(ship.lifeEventAt==null&&ship.phase!=='disabled')scheduleTug(economy,ship,before);
@@ -377,6 +400,7 @@
       let next=null;
       for(const ship of economy.freighters)if(ship.lifeEventAt!=null&&ship.lifeEventAt<=now+1e-8&&(!next||ship.lifeEventAt<next.lifeEventAt))next=ship;
       if(!next)break;
+      if(window.nativeSimulationFrame&&!window.nativeSimulationFrame.take(state,'solEvents',96))break;
       const at=next.lifeEventAt;
       economy.processingAt=at;
       try{tugEvent(economy,next,at);}finally{delete economy.processingAt;}
@@ -448,10 +472,13 @@
       if(used(state)+n>capacity) return {ok:false,error:'Your cargo hold is full.'};
       if(!state.devMode&&state.latinum<cost) return {ok:false,error:'Not enough latinum.'};
       economy.ports[port][g]-=n;state.solFreightHold[g]=qty(state.solFreightHold[g])+n;
-      if(!state.devMode) state.latinum-=cost;
+      if(!state.devMode){state.latinum-=cost;economy.flows.externalPlayerReceipts=(economy.flows.externalPlayerReceipts||0)+cost;}
+      else economy.flows.devPurchaseSubsidy=(economy.flows.devPurchaseSubsidy||0)+cost;
     } else {
       if(qty(state.solFreightHold[g])<n) return {ok:false,error:'You do not have that much cargo aboard.'};
-      state.solFreightHold[g]-=n;economy.ports[port][g]=Math.min(9999,stock(economy,port,g)+n);state.latinum+=cost;
+      const delivered=stock(economy,port,g)+n;
+      state.solFreightHold[g]-=n;economy.ports[port][g]=Math.min(9999,delivered);state.latinum+=cost;
+      economy.flows.lost[g]+=Math.max(0,delivered-9999);economy.flows.externalPlayerPayments=(economy.flows.externalPlayerPayments||0)+cost;
     }
     return {ok:true,message:`${buy?'Loaded':'Sold'} ${n} t of ${goods[g]} at ${names[port]} for ${cost} latinum.`};
   }
@@ -472,8 +499,9 @@
   function deliver(state,id) {
     const economy=initialize(state),job=state.localContracts?.find(c=>Number(c.id)===Number(id));
     if(!job) return {ok:false,error:'Shipment unavailable.'};
-    if(Number.isInteger(job.good)) economy.ports[job.to][job.good]=Math.min(9999,stock(economy,job.to,job.good)+job.tons);
+    if(Number.isInteger(job.good)){const delivered=stock(economy,job.to,job.good)+job.tons;economy.ports[job.to][job.good]=Math.min(9999,delivered);economy.flows.lost[job.good]+=Math.max(0,delivered-9999);}
     state.localContracts=state.localContracts.filter(c=>c!==job);state.latinum+=job.pay;
+    economy.flows.externalPlayerPayments=(economy.flows.externalPlayerPayments||0)+job.pay;
     note(economy,`Your Tug delivered ${job.tons} t${goods[job.good]?' of '+goods[job.good]:''} to ${names[job.to]}.`);
     return {ok:true,message:`Delivered ${job.tons} t to ${names[job.to]}. ${job.pay} latinum received.`};
   }

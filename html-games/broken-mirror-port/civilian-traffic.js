@@ -195,12 +195,13 @@
   function startDispute(state,a,b,reason){
     const traffic=initialize(state);
     if(a.system!==b.system||!availableForDispute(traffic,a)||!availableForDispute(traffic,b)||traffic.disputes.some(dispute=>dispute.system===a.system))return false;
+    if(!tacticallyDetailed(state,a)||!tacticallyDetailed(state,b))return false;
     const player=playerPosition(state),midpoint={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
     const preview=state.devMode&&a.system===state.system&&a.system===1&&Number(state.localBody??3)===3&&Math.hypot(midpoint.x-player.x,midpoint.y-player.y)<500;
     const dispute={id:traffic.nextDisputeId++,combatVersion:3,system:a.system,a:a.id,b:b.id,reason,startedAt:traffic.clock,nextA:traffic.clock+1.5,nextB:traffic.clock+2,
       anchor:preview?{...player}:midpoint,bounds:preview?{x:265,y:155}:{x:440,y:330},pending:[],volleys:0,hits:0,misses:0,blocked:0,hails:[],nextHailAt:traffic.clock+3};
     traffic.disputes.push(dispute);
-    for(const ship of [a,b]){combat.begin(ship,ship===a?'claimant':'thief',traffic.clock);ship.disputeId=dispute.id;ship.phase='fighting';ship.miningRockSlot=null;miningVisuals.delete(ship.id);}
+    for(const ship of [a,b]){if(!ship.scriptedDemo)window.nativeNpcLives?.interrupt(state,ship,'combat');combat.begin(ship,ship===a?'claimant':'thief',traffic.clock);ship.disputeId=dispute.id;ship.phase='fighting';ship.miningRockSlot=null;miningVisuals.delete(ship.id);}
     hail(state,a,reason.startsWith('theft')?'Return the ore you stole!':'Pay for that delivery!');
     queueHail(state,dispute,b,'Keep your distance. This cargo is mine.');
     note(state,`${a.name} and ${b.name} opened a dispute over ${reason}. Weapons are targeting engines.`);return true;
@@ -208,8 +209,11 @@
   function endDispute(state,dispute,a,b){
     const traffic=state.civilianTraffic;
     for(const ship of [a,b].filter(Boolean)){
-      if(ship.disputeId===dispute.id){delete ship.disputeId;ship.disputeCooldownUntil=traffic.clock+180;ship.speed=0;if(ship.phase==='fighting'){ship.phase='docked';ship.timer=8;}}
-      if(ship.scriptedDemo==='ore-dispute')delete ship.scriptedDemo;
+      if(ship.disputeId===dispute.id){
+        delete ship.disputeId;ship.disputeCooldownUntil=traffic.clock+180;window.nativeShipMotion.stop(ship);if(ship.phase==='fighting'){ship.phase='docked';ship.timer=8;}
+        if(ship.scriptedDemo==='ore-dispute'||ship.scriptedDemo==='mining'&&ship.miningRockSlot==null)delete ship.scriptedDemo;
+        window.nativeNpcLives?.resumeWork?.(state,ship,'Dispute ended; resume useful work');
+      }
     }
     const loser=[a,b].find(ship=>ship?.phase==='disabled');
     traffic.combatReports||=[];
@@ -225,6 +229,7 @@
     return fitted.length?fitted:definition.capabilities.defensiveWeapon?[definition.capabilities.defensiveWeapon]:[];
   }
   function fireDisputeShot(state,dispute,shooter,victim,scene){
+    window.nativeSimulationFrame?.count(state,'tacticalFiringAttempts');
     const traffic=state.civilianTraffic,descriptor=window.nativeShipDefinitions.describe(state,shooter,{category:'civilian'});
     const selection=window.nativeWeaponLoadout.equipped(state,shooter,disputeWeapons(shooter)).sort((a,b)=>{
       const score=entry=>entry.weapon.damage+(window.nativeCombatShots.weaponVisual(entry.weapon).kind==='beam'&&victim.shields>0?4:0)+(window.nativeCombatShots.weaponVisual(entry.weapon).kind==='torpedo'&&victim.shields<=0?3:0);
@@ -235,12 +240,28 @@
     return .1;
   }
   function combatScene(state,dispute){return window.nativeShipSystems.scene(state,{system:dispute.system});}
+  const tacticallyDetailed=(state,ship)=>window.nativeShipDetail?window.nativeShipDetail.isDetailed(state,ship):window.nativeNpcLives?window.nativeNpcLives.detail(state,ship)==='detailed':ship?.system===state.system;
+  function conflictTarget(state,id,system){
+    if(id==='player')return state.system===system&&state.hull>0?window.nativeShipDefinitions.describe(state,state,{category:'player'}):null;
+    const category=typeof id==='string'&&id.startsWith('tug:')?'tug':'civilian';
+    const entity=category==='tug'?state.solEconomy?.freighters.find(ship=>ship.id===Number(id.slice(4))):state.civilianTraffic.ships.find(ship=>String(ship.id)===String(id));
+    if(entity)return window.nativeShipDefinitions.describe(state,entity,{category});
+    return category==='civilian'&&typeof id==='string'&&id.includes(':')?window.nativeShipSystems.resolve(state,id,system):null;
+  }
+  function endRetaliation(state,record,ship){
+    if(ship?.retaliationId===record.id){delete ship.retaliationId;delete ship.retaliationTargetId;
+      if(ship.phase==='fighting'){ship.phase='docked';ship.timer=5;window.nativeShipMotion.stop(ship);}
+      if(ship.scriptedDemo==='ore-dispute'||ship.scriptedDemo==='mining'&&ship.miningRockSlot==null)delete ship.scriptedDemo;
+      window.nativeNpcLives?.resumeWork?.(state,ship,'Contact lost outside detailed simulation');
+    }
+    state.civilianTraffic.retaliations=state.civilianTraffic.retaliations.filter(other=>other!==record);
+  }
   function advanceDisputes(state,dt){
     const traffic=state.civilianTraffic;
     for(const dispute of [...traffic.disputes]){
       const a=traffic.ships.find(ship=>ship.id===dispute.a),b=traffic.ships.find(ship=>ship.id===dispute.b);
       if(!operational(a)||!operational(b)||a.system!==b.system||a.system!==dispute.system||a.disputeId!==dispute.id||b.disputeId!==dispute.id){endDispute(state,dispute,a,b);continue;}
-      if(window.nativeNpcLives&&dispute.system!==state.system){endDispute(state,dispute,a,b);continue;}
+      if(!tacticallyDetailed(state,a)||!tacticallyDetailed(state,b)){endDispute(state,dispute,a,b);continue;}
       if(dispute.combatVersion!==3){
         dispute.combatVersion=3;dispute.anchor={x:(a.x+b.x)/2,y:(a.y+b.y)/2};dispute.pending=[];
         dispute.hits=0;dispute.misses=0;dispute.blocked=0;dispute.hails=[];
@@ -253,8 +274,9 @@
         if(!ship.combatAI)combat.begin(ship,ship===a?'claimant':'thief',traffic.clock);
         if(!Number.isFinite(ship.vx)){ship.vx=0;ship.vy=0;}
         opponent.vx=Number(opponent.vx)||0;opponent.vy=Number(opponent.vy)||0;
-        const attacker=traffic.clock<=ship.retaliationUntil&&scene.bystanders.find(candidate=>candidate.id===ship.retaliationTargetId&&candidate.hull>0);
+        const attacker=traffic.clock<=ship.retaliationUntil&&scene.bystanders.find(candidate=>candidate.id===ship.retaliationTargetId&&candidate.hull>0&&tacticallyDetailed(state,candidate));
         combat.steer(ship,attacker||opponent,dispute,{...scene,dt,clock:traffic.clock,hull:stats(ship.shipType).hull,shields:stats(ship.shipType).shields});
+        window.nativeShipSystems.invalidate?.(state,dispute.system);window.nativeSimulationFrame?.count(state,'tacticalUpdates');
       }
       if(dispute.hails?.length&&traffic.clock>=(dispute.nextHailAt||0)){
         const entry=dispute.hails.find(message=>message.dueAt<=traffic.clock);
@@ -262,15 +284,16 @@
       }
       scene=combatScene(state,dispute);
       if(!operational(a)||!operational(b)){endDispute(state,dispute,a,b);continue;}
-      if(traffic.clock>=dispute.nextA)dispute.nextA=traffic.clock+fireDisputeShot(state,dispute,a,(traffic.clock<=a.retaliationUntil&&scene.bystanders.find(ship=>ship.id===a.retaliationTargetId&&ship.hull>0))||b,scene);
-      if(traffic.clock>=dispute.nextB)dispute.nextB=traffic.clock+fireDisputeShot(state,dispute,b,(traffic.clock<=b.retaliationUntil&&scene.bystanders.find(ship=>ship.id===b.retaliationTargetId&&ship.hull>0))||a,scene);
+      if(traffic.clock>=dispute.nextA)dispute.nextA=traffic.clock+fireDisputeShot(state,dispute,a,(traffic.clock<=a.retaliationUntil&&scene.bystanders.find(ship=>ship.id===a.retaliationTargetId&&ship.hull>0&&tacticallyDetailed(state,ship)))||b,scene);
+      if(traffic.clock>=dispute.nextB)dispute.nextB=traffic.clock+fireDisputeShot(state,dispute,b,(traffic.clock<=b.retaliationUntil&&scene.bystanders.find(ship=>ship.id===b.retaliationTargetId&&ship.hull>0&&tacticallyDetailed(state,ship)))||a,scene);
     }
   }
   function retaliate(state,ship,sourceId){
     const traffic=state.civilianTraffic;
     if(!operational(ship)||sourceId==null||sourceId===ship.id)return;
-    const attacker=combatScene(state,{system:ship.system}).bystanders.find(other=>other.id===sourceId&&other.hull>0&&!['disabled','destroyed'].includes(other.phase));
-    if(!attacker)return;
+    if(!tacticallyDetailed(state,ship))return;
+    const attacker=conflictTarget(state,sourceId,ship.system);
+    if(!attacker||attacker.hull<=0||!tacticallyDetailed(state,attacker))return;
     ship.retaliationTargetId=sourceId;ship.retaliationUntil=traffic.clock+60;
     if(ship.disputeId||ship.retaliationId)return;
     if(!ship.scriptedDemo)window.nativeNpcLives?.interrupt(state,ship,'combat');
@@ -282,16 +305,20 @@
   function advanceRetaliations(state,dt){
     const traffic=state.civilianTraffic;
     for(const retaliation of [...traffic.retaliations]){
-      const ship=traffic.ships.find(other=>other.id===retaliation.a);let scene=combatScene(state,retaliation);
+      const ship=traffic.ships.find(other=>other.id===retaliation.a);
+      if(!operational(ship)||ship.retaliationId!==retaliation.id||ship.system!==retaliation.system||traffic.clock>ship.retaliationUntil||!tacticallyDetailed(state,ship)){endRetaliation(state,retaliation,ship);continue;}
+      const target=conflictTarget(state,ship.retaliationTargetId,retaliation.system);
+      if(!target||target.hull<=0||!tacticallyDetailed(state,target)){endRetaliation(state,retaliation,ship);continue;}
+      let scene=combatScene(state,retaliation);
       const attacker=scene.bystanders.find(other=>other.id===ship?.retaliationTargetId&&other.hull>0&&!['disabled','destroyed'].includes(other.phase));
       if(!operational(ship)||!attacker||ship.system!==retaliation.system||traffic.clock>ship.retaliationUntil||window.nativeNpcLives&&retaliation.system!==state.system){
-        if(ship){delete ship.retaliationId;delete ship.retaliationTargetId;if(ship.phase==='fighting'){ship.phase='docked';ship.timer=5;ship.speed=0;}}
-        traffic.retaliations=traffic.retaliations.filter(other=>other!==retaliation);continue;
+        endRetaliation(state,retaliation,ship);continue;
       }
       retaliation.b=attacker.id;retaliation.anchor={x:(ship.x+attacker.x)/2,y:(ship.y+attacker.y)/2};
       ship.cruiseSpeed=Math.max(36,Number(stats(ship.shipType).speedOrOtherStationValue||40)*3);ship.maxCombatHull=stats(ship.shipType).hull;
       ship.combatRadius=Math.max(7,Math.max(dimensions(ship).width,dimensions(ship).height)*.35);
       combat.steer(ship,attacker,retaliation,{...scene,dt,clock:traffic.clock,hull:stats(ship.shipType).hull,shields:stats(ship.shipType).shields});
+      window.nativeShipSystems.invalidate?.(state,retaliation.system);window.nativeSimulationFrame?.count(state,'tacticalUpdates');
       scene=combatScene(state,retaliation);
       if(traffic.clock>=retaliation.nextShotAt)retaliation.nextShotAt=traffic.clock+fireDisputeShot(state,retaliation,ship,attacker,scene);
     }
@@ -387,7 +414,7 @@
       // Scripted mining demonstrations and active tactical encounters explicitly
       // retain their controller. Ordinary jobs belong to the saved life scheduler.
       if(lives&&!ship.scriptedDemo&&!ship.disputeId&&!ship.retaliationId&&!['fighting','ore-theft'].includes(ship.phase))continue;
-      if(lives&&ship.system!==state.system)continue;
+      if(lives&&!tacticallyDetailed(state,ship))continue;
       ship.previousX=ship.x;ship.previousY=ship.y;
       if(ship.phase==='disabled'){combat.coast(ship,dt);continue;}
       if(ship.phase==='destroyed'||ship.phase==='fighting')continue;

@@ -127,6 +127,7 @@ function advanceSimulation(dt,now){
  const count=Math.ceil(dt/(1/60)),step=dt/count;
  for(let i=0;i<count;i++){
   window.nativeSimulation.advance(game,step);
+  window.nativeSimulationFrame?.step(game);
   advanceLocalCruise(step,now);advanceArrivalApproach(step,now);
   if(window.nativePopulation.advanceSeconds(game,step)){window.nativePlanetEncounter?.refresh();window.nativeSystemHub?.updatePopulation();}
   window.nativeSolEconomy.advance(game,step);
@@ -145,7 +146,7 @@ function advanceSimulation(dt,now){
 }
 // Returning from a hidden tab must not advance its suspended interval.
 document.addEventListener('visibilitychange',()=>{last=performance.now()});
-function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0,frameTime-last),dt=window.nativeSimulation.blocked()?0:Math.max(0,Math.min(.25,frameMs/1000));last=frameTime;starTime+=dt;const now=window.nativeSimulation.now(game);advanceSimulation(dt,now);const simulationMs=performance.now()-frameStarted,renderStarted=performance.now();const recordFrame=()=>window.nativeSimulationMetrics?.record(game,{frame:frameMs,simulation:simulationMs,render:performance.now()-renderStarted,mode:devGalaxyView?'map':'flight'});const {w,h,safeBottom}=size(),warpFlight=window.vexedWarp.flightEffect,zoom=1;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0,frameTime-last),dt=window.nativeSimulation.blocked()?0:Math.max(0,Math.min(.25,frameMs/1000));last=frameTime;starTime+=dt;window.nativeSimulationFrame?.begin(game);const now=window.nativeSimulation.now(game);advanceSimulation(dt,now);const simulationMs=performance.now()-frameStarted,renderStarted=performance.now();const recordFrame=()=>{window.nativeSimulationMetrics?.record(game,{frame:frameMs,simulation:simulationMs,render:performance.now()-renderStarted,mode:devGalaxyView?'map':'flight'});window.nativeSimulationFrame?.end(game);};const {w,h,safeBottom}=size(),warpFlight=window.vexedWarp.flightEffect,zoom=1;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
  if(game?.system===1&&!paused()&&!document.hidden&&!travelling()){
   const arrived=window.vexedSolFlight?.nearestArrival(game);
   if(arrived){updateVisuals();save(true);message(`Approaching ${arrived.name}. ${arrived.port?'Local services are available nearby.':'No port is available here.'}`);window.nativeSystemHub?.refresh();}
