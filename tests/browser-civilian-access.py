@@ -59,7 +59,7 @@ def main():
               });
               const restored=t.reload(s);t.assert();
               for(const before of expected){const ship=nativeNpcLives.find(restored,before.id);t.check(ship.credits===before.credits&&JSON.stringify(ship.cargo)===before.cargo,'Relocation changed owned cargo or credits');}
-              t.check(restored.civilianTraffic.ships.length===159,'Migration replaced the fleet');
+              t.check(restored.civilianTraffic.ships.length===JSON.parse(t.original).civilianTraffic.ships.length,'Migration replaced the fleet');
               return expected.map(before=>({id:before.id,relocatedTo:nativeNpcLives.find(restored,before.id).system}));
             }''')
             report['expedition']=page.evaluate(r'''()=>{
