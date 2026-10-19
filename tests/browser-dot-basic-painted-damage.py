@@ -51,7 +51,7 @@ try:
           }
           if(droneSprites.damageChange('basic','repair',0,3).pieces.length!==report.reduce((n,r)=>n+r.pieces,0))throw Error('skipped stages lose pieces');
           if(droneSprites.damageChange('basic','repair',3,1).pieces.length)throw Error('healing emits damage');
-          if(droneSprites.damageChange('advanced','repair',0,3).pieces.length)throw Error('other model acquired Basic artwork');
+          if(!droneSprites.damageChange('advanced','repair',0,3).pieces.length)throw Error('advanced model lacks painted transitions');
           // The central service spine, intact tools and untouched right shoulder stay registered.
           let fixed=0;
           for(const [x,y,w,h] of [[237,250,24,35],[382,273,13,23],[414,80,9,12]])for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){

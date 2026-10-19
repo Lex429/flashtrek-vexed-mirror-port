@@ -63,7 +63,7 @@
       lamps.push({texture,tint,x:left,y:top,cx:(left+right)/2,cy:(top+bottom)/2});
     }yield;
     g.putImageData(dark,0,0);const frames=[],lampFrames=[],fragments=[];
-    const painted=role==='repair'&&tier==='basic'&&window.dotBasicDamage?(yield* window.dotBasicDamage.prepare(base)):null;
+    const painted=role==='repair'&&tier==='basic'&&window.dotBasicDamage?(yield* window.dotBasicDamage.prepare(base)):window.droneDamageArt?(yield* window.droneDamageArt.prepare(base,tier,role)):null;
     for(let s=0;s<=4;s++){
       const frame=painted?.frames[s]||canvas(),ctx=frame.getContext('2d');if(!painted)ctx.drawImage(base,0,0);
       const count=[0,2,4,6,6][s],strength=[0,.55,.9,1.25,1.5][s];
@@ -105,7 +105,7 @@
   const ready=Promise.all(Object.entries(variants).flatMap(([role,tiers])=>Object.entries(tiers).map(([tier,d])=>new Promise(resolve=>{
     let attempts=0;
     const load=()=>{const picture=new Image();picture.onload=async()=>{
-      if(role==='repair'&&tier==='basic'&&window.dotBasicDamage){const loaded=await window.dotBasicDamage.ready;if(!loaded.every(Boolean)){resolve(false);return;}}
+      if(window.dotBasicDamage){const loaded=await (role==='repair'&&tier==='basic'?window.dotBasicDamage.ready:window.droneDamageArt?.ready||Promise.resolve([true]));if(!loaded.every(Boolean)){resolve(false);return;}}
       const iterator=prepare(picture,tier,role);
       if(window.nativeDamageArtPreparation)window.nativeDamageArtPreparation.run(iterator).then(()=>resolve(true),()=>resolve(false));
       else{let result;do{result=iterator.next();}while(!result.done);resolve(true);}

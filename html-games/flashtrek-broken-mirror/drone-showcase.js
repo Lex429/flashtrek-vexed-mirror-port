@@ -37,7 +37,7 @@
     return {tier:entry.droneTier,role:entry.droneRole,position:{x:layout.x+x*c-y*s,y:layout.y+x*s+y*c},heading:angle-Math.PI/2,scale:layout.w/(1254*d.scale)};
   }
   function shipExplosion(state,pose){
-    if(pose.role!=='repair'||pose.tier!=='basic'||!window.cthiaDestruction?.emitFragments)return false;
+    if(!window.cthiaDestruction?.emitFragments)return false;
     const d=window.droneSprites.definitions[pose.role][pose.tier],extent=1254*d.scale,scale=pose.scale||1,angle=pose.heading+Math.PI/2,
       c=Math.cos(angle),s=Math.sin(angle),cx=(627-d.pivot[0])*d.scale*scale,cy=(627-d.pivot[1])*d.scale*scale;
     const layout={x:pose.position.x+cx*c-cy*s,y:pose.position.y+cx*s+cy*c,w:extent*scale,h:extent*scale};
@@ -49,7 +49,7 @@
     const core={x:d.pivot[0]/1254-.5,y:d.pivot[1]/1254-.5};
     pieces.reduce((best,p)=>Math.hypot(p.x-core.x,p.y-core.y)<Math.hypot(best.x-core.x,best.y-core.y)?p:best).core=true;
     const emission={time:pose.time,angle,particles:state.particles,debris:state.debris},zoom=Math.max(.35,Math.min(3,layout.w/330));
-    window.cthiaDestruction.emitFragments(emission,layout,world,3,zoom,{pieces,core,coreEnabled:true,energyColor:'#4ad8ff'});
+    window.cthiaDestruction.emitFragments(emission,layout,world,3,zoom,{pieces,core,coreEnabled:true,energyColor:({repair:'#3dff97',attack:'#ff4938',defense:'#42bdff'})[pose.role]});
     state.cthiaBlast=emission.cthiaBlast;return true;
   }
   function createDestruction(){
@@ -63,7 +63,7 @@
     function emit(pose){advance(pose.time);if(!shipExplosion(state,pose))return false;state.particles=state.particles.slice(-1800);state.debris=state.debris.slice(-160);waves?.explode({...pose.position,born:pose.time,radius:90,duration:700});return true;}
     function draw(ctx,time){
       ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';waves?.draw(ctx,time);
-      for(const p of state.debris){const age=time-p.born;if(age<0||age>=p.ttl)continue;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.globalAlpha=age/p.ttl<.65?1:(1-age/p.ttl)/.35;ctx.drawImage(p.texture,-p.w/2,-p.h/2,p.w,p.h);window.cthiaDestruction.drawWreckGlow(ctx,p,time);ctx.restore();}
+      for(const p of state.debris){const age=time-p.born;if(age<0||age>=p.ttl)continue;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.globalAlpha=age/p.ttl<.65?1:(1-age/p.ttl)/.35;window.cthiaDestruction.drawWreckSurface(ctx,p,time);window.cthiaDestruction.drawWreckGlow(ctx,p,time);ctx.restore();}
       for(const p of state.particles)window.cthiaDestruction.drawParticle(ctx,p,time);ctx.restore();
     }
     const snapshot=()=>({...explosionSnapshot(state),shockwaves:waves?.snapshot().waves||0});

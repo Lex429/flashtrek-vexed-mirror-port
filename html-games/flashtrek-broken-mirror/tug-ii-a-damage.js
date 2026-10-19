@@ -3,6 +3,7 @@
   'use strict';
   const templatesByFrame = new WeakMap();
   function createTugIIADamage() {
+  let burnReady=Promise.resolve();
   let frames = [], templates = [[], [], [], []], pieces = [], transition = null, flash = null;
   const breaches = [
     {stage: 1, x: .20, y: -.38, size: 4.3, phase: .4},
@@ -87,6 +88,7 @@
       prepared[0] = makeTemplates(images[3], null, 4, true);
       templatesByFrame.set(images[0], prepared);
     }
+    burnReady=window.wreckageEffects?.primeAll(prepared.flat().map(part=>part.texture))||Promise.resolve();
     templates = prepared;
     reset();
     return snapshot();
@@ -199,11 +201,7 @@
       if (age < 0 || age >= part.ttl) continue;
       const fade = Math.min(1, (part.ttl - age) / 700);
       ctx.save(); ctx.translate(part.x, part.y); ctx.rotate(part.angle); ctx.globalAlpha = fade;
-      ctx.drawImage(part.texture, -part.width / 2, -part.height / 2, part.width, part.height);
-      if (age < 350) {
-        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade * (1 - age / 350) * .44;
-        ctx.fillStyle = '#ff7b33'; ctx.fillRect(-part.width / 2, -part.height / 2, part.width, part.height);
-      }
+      if(!window.wreckageEffects?.draw(ctx,part.texture,part.width,part.height,age))ctx.drawImage(part.texture,-part.width/2,-part.height/2,part.width,part.height);
       ctx.restore();
     }
   }
@@ -214,7 +212,7 @@
       transitioning: !!transition, flash: !!flash, fireSites: breaches.length};
   }
 
-  return Object.freeze({prepare, reset, change, destroy, update, drawHull, drawPieces, snapshot});
+  return Object.freeze({prepare,get ready(){return burnReady;}, reset, change, destroy, update, drawHull, drawPieces, snapshot});
   }
   window.createTugIIADamage = createTugIIADamage;
   window.tugIIADamage = createTugIIADamage();

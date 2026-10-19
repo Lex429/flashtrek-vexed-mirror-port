@@ -20,7 +20,7 @@ function fixture(){
     showcaseHullBurst:{burst:(list,point,born)=>list.push({...point,born,ttl:500}),update:(p,dt)=>{p.x+=dt*20;},draw:(...args)=>drawn.push({kind:'spark',args})},
     showcaseStageFragments:{prepare:()=>[[],[],[],[]],emit:event=>emitted.push({kind:'stage',event}),update:()=>{},draw:()=>{}},
     createShipDestruction:()=>({prepare:()=>{},emit:(wreck)=>{emitted.push({kind:'wreck',wreck});wreck.debris.push({x:wreck.x,y:wreck.y,vx:2,vy:3,spin:1,angle:0,born:0,ttl:2000,w:4,h:4});},
-      updateTrails:()=>{},drawParticle:()=>{},drawStructuralWreck:()=>{},drawWreckGlow:()=>{}}),
+      updateTrails:()=>{},drawParticle:()=>{},drawStructuralWreck:()=>{},drawWreckSurface:()=>{},drawWreckGlow:()=>{}}),
     nativeEnvironmentalImpacts:{explode:(...args)=>explosions.push(args),debris:(...args)=>contacts.push(args)},
   };
   const sandbox=vm.createContext({window,console,performance:{now:()=>900000},fetch:async()=>({json:async()=>({})})});

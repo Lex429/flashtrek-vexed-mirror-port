@@ -54,6 +54,7 @@
         const ctx=texture.getContext('2d'),cut=ctx.createImageData(fw,fh);
         for(let n=0;n<group.length;n++){const pixel=group[n],i=pixel*4;cut.data.set(before.subarray(i,i+4),((Math.floor(pixel/w)-y)*fw+pixel%w-x)*4);if((n&1023)===1023)yield;}
         ctx.putImageData(cut,0,0);yield;
+        if(window.wreckageEffects)yield* window.wreckageEffects.prepare(texture,{seed:stage});
         fragments[stage].push({texture,x:(x+fw/2)/w-.5,y:(y+fh/2)/h-.5,w:fw/w,h:fh/h,pixels:group.length});
       }
     }
@@ -79,7 +80,7 @@
     const fade=age/piece.ttl;
     ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);
     ctx.globalAlpha=fade<.65?1:Math.max(0,(1-fade)/.35);
-    ctx.drawImage(piece.texture,-piece.w/2,-piece.h/2,piece.w,piece.h);
+    if(!window.wreckageEffects?.draw(ctx,piece.texture,piece.w,piece.h,age))ctx.drawImage(piece.texture,-piece.w/2,-piece.h/2,piece.w,piece.h);
     ctx.restore();
   }
   window.showcaseStageFragments=Object.freeze({prepare,prepareAsync,emit,update,draw});

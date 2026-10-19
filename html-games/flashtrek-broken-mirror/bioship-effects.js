@@ -5,6 +5,7 @@
   window.createBiologicalShipEffects=(config)=>{
   const {width:W,height:H,wounds,organs,sites}=config;
   const ruptureMs=config.ruptureMs||760;
+  let burnReady=Promise.resolve();
   let frames=[],parts=[],cutAudit=[],masks=[],veinBands=[],veinPixels=[];
   const make=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
   const local=(x,y,l)=>({x:(x/W-.5)*l.w,y:(y/H-.5)*l.h});
@@ -58,6 +59,7 @@
       }).filter(Boolean);
       parts.push(pieces);cutAudit.push({sourcePixels,cutPixels:pieces.reduce((n,p)=>n+p.pixels,0),pieces:pieces.length,biological:true});
     }
+    burnReady=window.wreckageEffects?.primeAll(parts.flat().map(p=>p.texture),{organic:true})||Promise.resolve();
   }
   function breathing(stage,time){
     if(config.fixedSilhouette||config.deadFinal&&stage===3)return {x:1,y:1,twitch:0};
@@ -185,7 +187,7 @@
   }
   function drawWreck(ctx,p,time){
     const t=(time-p.born)/1000;ctx.save();ctx.scale(p.dead?1:1+.025*Math.sin(t*8+p.phase)*Math.exp(-t*.6),1);
-    ctx.drawImage(p.texture,-p.w/2,-p.h/2,p.w,p.h);
+    if(!window.wreckageEffects?.draw(ctx,p.texture,p.w,p.h,time-p.born,{organic:true}))ctx.drawImage(p.texture,-p.w/2,-p.h/2,p.w,p.h);
     // Trailing sinews retract and lose motion as the detached organ dies.
     ctx.strokeStyle='#702b43';ctx.lineWidth=Math.max(.6,p.zoom);ctx.globalAlpha*=.85;
     for(let i=0;i<3;i++){
@@ -216,7 +218,7 @@
   const effects=Object.freeze({draw,snapshot,unlitFrame:im=>{
     const c=make(W,H);c.getContext('2d').drawImage(im,0,0,W,H);return c;
   }});
-  return Object.freeze({prepare,drawBody,drawDeath,emit,spray,stageRupture,drawParticle,drawWreck,updateTrails,updateLiving,effects,audit:()=>cutAudit});
+  return Object.freeze({prepare,get ready(){return burnReady;},drawBody,drawDeath,emit,spray,stageRupture,drawParticle,drawWreck,updateTrails,updateLiving,effects,audit:()=>cutAudit});
   };
   const config={width:313,height:512,
     wounds:[[],[[197,92,13]],[[197,92,18],[190,207,12],[211,310,17]],[[198,92,22],[186,200,16],[209,305,23],[166,423,20],[285,315,9]]],

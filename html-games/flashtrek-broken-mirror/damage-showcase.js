@@ -140,10 +140,10 @@
     311:{breaches:[{x:-.25,y:-.30,r:.07,stage:1},{x:.24,y:-.14,r:.08,stage:2},{x:-.22,y:.10,r:.085,stage:3},{x:0,y:.29,r:.08,stage:3}],points:[[-.25,-.39],[.25,-.39],[-.21,-.20],[.21,-.20],[-.20,0],[.20,0],[-.20,.19],[.20,.19],[-.13,.38],[.13,.38]],lightColors:['#91d9ff','#b9faff']}
   };
   const stationConfig=()=>stationConfigs[state.ship?.id]||stationConfigs[272],stationBreaches=()=>stationConfig().breaches;
-  function prepareCthiaFragments(){
+  async function prepareCthiaFragments(){
     const frames=state.ship.frames.map(file=>images.get(file));
     const anchors=starter()?.breakAnchors||(state.ship.id===56?window.constitutionTugBreakAnchors:state.ship.id===57?window.tugBreakAnchors:state.ship.id===58?window.olympicBreakAnchors:[[275,199],[84,201],[208,111],[315,261],[220,321],[139,401],[42,319],[328,320],[253,447]]);
-    cthiaFragments=window.showcaseStageFragments.prepare(frames,anchors);
+    return await window.showcaseStageFragments.prepareAsync(frames,anchors);
   }
   function breakCthia(before,after){
     if(!enhancedShip()||after<=before||state.destroyed)return;
@@ -153,7 +153,7 @@
   }
   const dotDamageEffects=window.dotBasicDamage.createEffects();
   function breakDot(before,after,impact=null){
-    if(!droneShip()||state.ship.id!==500)return;
+    if(!droneShip())return;
     if(after<before){dotDamageEffects.clear();return;}
     dotDamageEffects.emit({...window.droneShowcase.damagePose(state.ship,layout(),state.angle),before,after,time:state.time,sourceId:state.ship.id,impact:impact?world(impact):null});
   }
@@ -178,6 +178,7 @@
       stationFragmentTemplates[s]=shapes[s].map(poly=>stationHullPiece(old,poly,nextPixels,state.ship.id===276&&s>=2)).filter(Boolean);
     }
     stationFragmentTemplates[4]=stationFinalPieces(images.get(state.ship.frames[3]));
+    return window.wreckageEffects?.primeAll(stationFragmentTemplates.flat().map(p=>p.texture));
   }
   function stationHullPiece(im,poly,nextPixels=null,removedOnly=false){
     const xs=poly.map(p=>(p[0]+.5)*im.width),ys=poly.map(p=>(p[1]+.5)*im.height),left=Math.max(0,Math.floor(Math.min(...xs))),top=Math.max(0,Math.floor(Math.min(...ys))),right=Math.min(im.width,Math.ceil(Math.max(...xs))),bottom=Math.min(im.height,Math.ceil(Math.max(...ys)));if(right<=left||bottom<=top)return null;
@@ -239,7 +240,7 @@
     const promise=new Promise((resolve,reject)=>{
       const im=new Image();let attempt=0;
       const request=()=>{im.src=base+file+'?v=tug-ii-a-anim-3'+(attempt?'&retry='+attempt:'');};
-      im.onload=()=>{images.set(file,im);if(attempt){const stage=state.ship?.frames.indexOf(file)??-1;if(stage>=0)$('thumb-'+stage).src=im.src;}resolve(im);};
+      im.onload=async()=>{if(/^debris-\d+-\d+\.png$/.test(file))await window.wreckageEffects?.prime(im);images.set(file,im);if(attempt){const stage=state.ship?.frames.indexOf(file)??-1;if(stage>=0)$('thumb-'+stage).src=im.src;}resolve(im);};
       im.onerror=()=>{if(++attempt<3)setTimeout(request,attempt*250);else{pendingImages.delete(file);reject(Error('Could not load '+file));}};
       request();
     });
@@ -508,12 +509,12 @@
       if(id===1&&window.dotSprites)await window.dotSprites.ready;
       if(token!==selectionToken)return;
       await Promise.all((asteroidData||[]).slice(0,3).map(rock=>loadImage(rock.file)));resetNearbyAsteroids();
-      if(animatedStructure()){state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));prepareEarthStarbaseFragments();if([286,300].includes(state.ship.id))prepareArtworkLights();state.shields=0;state.shieldCharge=0;state.shieldsEnabled=false;state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} is ready. Hits tear away matching armor sections while exposed fires glow. All powered lights fail in the severe stage.`);return;}
+      if(animatedStructure()){state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));await prepareEarthStarbaseFragments();if(token!==selectionToken)return;if([286,300].includes(state.ship.id))prepareArtworkLights();state.shields=0;state.shieldCharge=0;state.shieldsEnabled=false;state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} is ready. Hits tear away matching armor sections while exposed fires glow. All powered lights fail in the severe stage.`);return;}
       if(structure()){state.shields=0;state.shieldsEnabled=false;state.ready=true;$('loading').hidden=true;updateUI();explain(state.ship.kind==='turret'?`${state.ship.name} equipment icon is available for the turret animation pass.`:`${state.ship.name} artwork is available. Damage animations will be built in the next pass.`);return;}
       if(artworkOnlyShip()){window.tugClassIILights.prepare(id,images.get(state.ship.frames[0]));state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} has live lights at its painted lamps, nacelle tips and drive strips. Use Ship lights to toggle the effect; damage stages are pending.`);return;}
       if(asteroid()){state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));state.ship.maxHealth=asteroidMaxHealth();state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} contains ${state.ship.oreLabel}: ${state.ship.oreRole} Any phaser, proton weapon, or other weapon destroys it with one hit and ejects matching mineral fragments. Damage stages remain available for manual animation review.`);return;}
       if(starter()?.alignReference)images.set(state.ship.original,starter().alignReference(images.get(state.ship.original)));
-      state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));if(enhancedShip()){if(starter())state.ship.frames.forEach((file,s)=>{const aligned=starter().align(images.get(file),s);images.set(file,aligned);if(aligned.toDataURL)$('thumb-'+s).src=aligned.toDataURL();});if(id===57||id===58)state.ship.frames.forEach((file,s)=>{const aligned=(id===57?window.alignTugFrame:window.alignOlympicFrame)(images.get(file),s);images.set(file,aligned);if(aligned.toDataURL)$('thumb-'+s).src=aligned.toDataURL();});if(state.ship.frames[3]){const severe=shipEffects().unlitFrame(images.get(state.ship.frames[3]));images.set(state.ship.frames[3],severe);$('thumb-3').src=severe.toDataURL();}if(biological()){cthiaFragments=[[],[],[],[]];biology().prepare(state.ship.frames.map(file=>images.get(file)));}else{prepareCthiaFragments();window.cthiaDestruction.prepare(state.ship.frames.map(file=>images.get(file)),window.earthFractureConfigs.get(id)||starter()?.destruction||(id===56?window.constitutionTugDestructionConfig:id===57?window.tugDestructionConfig:id===58?window.olympicDestructionConfig:{}));}}if(tugDamageShip()){state.shields=0;state.shieldCharge=0;state.shieldsEnabled=false;for(let s=0;s<3;s++)window.tugClassIILights.prepare(id,images.get(state.ship.frames[s]),s);window.tugIIADamage.prepare(state.ship.frames.map(file=>images.get(file)));}state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));if(egg())biology().prepareHatch(images.get(babyFile()));state.ready=true;$('loading').hidden=true;updateUI();
+      state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));if(enhancedShip()){if(starter())state.ship.frames.forEach((file,s)=>{const aligned=starter().align(images.get(file),s);images.set(file,aligned);if(aligned.toDataURL)$('thumb-'+s).src=aligned.toDataURL();});if(id===57||id===58)state.ship.frames.forEach((file,s)=>{const aligned=(id===57?window.alignTugFrame:window.alignOlympicFrame)(images.get(file),s);images.set(file,aligned);if(aligned.toDataURL)$('thumb-'+s).src=aligned.toDataURL();});if(state.ship.frames[3]){const severe=shipEffects().unlitFrame(images.get(state.ship.frames[3]));images.set(state.ship.frames[3],severe);$('thumb-3').src=severe.toDataURL();}if(biological()){cthiaFragments=[[],[],[],[]];biology().prepare(state.ship.frames.map(file=>images.get(file)));await biology().ready;if(token!==selectionToken)return;}else{const fragments=await prepareCthiaFragments();if(token!==selectionToken)return;cthiaFragments=fragments;const destruction=window.createShipDestruction();await destruction.prepareAsync(state.ship.frames.map(file=>images.get(file)),window.earthFractureConfigs.get(id)||starter()?.destruction||(id===56?window.constitutionTugDestructionConfig:id===57?window.tugDestructionConfig:id===58?window.olympicDestructionConfig:{}));if(token!==selectionToken)return;window.cthiaDestruction=destruction;}}if(token!==selectionToken)return;if(tugDamageShip()){state.shields=0;state.shieldCharge=0;state.shieldsEnabled=false;for(let s=0;s<3;s++)window.tugClassIILights.prepare(id,images.get(state.ship.frames[s]),s);window.tugIIADamage.prepare(state.ship.frames.map(file=>images.get(file)));await window.tugIIADamage.ready;if(token!==selectionToken)return;}state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));if(egg())biology().prepareHatch(images.get(babyFile()));state.ready=true;$('loading').hidden=true;updateUI();
       if(id===67){const files=window.creatureEvolution.files,larvaImage=images.get(files.larva);window.starterShips.get(69).biology.prepare([larvaImage,larvaImage,larvaImage,larvaImage]);biology().prepareHatch(larvaImage,images.get(files.rupture),images.get(files.husk));}
       if(intactOnly()){explain(state.ship.name+' is ready for weapon testing with editable health and no shields. Separate damage artwork is pending.'+(larva()?' Try Newborn, Idle, Crawl and Settle.':''));return;}
       explain(`${state.ship.name} is ready. ${biological()?'Its four biological stages show torn membranes, exposed organs and necrotic tissue.':state.ship.origin==='AI remaster'?'Its four hull stages use newly rebuilt artwork matched to your approved fleet references.':state.ship.origin==='Rebirth'?'Its four hull stages use Rebirth artwork.':'Its four hull stages use your supplied damage sheet.'} ${egg()?'Choose a damage stage, play the damage sequence, or hatch the healthy egg. Dead eggs cannot hatch.':creature()?'Choose Idle, Crawl or Settle; fire weapons to see tissue damage and weakening circulation.':'Fire a weapon to see the damage develop.'}`);
@@ -1175,7 +1176,7 @@
     ctx.restore();
   }
   function drawEarthStarbaseBreakup(l){
-    for(const piece of state.stationFragments){const age=state.time-piece.born,released=age-piece.delay,fade=clamp((piece.ttl-age)/650,0,1);ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);ctx.globalAlpha=fade;ctx.drawImage(piece.texture,-piece.w/2,-piece.h/2,piece.w,piece.h);if(released>=0&&piece.edge){ctx.drawImage(piece.edge,-piece.w/2,-piece.h/2,piece.w,piece.h);if(released<2500){ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=fade*(1-released/2500)**1.25*(.7+.3*Math.sin(state.time*.031));ctx.drawImage(piece.hot,-piece.w/2,-piece.h/2,piece.w,piece.h);ctx.restore();}}ctx.restore();}
+    for(const piece of state.stationFragments){const age=state.time-piece.born,released=age-piece.delay,fade=clamp((piece.ttl-age)/650,0,1);ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);ctx.globalAlpha=fade;const burned=window.wreckageEffects?.draw(ctx,piece.texture,piece.w,piece.h,Math.max(0,released));if(!burned)ctx.drawImage(piece.texture,-piece.w/2,-piece.h/2,piece.w,piece.h);if(!burned&&released>=0&&piece.edge){ctx.drawImage(piece.edge,-piece.w/2,-piece.h/2,piece.w,piece.h);if(released<2500){ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=fade*(1-released/2500)**1.25*(.7+.3*Math.sin(state.time*.031));ctx.drawImage(piece.hot,-piece.w/2,-piece.h/2,piece.w,piece.h);ctx.restore();}}ctx.restore();}
     if(!cthiaOptions.damage)return;
     ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
     for(const spark of state.stationSparks){const age=state.time-spark.born,q=clamp(1-age/spark.ttl,0,1),speed=Math.hypot(spark.vx,spark.vy),dx=spark.vx/(speed||1),dy=spark.vy/(speed||1),trail=(3+speed*.05)*q;ctx.globalAlpha=q*.9;ctx.strokeStyle=age<spark.ttl*.28?'#fff3cb':age<spark.ttl*.7?'#ffc26a':'#f46a28';ctx.lineWidth=spark.size*q;ctx.shadowColor='#ff9a3b';ctx.shadowBlur=5*q;ctx.beginPath();ctx.moveTo(spark.x-dx*trail,spark.y-dy*trail);ctx.lineTo(spark.x,spark.y);ctx.stroke();}
@@ -1235,7 +1236,7 @@
         x:shot.from.x+(hit.x-shot.from.x)*t,y:shot.from.y+(hit.y-shot.from.y)*t,
         angle:Math.atan2(hit.y-shot.from.y,hit.x-shot.from.x)},age);
     }
-    for(const p of state.debris){if(p.cthia&&!p.wreck){window.showcaseStageFragments.draw(ctx,p,state.time);continue;}const age=state.time-p.born;if(age<0)continue;const fade=age/p.ttl;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.globalAlpha=fade<.65?1:Math.max(0,(1-fade)/.35);const im=p.texture||images.get(p.file);if(p.biological)window.bioshipEffects.drawWreck(ctx,p,state.time);else if(p.structural)window.cthiaDestruction.drawStructuralWreck(ctx,p,state.time);else if(im)ctx.drawImage(im,-(p.w||p.size)/2,-(p.h||p.size)/2,p.w||p.size,p.h||p.size);if(p.wreck&&!p.structural)window.cthiaDestruction.drawWreckGlow(ctx,p,state.time);ctx.restore();}
+    for(const p of state.debris){if(p.cthia&&!p.wreck){window.showcaseStageFragments.draw(ctx,p,state.time);continue;}const age=state.time-p.born;if(age<0)continue;const fade=age/p.ttl;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.globalAlpha=fade<.65?1:Math.max(0,(1-fade)/.35);const im=p.texture||images.get(p.file);if(p.biological)window.bioshipEffects.drawWreck(ctx,p,state.time);else if(p.structural)window.cthiaDestruction.drawStructuralWreck(ctx,p,state.time);else if(im&&!window.wreckageEffects?.draw(ctx,im,p.w||p.size,p.h||p.size,age))ctx.drawImage(im,-(p.w||p.size)/2,-(p.h||p.size)/2,p.w||p.size,p.h||p.size);if(p.wreck&&!p.structural)window.cthiaDestruction.drawWreckGlow(ctx,p,state.time);ctx.restore();}
     if(tugDamageShip())window.tugIIADamage.drawPieces(ctx,state.time);
     for(const p of state.particles){const age=state.time-p.born;if(age<0||age>p.ttl)continue;if(p.realistic){if(p.realistic.startsWith('bio-'))window.bioshipEffects.drawParticle(ctx,p,state.time);else window.cthiaDestruction.drawParticle(ctx,p,state.time);continue;}window.showcaseHullBurst.draw(ctx,p,state.time);}
     ctx.restore();ctx.globalAlpha=1;

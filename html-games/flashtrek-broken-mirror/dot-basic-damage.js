@@ -38,12 +38,25 @@
     const data=g.getImageData(0,0,texture.width,texture.height).data;let pixels=0;for(let i=3;i<data.length;i+=4)if(data[i]>100)pixels++;
     return Object.freeze({texture,cx:(left+right)/2,cy:(top+bottom)/2,width:texture.width,height:texture.height,pixels,source:Object.freeze({x:left,y:top,width:texture.width,height:texture.height}),...extra});
   }
-  function* prepare(base){
-    if(images.length!==3||images.some(im=>!im))throw Error('Basic Dot damage artwork did not load');
+  const wreckSites=[[110,250],[240,185],[210,400],[210,530],[290,680],[420,680],[490,480],[630,500],[760,520],[840,680],[980,680],[1090,520],[1050,350],[1050,150],[400,850],[510,900],[740,900],[860,850],[480,1080],[775,1080],[630,1020]].map(p=>p.map(n=>n*scale));
+  function* partition(frame,stage){
+    const g=frame.getContext('2d'),rgba=g.getImageData(0,0,size,size).data,groups=wreckSites.map(()=>[]);
+    for(let q=0;q<size*size;q++){if((q&1023)===1023)yield;if(!rgba[q*4+3])continue;const x=q%size,y=Math.floor(q/size),owner=window.wreckageEffects?.owner(x,y,wreckSites,size,size)??0;groups[owner].push(q);}
+    const parts=[];for(const [index,pixels] of groups.entries()){
+      if(pixels.length<45)continue;let left=size,top=size,right=0,bottom=0;for(const q of pixels){const x=q%size,y=Math.floor(q/size);left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}yield;
+      const texture=canvas(right-left+1,bottom-top+1),tg=texture.getContext('2d'),data=tg.createImageData(texture.width,texture.height);
+      for(let i=0;i<pixels.length;i++){const q=pixels[i];data.data.set(rgba.subarray(q*4,q*4+4),((Math.floor(q/size)-top)*texture.width+q%size-left)*4);if((i&1023)===1023)yield;}tg.putImageData(data,0,0);
+      if(window.wreckageEffects)yield* window.wreckageEffects.prepare(texture,{seed:index+stage*37});
+      parts.push(Object.freeze({texture,cx:left+texture.width/2,cy:top+texture.height/2,width:texture.width,height:texture.height,pixels:pixels.length,stage,name:`torn hull assembly ${index+1}`,source:Object.freeze({x:left,y:top,width:texture.width,height:texture.height})}));
+    }return parts;
+  }
+  function* prepare(base,options={}){
+    const input=options.images||images,alignment=options.registration||registration,role=options.role||'repair';
+    if(input.length!==3||input.some(im=>!im))throw Error('Drone damage artwork did not load');
     const frames=[base],transitions=[[]],damageSites=[[]];
     for(let stage=1;stage<=3;stage++){
-      const painted=canvas(),pg=painted.getContext('2d',{willReadFrequently:true}),[a,b,c,d,e,f]=registration[stage-1];pg.setTransform(a,b,c,d,e*scale,f*scale);pg.drawImage(images[stage-1],0,0,size,size);pg.resetTransform();
-      const pixels=pg.getImageData(0,0,size,size);for(let i=0;i<pixels.data.length;i+=4){const r=pixels.data[i],g=pixels.data[i+1],b=pixels.data[i+2];if(b>115&&b>r*1.45&&b>g*1.12){pixels.data[i]*=.12;pixels.data[i+1]*=.12;pixels.data[i+2]*=.12;}}pg.putImageData(pixels,0,0);yield;
+      const painted=canvas(),pg=painted.getContext('2d',{willReadFrequently:true}),[a,b,c,d,e,f]=alignment[stage-1];pg.setTransform(a,b,c,d,e*scale,f*scale);pg.drawImage(input[stage-1],0,0,size,size);pg.resetTransform();
+      const pixels=pg.getImageData(0,0,size,size);for(let i=0;i<pixels.data.length;i+=4){const r=pixels.data[i],g=pixels.data[i+1],b=pixels.data[i+2],lamp=role==='attack'?r>180&&g>85&&g>b*1.5&&r>g*1.05:role==='defense'?g>145&&b>170&&g>r*1.4&&b>g*.94:b>115&&b>r*1.45&&b>g*1.12;if(lamp){pixels.data[i]*=.12;pixels.data[i+1]*=.12;pixels.data[i+2]*=.12;}}pg.putImageData(pixels,0,0);yield;
       const mask=canvas(),mg=mask.getContext('2d');mg.fillStyle='white';mg.shadowColor='white';mg.shadowBlur=4;
       for(const poly of patches.slice(0,stage===3?5:3)){path(mg,poly);mg.fill();}
       const patch=canvas(),p=patch.getContext('2d');p.drawImage(painted,0,0);p.globalCompositeOperation='destination-in';p.drawImage(mask,0,0);
@@ -51,6 +64,7 @@
       // Missing silhouette material can never grow back at a later damage stage.
       const prior=frames[stage-1].getContext('2d').getImageData(0,0,size,size),current=g.getImageData(0,0,size,size);for(let i=3;i<current.data.length;i+=4)current.data[i]=Math.min(prior.data[i],current.data[i]);g.putImageData(current,0,0);
       const pieces=layers[stage].map((layer,i)=>piece(frames[stage-1],layer.poly,{stage,site:layer.site,name:`${['','paint chip','armor plate','torn assembly'][stage]} ${i+1}`}));
+      if(window.wreckageEffects)for(const part of pieces)yield* window.wreckageEffects.prepare(part.texture,{seed:stage*17+part.site});
       g.globalCompositeOperation='destination-out';g.fillStyle='white';for(const layer of layers.slice(1,stage+1).flat())if(layer.through){path(g,layer.poly);g.fill();}g.globalCompositeOperation='source-over';
       frames.push(frame);transitions.push(pieces.filter(p=>p.pixels));damageSites.push(sites.slice(0,stage===3?5:3));yield;
     }
@@ -58,10 +72,7 @@
     for(const poly of [[[1023,470],[1065,459],[1093,488],[1084,535],[1048,550],[1021,520]],[[770,839],[806,846],[814,890],[781,919],[759,893]]]){path(dg,poly);dg.fill();}dg.globalCompositeOperation='source-over';frames.push(dead);
     const wrecks=[];
     for(let stage=0;stage<4;stage++){
-      const parts=[];for(let row=0;row<5;row++)for(let col=0;col<4;col++){
-        const x=col*1254/4,y=row*1254/5,w=1254/4,h=1254/5;
-        const part=piece(frames[stage],[[x,y],[x+w,y],[x+w,y+h],[x,y+h]],{stage,name:`remaining hull ${row*4+col+1}`});if(part.pixels>45)parts.push(part);
-      }wrecks.push(parts);yield;
+      wrecks.push(yield* partition(frames[stage],stage));yield;
     }
     return {frames,transitions,damageSites,wrecks};
   }
@@ -69,7 +80,6 @@
     let pieces=[],particles=[],events=[],serial=0;
     const point=(p,pose)=>{const c=Math.cos(pose.heading),s=Math.sin(pose.heading),z=pose.scale||1;return{x:pose.position.x+(p.x*c-p.y*s)*z,y:pose.position.y+(p.x*s+p.y*c)*z};};
     function emit(pose){
-      if(pose.tier!=='basic'||pose.role!=='repair')return;
       const changes=window.droneSprites.damageChange(pose.tier,pose.role,pose.before,pose.after),time=pose.time,id=serial++;
       const origins=changes.sites.map(site=>({...point(site,pose),stage:site.stage,site:site.site}));
       if(!origins.length&&pose.impact)origins.push({...pose.impact,stage:pose.after,site:-1});
@@ -91,7 +101,7 @@
     function update(time){pieces=pieces.filter(p=>time-p.born<p.ttl);particles=particles.filter(p=>time-p.born<p.ttl);events=events.filter(p=>time-p.born<p.ttl);}
     function draw(ctx,time){
       ctx.save();ctx.globalCompositeOperation='source-over';
-      for(const p of pieces){const age=(time-p.born)/1000,q=age*1000/p.ttl;if(q<0||q>=1)continue;ctx.save();ctx.translate(p.x+p.vx*age,p.y+p.vy*age);ctx.rotate(p.angle+p.spin*age);ctx.globalAlpha=q<.5?1:(1-q)*2;ctx.drawImage(p.texture,-p.w/2,-p.h/2,p.w,p.h);ctx.restore();}
+      for(const p of pieces){const age=(time-p.born)/1000,q=age*1000/p.ttl;if(q<0||q>=1)continue;ctx.save();ctx.translate(p.x+p.vx*age,p.y+p.vy*age);ctx.rotate(p.angle+p.spin*age);ctx.globalAlpha=q<.5?1:(1-q)*2;if(!window.wreckageEffects?.draw(ctx,p.texture,p.w,p.h,age*1000))ctx.drawImage(p.texture,-p.w/2,-p.h/2,p.w,p.h);ctx.restore();}
       for(const p of particles){const age=(time-p.born)/1000,q=age*1000/p.ttl;if(q<0||q>=1)continue;const x=p.x+(p.vx||0)*age,y=p.y+(p.vy||0)*age;ctx.save();
         if(p.kind==='smoke'){ctx.globalAlpha=(1-q)*.19;ctx.fillStyle='#78848d';ctx.beginPath();ctx.ellipse(x,y,p.size*(1+q*2),p.size*(.65+q*1.5),q,0,Math.PI*2);ctx.fill();}
         else{ctx.globalCompositeOperation='lighter';ctx.globalAlpha=1-q;if(p.kind==='flash'){const r=p.size*(1+q),g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'#fffdeb');g.addColorStop(.2,'#ffe5a9');g.addColorStop(.55,'#ff913855');g.addColorStop(1,'#ff913800');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}

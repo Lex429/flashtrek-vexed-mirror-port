@@ -27,6 +27,7 @@
   }
   function create({repair,defense,born,geometry,onDestroyed=()=>{}}){
     let now=born,nextId=0,recalling=false,shots=[],effects=[],events=[],wrecks=[],shotId=0;
+    const damageEffects=window.dotBasicDamage?.createEffects(),destruction=window.droneShowcase?.createDestruction();
     const fighters=[],metrics={fired:0,hits:0,interceptions:0,repairDamage:0,defenseDamage:0,attackDamage:0};
     const home=()=>{const s=geometry.source;return {x:s.centerX+s.w*.08*Math.cos(s.a)-s.h*.07*Math.sin(s.a),y:s.centerY+s.w*.08*Math.sin(s.a)+s.h*.07*Math.cos(s.a)};};
     const workers=()=>repair.snapshot().drones.map(d=>repair.target(d.id)).filter(Boolean);
@@ -50,11 +51,13 @@
     function target(id){const d=fighters.find(d=>d.id===id);return d&&alive(d)?{id:d.id,role:d.role,tier:d.tier,health:d.health,maxHealth:d.maxHealth,position:{...d.position}}:null;}
     function hit(id,amount,time=now){
       const d=fighters.find(d=>d.id===id);if(!d||!alive(d)||!Number.isFinite(amount)||amount<=0)return {hit:false};
-      const damage=Math.min(d.health,amount);d.health-=damage;
+      const before=window.droneSprites?.stage(d.health,d.maxHealth)??0,damage=Math.min(d.health,amount);d.health-=damage;
+      const after=Math.min(3,window.droneSprites?.stage(d.health,d.maxHealth)??0);damageEffects?.emit({tier:d.tier,role:d.role,position:{...d.position},heading:d.heading,scale:1,before,after,time});
       effects.push({x:d.position.x,y:d.position.y,born:time,role:d.role,dead:!d.health});
       if(!d.health){
         d.phase='destroyed';d.targetId=null;
-        const pieces=window.droneSprites?.fragments(d.tier,d.role)||[],c=Math.cos(d.heading),s=Math.sin(d.heading);
+        const shipBlast=destruction?.emit({tier:d.tier,role:d.role,position:{...d.position},heading:d.heading,scale:1,time});
+        const pieces=shipBlast?[]:window.droneSprites?.fragments(d.tier,d.role)||[],c=Math.cos(d.heading),s=Math.sin(d.heading);
         for(const [i,piece] of pieces.entries()){
           const a=i*2.39996,speed=35+(i%5)*13;
           wrecks.push({texture:piece.texture,width:piece.width,height:piece.height,x:d.position.x+piece.x*c-piece.y*s,y:d.position.y+piece.x*s+piece.y*c,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,angle:d.heading+Math.PI/2,spin:(i%2?1:-1)*(1+i%4),born:time,ttl:1800+(i%4)*150});
@@ -163,19 +166,20 @@
       if(nextGeometry)geometry=nextGeometry;
       // Catch up in bounded physical steps, never by applying timer damage.
       while(now+0.001<time){const step=Math.min(1000/60,time-now);now+=step;tick(step/1000,now);}
-      repair.setThreats(live('attack').map(d=>d.position));
+      repair.setThreats(live('attack').map(d=>d.position));damageEffects?.update(time);destruction?.advance(time);
     }
     function recall(){recalling=true;return true;}
-    function snapshot(){return {recalling,busy:isBusy(),waveActive:waveActive(),time:now,metrics:{...metrics},events:events.map(e=>({...e,position:{...e.position},targetPosition:{...e.targetPosition}})),
+    function snapshot(){return {damageEffects:damageEffects?.snapshot()||null,destruction:destruction?.snapshot()||null,recalling,busy:isBusy(),waveActive:waveActive(),time:now,metrics:{...metrics},events:events.map(e=>({...e,position:{...e.position},targetPosition:{...e.targetPosition}})),
       drones:fighters.map(d=>({id:d.id,role:d.role,tier:d.tier,health:d.health,maxHealth:d.maxHealth,damageStage:window.droneSprites?.stage(d.health,d.maxHealth)??0,powered:d.health>0,launch:d.launch-born,phase:d.phase,position:{...d.position},heading:d.heading,targetId:d.targetId,readyAt:d.readyAt,firedAt:d.firedAt??null,firedBarrel:d.firedBarrel??null})),
-      shots:shots.map(s=>({...s,source:{...s.source},mount:{...s.mount},position:{...s.position}})),wreckCount:wrecks.length,texturedWreckCount:wrecks.length};}
+      shots:shots.map(s=>({...s,source:{...s.source},mount:{...s.mount},position:{...s.position}})),wreckCount:wrecks.length+(destruction?.snapshot().wreckCount||0),texturedWreckCount:wrecks.length+(destruction?.snapshot().wreckCount||0)};}
     function draw(ctx,time,selectedId,options={}){
+      damageEffects?.draw(ctx,time);destruction?.draw(ctx,time);
       for(const d of fighters){
         if(!alive(d))continue;ctx.save();ctx.translate(d.position.x,d.position.y);ctx.rotate(d.heading);window.steamrunnerRepair.drawDrone(ctx,{...d,lights:options.lights,effects:options.damage,weaponFlash:Number.isFinite(d.firedAt)?Math.max(0,1-(time-d.firedAt)/150):0},time);ctx.restore();
         const color=d.role==='attack'?'#ff6c64':'#71caff';ctx.save();ctx.fillStyle='#151c2b';ctx.fillRect(d.position.x-13,d.position.y+25,26,3);ctx.fillStyle=color;ctx.fillRect(d.position.x-13,d.position.y+25,26*d.health/d.maxHealth,3);
         if(d.id===selectedId){ctx.strokeStyle='white';ctx.lineWidth=1;ctx.strokeRect(d.position.x-28,d.position.y-28,60,58);}ctx.restore();
       }
-      for(const p of wrecks){const age=(time-p.born)/1000;ctx.save();ctx.globalAlpha=Math.max(0,1-age*1000/p.ttl);ctx.translate(p.x+p.vx*age,p.y+p.vy*age);ctx.rotate(p.angle+p.spin*age);ctx.drawImage(p.texture,-p.width/2,-p.height/2,p.width,p.height);ctx.restore();}
+      for(const p of wrecks){const age=(time-p.born)/1000;ctx.save();ctx.globalAlpha=Math.max(0,1-age*1000/p.ttl);ctx.translate(p.x+p.vx*age,p.y+p.vy*age);ctx.rotate(p.angle+p.spin*age);if(!window.wreckageEffects?.draw(ctx,p.texture,p.width,p.height,time-p.born))ctx.drawImage(p.texture,-p.width/2,-p.height/2,p.width,p.height);ctx.restore();}
       ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
       for(const s of shots){const speed=Math.hypot(s.vx,s.vy);ctx.strokeStyle=s.role==='attack'?'#ff5042':'#48adff';ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=9;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(s.position.x-s.vx/speed*12,s.position.y-s.vy/speed*12);ctx.lineTo(s.position.x,s.position.y);ctx.stroke();ctx.fillStyle='white';ctx.fillRect(s.position.x-1,s.position.y-1,2,2);}
       ctx.shadowBlur=5;

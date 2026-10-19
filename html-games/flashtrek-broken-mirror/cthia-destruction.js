@@ -8,7 +8,7 @@ window.createShipDestruction = () => {
     ['bow chip',181,36],['left edge fragment',12,303],['right edge fragment',350,303],['stern chip',181,479]];
   let stages=[];
   function* preparation(frames,config={}){
-    const cutSites=config.sites||sites,core=config.core||[181,362],coreIndex=config.coreIndex??5;
+    const cutSites=config.sites||sites,materialSites=cutSites.map(p=>[p[1],p[2]]),core=config.core||[181,362],coreIndex=config.coreIndex??5;
     // All stages share the same hull coordinates. Compute each ownership once.
     const ownerCache=new Int16Array(frames[0].width*frames[0].height).fill(-1);
     const result=[];
@@ -23,7 +23,8 @@ window.createShipDestruction = () => {
         let best=ownerCache[pixel],distance=Infinity;
         if(best<0){
           best=0;
-          if(config.partition)best=config.partition.owner(x,y);
+          if(window.wreckageEffects){const amp=Math.max(1,Math.min(6,Math.min(w,h)*.014)),xx=x+amp*(Math.sin(y*.19)+.45*Math.sin(y*.73+x*.09)),yy=y+amp*(Math.sin(x*.17)+.4*Math.sin(x*.67-y*.11));best=config.partition?config.partition.owner(xx,yy):window.wreckageEffects.owner(x,y,materialSites,w,h);}
+          else if(config.partition)best=config.partition.owner(x,y);
           else cutSites.forEach(([,sx,sy],n)=>{const d=(x-sx)**2+(y-sy)**2;if(d<distance){distance=d;best=n;}});
           ownerCache[pixel]=best;
         }
@@ -39,6 +40,7 @@ window.createShipDestruction = () => {
         const tg=texture.getContext('2d'),cut=tg.createImageData(width,height);
         for(let i=0;i<pixels.length;i++){const pixel=pixels[i];cut.data.set(source.data.subarray(pixel*4,pixel*4+4),((Math.floor(pixel/w)-y)*width+pixel%w-x)*4);if((i&1023)===1023)yield;}
         tg.putImageData(cut,0,0);yield;
+        if(window.wreckageEffects)yield* window.wreckageEffects.prepare(texture,{seed:n});
         let fracture=null;
         if(config.structural){
           const edge=document.createElement('canvas'),hot=document.createElement('canvas'),side=document.createElement('canvas');
@@ -131,7 +133,11 @@ window.createShipDestruction = () => {
       }
     }ctx.restore();
   }
+  function drawWreckSurface(ctx,p,time){
+    if(!window.wreckageEffects?.draw(ctx,p.texture,p.w,p.h,time-p.born))ctx.drawImage(p.texture,-p.w/2,-p.h/2,p.w,p.h);
+  }
   function drawWreckGlow(ctx,p,time){
+    if(window.wreckageEffects?.get(p.texture))return;
     const age=time-p.born;
     if(age<240){ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.55*(1-age/240)**2;ctx.drawImage(p.lit,-p.w/2,-p.h/2,p.w,p.h);ctx.restore();}
     if(p.core&&age<1100){
@@ -144,6 +150,7 @@ window.createShipDestruction = () => {
       g.addColorStop(0,'#071019');g.addColorStop(.65,'#071019');g.addColorStop(1,'#07101900');ctx.fillStyle=g;ctx.fillRect(p.coreX-10,p.coreY-10,20,20);ctx.restore();}
   }
   function drawStructuralWreck(ctx,p,time){
+    if(window.wreckageEffects?.draw(ctx,p.texture,p.w,p.h,time-p.born))return;
     const age=time-p.born;
     ctx.save();
     ctx.drawImage(p.texture,-p.w/2,-p.h/2,p.w,p.h);
@@ -161,7 +168,7 @@ window.createShipDestruction = () => {
     }
   }
   const audit=()=>stages.map(s=>({sourcePixels:s.sourcePixels,cutPixels:s.cutPixels,pieces:s.pieces.length,structural:s.structural,edgePixels:s.pieces.reduce((n,p)=>n+(p.edgePixels||0),0)}));
-  const memoryBytes=()=>stages.reduce((total,stage)=>total+stage.pieces.reduce((sum,piece)=>sum+['texture','lit','edge','hot','side'].reduce((n,key)=>n+(piece[key]?piece[key].width*piece[key].height*4:0),0),0),0);
+  const memoryBytes=()=>stages.reduce((total,stage)=>total+stage.pieces.reduce((sum,piece)=>sum+(window.wreckageEffects?.memoryBytes(piece.texture)||0)+['texture','lit','edge','hot','side'].reduce((n,key)=>n+(piece[key]?piece[key].width*piece[key].height*4:0),0),0),0);
   function shake(ctx,state){
     if(!state.cthiaBlast)return;
     const age=state.time-state.cthiaBlast.born;if(age<0||age>420)return;
@@ -169,6 +176,6 @@ window.createShipDestruction = () => {
     ctx.translate(Math.sin(age*.093)*amplitude,Math.sin(age*.127+1)*amplitude*.7);
   }
   const emitFragments=(state,layout,world,stage,zoom,data)=>emit(state,layout,world,stage,zoom,null,data);
-  return Object.freeze({prepare,prepareAsync,emit,emitFragments,drawParticle,drawWreckGlow,drawStructuralWreck,updateTrails,audit,memoryBytes,shake});
+  return Object.freeze({prepare,prepareAsync,emit,emitFragments,drawParticle,drawWreckSurface,drawWreckGlow,drawStructuralWreck,updateTrails,audit,memoryBytes,shake});
 };
 window.cthiaDestruction=window.createShipDestruction();

@@ -359,7 +359,7 @@
       for(const piece of wrecks){
         const age=(time-piece.born)/1000,q=age*1000/piece.ttl;if(q<0||q>=1)continue;
         ctx.save();ctx.globalAlpha=1-q;ctx.translate(piece.x+piece.vx*age,piece.y+piece.vy*age);ctx.rotate(piece.angle+piece.spin*age);
-        if(piece.texture){ctx.globalCompositeOperation='source-over';ctx.drawImage(piece.texture,-piece.width/2,-piece.height/2,piece.width,piece.height);}
+        if(piece.texture){ctx.globalCompositeOperation='source-over';if(!window.wreckageEffects?.draw(ctx,piece.texture,piece.width,piece.height,time-piece.born))ctx.drawImage(piece.texture,-piece.width/2,-piece.height/2,piece.width,piece.height);}
         else{ctx.fillStyle=q<.15?'#ffe2ad':q<.45?'#9da4a4':'#596471';ctx.fillRect(-piece.size/2,-piece.size/2,piece.size,piece.size*.6);}ctx.restore();
       }
       for(const impact of impacts){

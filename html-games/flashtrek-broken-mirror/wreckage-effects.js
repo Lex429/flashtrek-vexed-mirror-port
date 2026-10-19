@@ -30,9 +30,15 @@
     g.putImageData(image,0,0);hg.putImageData(heat,0,0);yield;
     const result=Object.freeze({texture,hot,organic,anchors:Object.freeze(anchors.map(Object.freeze)),sourcePixels,tornPixels});cache.set(source,result);metrics.prepared++;metrics.sourcePixels+=sourcePixels;metrics.tornPixels+=tornPixels;return result;
   }
+  function schedule(iterator){
+    const queue=window.nativeDamageArtPreparation;
+    if(!queue)return Promise.resolve().then(()=>{let result;do{result=iterator.next();}while(!result.done);return result.value;});
+    const admit=()=>{const state=queue.snapshot();return state.pending>=state.limits.maxPending?new Promise(resolve=>setTimeout(resolve,24)).then(admit):queue.run(iterator);};return admit();
+  }
+  function primeAll(sources,options){return schedule((function*(){for(const source of sources)yield* prepare(source,options);})());}
   function prime(source,options){
     if(cache.has(source))return Promise.resolve(cache.get(source));if(pending.has(source))return pending.get(source);
-    const iterator=prepare(source,options),promise=window.nativeDamageArtPreparation?window.nativeDamageArtPreparation.run(iterator):Promise.resolve().then(()=>{let result;do{result=iterator.next();}while(!result.done);return result.value;});
+    const iterator=prepare(source,options),promise=schedule(iterator);
     pending.set(source,promise);return promise;
   }
   function draw(ctx,source,w,h,age,{organic=false}={}){
@@ -40,13 +46,18 @@
     ctx.save();ctx.drawImage(material.texture,-w/2,-h/2,w,h);
     const heat=Math.max(0,1-age/3600);if(heat>0){ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha*=heat**1.5*(.78+.22*Math.sin(age*.037));ctx.drawImage(material.hot,-w/2,-h/2,w,h);ctx.restore();}
     if(age>=0&&age<3200){
-      const fire=Math.max(0,1-age/3200),size=Math.max(1.6,Math.min(14,Math.min(w,h)*.2));
+      const fire=Math.max(0,1-age/3200),size=Math.max(1.2,Math.min(8,Math.min(w,h)*.12));
       for(const [index,point] of material.anchors.entries()){
         const x=(point.x-.5)*w,y=(point.y-.5)*h,phase=age*.014+index*2.7,lick=size*fire*(.8+.3*Math.sin(phase));
         ctx.save();ctx.translate(x,y);
         const smoke=(age*.0007+index*.31)%1;ctx.globalAlpha*=fire*(1-smoke)*.24;ctx.fillStyle=organic?'#38272c':'#363432';ctx.beginPath();ctx.ellipse(smoke*4,-smoke*size*4,size*(.3+smoke),size*(.5+smoke*1.3),.2,0,Math.PI*2);ctx.fill();ctx.restore();
-        ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha*=fire*.85;ctx.translate(x,y);ctx.fillStyle='#f37828';ctx.shadowColor='#ff7825';ctx.shadowBlur=lick;
-        ctx.beginPath();ctx.moveTo(-lick*.55,lick*.25);ctx.quadraticCurveTo(-lick*.6,-lick*.9,Math.sin(phase)*lick*.45,-lick*2);ctx.quadraticCurveTo(lick*.7,-lick*.6,lick*.55,lick*.3);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#ffe6a0';ctx.beginPath();ctx.ellipse(0,-lick*.28,lick*.23,lick*.7,Math.sin(phase)*.2,0,Math.PI*2);ctx.fill();
+        ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha*=fire*.8;ctx.translate(x,y);
+        // Uneven, translucent gas lobes break up the flame without a hard outline.
+        for(let lobe=0;lobe<3;lobe++){
+          const sway=Math.sin(phase+lobe*2.7),r=lick*(.65+.2*Math.sin(phase*1.7+lobe)),dx=sway*lick*.4,dy=-lick*(.1+lobe*.48);
+          const flame=ctx.createRadialGradient(dx,dy,0,dx,dy,r);flame.addColorStop(0,lobe?'#ffc16c99':'#ffe6a0cc');flame.addColorStop(.3,'#ff9c3890');flame.addColorStop(.65,'#d9432240');flame.addColorStop(1,'#ac281200');
+          ctx.save();ctx.translate(dx,dy);ctx.rotate(sway*.3);ctx.scale(.65,1.3);ctx.translate(-dx,-dy);ctx.fillStyle=flame;ctx.fillRect(dx-r,dy-r,r*2,r*2);ctx.restore();
+        }
         for(let j=0;j<2;j++){const a=(age*.0015+index*.19+j*.5)%1;ctx.globalAlpha=fire*(1-a);ctx.fillStyle=a<.4?'#ffd27b':'#d26128';ctx.fillRect(Math.sin(index*7+j)*a*size*2,-a*size*5,Math.max(.6,size*.11),Math.max(.6,size*.11));}ctx.restore();
       }
     }ctx.restore();return true;
@@ -56,5 +67,5 @@
     const amp=Math.max(1,Math.min(6,Math.min(width,height)*.014)),xx=x+amp*(Math.sin(y*.19)+.45*Math.sin(y*.73+x*.09)),yy=y+amp*(Math.sin(x*.17)+.4*Math.sin(x*.67-y*.11));
     let best=0,distance=Infinity;for(let i=0;i<sites.length;i++){const p=sites[i],px=p[0],py=p[1],d=(xx-px)**2+(yy-py)**2;if(d<distance){distance=d;best=i;}}return best;
   }
-  window.wreckageEffects=Object.freeze({prepare,prime,draw,owner,get:source=>cache.get(source)||null,snapshot:()=>({...metrics})});
+  window.wreckageEffects=Object.freeze({prepare,prime,primeAll,draw,owner,get:source=>cache.get(source)||null,memoryBytes:source=>{const p=cache.get(source);return p?(p.texture.width*p.texture.height+p.hot.width*p.hot.height)*4:0;},snapshot:()=>({...metrics})});
 })();

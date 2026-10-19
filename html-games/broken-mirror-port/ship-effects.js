@@ -7,7 +7,7 @@
   const now=state=>window.nativeSimulation?.now(state)??performance.now();
   const key=(type,category)=>`${Number(type)}:${window.nativeShipDefinitions.get(type,category).artwork.source}`;
   const units=()=>window.showcaseWeaponAppearance?.units??.91976;
-  const fragmentBytes=value=>(value||[]).reduce((total,stage)=>total+stage.reduce((sum,piece)=>sum+(piece.texture?.width||0)*(piece.texture?.height||0)*4,0),0);
+  const fragmentBytes=value=>(value||[]).reduce((total,stage)=>total+stage.reduce((sum,piece)=>sum+(piece.texture?.width||0)*(piece.texture?.height||0)*4+(window.wreckageEffects?.memoryBytes(piece.texture)||0),0),0);
   const assetBytes=value=>value.assets.reduce((sum,asset)=>sum+(asset?.width||0)*(asset?.height||0)*4,0)+fragmentBytes(value.fragments)+(value.destruction?.memoryBytes?.()||0);
   function prune(){
     let bytes=0;for(const entry of prepared.values())bytes+=assetBytes(entry);
@@ -201,7 +201,7 @@
       if(!visible(wreck)||!wreck.prepared)continue;const destruction=(wreck.artwork||prepared.get(wreck.assetKey))?.destruction;if(!destruction)continue;
       for(const piece of wreck.debris){if(!onScreen(piece,Math.hypot(piece.w,piece.h)/2+28))continue;ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);
         if(piece.structural)destruction.drawStructuralWreck(ctx,piece,wreck.time);
-        else{ctx.drawImage(piece.texture,-piece.w/2,-piece.h/2,piece.w,piece.h);destruction.drawWreckGlow(ctx,piece,wreck.time);}ctx.restore();}
+        else{destruction.drawWreckSurface(ctx,piece,wreck.time);destruction.drawWreckGlow(ctx,piece,wreck.time);}ctx.restore();}
       for(const particle of wreck.particles)if(onScreen(particle,particle.size*4+12))destruction.drawParticle(ctx,particle,wreck.time);
     }
     for(const particle of bursts)if(visible(particle)&&onScreen(particle,(particle.size||0)+2)&&(!view.entity||particle.entity===view.entity))window.showcaseHullBurst?.draw(ctx,particle,time);
