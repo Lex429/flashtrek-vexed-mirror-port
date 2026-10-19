@@ -79,8 +79,8 @@ window.createShipDestruction = () => {
     if(window.nativeDamageArtPreparation)stages=await window.nativeDamageArtPreparation.run(iterator);
     else{let result;do{result=iterator.next();if(!result.done)await new Promise(resolve=>setTimeout(resolve,0));}while(!result.done);stages=result.value;}
   }
-  function emit(state,layout,world,stage,zoom,target=null){
-    const data=stages[stage],born=state.time;let demoImpact=false;if(!data)return false;
+  function emit(state,layout,world,stage,zoom,target=null,fragmentData=null){
+    const data=fragmentData||stages[stage],born=state.time;let demoImpact=false;if(!data)return false;
     for(const [i,piece] of data.pieces.entries()){
       const small=piece.pixels<180,p=world(piece);let a=Math.atan2(p.y-layout.y,p.x-layout.x)+(i%2?.19:-.19);const speed=(piece.farTravel?(small?340+i*5:175+1500/Math.sqrt(piece.pixels)):piece.structural?(small?145+i*2:40+1100/Math.sqrt(piece.pixels)):46+i*6)*zoom;
       // One small fragment crosses the nearby ship for the collision example.
@@ -168,6 +168,7 @@ window.createShipDestruction = () => {
     const amplitude=3.2*state.cthiaBlast.zoom*(1-age/420)**2;
     ctx.translate(Math.sin(age*.093)*amplitude,Math.sin(age*.127+1)*amplitude*.7);
   }
-  return Object.freeze({prepare,prepareAsync,emit,drawParticle,drawWreckGlow,drawStructuralWreck,updateTrails,audit,memoryBytes,shake});
+  const emitFragments=(state,layout,world,stage,zoom,data)=>emit(state,layout,world,stage,zoom,null,data);
+  return Object.freeze({prepare,prepareAsync,emit,emitFragments,drawParticle,drawWreckGlow,drawStructuralWreck,updateTrails,audit,memoryBytes,shake});
 };
 window.cthiaDestruction=window.createShipDestruction();

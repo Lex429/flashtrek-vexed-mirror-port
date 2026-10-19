@@ -38,3 +38,29 @@
 .ship-role{display:inline-block;margin-top:7px;padding:4px 8px;border:1px solid #538b79;border-radius:3px;background:#123128;color:#b6f3d4;font-size:9px;font-weight:700;letter-spacing:.1em}.ship-role[hidden]{display:none}.civilian-note{display:block;margin-top:6px;color:var(--muted);font-size:10px;line-height:1.5}
 
 .ship-role.work-ship{border-color:#74869c;background:#1c2938;color:#c9dcf2}
+
+#repair-demo:not([hidden]){color:#bbffd2;background:linear-gradient(110deg,#15372b,#1b4d35);border-color:#4ca878}#repair-demo:not([hidden]):hover{background:#246044;border-color:#93eab6}
+
+.repair-workshop[hidden]{display:none!important}.repair-workshop h3{margin:0 0 9px;font-size:16px}.drone-budget{color:#a4e5c1;font-size:12px;margin:0 0 7px}.drone-fleet-summary{color:var(--muted);font-size:10px;line-height:1.5;margin-bottom:12px}.drone-tier-list{display:grid;gap:10px}.drone-tier{display:grid;grid-template-columns:52px 1fr;gap:4px 9px;padding:11px 10px;background:#0b1822;border:1px solid #345041;border-radius:6px}.drone-tier[data-tier="upgraded"]{border-color:#405e7b}.drone-tier[data-tier="advanced"]{border-color:#827146}.drone-preview{grid-row:1/4;width:52px;height:42px;align-self:center}.drone-tier h4{margin:0;color:#dce8e8;font-size:12px}.drone-tier p{margin:0;font-size:9px;line-height:1.4;color:var(--muted)}.drone-tier small{font-size:9px;color:#99d7b7}.drone-tier strong{grid-column:1/-1;font-size:10px;color:#ccd9e3;margin:3px 0}.drone-tier button{grid-column:1/-1;padding:6px 7px;font-size:10px;text-align:left}.drone-tier button[data-buy-drone]{background:#163527;border-color:#3b7053;color:#c6f3d7}.drone-tier button:disabled{opacity:.4;cursor:not-allowed}.drone-flight-note,.drone-shop-status{font-size:10px;line-height:1.5;color:var(--muted);margin:12px 0 0}.drone-shop-status{color:#b0dfc5}.drone-workshop-reset{font-size:10px;margin-top:10px;padding:6px 9px}.repair-workshop{grid-column:1/-1}
+
+.drone-workshop-launch{width:100%;margin:0 0 12px;color:#c6ffda;background:#173e2b;border-color:#518e65}.drone-workshop-launch:disabled{opacity:.45;cursor:not-allowed}
+
+.drone-combat-controls{display:grid;gap:7px;margin:0 0 14px;padding:10px;border:1px solid #4b5668;border-radius:5px;background:#142331}.drone-combat-controls label{font-size:10px;color:#cbdce3}.drone-combat-controls select{width:100%;min-width:0;font-size:10px}.drone-combat-controls .action-pair{margin:0}.drone-combat-controls button{padding:7px 5px;font-size:10px}.drone-combat-controls button:disabled{opacity:.4;cursor:not-allowed}.drone-combat-controls small{font-size:9px;line-height:1.5;color:var(--muted)}
+.drone-role-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 10px}
+.drone-role-tabs button{flex:1;min-width:100px;border-bottom:3px solid #68e89b}
+.drone-role-tabs [data-drone-role="defense"]{border-bottom-color:#6cbcff}
+.drone-role-tabs [data-drone-role="attack"]{border-bottom-color:#ff726b}
+.drone-role-tabs [aria-selected="true"]{background:#263d52;color:#fff;outline:1px solid #9cb8cc}
+.drone-role-panel[hidden]{display:none}
+.drone-role-note,.drone-wave-summary{font-size:12px;line-height:1.5;color:#bacbdd}
+[data-drone-panel="defense"] .drone-tier{border-color:#345f8a}
+[data-drone-panel="attack"] .drone-tier{border-color:#80414b}
+.drone-wave-launch{width:100%;margin-top:8px;border-color:#b84f57;color:#ffbbb4}
+.drone-auto-attack{display:flex;align-items:flex-start;gap:8px;margin:0 0 12px;color:#c6dbed;font-size:11px;line-height:1.5}
+.drone-auto-attack input{flex:none;margin-top:3px;accent-color:#ff726b}
+[data-drone-panel="repair"] .drone-tier{grid-template-columns:92px 1fr}
+[data-drone-panel="repair"] .drone-preview{width:92px;height:92px;object-fit:contain}
+.dot-preview-condition{display:grid;gap:6px;margin:0 0 10px;color:#bed7d3;font-size:11px}
+.dot-preview-condition select{width:100%;font-size:11px;min-width:0}
+.drone-role-panel .drone-tier{grid-template-columns:92px 1fr}
+.drone-role-panel .drone-preview{width:92px;height:92px;object-fit:contain}

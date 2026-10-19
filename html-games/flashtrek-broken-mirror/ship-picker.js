@@ -17,6 +17,7 @@
     {id:'tholian',name:'Tholian',ships:[20,66]},
     {id:'delpin',name:'Delpin',ships:[21,22,51]},
     {id:'other',name:'Other / Independent',ships:[23,24,50,52,54,55]},
+    {id:'drones',name:'Drones',ships:Array.from({length:9},(_,i)=>500+i)},
     {id:'creatures',name:'Creatures · Original',ships:[67,68,69,70,71,72,73,74,75,76,77,78]},
     {id:'mutation-red',name:"Red Mutation",ships:[200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211]},
     {id:'mutation-venom',name:"Venom Green",ships:[212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223]},
@@ -49,7 +50,7 @@
       $('fleet-progress').textContent=asteroidScope?`${count} damage chain ready · ${total-count} artwork only`:`${count} animated · ${total-count} need animation`;
       $('fleet-progress-bar').value=count;$('fleet-progress-bar').max=total||1;
       $('fleet-progress-bar').setAttribute('aria-label',asteroidScope?`Asteroids: ${count} of ${total} have damage chains`:`${filter.value==='all'?'All fleets':filter.value==='civilian'?'Civilian ships':fleetFor(scoped[0]?.id)?.name}: ${count} of ${total} animated`);
-      $('ship-results').textContent=visible.length?`${visible.length} ${filter.value==='asteroids'?'asteroid artworks':filter.value==='creatures'?'creature variants':filter.value==='civilian'?'civilian ships':filter.value==='all'?'ships / creatures / structures / asteroids':visible.length===1?'entry':'entries'} shown`:'No entries match these filters. Try another collection or animation status.';
+      $('ship-results').textContent=visible.length?`${visible.length} ${filter.value==='asteroids'?'asteroid artworks':filter.value==='creatures'?'creature variants':filter.value==='civilian'?'civilian ships':filter.value==='all'?'ships / drones / creatures / structures / asteroids':visible.length===1?'entry':'entries'} shown`:'No entries match these filters. Try another collection or animation status.';
     }
     function render(){
       visible=[];select.replaceChildren();
@@ -76,6 +77,7 @@
       $('ship-role').classList.toggle('work-ship',workShips.has(id)&&!civilianShips.has(id));
       $('selected-fleet').textContent=fleet?.name||'Other / Independent';
       badge.textContent=asteroid?chainReady?'Damage chain ready':'Artwork preview':selected?.damageReady?'Animated':structure?'Artwork ready':selected?.kind==='ship'&&selected.artworkStatus==='intact-only'?'Lights ready':creature?'Intact only':ready?'Animated':'Needs animation';badge.dataset.status=asteroid?chainReady?'damage-ready':'artwork':selected?.damageReady?'animated':structure?'artwork':ready?'animated':'pending';
+      if(selected?.kind==='drone'){$('ship-animation-detail').textContent='Full-size drone inspection: animated lamps, four aligned damage stages, weapon hits and matching hull breakup. Inspection leaves your purchased fleet unchanged.';return;}
       if(asteroid){$('ship-animation-detail').textContent=chainReady?`${selected.oreLabel}: ${selected.oreRole} Any weapon destroys it in one hit; matching mineral fragments fly out with the breakup. The four damage stages remain available for manual review.`:'Curated high-resolution asteroid artwork is ready to inspect. Its damage chain has not been created.';return;}
       if(structure){$('ship-animation-detail').textContent=selected.damageReady?'Four aligned damage stages, station lights, exposed hull fires and weapon hits are ready. Fire a weapon or play the damage sequence.':selected.kind==='turret'?'Equipment icon preview ready. Standalone turret artwork and animations are pending.':'Station or facility artwork ready to inspect. Damage stages and animations are pending.';return;}
       if(selected?.kind==='ship'&&selected.artworkStatus==='intact-only'){$('ship-animation-detail').textContent='Live running lights, nacelle glows, and hull lamps are ready. Separate damage artwork is pending.';return;}
