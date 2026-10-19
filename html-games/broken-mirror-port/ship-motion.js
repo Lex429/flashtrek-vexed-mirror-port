@@ -285,6 +285,12 @@
     let threat=null;
     for(const other of neighbors){
       if(other.id===ship.id&&other.category===ship.category||other.system!==ship.system)continue;
+      // Service craft may approach their assigned hull more closely than normal
+      // passing traffic. The same swept physical ellipses must still be clear;
+      // this cannot waive actual contact or another ship's right of way.
+      const service=profile.serviceApproach&&ship.entity?.approachTarget;
+      if(service&&target&&service.category===other.category&&String(service.id)===String(other.id)&&Math.hypot(other.vx,other.vy)<5&&
+        !shipPairContact({...ship,previousX:ship.x,previousY:ship.y,x:target.x,y:target.y},{...other,previousX:other.x,previousY:other.y},1))continue;
       const rx=other.x-ship.x,ry=other.y-ship.y,rvx=other.vx-vx,rvy=other.vy-vy,sq=rvx*rvx+rvy*rvy;
       const clearance=shipRadius(ship)+shipRadius(other)+6+Math.min(24,Math.hypot(rvx,rvy)*.1)+turnRoom;
       const closing=rx*rvx+ry*rvy;

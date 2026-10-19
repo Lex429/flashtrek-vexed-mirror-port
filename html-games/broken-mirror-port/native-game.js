@@ -54,7 +54,7 @@ window.nativeCombatShots.onPlayerHit=(state,damage,impact)=>{
  }
  return result;
 };
-function activate(value){window.nativePlayerCombat.reset();window.nativeEnvironmentalImpacts?.reset();cancelTargetPress();window.nativeShipInventory?.close();window.nativePause.close();window.vexedWarp.reset();window.nativeGalaxyMap?.close(false);window.nativePlanetEncounter?.close(false);window.nativeAsteroidCombat?.clear();window.nativeSolEconomy?.clearTarget();window.nativeCivilianTraffic?.clearTarget();game=navigation.initialize(value);window.nativeSimulation.ensure(game);window.nativeAsteroidMotion?.ensure(game);setDevGalaxyView(false);if(game.vitalsVersion!==2){const ship=shipStats(game);game.hull=Math.round(Math.max(0,Math.min(100,Number(game.hull)||0))*ship.hull/100);game.shields=Math.round(Math.max(0,Math.min(100,Number(game.shields)||0))*ship.shields/100);game.vitalsVersion=2;}game.localBody=Number.isInteger(Number(game.localBody))?Number(game.localBody):3;game.localContracts=Array.isArray(game.localContracts)?game.localContracts:[];game.weaponInventory=Array.isArray(game.weaponInventory)?game.weaponInventory.map(Number).filter(id=>Number.isInteger(id)&&id>0&&window.VexedMirrorWeapons?.some(item=>item.id===id)):[];window.nativeSolEconomy.initialize(game);window.nativeCivilianTraffic.initialize(game);window.nativeNpcLives?.initialize(game);window.vexedSolFlight?.setTarget(game.localCruise?.to??game.localNavTarget??game.localBody);if(game.devMode)unlockDev(game);window.nativeWeaponLoadout.ensure(game);window.nativeCombatShots.restore?.(game);window.vexedSpace.enterSystem(game.system,true);spaceCamera=null;keys={};modal.hidden=true;menuArt.hidden=true;document.body.classList.add('playing');document.getElementById('save').disabled=false;devButton.hidden=!game.devMode;updateVisuals();refresh()}
+function activate(value){window.nativePlayerCombat.reset();window.nativeEnvironmentalImpacts?.reset();cancelTargetPress();window.nativeShipInventory?.close();window.nativePause.close();window.vexedWarp.reset();window.nativeGalaxyMap?.close(false);window.nativePlanetEncounter?.close(false);window.nativeAsteroidCombat?.clear();window.nativeSolEconomy?.clearTarget();window.nativeCivilianTraffic?.clearTarget();game=navigation.initialize(value);window.nativeSimulation.ensure(game);window.nativeAsteroidMotion?.ensure(game);setDevGalaxyView(false);if(game.vitalsVersion!==2){const ship=shipStats(game);game.hull=Math.round(Math.max(0,Math.min(100,Number(game.hull)||0))*ship.hull/100);game.shields=Math.round(Math.max(0,Math.min(100,Number(game.shields)||0))*ship.shields/100);game.vitalsVersion=2;}game.localBody=Number.isInteger(Number(game.localBody))?Number(game.localBody):3;game.localContracts=Array.isArray(game.localContracts)?game.localContracts:[];game.weaponInventory=Array.isArray(game.weaponInventory)?game.weaponInventory.map(Number).filter(id=>Number.isInteger(id)&&id>0&&window.VexedMirrorWeapons?.some(item=>item.id===id)):[];window.nativeSolEconomy.initialize(game);window.nativeCivilianTraffic.initialize(game);window.nativeShipRepairs?.initialize(game);window.nativeNpcLives?.initialize(game);window.vexedSolFlight?.setTarget(game.localCruise?.to??game.localNavTarget??game.localBody);if(game.devMode)unlockDev(game);window.nativeWeaponLoadout.ensure(game);window.nativeCombatShots.restore?.(game);window.vexedSpace.enterSystem(game.system,true);spaceCamera=null;keys={};modal.hidden=true;menuArt.hidden=true;document.body.classList.add('playing');document.getElementById('save').disabled=false;devButton.hidden=!game.devMode;updateVisuals();refresh()}
 function begin(){activate({...fresh(),devMode:true});message('Dev command ready. All systems, ships, and supplies are available.');save()}
 function resume(){const saved=savedGame();if(!saved)return;const defaults=fresh(),value={...defaults,...saved,stocks:{...defaults.stocks,...saved.stocks}};for(const key of ['system','faction','day','nav','antimatter','deuranium','latinum','dilithium','food','x','y','angle','speed','hull','shields'])value[key]=Number.isFinite(Number(value[key]))?Number(value[key]):defaults[key];activate(value);if(game.devMode)save(true);message(`Command data restored. Current system: ${sys(game.system).name}.`);const receipt=game.pendingTransit;if(receipt?.version===1&&receipt.report?.systemId===game.system&&Array.isArray(receipt.report.events))startJourney(receipt.report,null,true)}
 window.startNativeNewGame=()=>window.nativeSetup.open();
@@ -124,13 +124,14 @@ let lastEconomySave=0;
 // Keep collision and steering steps small while consuming ordinary slow frames in full.
 function advanceSimulation(dt,now){
  if(!game||window.nativeSimulation.blocked()||travelling()||!(dt>0))return;
+ const repairHullBefore=game.hull,repairStageBefore=window.nativeShipDefinitions.stage(window.nativeShipDefinitions.describe(game));
  const count=Math.ceil(dt/(1/60)),step=dt/count;
  for(let i=0;i<count;i++){
   window.nativeSimulation.advance(game,step);
   window.nativeSimulationFrame?.step(game);
   window.nativeAsteroidMotion?.advance(game,step);
   window.nativeShipTraffic?.advance(game,step);
-  advanceLocalCruise(step,now);advanceArrivalApproach(step,now);
+  if(game.phase!=='disabled'){advanceLocalCruise(step,now);advanceArrivalApproach(step,now);}
   if(window.nativePopulation.advanceSeconds(game,step)){window.nativePlanetEncounter?.refresh();window.nativeSystemHub?.updatePopulation();}
   window.nativeSolEconomy.advance(game,step);
   window.nativeCivilianTraffic.advance(game,step);
@@ -138,7 +139,7 @@ function advanceSimulation(dt,now){
   window.nativeEnvironmentalImpacts?.advance(game,step);
   window.nativeShipEffects.advance(game,step);
   window.nativeAsteroidCombat.advance(game,step);
-  if(modal.hidden&&game.hull>0&&!game.landed&&!window.nativeGalaxyMap?.isOpen&&!window.nativeSystemHub?.active&&!window.nativePlanetEncounter?.active&&!game.localCruise&&!game.arrivalApproach&&!busy()){
+  if(modal.hidden&&game.phase!=='disabled'&&game.hull>0&&!game.landed&&!window.nativeGalaxyMap?.isOpen&&!window.nativeSystemHub?.active&&!window.nativePlanetEncounter?.active&&!game.localCruise&&!game.arrivalApproach&&!busy()){
    const turn=(keys.KeyA||keys.ArrowLeft?-1:0)+(keys.KeyD||keys.ArrowRight?1:0);
    window.nativeShipSystems.move(game,game,'player',{turn,throttle:keys.KeyW||keys.ArrowUp?1:0,brake:!!(keys.KeyS||keys.ArrowDown)},undefined,step);
    updateManualFlight(now);
@@ -146,6 +147,7 @@ function advanceSimulation(dt,now){
   window.nativeAsteroidMotion?.collide(game,step);
   window.nativeShipTraffic?.collide(game,step);
  }
+ if(game.hull!==repairHullBefore){window.vexedHud.update(game);if(window.nativeShipDefinitions.stage(window.nativeShipDefinitions.describe(game))!==repairStageBefore)updateVisuals();}
  if(now-lastEconomySave>8000){lastEconomySave=now;save(true)}
 }
 // Returning from a hidden tab must not advance its suspended interval.
@@ -198,6 +200,7 @@ function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0
  window.vexedFlightAssets.drawWarpRing(ctx,warpFlight?.ring?{...warpFlight.ring,x:warpFlight.ring.x+cx-300,y:warpFlight.ring.y+cy-225}:null,shipW);
  window.nativeCombatShots.paintAll(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,now});
  window.nativeShipEffects.paint(game,ctx,{ship:solPosition||game,cx,cy,zoom,w,h});
+ window.nativeRepairVisuals?.paint(game,ctx,{ship:solPosition||game,cx,cy,zoom,w,h});
  window.nativeCivilianTraffic.paintMining(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,w,h});
  window.nativeAsteroidCombat?.paint(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,now,w,h});
  window.nativeEnvironmentalImpacts?.paint(ctx,{state:game,ship:solPosition||game,cx,cy,zoom,w,h});
@@ -223,7 +226,7 @@ function startJourney(report,next,resumed=false,destinationLabel){window.nativeC
  finish(){delete game.pendingTransit;const planet=game.system===1?window.nativeSystemHub.sol.find(body=>body.id===3):null,goal=planet?window.vexedSolFlight.bodyPosition(planet):{x:-220,y:75};const dx=goal.x-game.x,dy=goal.y-game.y,distance=Math.hypot(dx,dy),clearance=approachDistance(planet?window.vexedSolFlight.bodySize(planet):128);game.arrivalApproach={system:game.system,x:distance>clearance?goal.x-dx/distance*clearance:game.x,y:distance>clearance?goal.y-dy/distance*clearance:game.y};game.speed=window.vexedRebirthWarp.arrivalSpeed;save(true);message(`Arrived at ${report.systemName}. ${report.elapsedDays} days elapsed; ${report.fuelUsed} antimatter consumed. Slowing for planetary approach.`);refresh();canvas.focus({preventScroll:true})},
  cancel(wasCommitted){if(wasCommitted){delete game.pendingTransit;save(true)}message(wasCommitted?`Arrived at ${report.systemName}.`:'Transit interrupted. Your original course and resources are unchanged.');refresh();canvas.focus({preventScroll:true})}
 })}
-function warp(journey){if(game.arrivalApproach)return{ok:false,error:'Finish the current approach before warping.'};if(busy())return{ok:false,error:'A journey is already in progress.'};const prepared=window.vexedTravelEvents.plan(game,journey);return startJourney(prepared.report,prepared.next,false,journey.name)}
+function warp(journey){if(game.phase==='disabled'||game.hull<=0)return{ok:false,error:'Repair your disabled hull before warping.'};if(game.arrivalApproach)return{ok:false,error:'Finish the current approach before warping.'};if(busy())return{ok:false,error:'A journey is already in progress.'};const prepared=window.vexedTravelEvents.plan(game,journey);return startJourney(prepared.report,prepared.next,false,journey.name)}
 function close(){modal.hidden=true;marketFromPlanet=false}
 function hubPort(id){
  if(game.system!==1)return id===0&&Number(game.planetPopulations?.[game.system])>0;
@@ -276,6 +279,7 @@ function hubRepair(port){
  updateVisuals();save(true);refresh();return{ok:true,message:'Hull and shields restored by 25% of capacity.'};
 }
 function hubCruise(id){
+ if(game.phase==='disabled'||game.hull<=0)return{ok:false,error:'Engines are disabled until hull repairs finish.'};
  if(game.system!==1)return{ok:false,error:'Local cruise is available in Sol.'};
  if(game.localCruise||game.arrivalApproach)return{ok:false,error:'Finish the current approach before cruising.'};
  const from=window.nativeSystemHub.sol.find(node=>node.id===Number(game.localBody??3));
@@ -522,12 +526,12 @@ function cycleTarget(){
 }
 function fireLockedTarget(){
  if(!game||game.landed||game.localCruise||game.arrivalApproach||busy()||devGalaxyView)return;
- if(game.hull<=0){toast('Engines and weapons are disabled. Repair your hull to resume.');return;}
+ if(game.hull<=0||game.phase==='disabled'){toast('Engines and weapons are disabled. Repair your hull to resume.');return;}
  if(!currentTargetKey()){toast('Press Shift to lock a target, then Space to fire.');return;}
  fireSelectedTarget(game.system===1?window.vexedSolFlight.shipPosition(game):game);
 }
 function scan(){if(!game||busy())return;if(mineTarget())return;window.nativeGalaxyMap?.close(false);if(!game.landed&&!game.devMode){toast('Dock at a world to survey it [E]');return}if(!game.devMode&&game.deuranium<5){toast('Survey requires 5 deuranium');return}if(!game.discovered.includes(game.system))game.discovered.push(game.system);if(!game.devMode){game.deuranium-=5;game.latinum+=45;game.nav+=12}message(`${sys(game.system).name} surveyed.${game.devMode?'':' Scientific contract paid 45 latinum.'}`);toast(game.devMode?'Survey complete':'Survey complete · +45 latinum');refresh();save()}
-function repair(){if(!game||busy())return;window.nativeGalaxyMap?.close(false);if(!game.devMode&&(game.deuranium<10||game.latinum<40)){toast('Repair costs 10 deuranium and 40 latinum');return}if(!game.devMode){game.deuranium-=10;game.latinum-=40}const ship=shipStats(game);game.hull=game.devMode?ship.hull:Math.min(ship.hull,game.hull+Math.ceil(ship.hull*.25));game.shields=game.devMode?ship.shields:Math.min(ship.shields,game.shields+Math.ceil(ship.shields*.25));updateVisuals();message('Field repairs restored hull and shields.');refresh();save()}
+function repair(){if(!game||busy())return;if(game.hull<=0){toast('This hull is destroyed. Restore command data or start a new ship.');return;}if(game.phase==='disabled'){toast('Dot repair drones are handling the disabled hull. Olympics answer if deuranium runs out.');return;}window.nativeGalaxyMap?.close(false);if(!game.devMode&&(game.deuranium<10||game.latinum<40)){toast('Repair costs 10 deuranium and 40 latinum');return}if(!game.devMode){game.deuranium-=10;game.latinum-=40}const ship=shipStats(game);game.hull=game.devMode?ship.hull:Math.min(ship.hull,game.hull+Math.ceil(ship.hull*.25));game.shields=game.devMode?ship.shields:Math.min(ship.shields,game.shields+Math.ceil(ship.shields*.25));updateVisuals();message('Field repairs restored hull and shields.');refresh();save()}
 const devButton=document.createElement('button');devButton.id='devToolsBtn';devButton.type='button';devButton.textContent='Dev tools';devButton.hidden=true;document.getElementById('repairBtn').after(devButton);
 const galaxyReturn=document.createElement('button');galaxyReturn.id='dev-galaxy-return';galaxyReturn.type='button';galaxyReturn.textContent='Return to flight';galaxyReturn.hidden=true;document.getElementById('game').append(galaxyReturn);
 function setDevGalaxyView(enabled){

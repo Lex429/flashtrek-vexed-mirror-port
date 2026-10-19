@@ -43,7 +43,8 @@ def main():
             page=browser.new_page(viewport={'width':1280,'height':850});page.on('pageerror',lambda e:errors.append(str(e)))
             page.goto(base+'/html-games/broken-mirror-port/index.html');page.locator('[data-menu="dev"]').click(timeout=20000)
             page.wait_for_function('()=>nativeSolAsteroids.placements.length>0')
-            report=page.evaluate(HELPERS);assert report['population']==159
+            report=page.evaluate(HELPERS);assert report['population']==162
+            assert page.evaluate('nativeNpcDev.getState().civilianTraffic.ships.filter(s=>s.shipType===58).length')==3
             # The ordinary galaxy UI must show no civilian residents in excluded sectors.
             page.locator('#devToolsBtn').click();page.locator('#galaxy-map-button').click()
             snapshot=page.evaluate('nativeGalaxyOverview.snapshot()')

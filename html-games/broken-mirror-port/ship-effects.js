@@ -43,7 +43,7 @@
     pending.set(cacheKey,promise);return promise;
   }
   function data(descriptor){const cacheKey=key(descriptor.shipType,descriptor.category),value=prepared.get(cacheKey);if(value){prepared.delete(cacheKey);prepared.set(cacheKey,value);}return value;}
-  function asset(descriptor){const ready=data(descriptor);if(!ready)prepare(descriptor.shipType,descriptor.category);return ready?.assets[window.nativeShipDefinitions.stage(descriptor)]||ready?.assets[0]||null;}
+  function asset(descriptor){if(descriptor.definition.renderer)return null;const ready=data(descriptor);if(!ready)prepare(descriptor.shipType,descriptor.category);return ready?.assets[window.nativeShipDefinitions.stage(descriptor)]||ready?.assets[0]||null;}
   function visual(state,descriptor){
     let value=visuals.get(descriptor.entity);
     if(!value){value={state,descriptor,flash:null,contact:null};visuals.set(descriptor.entity,value);}
@@ -110,6 +110,8 @@
   }
   function hit(state,descriptor,result,event={}){
     if(!result?.ok||!(result.amount>0))return result;
+    if(result.destroyed)window.nativeShipRepairs?.destroyed(state,descriptor.entity,descriptor.category);
+    if(descriptor.definition.renderer){descriptor.definition.renderer.hit?.(state,descriptor,result,event);return result;}
     if(descriptor.system===state.system){
       if(result.absorbed>0)flash(state,descriptor,result.contacts.shield,event,result.absorbed);
       if(result.hullDamage>0){
@@ -181,10 +183,13 @@
     ctx.restore();
   }
   function paintShip(ctx,descriptor,view){
-    const art=view.asset||asset(descriptor),d=view.dimensions||descriptor.dimensions,p=position(descriptor,view),warp=view.warpEffect,zoom=view.zoom??1;
+    if(descriptor.definition.renderer)return descriptor.definition.renderer.draw(ctx,descriptor,view);
+    let art=view.asset||asset(descriptor);
+    if(descriptor.entity.phase==='disabled'&&window.nativeRepairVisuals){const ready=data(descriptor);if(!ready)prepare(descriptor.shipType,descriptor.category);art=window.nativeRepairVisuals.surface(descriptor,ready?.assets,art);}
+    const d=view.dimensions||descriptor.dimensions,p=position(descriptor,view),warp=view.warpEffect,zoom=view.zoom??1;
     paintSurface(ctx,descriptor,{...view,asset:art},{front:false});
     if(art)window.vexedFlightAssets.drawShip(ctx,art,p.x,p.y,d.width*zoom,warp?.angle??descriptor.heading+Math.PI/2,now(descriptor.state),
-      {...warp,height:d.height*zoom,lights:descriptor.entity.phase!=='disabled',damage:true,lightGain:descriptor.category==='player'?2.8:1,lightBloom:descriptor.category==='player'?2.5:1,...view.appearance});
+      {...warp,height:d.height*zoom,lights:descriptor.entity.phase!=='disabled',damage:!art.repairSurface,lightGain:descriptor.category==='player'?2.8:1,lightBloom:descriptor.category==='player'?2.5:1,...view.appearance});
     paintSurface(ctx,descriptor,{...view,asset:art},{front:true});return art;
   }
   function paint(state,ctx,view){

@@ -108,6 +108,7 @@
     if(!target)return {ok:false,error:'Target unavailable.'};
     if(shooter.definition?.capabilities?.armed===false)return {ok:false,error:'This ship cannot fire weapons.'};
     if(shooter.entity?.hull<=0||shooter.hull===0)return {ok:false,error:'This ship is destroyed.'};
+    if(shooter.entity?.phase==='disabled')return {ok:false,error:'Engines and weapons are disabled during hull repair.'};
     const system=shooter.system??state.system,holder=shooter.id==='player'?state:shooter.entity||options.shooter||shooter;
     const defaults=options.defaults||shooter.definition?.equipment||window.VexedMirrorWorld?.ships?.find(item=>item.id===Number(shooter.shipType))?.defaultWeapons;
     const scenery=scene(state,system),armed=arm(state,undefined,(spec,kind)=>rules.firingSolution(shooter,target,spec,kind,scenery),{holder,defaults,selection:options.weaponInstance?{instance:options.weaponInstance}:options.selection});

@@ -107,6 +107,7 @@
       homeBase:ship.homeBase,origin:ship.origin,destination:ship.destination,route:ship.route,eta:ship.eta,
       docking:authoritative?.docking??window.nativePortDocking?.inspect(lastState,ship.entity,authoritativeDetails),dockingMove:!!ship.entity.dockingMove,task,journey,cargo,tradeStock:tradeStock(ship,task,cargo),credits:authoritative?.credits??ship.entity.credits??ship.credits,
       hull:authoritative?.condition?.hull??authoritative?.hull??ship.entity.hull??ship.hull,shields:authoritative?.condition?.shields??authoritative?.shields??ship.entity.shields??ship.shields,equipment:authoritative?.equipment??ship.equipment,
+      repairs:window.nativeShipRepairs?.status(lastState,ship.entity,ship.category),
       events:authoritative?.events||ship.events,nextActionAt:authoritative?.nextActionAt??ship.nextActionAt,
       traffic:(ship.entity.localLeg||ship.entity.lifeLeg)&&ship.entity.trafficControl&&{mode:ship.entity.trafficControl.mode,until:ship.entity.trafficControl.until}};
     // Inspection consumers receive values, never mutable saved inventory/task references.
@@ -140,7 +141,7 @@
   function activity(data){
     const phase=data.task?.phase||data.phase,goal=portName(data.task?.destination??data.destination??data.journey?.destination),source=portName(data.task?.origin??data.origin);
     if(data.phase==='destroyed')return ['Destroyed','This ship can no longer operate.'];
-    if(data.phase==='disabled')return ['Disabled','This ship is unable to move.'];
+    if(data.phase==='disabled')return ['Disabled',data.repairs?.mission?'Dot drones are repairing its hull.':data.repairs?.distress?'Broadcasting distress; awaiting Olympic medical assistance.':'Engines offline; checking repair supplies.'];
     if(data.phase==='fighting')return ['In combat','Engaging another ship.'];
     if(data.phase==='ore-theft')return ['Taking ore','Collecting ore claimed by another ship.'];
     if(data.journey)return ['Travelling to '+portName(data.journey.destination??data.journey.destinationSystem),'Flying between star systems.'];
@@ -151,6 +152,7 @@
       approaching:['Approaching destination','Heading to the dock at '+goal+'.'],unloading:['Unloading cargo','Delivering cargo at '+goal+'.'],
       'waiting-payment':['Waiting for payment','Holding cargo until a buyer can pay.'], 'payment-idle':['Looking for a buyer','Keeping cargo aboard while waiting for a funded buyer.'],
       'mining-flight':['Flying to an asteroid','Approaching its mining claim.'],mining:['Mining an asteroid','Cutting ore from its claimed asteroid.'],collecting:['Collecting ore','Bringing mined ore aboard.'],
+      'rescue-approach':['Responding to distress','Approaching the disabled ship.'],'rescue-service':['Medical repair operation','Deploying Dot drones with finite deuranium supplies.'],
       repairing:['Under repair','Receiving paid hull and shield repairs.'],idle:['Waiting for work','Checking for a suitable job.'],completed:['Job complete','Waiting to choose its next task.'],interrupted:['Task interrupted',data.task?.failureReason||'Its previous task could not continue.'],
       turning:['Turning to depart','Lining up for the journey to '+goal+'.'],travel:['Flying to '+goal,'Transporting cargo along its local route.'],'waiting-route':['Waiting for a route',data.task?.failureReason||'Keeping cargo aboard until a route is available.'],
       'dock-queue':['Waiting for a berth','Waiting its turn to dock at '+portName(data.docking&&{system:data.docking.system,port:data.docking.port}||data.task?.destination)+'.'],
@@ -188,6 +190,7 @@
       const dock=data.docking,label=dock.kind==='berth'?'Assigned berth '+(dock.slot+1):dock.kind==='queue'?'Waiting: '+dock.queuePosition+' of '+dock.queueLength:dock.kind==='overflow'?'Holding outside the docking queue':'At a holding position';
       detail(table,'Docking',label+(dock.clearing?' · clearing the previous berth':''));
     }
+    if(data.repairs)detail(table,'Repair bay',data.repairs.drones+' Dot drones ? '+Math.round(data.repairs.supplies*10)/10+' t deuranium');
     detail(table,'Cargo',cargoText(data.cargo)+(ship.entity.oreHold?' · '+ship.entity.oreHold+' t ore':''));
     if(journey)detail(table,'Arrival in',Math.max(0,Math.ceil(num(journey.arrivalAt??journey.arriveAt??(num(journey.departedAt)+num(journey.duration)))-time()))+' simulation seconds');
     else if(data.nextActionAt!==null)detail(table,'Next step in',Math.max(0,Math.ceil(data.nextActionAt-time()))+' simulation seconds');

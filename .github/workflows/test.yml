@@ -48,6 +48,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-npc-lives.py
+      - name: Live Dot repair nozzles, saved simulation, hull restoration and destruction
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-ship-repairs.py
       - name: Audited Earth traffic jam in local flight and Dev inspector
         env:
           BROWSER_CHANNEL: ''

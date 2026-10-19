@@ -21,6 +21,7 @@
     if(eligible(state)&&!state.landed&&!window.vexedWarp?.active)result.push({...window.nativeShipDefinitions.describe(state,state,{category:'player'}),at});
     for(const ship of state.solEconomy?.freighters||[])if(eligible(ship))result.push(descriptor(state,ship,'tug',at));
     for(const ship of state.civilianTraffic?.ships||[])if(eligible(ship))result.push(descriptor(state,ship,'civilian',at));
+    for(const ship of window.nativeShipRepairs?.drones(state)||[])if(eligible(ship.entity))result.push(descriptor(state,ship.entity,'repair-drone',at,ship));
     return result;
   }
   function grid(ships,cell=768){
@@ -32,6 +33,7 @@
   function replaceLeg(state,ship,leg){
     if(ship.category==='civilian')return window.nativeNpcLives?.reroute(state,ship.entity,leg);
     if(ship.category==='tug')return window.nativeSolEconomy?.reroute(state,ship.entity,leg);
+    if(ship.category==='repair-drone')return window.nativeShipRepairs?.reroute(state,ship.entity,leg);
     return false;
   }
   function advance(state,dt){

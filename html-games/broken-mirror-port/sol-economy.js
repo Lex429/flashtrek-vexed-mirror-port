@@ -60,7 +60,7 @@
   }
   function disable(economy,ship){
     if(ship.phase==='destroyed'||ship.phase==='disabled'||ship.hull<=0)return;
-    ship.phase='disabled';ship.speed=0;ship.turnTimer=0;
+    ship.repairResumePhase=ship.phase;ship.phase='disabled';ship.speed=0;ship.turnTimer=0;
     note(economy,`Tug ${ship.id+1} disabled. Engines and lights offline; cargo stranded in space.`);
     ship.lifeLeg=null;ship.lifeEventAt=null;syncTask(economy,ship);lifeEvent(economy,ship,'disabled','Engines disabled; loaded cargo is stranded aboard, no destination stock awarded.');
   }
@@ -255,6 +255,7 @@
     return true;
   }
   function finishRebuild(economy,ship){
+    delete ship.repairBay;delete ship.repairResumePhase;ship.repairDeuranium=0;
     const berth=station(5,ship.id);
     Object.assign(ship,{port:5,from:5,to:5,x:berth.x,y:berth.y,heading:-Math.PI/2,speed:0,
       hull:tugStats().hull,shields:tugStats().shields,shieldFlash:null,phase:'waiting',rebuild:0,dwell:3,
@@ -552,5 +553,13 @@
     if(!ship.lifeLeg||ship.phase!=='travel'||leg.valid===false)return false;
     ship.lifeLeg=leg;ship.lifeEventAt=leg.startedAt+leg.duration;return true;
   }
-  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute};
+  function resumeAfterRepair(state,ship){
+    if(ship.hull<=0||ship.phase==='destroyed')return false;
+    const economy=initialize(state),previous=ship.repairResumePhase;delete ship.repairResumePhase;
+    if(['loading','unloading','waiting'].includes(previous)){ship.phase=previous;ship.dwell=Math.max(.01,ship.dwell||0);}
+    else if(ports.includes(ship.to)){ship.path=route({x:ship.x,y:ship.y},station(ship.to,ship.id));ship.routeIndex=0;ship.phase='travel';}
+    else{ship.phase='waiting';ship.dwell=.01;}
+    syncTask(economy,ship);scheduleTug(economy,ship,window.nativeSimulation.seconds(state));return true;
+  }
+  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute,resumeAfterRepair};
 })();

@@ -32,7 +32,7 @@ function fixture() {
     drawShowcaseShieldSurface: (...args) => draws.push({ kind: 'shield-surface', options: args.at(-1) }),
   };
   const sandbox = vm.createContext({ window, performance: { now: () => now } });
-  for(const file of ['ship-definitions.js','ship-damage.js','ship-effects.js','player-combat.js']) {
+  for(const file of ['ship-motion.js','ship-definitions.js','ship-damage.js','ship-effects.js','player-combat.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../html-games/broken-mirror-port',file), 'utf8'), sandbox);
   }
   return { api: window.nativePlayerCombat, contacts, bursts, explosions, draws, setTime: time => { now = time; } };
@@ -70,7 +70,7 @@ test('a weapon hit consumes shields before hull and uses each matching contact s
   const { api, contacts, bursts } = fixture();
   const player = state({ shields: 20, hull: 70 });
   const result = api.hit(player, 35, { kind: 'torpedo', from: { x: -50, y: 20 } });
-  assert.deepEqual(plain(result), { ok: true, destroyed: false, shields: 0, hull: 55 });
+  assert.deepEqual(plain(result), { ok: true, destroyed: false, disabled: false, shields: 0, hull: 55 });
   assert.deepEqual(contacts.map(contact => contact.shielded), [true, false]);
   assert.deepEqual(bursts[0].point, { x: 6, y: 22 });
   assert.equal(api.snapshot().flash.kind, 'torpedo');

@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{execFileSync}=require('node:child_process'),{createHash}=require('node:crypto');
 const root=path.join(__dirname,'../html-games/broken-mirror-port');
-async function fixture({saved,full=true,economic=true,revision,regional=false,access=false,physics=false,traffic=physics}={}){
+async function fixture({saved,full=true,economic=true,revision,regional=false,access=false,physics=false,traffic=physics,repairs=false}={}){
  const source=(file,optional=false)=>{if(!revision)return fs.readFileSync(path.join(root,file),'utf8');try{return execFileSync('git',['show',`${revision}:html-games/broken-mirror-port/${file}`],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']});}catch(error){if(optional)return null;throw error;}};
  const hub=source('system-hub.js'),rows=vm.runInNewContext('['+hub.match(/const sol = \[([\s\S]*?)\]\.map/)[1]+']');
  const sol=rows.map(([id,name,x,y,port])=>({id,name,x,y,port}));
@@ -9,7 +9,7 @@ async function fixture({saved,full=true,economic=true,revision,regional=false,ac
   showcaseWeaponAppearance:{units:.91976},showcaseShieldRadii:(w,h)=>({rx:w*.6,ry:h*.6}),createShowcaseWeaponVisual:i=>({...i}),showcaseHullBurst:{burst(){},update(){}}};
  const context=vm.createContext({window,document:{hidden:false},console,performance,
   fetch:async url=>({ok:true,json:async()=>JSON.parse(fs.readFileSync(path.join(root,'../flashtrek-broken-mirror/showcase-assets',url.split('/').pop().split('?')[0]),'utf8'))})});
- for(const file of ['world-data.js',...(regional?['regional-minerals.js']:[]),...(access?['civilian-access.js']:[]),'weapon-catalog.js','simulation-clock.js','simulation-frame.js','ship-motion.js','ship-definitions.js','ship-detail.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','port-docking.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','sol-asteroids.js','asteroid-combat.js','manual-flight.js','npc-lives.js']){const code=source(file,['simulation-frame.js','ship-detail.js','port-docking.js'].includes(file));if(code)vm.runInContext(code,context,{filename:file});}
+ for(const file of ['world-data.js',...(regional?['regional-minerals.js']:[]),...(access?['civilian-access.js']:[]),'weapon-catalog.js','simulation-clock.js','simulation-frame.js','ship-motion.js','ship-definitions.js','ship-detail.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','port-docking.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','sol-asteroids.js','asteroid-combat.js','manual-flight.js','npc-lives.js',...(repairs?['ship-repairs.js']:[])]){const code=source(file,['simulation-frame.js','ship-detail.js','port-docking.js'].includes(file));if(code)vm.runInContext(code,context,{filename:file});}
  await window.nativeCombatShots.ready;await new Promise(resolve=>setImmediate(resolve));
  if(traffic){const code=source('ship-traffic.js',true);if(code)vm.runInContext(code,context,{filename:'ship-traffic.js'});}
  if(physics){context.Image=class {complete=false;naturalWidth=0;};vm.runInContext(source('asteroid-motion.js'),context,{filename:'asteroid-motion.js'});window.nativePlayerCombat={visualImpact:(state,event)=>window.nativeShipEffects.visualImpact(state,window.nativeShipDefinitions.describe(state),event)};}
@@ -17,6 +17,7 @@ async function fixture({saved,full=true,economic=true,revision,regional=false,ac
  window.nativeSimulation.ensure(state);window.nativeSolEconomy.initialize(state);window.nativeCivilianTraffic.initialize(state);
  if(physics)window.nativeAsteroidMotion.ensure(state);
  if(!saved&&!full){const ship=state.civilianTraffic.ships.find(s=>s.id===2);state.civilianTraffic.ships=[ship];Object.assign(ship,{system:1,port:3,x:250,y:-60,phase:'docked',timer:1000,cargo:null,credits:5000});}
+ if(repairs)window.nativeShipRepairs.initialize(state);
  const lives=window.nativeNpcLives; lives.initialize(state);if(!economic)lives.initialize(state).config.economyEnabled=false;
  const step=(dt=1/60)=>{window.nativeSimulation.advance(state,dt);if(physics)window.nativeAsteroidMotion.advance(state,dt);if(traffic)window.nativeShipTraffic?.advance(state,dt);if(economic)window.nativeSolEconomy.advance(state,dt);window.nativeCivilianTraffic.advance(state,dt);window.nativeCombatShots.advance(state,dt);window.nativeAsteroidCombat.advance(state,dt);window.nativeShipEffects.advance(state,dt);if(physics)window.nativeAsteroidMotion.collide(state,dt);if(traffic)window.nativeShipTraffic?.collide(state,dt);};
  return {window,context,state,lives,step,ship:state.civilianTraffic.ships[0]};

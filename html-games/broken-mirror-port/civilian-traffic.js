@@ -414,7 +414,7 @@
     const traffic=initialize(state);if(window.nativeSimulation.blocked()||dt<=0)return;traffic.clock=window.nativeSimulation.seconds(state);
     const lives=window.nativeNpcLives;
     if(lives)lives.advance(state,dt);
-    dt=Math.min(dt,.25);
+    const repairDt=dt;dt=Math.min(dt,.25);
     for(const ship of traffic.ships){
       // Scripted mining demonstrations and active tactical encounters explicitly
       // retain their controller. Ordinary jobs belong to the saved life scheduler.
@@ -449,6 +449,7 @@
     traffic.dealTick=(traffic.dealTick||0)+dt;if(traffic.dealTick>=1){traffic.dealTick%=1;if(!lives)deals(state);}
     advanceDisputes(state,dt);
     advanceRetaliations(state,dt);
+    window.nativeShipRepairs?.advance(state,repairDt);
   }
   const localShips=state=>initialize(state).ships.filter(ship=>ship.system===state.system&&!['warp','arriving','destroyed'].includes(ship.phase));
   function select(id){selected=id;selectedAt=0;}
@@ -518,5 +519,5 @@
   // Explicit readiness clients (browser checks/showcase tools) may request the
   // representative artwork. Ordinary initialization and the galaxy map do not.
   const effectsReady=()=>{for(const type of types)if(!window.nativeShipEffects.ready(type,'civilian'))window.nativeShipEffects.prepare(type,'civilian');return types.every(type=>window.nativeShipEffects.ready(type,'civilian'));};
-  window.nativeCivilianTraffic={initialize,advance,paint,paintMining,miningIds,isMiningRock,startMiningDemo,startOreDisputeDemo,select,clearTarget,target,hitTest,fire,hit,visualImpact,snapshot,localShips,combatScene,effectsReady};
+  window.nativeCivilianTraffic={hail,initialize,advance,paint,paintMining,miningIds,isMiningRock,startMiningDemo,startOreDisputeDemo,select,clearTarget,target,hitTest,fire,hit,visualImpact,snapshot,localShips,combatScene,effectsReady};
 })();

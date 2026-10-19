@@ -57,7 +57,7 @@ HELPERS = r"""() => {
     task:ship.task,journey:ship.journey,position:nativeNpcLives.galaxyPosition(s,ship),cargo:ship.cargo,credits:ship.credits,
     hull:ship.hull,shields:ship.shields,equipment:ship.weaponLoadout,events:ship.recentEvents,nextActionAt:ship.nextActionAt});};
   t.stocks=()=>{const s=nativeNpcDev.getState(),ship=t.ship(),task=ship.task,source=nativeNpcLives.market(s,task.origin.system,task.origin.port),destination=nativeNpcLives.market(s,task.destination.system,task.destination.port),g=task.requirements.good;
-    return {source:source.stock[g],destination:destination.stock[g],sourceCredits:source.credits,destinationCredits:destination.credits,reserved:source.reserved[g],shipCredits:ship.credits};};
+    return {source:source.stock[g],destination:destination.stock[g],sourceCredits:source.credits,destinationCredits:destination.credits,reserved:source.reserved[g],shipCredits:ship.credits,repairSupplySpent:ship.repairSupplySpent||0};};
   t.checkMap=()=>{const s=nativeNpcDev.getState(),ship=t.ship(),expected=nativeNpcLives.galaxyPosition(s,ship),snapshot=nativeGalaxyOverview.snapshot(s),row=snapshot.ships.find(row=>row.id===ship.id);
     check(row,'Selected ship missing from map');near(row.position.x,expected.x,'Map galaxy X');near(row.position.y,expected.y,'Map galaxy Y');
     const player=snapshot.ships.find(row=>row.id==='player');near(player.credits,s.latinum,'Inspector player wallet');
@@ -176,7 +176,7 @@ def main():
               t.near(stocks.destination,t.initialStocks.destination+tons,'Destination inventory transfer');
               t.check(ship.deliveries===1&&!ship.cargo,'Delivery was duplicated or cargo retained');
               t.check(delivered.events.some(event=>event.kind==='docked')&&delivered.events.some(event=>event.kind==='delivered'),'Missing useful life events');
-              t.check(stocks.shipCredits>t.midStocks.shipCredits,'Delivery payment missing');
+              t.near(stocks.shipCredits+stocks.repairSupplySpent-t.midStocks.shipCredits-t.midStocks.repairSupplySpent,ship.task.payment,'Agreed delivery payment after paid repair-supply purchases');
               const noStep=JSON.stringify({stocks:t.stocks(),deliveries:ship.deliveries,task:ship.task});
               for(let i=0;i<10;i++)nativeCivilianTraffic.advance(s,.1);
               t.check(JSON.stringify({stocks:t.stocks(),deliveries:ship.deliveries,task:ship.task})===noStep,'Repeated deadline duplicated transfer');

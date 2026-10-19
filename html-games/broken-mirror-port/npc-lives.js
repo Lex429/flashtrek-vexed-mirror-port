@@ -145,6 +145,9 @@
     life.config.connectedSystems=policy.markets(state);
     try{
       for(const ship of state.civilianTraffic.ships){
+        // A claimed medical rescue may enter an empty or excluded system solely
+        // to reach this casualty. It grants no residency, market or mining access.
+        if(window.nativeShipRepairs?.claimed(state,ship)||ship.shipType===58&&ship.task?.status==='active'&&ship.task.requirements?.medicalReturn&&inhabited(state,ship.task.destination.system))continue;
         const safe=policy.nearestHome(state,ship.system);if(!safe)continue;
         const base=inhabited(state,ship.operatingBase)?ship.operatingBase:inhabited(state,ship.stationSystem)?ship.stationSystem:safe;
         ship.operatingBase=base;
@@ -193,7 +196,7 @@
   }
   const available=(m,g)=>Math.max(0,finite(m.stock[g])-finite(m.reserved[g]));
   const cargoTons=ship=>finite(ship.cargo?.tons)+finite(ship.oreHold);
-  const capacity=ship=>Math.max(0,finite(stats(ship).cargo)-cargoTons(ship));
+  const capacity=ship=>Math.max(0,finite(stats(ship).cargo)-cargoTons(ship)-finite(ship.repairDeuranium));
   const buyPrice=(m,g)=>costs[g];
   const sellPrice=(m,g,oreType)=>g===0&&minerals()?.ores[oreType]?minerals().orePrice(m.system,oreType):Math.ceil(costs[g]*(finite(m.stock[g])<m.target[g]?1.35:1));
   const availableFunds=m=>Math.max(0,finite(m.credits)-finite(m.fundsReserved));
@@ -204,7 +207,8 @@
   };
   // One atomic settlement for player retail and owned civilian freight. Quotes
   // are policy; this boundary owns the actual conserved inventory/credit transfer.
-  function exchange(state,m,actor,{good,tons,payment,buy,player=false,free=false,capacity:room=0,reservationId,cargo,mineral}){
+  function exchange(state,m,actor,{good,tons,payment,buy,player=false,free=false,capacity:room=0,reservationId,cargo,mineral,repairSupplies=false}){
+    if(repairSupplies&&(player||!buy||good!==7))return {ok:false,error:'Invalid repair supply purchase.'};
     if(!player&&!inhabited(state,m.system))return {ok:false,error:'Civilians cannot trade at prohibited or uninhabited worlds.'};
     if(!Number.isInteger(good)||!costs[good]||!Number.isSafeInteger(tons)||tons<=0||!Number.isSafeInteger(payment)||payment<0)return {ok:false,error:'Invalid cargo transaction.'};
     const reservation=reservationId?initialize(state).reservations[reservationId]:null;
@@ -229,6 +233,7 @@
     else state.solEconomy.flows.devPurchaseSubsidy=(state.solEconomy.flows.devPurchaseSubsidy||0)+payment;
     if(mineral){if(mineral==='dilithium')actor.dilithium=held-tons;else{actor.minerals||={};actor.minerals[mineral]=held-tons;}const ledger=initialize(state).economicLedger;ledger.playerMineralsRefined||={};ledger.playerMineralsRefined[mineral]=finite(ledger.playerMineralsRefined[mineral])+tons;}
     else if(player){actor.solFreightHold||={};actor.solFreightHold[good]=held+(buy?tons:-tons);}
+    else if(repairSupplies){actor.repairDeuranium=finite(actor.repairDeuranium)+tons;actor.repairSupplySpent=finite(actor.repairSupplySpent)+payment;}
     else if(buy)actor.cargo={...cargo,good,tons,owner:actor.id,purchasedFor:payment};
     else if(held===tons)actor.cargo=null;else actor.cargo.tons-=tons;
     return {ok:true,payment,tons};
@@ -261,7 +266,7 @@
     // buyer. Array order must not let a legacy delivery spend another ship's
     // already committed treasury after reload.
     for(const ship of rt.byId.values()){
-      const job=ship.task,old=saved[job?.id];if(job?.status!=='active'||job.deliveredAt!==undefined||old?.version!==2||!old.destinationReserved)continue;
+      const job=ship.task,old=saved[job?.id];if((job?.kind==='medical'||job?.requirements?.medicalReturn)||job?.status!=='active'||job.deliveredAt!==undefined||old?.version!==2||!old.destinationReserved)continue;
       if(!inhabited(state,old.destination.system)||old.sourceReserved!==false&&!inhabited(state,old.system))continue;
       old.port=portFor(state,old.system,old.port);old.destination.port=portFor(state,old.destination.system,old.destination.port);
       const destination=market(state,old.destination.system,old.destination.port);
@@ -269,7 +274,7 @@
       destination.incoming[old.good]+=old.tons;destination.fundsReserved+=old.payment;
     }
     for(const ship of rt.byId.values()){
-      const job=ship.task;if(job?.status!=='active'||job.deliveredAt!==undefined)continue;
+      const job=ship.task;if((job?.kind==='medical'||job?.requirements?.medicalReturn)||job?.status!=='active'||job.deliveredAt!==undefined)continue;
       if(job.kind!=='mining'&&(!inhabited(state,job.destination?.system)||!ship.cargo&&!inhabited(state,job.origin?.system)))continue;
       if(ship.localLeg){const result=window.nativeShipMotion.sampleLeg({...ship},ship.localLeg,now(state));
         if(result.invalid){interrupt(state,ship,'invalid route');continue;}
@@ -363,7 +368,8 @@
     const config=initializeConfig(state),origin=ship.system,a=anchor(origin),b=anchor(destination),from={x:ship.x,y:ship.y};
     const miningTrip=ship.task?.kind==='mining'&&ship.task.requirements?.miningSystem===destination&&ship.task.minedAt===undefined;
     const rock=miningTrip?rockById(ship.task.requirements.rockId,destination):null;
-    const approach=rock?{x:rock.x+110,y:rock.y+40}:docking().center(destination,ship.task?.destination?.port??ship.cargo?.toPort??(destination===1?3:0)),direction=Math.atan2(b.y-a.y,b.x-a.x);
+    const rescue=window.nativeShipRepairs?.claimed(state,ship);
+    const approach=rescue?window.nativeShipRepairs.rendezvous(state,rescue,ship):rock?{x:rock.x+110,y:rock.y+40}:docking().center(destination,ship.task?.destination?.port??ship.cargo?.toPort??(destination===1?3:0)),direction=Math.atan2(b.y-a.y,b.x-a.x);
     const to=rock?approach:{x:approach.x-Math.cos(direction)*1400,y:approach.y-Math.sin(direction)*1400};
     const galaxyFrom={x:a.x+from.x,y:a.y+from.y},galaxyTo={x:b.x+to.x,y:b.y+to.y},distance=Math.hypot(galaxyTo.x-galaxyFrom.x,galaxyTo.y-galaxyFrom.y);
     const warpFactor=Math.max(.5,finite(stats(ship).warp,finite(stats(ship).warpSpeed,1))),speed=config.warpUnitsPerSecond*warpFactor/config.warpGameplayScale;
@@ -382,6 +388,7 @@
   }
   function load(state,ship,at){
     if(!atBerth(state,ship)){approachDock(state,ship,ship.task.origin.port,at,'loading');return;}
+    window.nativeShipRepairs?.restock(state,ship);
     const job=ship.task,reservation=initialize(state).reservations[job.id],source=market(state,job.origin.system,job.origin.port);
     if(!reservation||finite(source.stock[reservation.good])<reservation.tons||ship.credits<job.requirements.credits||capacity(ship)<reservation.tons){interrupt(state,ship,'goods unavailable',at);return;}
     const settled=exchange(state,source,ship,{good:reservation.good,tons:reservation.tons,payment:job.requirements.credits,buy:true,capacity:capacity(ship),reservationId:job.id,
@@ -392,6 +399,7 @@
   }
   function unload(state,ship,at){
     if(!atBerth(state,ship)){approachDock(state,ship,ship.task.destination.port,at,'unloading');return;}
+    window.nativeShipRepairs?.restock(state,ship);
     const job=ship.task;if(job.deliveredAt!==undefined)return finish(state,ship,at);
     const cargo=ship.cargo;if(!cargo||cargo.toSystem!==ship.system){interrupt(state,ship,'cargo unavailable',at);return;}
     let reservation=initialize(state).reservations[job.id];
@@ -427,6 +435,7 @@
   }
   function finish(state,ship,at){ship.task.status='completed';ship.task.phase='completed';ship.task.completedAt=at;ship.task.progress=1;ship.phase='docked';delete ship.localLeg;schedule(state,ship,at+4);park(state,ship,at);}
   function interrupt(state,ship,reason,at=now(state)){
+    window.nativeShipRepairs?.releaseClaim(state,ship);
     initialize(state);release(state,ship);docking().release(state,ship);delete ship.dockingMove;delete ship.dockIntent;
     const job=ship.task;if(job?.status==='active'){job.status='failed';job.phase='interrupted';job.failedAt=at;job.failureReason=reason;event(state,ship,'interrupted',`Task interrupted: ${reason}`,at);}
     if(ship.miningReservation!==undefined){delete initialize(state).reservations[`rock:${ship.miningReservation}`];delete ship.miningReservation;}
@@ -442,6 +451,38 @@
   function resumeWork(state,ship,reason='combat ended'){
     if(!ship||['destroyed','disabled'].includes(ship.phase)||ship.hull<=0)return false;
     const at=now(state);interrupt(state,ship,reason,at);schedule(state,ship,at+.01);return true;
+  }
+  function startRescue(state,ship,call,at=now(state)){
+    const repairs=window.nativeShipRepairs;
+    if(!repairs||!repairs.validCall(state,call)||ship.shipType!==58||ship.hull<=0||['destroyed','disabled'].includes(ship.phase))return false;
+    interrupt(state,ship,'Medical distress response; retained cargo remains owned aboard',at);
+    delete ship.needsDockRecovery;delete ship.dockRecoveryResumeAt;delete ship.journey;
+    call.claim=repairs.key(repairs.ref('civilian',ship));call.status='claimed';
+    task(state,ship,'medical','Respond to a claimed disabled-ship distress signal',{system:ship.system,port:ship.port},{system:call.system,port:0},{callId:call.id},at);
+    if(ship.system===call.system)return localLeg(state,ship,repairs.rendezvous(state,call,ship),at,'rescue-approach');
+    const journey=createJourney(state,ship,call.system,at);ship.task.phase='rescue-transit';schedule(state,ship,journey.arrivalAt);return true;
+  }
+  function medicalAction(state,ship,at){
+    const repairs=window.nativeShipRepairs,c=repairs?.claimed(state,ship),job=ship.task;
+    const end=()=>{repairs?.releaseClaim(state,ship);job.status='completed';job.phase='completed';job.completedAt=at;delete ship.localLeg;delete ship.journey;delete ship.destinationSystem;ship.phase='docked';if(!inhabited(state,ship.system)){returnToBase(state,ship,ship.operatingBase,at);ship.task.kind='reposition';ship.task.requirements.medicalReturn=true;ship.task.reason='Medical response ended; return physically to an inhabited port';}else schedule(state,ship,at+.01);};
+    if(!c||!repairs.validCall(state,c)){end();return;}
+    if(job.phase==='rescue-transit'){
+      const journey=ship.journey;if(!journey){end();return;}
+      const previous=ship.system;ship.system=journey.destination;Object.assign(ship,journey.to);ship.lastJourney={...journey,progress:1,arrivedAt:at};delete ship.journey;delete ship.destinationSystem;ship.legs=finite(ship.legs)+1;indexMove(runtime.get(state),ship,previous);
+      localLeg(state,ship,repairs.rendezvous(state,c,ship),at,'rescue-approach');return;
+    }
+    if(job.phase==='rescue-approach'){
+      if(!arriveLeg(state,ship,at))return;delete ship.localLeg;
+      const goal=repairs.rendezvous(state,c,ship);
+      if(Math.hypot(ship.x-goal.x,ship.y-goal.y)>50){localLeg(state,ship,goal,at,'rescue-approach');return;}
+      ship.phase='medical-service';job.phase='rescue-service';window.nativeShipMotion.stop(ship);
+      event(state,ship,'medical','At casualty; launching medical repair drones',at);
+    }
+    if(job.phase==='rescue-service'){
+      if(!repairs.service(state,ship,c,at)){end();return;}
+      schedule(state,ship,Math.max(at+1,now(state)+.01));return;
+    }
+    end();
   }
   function chooseMining(state,ship,at){
     if((!minerals()&&ship.system!==1)||access()?.blocked(ship.system)||capacity(ship)<1||stats(ship).capabilities.canMine===false)return false;
@@ -504,6 +545,7 @@
   }
   function choose(state,ship,at){
     if(!inhabited(state,ship.system)){returnToBase(state,ship,ship.operatingBase,at);return;}
+    window.nativeShipRepairs?.restock(state,ship);
     if(ship.oreHold>0&&!ship.cargo){ship.cargo={good:0,tons:ship.oreHold,owner:ship.id,fromSystem:ship.system,fromPort:ship.port,toSystem:1,toPort:1};ship.oreHold=0;}
     if(ship.cargo){if(!ship.task||ship.task.status!=='active')task(state,ship,'freight','Find a funded buyer for cargo already owned aboard',{system:ship.cargo.fromSystem||ship.system,port:ship.cargo.fromPort??ship.port},{system:ship.cargo.toSystem||ship.system,port:ship.cargo.toPort||0},{good:ship.cargo.good,tons:ship.cargo.tons},at);
       if(!inhabited(state,ship.task.destination.system)){recoverPayment(state,ship,at);return;}
@@ -517,6 +559,14 @@
       if(cost>0){task(state,ship,'repair','Hull damage or low shields require paid service before commercial work',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},
         {cost,quote,hull:ship.hull+missingHull*fraction,shields:ship.shields+missingShields*fraction},at);
         ship.credits-=cost;m.credits+=cost;ship.task.phase='repairing';ship.phase='docked';schedule(state,ship,at+8);return;}}
+    if(ship.shipType===58&&window.nativeShipRepairs&&finite(ship.repairDeuranium)<60&&ship.credits>=550){
+      let supplier=null;
+      for(const id of initialize(state).config.connectedSystems)for(const port of portsIn(state,id)){
+        const m=market(state,id,port),stock=available(m,7);if(stock<10)continue;
+        const score=stock/(id===ship.system?1:4);if(!supplier||score>supplier.score)supplier={system:id,port,score};
+      }
+      if(supplier){task(state,ship,'repair-supply','Purchase finite deuranium reserves for medical distress responses',{system:ship.system,port:ship.port},supplier,{},at);depart(state,ship,at);return;}
+    }
     const custom=roles.get(ship.role);if(custom?.(state,ship,{at,startDelivery,chooseMining,schedule}))return;
     if(minerals()&&(ship.regionalResident||ship.role==='mining')){
       const base=ship.operatingBase??ship.stationSystem??ship.system;
@@ -533,6 +583,7 @@
     if(['destroyed','disabled'].includes(ship.phase)){interrupt(state,ship,ship.phase,at);return;}
     if(ship.scriptedDemo||ship.disputeId||ship.retaliationId||['fighting','ore-theft'].includes(ship.phase)){schedule(state,ship,now(state)+5);return;}
     const job=ship.task;
+    if(job?.kind==='medical'&&job.status==='active'){medicalAction(state,ship,at);return;}
     if(ship.dockingMove){
       if(!ship.localLeg||!arriveLeg(state,ship,at))return;
       const next=ship.dockingMove.resumeAt;delete ship.localLeg;delete ship.dockingMove;docking().parked(state,ship);ship.phase='docked';schedule(state,ship,Math.max(at+.01,finite(next,at)));return;
@@ -570,7 +621,7 @@
       event(state,ship,'arrival',`Arrived at ${system(ship.system)?.name}; approaching destination dock`,at);approachDock(state,ship,job.destination.port,at,'unloading');return;
     }
     if(job.phase==='approaching'){
-      if(!arriveLeg(state,ship,at))return;ship.port=job.destination.port;if(!atBerth(state,ship)){approachDock(state,ship,job.destination.port,at,'unloading');return;}ship.phase='docked';delete ship.localLeg;job.phase='unloading';event(state,ship,'docked',`Docked at ${system(ship.system)?.name}${ship.system===1?' / '+window.nativeSolEconomy.names[ship.port]:''}`,at);if(job.kind==='reposition'||job.requirements.returning)finish(state,ship,at);else schedule(state,ship,at+initialize(state).config.handlingSeconds);return;
+      if(!arriveLeg(state,ship,at))return;ship.port=job.destination.port;if(!atBerth(state,ship)){approachDock(state,ship,job.destination.port,at,'unloading');return;}ship.phase='docked';delete ship.localLeg;job.phase='unloading';event(state,ship,'docked',`Docked at ${system(ship.system)?.name}${ship.system===1?' / '+window.nativeSolEconomy.names[ship.port]:''}`,at);if(job.kind==='repair-supply'){window.nativeShipRepairs?.restock(state,ship);finish(state,ship,at);}else if(job.kind==='reposition'||job.requirements.returning)finish(state,ship,at);else schedule(state,ship,at+initialize(state).config.handlingSeconds);return;
     }
     if(job.phase==='waiting-payment'){
       // Migration can fund an old waiting delivery. Its own incoming reservation
@@ -702,6 +753,6 @@
     initialize(state);if(!ship.localLeg||ship.journey||!(ship.task?.status==='active'||ship.dockingMove)||leg.valid===false)return false;
     ship.localLeg=leg;schedule(state,ship,leg.startedAt+leg.duration);return true;
   }
-  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,resumeWork,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,upgradeMinerals,reroute,
+  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,resumeWork,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,upgradeMinerals,reroute,startRescue,
     scheduled:state=>{initialize(state);return runtime.get(state).heap.length;}};
 })();

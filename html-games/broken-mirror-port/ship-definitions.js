@@ -3,7 +3,7 @@
   'use strict';
   const overrides=new Map();
   const profiles={
-    player:{artwork:'flight',disableRatio:0,dimensions:'flight'},
+    player:{artwork:'flight',disableRatio:.25,dimensions:'flight'},
     tug:{artwork:'showcase',disableRatio:.25,dimensions:'regular-tug',shipType:10,capabilities:{armed:false,canMine:false}},
     civilian:{artwork:'showcase',disableRatio:.25,dimensions:'civilian',displayHeights:{23:22.5,47:72,52:90}}
   };
