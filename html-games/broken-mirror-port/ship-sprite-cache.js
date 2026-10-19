@@ -73,9 +73,9 @@
     const sx=Math.hypot(transform.a,transform.b),sy=Math.hypot(transform.c,transform.d);
     if(!(sx>0&&sy>0))return false;
     const warp=Boolean(appearance.kind&&asset.profile),light=appearance.localLight;
-    // Lit player/warp art is supersampled at 2x its actual screen size.
+    // Every profiled ship is supersampled at 2x its actual screen size.
     // Rotation reuses the same raster; squeeze affects raster size.
-    const quality=warp||light?2:1;
+    const quality=asset.profile||warp||light?2:1;
     const requestedWidth=width*sx*quality,requestedHeight=height*sy*quality;
     const rasterScale=Math.min(1,768/Math.max(requestedWidth,requestedHeight));
     const rw=Math.max(1,Math.round(requestedWidth*rasterScale)),rh=Math.max(1,Math.round(requestedHeight*rasterScale));

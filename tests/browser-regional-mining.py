@@ -49,7 +49,9 @@ try:
         assert not errors,errors
         page.locator('#asteroid-mine-action').wait_for(state='visible')
         page.locator('#asteroid-mine-action').click()
-        page.wait_for_function('()=>__regionalState.minedAsteroids?.includes(__regionalRock.slotId)',timeout=20000)
+        # Completion follows simulation time. Software-rendered mining effects
+        # can deliver fewer callbacks than a desktop GPU without changing the job.
+        page.wait_for_function('()=>__regionalState.minedAsteroids?.includes(__regionalRock.slotId)',timeout=60000)
         page.mouse.click(x,y)
         page.wait_for_function('()=>__regionalState.asteroidOreDrops[__regionalRock.slotId]===0')
         assert page.evaluate('__regionalState.dilithium===__regionalBefore+4')

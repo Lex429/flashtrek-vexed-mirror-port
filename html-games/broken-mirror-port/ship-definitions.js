@@ -8,6 +8,27 @@
     civilian:{artwork:'showcase',disableRatio:.25,dimensions:'civilian',displayHeights:{23:22.5,47:72,52:90}}
   };
   const number=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
+  // Preserve the established active civilian fleet, then use the recovered
+  // flight scale for the remaining classes. These are gameplay units, not metres.
+  const displayHeights=Object.freeze({18:11.7,23:22.5,47:72,52:90,58:75});
+  const references=new Map((window.VexedFlightReference?.shipSizes||[]).map(s=>[s.id,s]));
+  const specialProfiles=new Map();
+  function artworkProfile(type){
+    type=Number(type);const standard=window.starterShips?.get(type);if(standard)return standard;
+    if(specialProfiles.has(type))return specialProfiles.get(type);
+    const special={56:[254,512,'constitutionTug'],57:[278,512,'tug'],58:[201,512,'olympic'],59:[365,512,'cthia']}[type];
+    if(!special)return null;const [width,height,name]=special,effects=window[name+'Effects'];if(!effects)return null;
+    const profile={width,height,effects,breakAnchors:window[name+'BreakAnchors'],destruction:window[name+'DestructionConfig'],
+      align:(image,stage)=>type===57?window.alignTugFrame(image,stage):type===58?window.alignOlympicFrame(image,stage):image};
+    specialProfiles.set(type,profile);return profile;
+  }
+  function presentation(type){
+    type=Number(type);const reference=references.get(type);if(!reference)return null;
+    const maximum=Math.max(reference.playerWidth,reference.playerHeight),display=maximum<=100?maximum:100+40*(1-Math.exp(-(maximum-100)/90));
+    const profile=artworkProfile(type),ratio=number(profile?.displayRatio)||number(profile?.width)/number(profile?.height,1)||reference.playerWidth/reference.playerHeight;
+    const height=displayHeights[type]??reference.playerHeight*display/maximum;
+    return {width:height*ratio,height};
+  }
   function register(type,data){overrides.set(Number(type),data||{});return get(type);}
   function get(type,category='player'){
     type=Number(type);
@@ -33,6 +54,7 @@
     const type=Number(entity.shipType??(category==='tug'?10:entity.type??entity.id)),definition=get(type,category);
     if(typeof definition.dimensions==='function')return definition.dimensions(entity,category);
     if(definition.dimensions?.width&&definition.dimensions?.height)return {...definition.dimensions};
+    const shared=presentation(type);if(shared)return shared;
     const role=definition.profile,assets=window.vexedFlightAssets;
     const flight=id=>{const size=assets?.size(id);return size&&assets?.flightDimensions?assets.flightDimensions(size,1):{width:60,height:60};};
     if(role.dimensions==='regular-tug'){const base=flight(type);return {width:base.height*164/512,height:base.height};}
@@ -48,7 +70,8 @@
     if(shape){
       if(typeof shape==='function')return shape(d);
       if(Number.isFinite(shape.rx)&&Number.isFinite(shape.ry))return {...shape};
-      if(shape.width||shape.height)return {rx:Math.max(shape.minX||0,d.width*(shape.width||.34)),ry:Math.max(shape.minY||0,d.height*(shape.height||.44))};
+      if(shape.width||shape.height)return {rx:Math.max(Math.min(shape.minX||0,d.width*.45),d.width*(shape.width||.34)),
+        ry:Math.max(Math.min(shape.minY||0,d.height*.48),d.height*(shape.height||.44))};
     }
     return shielded&&window.showcaseShieldRadii?window.showcaseShieldRadii(d.width,d.height):{rx:Math.max(8,d.width*.34),ry:Math.max(12,d.height*.44)};
   }
@@ -72,5 +95,5 @@
     return definition.damageStages.filter(threshold=>fraction<threshold).length;
   }
   const registered=()=>[...new Set([...window.VexedMirrorWorld.ships.map(ship=>Number(ship.id)),...overrides.keys()])].map(type=>get(type));
-  window.nativeShipDefinitions=Object.freeze({register,get,forEntity,dimensions,describe,surfaceRadii,stage,profiles,registered});
+  window.nativeShipDefinitions=Object.freeze({register,get,forEntity,dimensions,describe,surfaceRadii,stage,profiles,registered,artworkProfile,presentation});
 })();

@@ -5,7 +5,7 @@
   const limits={entries:12,bytes:64*1024*1024,pending:8,deferredStages:48};
   const counters={loads:0,evictions:0,failures:0,optionalWallMs:0};
   const now=state=>window.nativeSimulation?.now(state)??performance.now();
-  const key=(type,category)=>`${Number(type)}:${window.nativeShipDefinitions.get(type,category).artwork.source}`;
+  const key=type=>`${Number(type)}:shared`;
   const units=()=>window.showcaseWeaponAppearance?.units??.91976;
   const fragmentBytes=value=>(value||[]).reduce((total,stage)=>total+stage.reduce((sum,piece)=>sum+(piece.texture?.width||0)*(piece.texture?.height||0)*4+(window.wreckageEffects?.memoryBytes(piece.texture)||0),0),0);
   const assetBytes=value=>value.assets.reduce((sum,asset)=>sum+(asset?.width||0)*(asset?.height||0)*4,0)+fragmentBytes(value.fragments)+(value.destruction?.memoryBytes?.()||0);
@@ -189,7 +189,8 @@
     const d=view.dimensions||descriptor.dimensions,p=position(descriptor,view),warp=view.warpEffect,zoom=view.zoom??1;
     paintSurface(ctx,descriptor,{...view,asset:art},{front:false});
     if(art)window.vexedFlightAssets.drawShip(ctx,art,p.x,p.y,d.width*zoom,warp?.angle??descriptor.heading+Math.PI/2,now(descriptor.state),
-      {...warp,height:d.height*zoom,lights:descriptor.entity.phase!=='disabled',damage:!art.repairSurface,lightGain:descriptor.category==='player'?2.8:1,lightBloom:descriptor.category==='player'?2.5:1,...view.appearance});
+      {...warp,height:d.height*zoom,lights:descriptor.entity.phase!=='disabled',damage:!art.repairSurface,lightGain:2.8,lightBloom:2.5,
+        light:window.vexedSpace?.light,...view.appearance});
     paintSurface(ctx,descriptor,{...view,asset:art},{front:true});return art;
   }
   function paint(state,ctx,view){

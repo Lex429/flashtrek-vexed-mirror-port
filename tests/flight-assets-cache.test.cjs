@@ -28,6 +28,7 @@ test('ship decoding and optional async profile preparation deduplicate concurren
   assert.deepEqual(aligned,[0]);assert.equal(unlit.length,1);
   assert.equal(await api.loadShip(7),a);
   assert.equal(api.cacheSnapshot().counters.shipHits,1);
+  assert.equal(await api.loadShip(7,100,{showcase:true}),a,'NPC and player share the identical processed art and lamp cache');
 });
 
 test('decoded source and processed ship-art loader retention stays bounded under full-fleet churn',async()=>{

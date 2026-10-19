@@ -175,6 +175,14 @@ PREP_PROBE = r"""async () => {
 
 FUNCTIONAL = r"""async () => {
   if(!window.nativeDamageArtPreparation)return {supported:false};
+  // Do not put unrelated live-fleet loads behind this fixture's optional gate.
+  // The map keeps simulation alive without admitting new ship artwork.
+  nativeNpcDev.showMap();
+  const settleDeadline=performance.now()+45000;
+  while(nativeShipEffects.metrics().pending||nativeShipEffects.metrics().preparation.pending){
+    if(performance.now()>settleDeadline)throw Error('Background artwork did not settle before the cold-art fixture');
+    await new Promise(resolve=>setTimeout(resolve,10));
+  }
   const fragmentApi=showcaseStageFragments,createDestruction=createShipDestruction,simulationBefore=nativeSimulation,impactsBefore=nativeEnvironmentalImpacts;
   let release;const optionalGate=new Promise(resolve=>release=resolve);
   window.showcaseStageFragments={...fragmentApi,async prepareAsync(...args){const fragments=await fragmentApi.prepareAsync(...args);await optionalGate;return fragments;}};

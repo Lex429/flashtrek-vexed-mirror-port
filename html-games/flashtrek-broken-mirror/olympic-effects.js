@@ -24,6 +24,17 @@
     ['right pylon',157,254],['left nacelle',55,304],['right nacelle',186,304],
     ['aft hull',120,415],['left nacelle cap',55,219],['right nacelle cap',186,219],
     ['left nacelle end',55,384],['right nacelle end',186,384]]};
+  // Exact painted-pixel masks are prepared by earth-effects.js, using the same
+  // aligned frames and damage anchors as the showcase and live medical ship.
+  const painted=lights.map(p=>{
+    const core=p.kind==='core',radius=Math.ceil(p.r),left=core?107:Math.max(0,p.x-radius),top=core?301:Math.max(0,p.y-radius),
+      w=core?27:Math.min(201-left,radius*2+1),h=core?13:Math.min(512-top,radius*2+1);
+    const runs=Array.from({length:h},(_,y)=>core&&(y===0||y===h-1)?[y,1,w-2]:[y,0,w]);
+    return {...p,left,top,w,h,runs,added:p.kind==='core',hotScale:0,color:p.color||'#27caff',
+      tint:core?'lens':p.color==='#ff3024'?'red':'amber'};
+  });
+  window.olympicAnimationProfile={width:201,height:512,lights:painted,damage,
+    shifts:[[0,0],[8,0],[18,0],[41,0]],core:[120,310],sites:window.olympicDestructionConfig.sites,energyColor:'#27caff'};
   window.alignOlympicFrame=(image,stage)=>{
     if(image.olympicAligned)return image;
     const c=document.createElement('canvas');c.width=201;c.height=512;

@@ -8,6 +8,8 @@
   let catalogPromise, warpRing;
   const shipSizes=new Map(window.VexedFlightReference.shipSizes.map(ship=>[ship.id,ship]));
   function flightDimensions(shipSize,zoom){
+    const shared=window.nativeShipDefinitions?.presentation(shipSize?.id);
+    if(shared)return shared;
     const originalMax=Math.max(shipSize.playerWidth,shipSize.playerHeight);
     const displayMax=originalMax<=100?originalMax:100+40*(1-Math.exp(-(originalMax-100)/90));
     const screenMax=Math.min(displayMax*Math.min(zoom,1.35),180);
@@ -47,7 +49,7 @@
     const maximum = window.VexedMirrorWorld.ships.find(ship => ship.id === type)?.hull || 100;
     const strength = Math.max(0, Math.min(1, Number(hull) / maximum));
     const damageStage = strength < .25 ? 3 : strength < .5 ? 2 : strength < .75 ? 1 : 0;
-    const key = type + ':' + damageStage + (options.showcase ? ':showcase' : '');
+    const key = type + ':' + damageStage;
     const cached=shipCache.get(key);
     if(cached){shipCache.delete(key);shipCache.set(key,cached);cacheMetrics.shipHits++;return Promise.resolve(cached.asset);}
     // A current player/effects owner may still hold an evicted asset. Reuse that
@@ -60,13 +62,14 @@
         const ship = data.ships.find(entry => entry.id === type);
         if (!ship) throw new Error('Ship artwork is not in the catalog');
         const loaded = await image('../flashtrek-broken-mirror/showcase-assets/' + ship.frames[damageStage]);
-        const standard = window.starterShips?.get(type);
+        const standard = window.nativeShipDefinitions?.artworkProfile(type)||window.starterShips?.get(type);
         const special = ({56:window.constitutionTugEffects,57:window.tugEffects,58:window.olympicEffects,59:window.cthiaEffects})[type];
         const profile = standard || (special ? {effects:special} : null);
         const aligned = standard ? await (standard.alignAsync?.(loaded,damageStage) || standard.align(loaded, damageStage)) :
           (type === 57 ? window.alignTugFrame(loaded, damageStage) : type === 58 ? window.alignOlympicFrame(loaded, damageStage) : loaded);
-        const art = options.showcase && damageStage < 3 ? aligned :
-          await (profile?.effects.unlitFrameAsync?.(aligned) || profile?.effects.unlitFrame(aligned) || aligned);
+        profile?.effects.prepareFrame?.(aligned,damageStage);
+        // Every controller uses the same dim base and animated painted lamps.
+        const art = await (profile?.effects.unlitFrameAsync?.(aligned) || profile?.effects.unlitFrame(aligned) || aligned);
         return {type, damageStage, art, profile, width: art.width || art.naturalWidth, height: art.height || art.naturalHeight, name: ship.name};
       }).then(asset=>{
         if(typeof WeakRef==='function'){

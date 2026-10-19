@@ -33,7 +33,9 @@ HELPERS = r"""() => {
   check(ship,'Existing civilian #2 missing');
   state.civilianTraffic.ships=[ship];state.civilianTraffic.disputes=[];state.civilianTraffic.retaliations=[];state.civilianTraffic.strayShots=[];
   delete state.civilianTraffic.life;state.civilianTraffic.clock=0;state.civilianTraffic.timingVersion=1;
-  state.solEconomy.freighters=[];state.shipSimulation.seconds=0;
+  // Begin the controlled loading fixture before the next production cycle;
+  // artwork warm-up time must not add unrelated stock during this assertion.
+  state.solEconomy.freighters=[];state.solEconomy.clock=0;state.shipSimulation.seconds=0;
   state.system=1;state.localBody=3;state.x=0;state.y=0;state.speed=0;state.landed=false;
   Object.assign(ship,{system:1,port:3,stationSystem:1,homeSystem:1,role:'freight',phase:'docked',timer:10000,
     cargo:null,oreHold:0,credits:1200,deliveries:0,legs:0,taskSequence:0});
@@ -103,7 +105,9 @@ def main():
             fixture=page.evaluate(HELPERS)
             page.locator('#devToolsBtn').click()
             page.locator('#dev-freighter-life-button').click()
-            page.evaluate('()=>nativeGalaxyOverview.snapshot(nativeNpcDev.getState())')
+            page.evaluate('()=>{const canvas=document.querySelector("#space");nativeGalaxyOverview.paint(canvas.getContext("2d"),nativeView.measure(canvas),nativeNpcDev.getState());}')
+            # Flush a real browser paint while the simulation RAF is frozen.
+            page.screenshot(path=str(OUTPUT/'npc-life-selected-map.png'))
             page.locator('.dev-galaxy-finder summary').click()
             page.locator('#dev-galaxy-controls [data-search]').fill('ISS Meridian')
             page.locator('#dev-galaxy-controls [data-ship-id="2"]').click()

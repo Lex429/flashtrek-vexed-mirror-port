@@ -32,6 +32,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-contract.py
+      - name: Full fleet dimensions, four damage frames and player/NPC lighting parity
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-ship-presentation.py
       - name: Asteroid weapon hits, physical hull pushes, local contact glints and saved drift
         env:
           BROWSER_CHANNEL: ''

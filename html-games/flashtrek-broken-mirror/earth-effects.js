@@ -2,7 +2,7 @@
    engine rectangles. Frames and effects share source coordinates. */
 (() => {
   'use strict';
-  const profiles=window.earthAnimationProfiles;
+  const profiles={...window.earthAnimationProfiles,...(window.olympicAnimationProfile?{58:window.olympicAnimationProfile}:{})};
   const matches=(rgba,i,tint)=>{
     const r=rgba[i],g=rgba[i+1],b=rgba[i+2];
     if(rgba[i+3]<100)return false;
@@ -37,7 +37,7 @@
           if(matches(rgba,i,p.tint)){
             pixels.data.set(rgba.subarray(i,i+4),j);
             if(p.added){
-              const color=parseInt(p.color.slice(1),16),hot=p.kind==='core'?Math.max(0,1-Math.hypot(dx-(p.w-1)/2,y-(p.h-1)/2)/Math.max(p.w,p.h))*.5:0;
+              const color=parseInt(p.color.slice(1),16),hot=p.kind==='core'?Math.max(0,1-Math.hypot(dx-(p.w-1)/2,y-(p.h-1)/2)/Math.max(p.w,p.h))*(p.hotScale??.5):0;
               for(let channel=0;channel<3;channel++){
                 const value=(color>>(16-channel*8))&255;
                 pixels.data[j+channel]=Math.round(value+(255-value)*hot);

@@ -9,36 +9,41 @@
   let frames=[],parts=[],cutAudit=[],masks=[],veinBands=[],veinPixels=[];
   const make=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
   const local=(x,y,l)=>({x:(x/W-.5)*l.w,y:(y/H-.5)*l.h});
-  function prepare(images){
-    frames=images;parts=[];cutAudit=[];veinBands=[];veinPixels=[];
-    masks=frames.map(im=>{
-      const c=make(W,H),g=c.getContext('2d');g.drawImage(im,0,0,W,H);
-      g.globalCompositeOperation='source-in';g.fillStyle='#6b203d';g.fillRect(0,0,W,H);return c;
-    });
-    for(const im of frames){
-      const c=make(W,H),g=c.getContext('2d');g.drawImage(im,0,0,W,H);
-      const data=g.getImageData(0,0,W,H).data,groups=sites.map(()=>[]);let sourcePixels=0;
+  const visualFrames=new WeakMap();
+  function prepareFrame(im,stage){
+    let visual=visualFrames.get(im);
+    if(!visual){
+      const mask=make(W,H),mg=mask.getContext('2d');mg.drawImage(im,0,0,W,H);
+      mg.globalCompositeOperation='source-in';mg.fillStyle='#6b203d';mg.fillRect(0,0,W,H);
+      visual={mask,bands:[],pixels:0};
       if(config.vascular){
-        // Extract the painted vascular network separately for travelling pulses.
-        const veins=make(W,H),vg=veins.getContext('2d'),pixels=vg.createImageData(W,H);
-        let matched=0;
+        const c=make(W,H),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,W,H);
+        const data=g.getImageData(0,0,W,H).data,veins=make(W,H),vg=veins.getContext('2d'),pixels=vg.createImageData(W,H);
         for(let i=0;i<data.length;i+=4){
-          const [r,g,b,a]=data.subarray(i,i+4);
-          if(a>80&&r>100&&g>70&&b<r*.59&&r>g*1.04&&g>r*.48){
-            pixels.data.set([255,205,85,Math.round(a*.85)],i);
-            matched++;
+          const r=data[i],green=data[i+1],b=data[i+2],a=data[i+3];
+          if(a>80&&r>100&&green>70&&b<r*.59&&r>green*1.04&&green>r*.48){
+            pixels.data.set([255,205,85,Math.round(a*.85)],i);visual.pixels++;
           }
         }
         vg.putImageData(pixels,0,0);
-        veinPixels.push(matched);
-        veinBands.push(Array.from({length:24},(_,n)=>{
-          const top=Math.floor(n*H/24),bottom=Math.floor((n+1)*H/24),c=make(W,bottom-top);
-          c.getContext('2d').drawImage(veins,0,top,W,bottom-top,0,0,W,bottom-top);
-          const dim=make(W,bottom-top),dg=dim.getContext('2d');dg.drawImage(c,0,0);
+        visual.bands=Array.from({length:24},(_,n)=>{
+          const top=Math.floor(n*H/24),bottom=Math.floor((n+1)*H/24),texture=make(W,bottom-top);
+          texture.getContext('2d').drawImage(veins,0,top,W,bottom-top,0,0,W,bottom-top);
+          const dim=make(W,bottom-top),dg=dim.getContext('2d');dg.drawImage(texture,0,0);
           dg.globalCompositeOperation='source-in';dg.fillStyle='#26131d';dg.fillRect(0,0,W,bottom-top);
-          return {texture:c,dim,top,h:bottom-top};
-        }));
+          return {texture,dim,top,h:bottom-top};
+        });
       }
+      visualFrames.set(im,visual);
+    }
+    masks[stage]=visual.mask;veinBands[stage]=visual.bands;veinPixels[stage]=visual.pixels;
+  }
+  function prepare(images){
+    frames=images;parts=[];cutAudit=[];masks=[];veinBands=[];veinPixels=[];
+    for(const [stage,im]of frames.entries()){
+      prepareFrame(im,stage);
+      const c=make(W,H),g=c.getContext('2d');g.drawImage(im,0,0,W,H);
+      const data=g.getImageData(0,0,W,H).data,groups=sites.map(()=>[]);let sourcePixels=0;
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
         const i=(y*W+x)*4;if(!data[i+3])continue;sourcePixels++;
         let best=0,distance=Infinity;
@@ -215,7 +220,7 @@
   const snapshot=(s,time,o)=>({biological:true,lights:o.lights&&!(config.deadFinal&&s===3)?organs.length:0,damageSites:o.damage?wounds[s].length:0,
     breathing:breathing(s,time),vascular:!!config.vascular,vascularPixels:veinPixels[s]||0,veinPulse:o.lights&&config.vascular?(.5+.5*Math.sin(time*.0017)):0,
     dead:!!config.deadFinal&&s===3,internalGlow:config.deadFinal?(s===3?0:[1,.6,.18][s]):null,organs:o.lights&&!(config.deadFinal&&s===3)?organs.length:0,activeWounds:o.damage?wounds[s].length:0});
-  const effects=Object.freeze({draw,snapshot,unlitFrame:im=>{
+  const effects=Object.freeze({draw,snapshot,prepareFrame,unlitFrame:im=>{
     const c=make(W,H);c.getContext('2d').drawImage(im,0,0,W,H);return c;
   }});
   return Object.freeze({prepare,get ready(){return burnReady;},drawBody,drawDeath,emit,spray,stageRupture,drawParticle,drawWreck,updateTrails,updateLiving,effects,audit:()=>cutAudit});

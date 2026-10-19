@@ -21,7 +21,7 @@ function unlockDev(value){
 }
 let game=null,keys={},last=performance.now(),toastTimer,flightShip=null,visualGeneration=0,spaceCamera=null,planetHit=null,planetHits=[],marketFromPlanet=false;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
-const flightShipDimensions=window.vexedFlightAssets.flightDimensions;
+const flightShipDimensions=()=>window.nativeShipDefinitions.dimensions(game,'player');
 let devGalaxyView=false;
 const travelling=()=>!!window.vexedWarp?.active;
 const paused=()=>!!window.nativePause?.active||!!window.nativeShipInventory?.active,busy=()=>travelling()||paused();
@@ -184,7 +184,7 @@ function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0
   const warpPulse=phase==='departure'?(warpFlight.ring?.alpha||0):phase==='arrival'?1-(warpFlight.alpha||0):0;
   window.vexedSpace.render(ctx,{w,h,reducedMotion:reducedMotion.matches,warpPulse,playerX:solPosition?.x??game.x,playerY:solPosition?.y??game.y,heading:game.angle},visualBodies?visualBodies.map(entry=>({x:entry.screenX,y:entry.screenY,width:entry.screenSize,height:entry.screenSize,contains(x,y){return ((x-entry.screenX)/(entry.screenSize*.48))**2+((y-entry.screenY)/(entry.screenSize*.48))**2<1}})):[screenPlanet]);
  }
- if(game&&modal.hidden){const shipSize=window.vexedFlightAssets.size(game.shipType),shipDimensions=flightShipDimensions(shipSize,zoom),shipW=shipDimensions.width,shipH=shipDimensions.height;
+ if(game&&modal.hidden){const shipDimensions=flightShipDimensions(),shipW=shipDimensions.width,shipH=shipDimensions.height;
  ctx.save();
  // Nearby world and flight instruments
  if(visualBodies){for(const entry of visualBodies){const object={x:entry.x,y:entry.y,width:entry.size,height:entry.size};window.vexedSpace.planetHalo(ctx,object,game.system);ctx.save();ctx.translate(entry.x,entry.y);const art=window.vexedSolFlight.art(entry.body.id);if(art)ctx.drawImage(art,-entry.size/2,-entry.size/2,entry.size,entry.size);else{ctx.fillStyle=entry.body.id===0?'#edba65':'#315d83';ctx.beginPath();ctx.arc(0,0,entry.size*.35,0,Math.PI*2);ctx.fill()}ctx.restore();window.vexedSpace.planetLight(ctx,object,{zoom,cx,cy})}}
@@ -489,7 +489,7 @@ function fireSelectedTarget(ship){
  const combat=window.nativeAsteroidCombat;
  const tug=game.system===1?window.nativeSolEconomy.target(game):null;
  if(tug){
-  const dimensions=flightShipDimensions(window.vexedFlightAssets.size(game.shipType),1);
+  const dimensions=flightShipDimensions();
   const result=window.nativeSolEconomy.fire(game,ship,dimensions.height,(victim,damage)=>{
    const notice=damage.destroyed?`Tug II #${victim.id+1} destroyed · ${damage.reputation.faction} standing -${damage.reputation.amount}.`:`Tug II #${victim.id+1}: ${Math.ceil(damage.shields)} shields, ${Math.ceil(damage.hull)} hull.`;
    message(notice);toast(notice);refresh();save(true);
@@ -499,7 +499,7 @@ function fireSelectedTarget(ship){
  }
  const civilian=window.nativeCivilianTraffic.target(game);
  if(civilian){
-  const dimensions=flightShipDimensions(window.vexedFlightAssets.size(game.shipType),1);
+  const dimensions=flightShipDimensions();
   const result=window.nativeCivilianTraffic.fire(game,ship,dimensions.height,(victim,damage)=>{
    const notice=damage.destroyed?`${victim.name} destroyed. ${damage.reputation.faction} standing -${damage.reputation.amount}.`:`${victim.name}: ${Math.ceil(damage.shields)} shields, ${Math.ceil(damage.hull)} hull${damage.disabled?' (disabled)':''}.`;
    message(notice);toast(notice);refresh();save(true);
@@ -507,7 +507,7 @@ function fireSelectedTarget(ship){
   if(!result.ok){toast(result.error);return}
   message(`${result.weapon} fired at ${civilian.name}.`);return;
  }
- const dimensions=flightShipDimensions(window.vexedFlightAssets.size(game.shipType),1);
+ const dimensions=flightShipDimensions();
  const result=window.nativeAsteroidCombat.fire(game,ship,dimensions.width,dimensions.height,(rock,hasOre)=>{
   const notice=hasOre?'Asteroid destroyed. Ore detected: click the glowing piece to collect it.':'Asteroid destroyed. No recoverable ore.';
   message(notice);toast(notice);refresh();save(true);
