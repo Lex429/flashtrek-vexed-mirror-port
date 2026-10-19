@@ -110,6 +110,10 @@
     if(arrived){if(command.snap??profile.snap){entity.x=goal.x;entity.y=goal.y;}stop(entity,{preserveImpulse:true});}
     return {arrived,distance:remaining,headingError:error,moved:entity.x!==oldX||entity.y!==oldY};
   }
+  function powerOff(entity){
+    prepare(entity);const vx=finite(entity.vx),vy=finite(entity.vy);
+    entity.motionKick={version:1,mode:'free',vx,vy};entity.speed=Math.hypot(vx,vy);return entity;
+  }
   function kickSample(kick,at){
     if(!kick)return {x:0,y:0,vx:0,vy:0};
     if(kick.mode!=='scheduled')return {x:0,y:0,vx:finite(kick.vx),vy:finite(kick.vy)};
@@ -432,5 +436,5 @@
     }
     const result=asteroidPairContact(target,body,dt);return result?{...result,targetPose:result.a,debrisPose:result.b}:null;
   }
-  window.nativeShipMotion={step,followPath,prepare,stop,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,collisionDamageFraction,debrisContact};
+  window.nativeShipMotion={step,followPath,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,collisionDamageFraction,debrisContact};
 })();

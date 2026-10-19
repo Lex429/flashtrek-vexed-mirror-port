@@ -195,7 +195,7 @@ def main():
             if not fixture.exists():
                 fixture.write_text(page.evaluate('JSON.stringify(window.__npcPerfState)'),encoding='utf-8')
             saved = fixture.read_text(encoding='utf-8')
-            page.evaluate('(saved)=>{window.__npcPerfPreviousState=window.__npcPerfState;window.__npcPerfBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};localStorage.setItem("broken-mirror-native-save",saved);resumeNativeGame();}',saved)
+            page.evaluate('(saved)=>{window.__npcPerfPreviousState=window.__npcPerfState;window.__npcPerfBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};(window.nativeSaveStorage?nativeSaveStorage.write(JSON.parse(saved)):localStorage.setItem("broken-mirror-native-save",saved));resumeNativeGame();}',saved)
             page.wait_for_function('() => window.__npcPerfState!==window.__npcPerfPreviousState')
             # Rewarm the restored artwork without advancing the saved lives.
             page.wait_for_timeout(2000)

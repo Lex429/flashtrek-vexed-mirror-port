@@ -31,7 +31,7 @@
   const buildMaterials=[[1,15],[2,12],[3,6],[7,5],[8,2]];
   const solGovernmentId=Number(world.systems.find(system=>system.id===1)?.governmentId)||1;
   let targetId=null,tugSelectedAt=0;
-  const tugStats=()=>window.VexedMirrorWorld.ships.find(ship=>ship.id===10);
+  const tugStats=ship=>ship?window.nativeShipDefinitions.forEntity(null,ship,{category:'tug'}):window.nativeShipDefinitions.get(10);
   const lifeNow=economy=>Number(economy.processingAt??economy.lifeClock)||0;
   function lifeEvent(economy,ship,kind,message){
     ship.recentEvents||=[];ship.recentEvents.unshift({at:lifeNow(economy),kind,message});ship.recentEvents.length=Math.min(16,ship.recentEvents.length);
@@ -40,9 +40,10 @@
     economy.flows||={produced:goods.map(()=>0),consumed:goods.map(()=>0),lost:goods.map(()=>0)};
     if(!Number.isFinite(economy.lifeClock))economy.lifeClock=window.nativeSimulation?.seconds(state)||0;
     economy.lifeMetrics||={detailed:0,distant:0,distantUpdates:0,scheduledEvents:0,deferred:0};
+    for(const ship of economy.freighters){ship.shipType??=10;ship.equipmentOwner??='tug:'+ship.id;ship.weapons||=[];if(ship.shipEquipment?.version!==2)window.nativeShipEquipment?.ensure(state,ship,[]);}
     for(const ship of economy.freighters)if(ship.lifeVersion!==1){
       Object.assign(ship,{lifeVersion:1,identity:`tug:${ship.id}`,name:`Sol Freight ${String(ship.id+1).padStart(2,'0')}`,role:'freight',homeBase:{system:1,port:ship.port},system:1,credits:0,recentEvents:[]});
-      ship.cargoOwner=ship.ownerGovernmentId;ship.weapons||=[];
+      ship.shipType=10;ship.equipmentOwner='tug:'+ship.id+':'+(ship.lifeGeneration||0);ship.cargoOwner=ship.ownerGovernmentId;ship.weapons||=[];
       window.nativeWeaponLoadout?.ensure(state,ship,[]);
       lifeEvent(economy,ship,'registered','Existing Sol fleet identity retained; internal company freight.');
       syncTask(economy,ship);
@@ -53,14 +54,14 @@
     const job=ship.assignment,old=ship.task;
     if(!old||old.status!=='active'||old.kind!==(job?'freight':'idle')||old.fromPort!==job?.from||old.toPort!==job?.to||old.good!==job?.good){
       ship.taskSequence=(ship.taskSequence||0)+1;
-      ship.task={id:`tug:${ship.id}:${ship.taskSequence}`,kind:job?'freight':'idle',reason:job?'Deliver available surplus to an unmet Sol port shortage.':'No affordable surplus meets a port shortage.',fromPort:job?.from,toPort:job?.to,good:job?.good,requirements:job?{stock:job.tons,capacity:160}:null,startedAt:lifeNow(economy),status:'active',completion:'Dock and transfer carried cargo once.',failure:'Ship destroyed or disabled; loaded cargo remains stranded or is lost.'};
+      ship.task={id:`tug:${ship.id}:${ship.taskSequence}`,kind:job?'freight':'idle',reason:job?'Deliver available surplus to an unmet Sol port shortage.':'No affordable surplus meets a port shortage.',fromPort:job?.from,toPort:job?.to,good:job?.good,requirements:job?{stock:job.tons,capacity:tugStats().cargo}:null,startedAt:lifeNow(economy),status:'active',completion:'Dock and transfer carried cargo once.',failure:'Ship destroyed or disabled; loaded cargo remains stranded or is lost.'};
     }
     ship.task.phase=ship.phase;ship.task.progress=Number(ship.progress)||0;
     if(['disabled','destroyed'].includes(ship.phase)){ship.task.status='failed';ship.task.failureReason=ship.phase;}
   }
   function disable(economy,ship){
     if(ship.phase==='destroyed'||ship.phase==='disabled'||ship.hull<=0)return;
-    ship.repairResumePhase=ship.phase;ship.phase='disabled';ship.speed=0;ship.turnTimer=0;
+    ship.repairResumePhase=ship.phase;ship.phase='disabled';window.nativeShipMotion.powerOff(ship);ship.turnTimer=0;
     note(economy,`Tug ${ship.id+1} disabled. Engines and lights offline; cargo stranded in space.`);
     ship.lifeLeg=null;ship.lifeEventAt=null;syncTask(economy,ship);lifeEvent(economy,ship,'disabled','Engines disabled; loaded cargo is stranded aboard, no destination stock awarded.');
   }
@@ -116,7 +117,7 @@
   function candidate(economy,from,to,good,ship) {
     const surplus=availableStock(economy,from,good)-targetStock[from][good];
     const shortage=targetStock[to][good]-stock(economy,to,good)-inbound(economy,to,good,ship);
-    const tons=Math.floor(Math.min(160,surplus,shortage));
+    const tons=Math.floor(Math.min(Math.max(0,tugStats().cargo-qty(ship.repairDeuranium)),surplus,shortage));
     if(from===to||tons<10)return null;
     const urgency=Math.min(2,shortage/Math.max(20,targetStock[to][good]));
     const score=tons*(1+urgency)*Math.sqrt(basePrices[good]/24)/(1+distance(from,to)/16000);
@@ -144,7 +145,7 @@
     if(!job||job.from!==ship.port){dispatch(economy,ship);return;}
     const available=availableStock(economy,job.from,job.good)-targetStock[job.from][job.good];
     const needed=targetStock[job.to][job.good]-stock(economy,job.to,job.good)-inbound(economy,job.to,job.good,ship);
-    const tons=Math.floor(Math.min(job.tons,available,needed));
+    const tons=Math.floor(Math.min(job.tons,available,needed,Math.max(0,tugStats().cargo-qty(ship.repairDeuranium))));
     if(tons<10){dispatch(economy,ship);return;}
     ship.handlingTons=tons;ship.phase='loading';ship.dwell=handlingTime(economy,ship.port,tons,ship);ship.progress=0;
   }
@@ -255,7 +256,7 @@
     return true;
   }
   function finishRebuild(economy,ship){
-    delete ship.repairBay;delete ship.repairResumePhase;ship.repairDeuranium=0;
+    delete ship.shipEquipment;delete ship.weaponLoadout;delete ship.repairBay;delete ship.repairResumePhase;ship.repairDeuranium=0;
     const berth=station(5,ship.id);
     Object.assign(ship,{port:5,from:5,to:5,x:berth.x,y:berth.y,heading:-Math.PI/2,speed:0,
       hull:tugStats().hull,shields:tugStats().shields,shieldFlash:null,phase:'waiting',rebuild:0,dwell:3,
@@ -330,7 +331,7 @@
       }
       if(skipped>64){ship.lifeSkipPending=true;ship.lifeEventAt=at+1/60;return;}
       if(!goal){arriveTug(economy,ship);scheduleTug(economy,ship,at);return;}
-      ship.lifeLeg=window.nativeShipMotion.planLeg(ship,goal,window.nativeShipDefinitions.get(10,'tug').movement||window.nativeShipMotion.profiles.tug(),at);
+      ship.lifeLeg=window.nativeShipMotion.planLeg(ship,goal,window.nativeShipDefinitions.forEntity(null,ship,{category:'tug'}).movement||window.nativeShipMotion.profiles.manual(tugStats()),at);
       if(ship.lifeLeg.valid!==false){ship.lifeEventAt=at+ship.lifeLeg.duration;return;}
       ship.lifeLeg=null;ship.phase='waiting-route';window.nativeShipMotion.stop(ship);ship.task.status='blocked';ship.task.failureReason='Invalid saved route; cargo remains aboard';
     }
@@ -442,9 +443,9 @@
     return {ok:true,total,tons:n,stock:initial};
   }
   function price(state,port,good,buy){return quote(state,port,good,buy).total;}
-  function used(state) {return Object.values(state.solFreightHold||{}).reduce((n,value)=>n+qty(value),0)+(state.localContracts||[]).reduce((n,job)=>n+qty(job.tons),0);}
+  function used(state) {if(window.nativeShipEquipment)return window.nativeShipEquipment.cargoUsed(state);return Object.values(state.solFreightHold||{}).reduce((n,value)=>n+qty(value),0)+(state.localContracts||[]).reduce((n,job)=>n+qty(job.tons),0);}
   function deliveryOffer(state,economy,from,to,good,surplusOnly=false) {
-    const capacity=window.VexedMirrorWorld.ships.find(ship=>ship.id===state.shipType)?.cargo||0;
+    const capacity=window.nativeShipDefinitions.forEntity(state).cargo||0;
     const committed=(state.localContracts||[]).reduce((total,job)=>total+(Number(job.to)===to&&Number(job.good)===good?qty(job.tons):0),0);
     const demand=Math.max(0,targetStock[to][good]*5-stock(economy,to,good)-committed);
     const available=Math.max(0,availableStock(economy,from,good)-(surplusOnly?targetStock[from][good]:0));
@@ -474,7 +475,7 @@
     if(![10,25,100,500].includes(n))return {ok:false,error:'Choose a valid Sol cargo lot.'};
     const quoted=quote(state,port,g,buy,n);if(!quoted.ok)return quoted;
     if(expectedTotal!==undefined&&quoted.total!==expectedTotal)return {ok:false,error:'The market changed. Review the updated quote.'};
-    const market=window.nativeNpcLives.market(state,1,port),capacity=window.VexedMirrorWorld.ships.find(s=>s.id===state.shipType)?.cargo||0;
+    const market=window.nativeNpcLives.market(state,1,port),capacity=window.nativeShipDefinitions.forEntity(state).cargo||0;
     const result=window.nativeNpcLives.exchange(state,market,state,{good:g,tons:n,payment:quoted.total,buy,player:true,free:!!state.devMode&&buy,capacity:Math.max(0,capacity-used(state))});
     if(!result.ok)return result;
     return {ok:true,total:quoted.total,message:`${buy?'Loaded':'Sold'} ${n} t of ${goods[g]} at ${names[port]} for ${state.devMode&&buy?0:quoted.total} latinum.`};
@@ -533,7 +534,7 @@
     return {role:roles[port],goods:goods.map((name,id)=>({id,name,stock:stock(economy,port,id),aboard:qty(state.solFreightHold?.[id]),buy:price(state,port,id,true),sell:price(state,port,id,false)})),
       lanes:deliveryLanes(state,economy,port).map(({to,good,surplusOnly})=>({to,good,name:goods[good],...deliveryOffer(state,economy,port,to,good,surplusOnly)})),
       freighters:economy.freighters.map(ship=>({...ship,name:`Tug Class II #${ship.id+1} · ${names[ship.from]} → ${names[ship.to]}`,cargo:goods[ship.good]||'No cargo',activity:activity(ship)})),
-      used:used(state),capacity:window.VexedMirrorWorld.ships.find(s=>s.id===state.shipType)?.cargo||0,log:economy.log.slice()};
+      used:used(state),capacity:window.nativeShipDefinitions.forEntity(state).cargo||0,log:economy.log.slice()};
   }
   function paint(ctx,{state,ship,cx,cy,w,h,zoom=1}) {
     if(!state.solEconomy)return;
@@ -545,8 +546,8 @@
       window.nativeShipEffects.paintShip(ctx,descriptor,{ship,cx,cy});
       if(targetId===freighter.id)window.nativeAsteroidCombat?.drawTargetFrame(ctx,{
         name:`Tug Class II #${freighter.id+1}`,size:Math.hypot(d.width,d.height)/Math.SQRT2,
-        kind:freighter.phase==='disabled'?'DISABLED FREIGHTER':'FREIGHTER',color:'#ffd66e',shield:freighter.shields/Math.max(1,tugStats().shields),
-        hull:freighter.hull/Math.max(1,tugStats().hull),selectedAt:tugSelectedAt},x,y,zoom,cx);
+        kind:freighter.phase==='disabled'?'DISABLED FREIGHTER':'FREIGHTER',color:'#ffd66e',shield:freighter.shields/Math.max(1,tugStats(freighter).shields),
+        hull:freighter.hull/Math.max(1,tugStats(freighter).hull),selectedAt:tugSelectedAt},x,y,zoom,cx);
     }
   }
   function reroute(state,ship,leg){
@@ -561,5 +562,13 @@
     else{ship.phase='waiting';ship.dwell=.01;}
     syncTask(economy,ship);scheduleTug(economy,ship,window.nativeSimulation.seconds(state));return true;
   }
-  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute,resumeAfterRepair};
+  function consumeMaterials(state,port,materials){
+    const economy=initialize(state);
+    const totals=new Map();
+    for(const [good,amount] of materials){if(!Number.isInteger(good)||!goods[good]||!(amount>0)||!Number.isFinite(amount))return {ok:false,error:'Invalid construction material.'};totals.set(good,(totals.get(good)||0)+amount);}
+    if(!ports.includes(port)||[...totals].some(([good,amount])=>availableStock(economy,port,good)<amount))return {ok:false,error:'Required construction material is unavailable or reserved for another contract.'};
+    for(const [good,amount] of totals){economy.ports[port][good]-=amount;economy.flows.consumed[good]+=amount;}
+    return {ok:true};
+  }
+  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute,resumeAfterRepair,consumeMaterials};
 })();

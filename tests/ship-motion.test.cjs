@@ -169,7 +169,7 @@ test('combat AI decides without moving, then delegates steering and coasting to 
 test('new NPC definitions can configure combat movement without replacing shared mechanics', () => {
   const { motion, window, definitions } = fixture({ ai: true });
   const movement={maxSpeed:31,acceleration:17,braking:20,turnRate:.4,inertial:true};
-  definitions.register(9001,{hull:100,shields:100,profiles:{civilian:{combatMovement:movement}}});
+  definitions.register(9001,{hull:100,shields:100,movement});
   const ship=pose('civilian',{id:1,shipType:9001,hull:100,shields:100,combatRadius:10});
   const target={x:200,y:40,hull:100,shields:100},scene={dt:.1,clock:0,hull:100,shields:100,rocks:[],bystanders:[]};
   const step=motion.step;let selected;

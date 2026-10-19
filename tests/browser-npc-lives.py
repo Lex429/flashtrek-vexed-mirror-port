@@ -43,7 +43,7 @@ HELPERS = r"""() => {
   ship.x=body.x+180+(ship.id%4)*35;ship.y=body.y-130+(ship.id%3)*35;
   for(const field of ['lifeVersion','task','localLeg','journey','lastJourney','nextActionAt','lifeScheduleToken','lifeDemoName','recentEvents','miningReservation','miningRockSlot'])delete ship[field];
   t.fixture=copy(state);
-  t.activate=value=>{localStorage.setItem('broken-mirror-native-save',JSON.stringify(value));resumeNativeGame();return nativeNpcDev.getState();};
+  t.activate=value=>{nativeSaveStorage.write(value);resumeNativeGame();return nativeNpcDev.getState();};
   t.activate(state);
   t.tick=(seconds,step=.25)=>{
     const s=nativeNpcDev.getState();let left=seconds;
@@ -137,7 +137,7 @@ def main():
               t.check(t.ship().cargo?.tons===tons,'Loaded cargo missing');
               t.check(stocks.shipCredits<t.initialStocks.shipCredits,'Purchase did not debit ship credits');
               t.tick(t.ship().journey.duration*.45);t.mid=t.sample();t.midStocks=t.stocks();
-              t.saved=JSON.stringify(s);localStorage.setItem('broken-mirror-native-save',t.saved);
+              t.saved=JSON.stringify(s);nativeSaveStorage.write(JSON.parse(t.saved));
             }""")
             # Reload the actual page and Continue, preserving browser save data.
             saved=page.evaluate('({state:__lifeTest.saved,mid:__lifeTest.mid,stocks:__lifeTest.midStocks,initial:__lifeTest.initial,initialStocks:__lifeTest.initialStocks,fixture:__lifeTest.fixture})')
@@ -145,7 +145,7 @@ def main():
             page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
             page.evaluate('()=>{window.__freezeLifeFrames=true;window.requestAnimationFrame=()=>0;}')
             page.wait_for_timeout(100)
-            page.locator('[data-menu="continue"]').click()
+            page.locator('[data-menu="continue-dev"]').click()
             restored=page.evaluate('(saved)=>{const state=nativeNpcDev.getState(),ship=nativeNpcLives.find(state,2);return {id:ship.id,name:ship.name,task:ship.task,journey:ship.journey,position:nativeNpcLives.galaxyPosition(state,ship),cargo:ship.cargo,credits:ship.credits,equipment:ship.weaponLoadout};}',saved)
             for field in ['id','name','task','journey','position','cargo','credits','equipment']:
                 assert restored[field]==saved['mid'][field],(field,restored[field],saved['mid'][field])

@@ -196,7 +196,7 @@ try:
         page.locator('#collision-floor-output').evaluate('(el)=>el.style.visibility="visible"')
         page.locator('#collision-floor-output').screenshot(path=str(OUTPUT/'collision-floor.png'))
         page.reload()
-        page.locator('[data-menu="continue"]').click(timeout=30000)
+        page.locator('[data-menu="continue-dev"]').click(timeout=30000)
         page.wait_for_function('()=>nativeNpcDev.getState()&&nativeSolAsteroids.placements.length')
         restored=page.evaluate('''id=>{
           const s=nativeNpcDev.getState(),r=nativeSolAsteroids.find(id),pose=s.asteroidMotion.rocks[id];

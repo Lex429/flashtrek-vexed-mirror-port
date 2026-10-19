@@ -41,7 +41,7 @@ async function fixture({armTugs=true}={}){
   window.nativeShipSystems.register('escort',{collect:(_,system)=>state.escorts.filter(ship=>ship.system===system&&ship.hull>0).map(ship=>({...window.nativeShipDefinitions.describe(state,ship,{category:'escort'}),id:'escort:'+ship.id})),hit:(_,target,amount,impact)=>damage(target.entity,'escort',amount,impact)});
   const roles=window.nativeShipSystems.registered().filter(role=>role!=='asteroid');
   function put(role,x,y=0,model=1){
-    if(role==='player'){Object.assign(state,{x,y,weapons:[model],hull:100,shields:80,angle:0});delete state.weaponLoadout;return 'player';}
+    if(role==='player'){Object.assign(state,{x,y,weapons:[model],hull:100,shields:80,angle:0});delete state.shipEquipment;delete state.weaponLoadout;return 'player';}
     const list=role==='tug'?state.solEconomy.freighters:role==='escort'?state.escorts:state.civilianTraffic.ships;
     const id=list.length+1,ship={id,system:1,shipType:role==='tug'?10:role==='escort'?99:18,x,y,heading:0,speed:0,hull:100,shields:80,phase:'cruise',weapons:[model],weaponInventory:[]};list.push(ship);
     return role==='tug'?'tug:'+id:role==='escort'?'escort:'+id:id;
@@ -195,12 +195,13 @@ test('system changes and warp cancel player shots copied into another saved stat
 
 test('explicit unarmed ship capabilities reject fire without spending an owned weapon charge',async()=>{
   const f=await fixture({armTugs:false}),sourceId=f.put('tug',0),targetId=f.put('civilian',200);
+  f.window.nativeShipDefinitions.register(10,{capabilities:{armed:false}});
   const shooter=f.descriptor(sourceId),instance=f.loadouts.equipped(f.state,shooter.entity)[0].instance;
   assert.equal(shooter.definition.capabilities.armed,false,'delivery tug policy is explicit');
   assert.equal(f.shots.fireFor({state:f.state,shooter,target:f.descriptor(targetId)}).ok,false);
   assert.equal(instance.readyAt,0);assert.equal(f.state.weaponCombat?.events.length||0,0);
   f.state.shipType=10;f.put('player',0);
-  assert.equal(f.descriptor('player').definition.capabilities.armed,true,'the player tug retains its loadout capability');
+  assert.equal(f.descriptor('player').definition.capabilities.armed,false,'an explicitly unarmed hull has the same limit for the player');
 });
 
 test('registry descriptors preserve previous world positions and use relative sweeps for crossing targets',async()=>{
@@ -236,8 +237,8 @@ test('resolved asteroid beams retain the authoritative circular surface point',a
 
 test('inventory move validation preserves baseline swaps and rendering never damages or awards resources',async()=>{
   const f=await fixture(),sourceId=f.put('player',0),targetId=f.put('civilian',200);
-  f.state.weaponInventory=[2,3];f.loadouts.ensure(f.state);
-  f.loadouts.move(f.state,{fromType:'slot',fromIndex:0,toType:'locker',toIndex:0});assert.deepEqual(plain(f.state.weapons),[2]);assert.deepEqual(plain(f.state.weaponInventory),[1,3]);
+  delete f.state.shipEquipment;delete f.state.weaponLoadout;f.state.weaponInventory=[2,3];f.loadouts.ensure(f.state);
+  f.loadouts.move(f.state,{fromType:'slot',fromIndex:0,toType:'locker',toIndex:0});assert.deepEqual(plain(f.state.weapons),[2,null,null]);assert.deepEqual(plain(f.state.weaponInventory),[1,3]);
   f.loadouts.move(f.state,{fromType:'locker',fromIndex:0,toType:'locker',toIndex:1});assert.deepEqual(plain(f.state.weaponInventory),[3,1]);
   const before=JSON.stringify(f.state.weaponLoadout);assert.equal(f.loadouts.move(f.state,{fromType:'slot',fromIndex:0,toType:'slot',toIndex:3}).ok,false);assert.equal(f.loadouts.move(f.state,{fromType:'invalid',fromIndex:0,toType:'slot',toIndex:0}).ok,false);assert.equal(JSON.stringify(f.state.weaponLoadout),before);
   f.shots.fireFor({state:f.state,shooter:f.descriptor(sourceId),target:f.descriptor(targetId)});

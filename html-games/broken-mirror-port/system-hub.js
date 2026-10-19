@@ -67,7 +67,7 @@
   function shipyard(state){
     const n=selectedNode(state),at=n.id===current(state),usable=n.port&&at&&!state.localCruise;
     const ids=local(state)?offers[n.id]||[]:world.systems.find(s=>s.id===state.system)?.planetShopItemIds||[];
-    const ships=ids.map(id=>world.ships.find(s=>s.id===id)).filter(Boolean);
+    const ships=ids.map(id=>window.nativeShipDefinitions.get(id)).filter(Boolean);
     const size=pageSize(),total=Math.max(1,Math.ceil(ships.length/size));shipPage=Math.min(shipPage,total-1);
     return `<div class="hub-section"><h3>${safe(n.name)} shipyard</h3><p>Choose a hull. Buying replaces your current ship and keeps its name.</p><div class="hub-ship-list">${ships.slice(shipPage*size,shipPage*size+size).map(ship=>`<article class="hub-ship">${shipIcon(ship)}<div><h4>${safe(ship.name)}${ship.id===state.shipType?' · Current ship':''}</h4><p>${safe(ship.description)}</p><small>Hull ${fmt(ship.hull)} · Shields ${fmt(ship.shields)} · Cargo ${fmt(ship.cargo)}</small></div><button data-ship="${ship.id}" ${usable&&ship.id!==state.shipType&&(state.devMode||state.latinum>=ship.price)?'':'disabled'}>${ship.id===state.shipType?'In command':state.devMode?'Equip':`${fmt(ship.price)} L · Buy`}</button></article>`).join('')||'<p>No ships are offered here.</p>'}</div>${pageControls('ships',shipPage,total)}</div>`;
   }
@@ -88,7 +88,7 @@
    }
    function tugUpgrade(state){
      if(state.shipType!==10||selected!==7)return '';
-     const level=Math.max(0,Math.min(2,Number(state.tugEngineLevel)||0)),next=level+1;
+     const level=Math.max(0,Math.min(2,Number(state.shipEquipment?.instances[state.shipEquipment.slots.engineering[0]]?.upgrades?.tugEngineLevel)||0)),next=level+1;
      return `<div class="hub-section"><h3>Jupiter Station · Tug Class II engines</h3><p>Current engine: Mk ${level+1} · ${35+15*level} speed rating. Jupiter-built upgrades improve manual flight and local cruise.</p>${level<2?`<button data-upgrade-tug ${current(state)===7&&!state.localCruise?'':'disabled'}>Install Mk ${next+1} · ${level===0?'2,000':'6,000'} latinum</button><p class="hub-hint">Requires locally produced computers and components${level===1?', plus deuranium':''}.</p>`:'<p>Maximum engine upgrade installed.</p>'}</div>`;
    }
    function render(preserveFocus=true){

@@ -14,7 +14,7 @@
   function reset() { stopPreview(); category = 'ships'; page = 0; quantity = 1; selectedShipId = null; }
   function offeredShips(state, place) {
     const ids = state.system === 1 ? shipOffers[place.id] || [] : window.VexedMirrorWorld.systems.find(s => s.id === state.system)?.planetShopItemIds || [];
-    return ids.map(id => window.VexedMirrorWorld.ships.find(ship => ship.id === id)).filter(Boolean);
+    return ids.map(id => window.nativeShipDefinitions.get(id)).filter(Boolean);
   }
   function currentShip(state, place) {
     const offers = offeredShips(state, place);

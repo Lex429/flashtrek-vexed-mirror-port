@@ -36,6 +36,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-presentation.py
+      - name: Typed equipment, real hull purchases, six drone bays and mode-separated saves
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-unified-equipment.py
       - name: Asteroid weapon hits, physical hull pushes, local contact glints and saved drift
         env:
           BROWSER_CHANNEL: ''

@@ -34,7 +34,7 @@ test('ordinary freight traffic completes deliveries using shared path following'
   for(let i=0;i<7200;i++)step(1/30,{civilians:false});
   assert.notEqual(JSON.stringify(state.solEconomy.ports),original);
   assert.ok(state.solEconomy.log.some(message=>message.includes('received')),state.solEconomy.log.join('\n'));
-  for(const tug of state.solEconomy.freighters){assert.ok(Number.isFinite(tug.x)&&Number.isFinite(tug.y));assert.ok(tug.speed<=window.nativeShipMotion.profiles.tug().maxSpeed+.001);}
+  for(const tug of state.solEconomy.freighters){assert.ok(Number.isFinite(tug.x)&&Number.isFinite(tug.y));assert.ok(tug.speed<=window.nativeShipDefinitions.forEntity(state,tug,{category:'tug'}).movement.maxSpeed+.001);}
 });
 
 test('civilian mining completes and transfers ore in simulation without painting',async()=>{
@@ -43,10 +43,10 @@ test('civilian mining completes and transfers ore in simulation without painting
   window.nativeSolAsteroids.placements.push(rock);state.devMode=true;
   assert.ok(window.nativeCivilianTraffic.startMiningDemo(state,{force:true,theft:false}));state.devMode=false;
   const miner=state.civilianTraffic.ships.find(ship=>ship.id===0);
-  for(let i=0;i<365;i++)step(1/30,{economy:false});
+  let reported=false;for(let i=0;i<365;i++){step(1/30,{economy:false});reported||=state.civilianTraffic.log.some(message=>message.includes('transported'));}
   assert.ok(state.minedAsteroids.includes(rock.slotId));
   assert.equal(miner.oreHold,4);assert.equal(state.asteroidOreDrops[rock.slotId],0);
-  assert.ok(state.civilianTraffic.log.some(message=>message.includes('transported')));
+  assert.ok(reported);
 });
 
 test('civilian trading and delivery decisions keep their business consequences',async()=>{

@@ -59,7 +59,7 @@ test('registered definitions inherit systems while preserving role scale and exp
   const {definitions,entities}=fixture();
   for(const [type,height] of [[18,60],[23,22.5],[47,72],[52,90]])assert.equal(definitions.dimensions({shipType:type},'civilian').height,height);
   assert.equal(definitions.dimensions({shipType:10},'tug').width,60*164/512);
-  assert.equal(definitions.get(10,'tug').capabilities.armed,false);
+  assert.equal(definitions.get(10,'tug').capabilities.armed,true);
   assert.equal(definitions.get(10,'player').capabilities.armed,true);
   definitions.register(987,{hull:240,shields:130,dimensions:{width:42,height:91},capabilities:{canMine:false},geometry:{hull:{rx:19,ry:37}}});
   assert.ok(definitions.registered().some(row=>row.id===987));

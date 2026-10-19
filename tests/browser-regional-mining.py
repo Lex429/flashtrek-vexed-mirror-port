@@ -34,8 +34,8 @@ try:
         # to click. No planet/asteroid artwork is substituted by the test.
         point=page.evaluate('''()=>{
           const s=nativeNpcDev.getState(),rock=nativeSolAsteroids.forSystem(43).find(r=>r.oreType==='dilithium');
-          Object.assign(s,{devMode:false,dilithium:100,system:43,planet:'Hof-Maso',x:rock.x-100,y:rock.y,speed:0,angle:Math.PI/2,miningTool:true,localCruise:null,arrivalApproach:null});
-          window.__regionalState=s;window.__regionalRock=rock;window.__regionalBefore=s.dilithium;
+          Object.assign(s,{devMode:false,deuranium:0,dilithium:100,system:43,planet:'Hof-Maso',x:rock.x-100,y:rock.y,speed:0,angle:Math.PI/2,miningTool:true,localCruise:null,arrivalApproach:null});
+          nativeShipEquipment.grant(s,'mining-laser',{location:'slot',slot:0});window.__regionalState=s;window.__regionalRock=rock;window.__regionalBefore=s.dilithium;
           vexedSpace.enterSystem(43,true);
           const view=nativeView.measure(document.querySelector('#space'));
           return {x:view.w/2+100,y:view.h/2,w:view.w,h:view.h};

@@ -35,8 +35,8 @@
     if(returnFocus?.isConnected&&!returnFocus.closest('[hidden]'))returnFocus.focus({preventScroll:true});else document.getElementById('space').focus({preventScroll:true});
   }
   overlay.querySelector('[data-resume]').onclick=close;overlay.querySelector('[data-options]').onclick=()=>show('options');overlay.querySelector('[data-back]').onclick=()=>show('home');
-  overlay.querySelector('[data-save]').onclick=()=>{bridge?.save();overlay.querySelector('[data-pause-title]').textContent='Game saved';};
-  overlay.querySelector('[data-hub]').onclick=async()=>{if(bridge?.active())bridge.save();if(document.fullscreenElement)await document.exitFullscreen();if(parent!==window&&typeof parent.closeOverlay==='function')parent.closeOverlay();else close();};
+  overlay.querySelector('[data-save]').onclick=()=>{const result=bridge?.save();overlay.querySelector('[data-pause-title]').textContent=result?.ok?'Game saved':'Save failed';};
+  overlay.querySelector('[data-hub]').onclick=async()=>{if(bridge?.active()&&!bridge.save()?.ok){overlay.querySelector('[data-pause-title]').textContent='Save failed';return;}if(document.fullscreenElement)await document.exitFullscreen();if(parent!==window&&typeof parent.closeOverlay==='function')parent.closeOverlay();else close();};
   for(const button of overlay.querySelectorAll('[data-display]'))button.onclick=async()=>{try{await window.nativeView.choose(button.dataset.display);sync();feedback('Display updated.');}catch{feedback('Full screen could not open. You can use Windowed or Classic view.');sync();}};
   addEventListener('keydown',event=>{
     if(event.key==='Escape'){

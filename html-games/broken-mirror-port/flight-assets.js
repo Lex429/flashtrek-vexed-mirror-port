@@ -46,7 +46,7 @@
 
   function loadShip(type = 7, hull = 100, options = {}) {
     type = Number(type);
-    const maximum = window.VexedMirrorWorld.ships.find(ship => ship.id === type)?.hull || 100;
+    const maximum = window.nativeShipDefinitions?.get(type).hull || window.VexedMirrorWorld.ships.find(ship => ship.id === type)?.hull || 100;
     const strength = Math.max(0, Math.min(1, Number(hull) / maximum));
     const damageStage = strength < .25 ? 3 : strength < .5 ? 2 : strength < .75 ? 1 : 0;
     const key = type + ':' + damageStage;
@@ -59,7 +59,7 @@
     if(shipPending.has(key))return shipPending.get(key);
     cacheMetrics.shipMisses++;
     const pending = catalog().then(async data => {
-        const ship = data.ships.find(entry => entry.id === type);
+        const registered=window.nativeShipDefinitions?.get(type),ship = data.ships.find(entry => entry.id === type)||(Array.isArray(registered?.artwork.frames)?{name:registered.name,frames:registered.artwork.frames}:null);
         if (!ship) throw new Error('Ship artwork is not in the catalog');
         const loaded = await image('../flashtrek-broken-mirror/showcase-assets/' + ship.frames[damageStage]);
         const standard = window.nativeShipDefinitions?.artworkProfile(type)||window.starterShips?.get(type);
@@ -145,6 +145,6 @@
   // Active ships/effects own their references; eviction only releases this
   // loader's retention. Pending requests remain deduplicated during a reset.
   function resetCaches(){imageCache.clear();shipCache.clear();shipReferences.clear();imageBytes=shipBytes=0;for(const key of Object.keys(cacheMetrics))cacheMetrics[key]=0;}
-  window.vexedFlightAssets = {loadShip, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing,cacheSnapshot,resetCaches, size:id=>shipSizes.get(Number(id)),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
+  window.vexedFlightAssets = {loadShip, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing,cacheSnapshot,resetCaches, size:id=>shipSizes.get(Number(id))||(()=>{const d=window.nativeShipDefinitions?.dimensions({shipType:Number(id)});return d?{id:Number(id),playerWidth:d.width,playerHeight:d.height}:null;})(),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
   loadWarpRing().catch(()=>{});
 })();

@@ -10,7 +10,7 @@
 
   function initialize(game) {
     const faction = world.factionStarts.find(start => start.selectionId === Number(game.faction) + 1) || world.factionStarts[0];
-    game.shipType = ships.has(Number(game.shipType)) ? Number(game.shipType) : 7;
+    game.shipType = (window.nativeShipDefinitions?.registered().some(s=>s.id===Number(game.shipType))||ships.has(Number(game.shipType))) ? Number(game.shipType) : 7;
     game.discovered = [...new Set([...(Array.isArray(game.discovered) ? game.discovered : []), Number(game.system)])]
       .filter(id => systems.has(id));
     for (const [key, field] of [['planetGovts', 'governmentId'], ['planetPopulations', 'populationBillions'], ['planetStrengths', 'strength']]) {

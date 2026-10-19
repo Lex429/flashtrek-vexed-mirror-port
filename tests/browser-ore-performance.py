@@ -21,7 +21,7 @@ spec=importlib.util.spec_from_file_location('stability',ROOT/'tests/browser-stab
 stability=importlib.util.module_from_spec(spec);spec.loader.exec_module(stability)
 
 SETUP=r'''(saved)=>{
-  localStorage.setItem('broken-mirror-native-save',saved);resumeNativeGame();
+  nativeSaveStorage.write(JSON.parse(saved));resumeNativeGame();
   const s=nativeNpcDev.getState();window.__oreState=s;
   nativeNpcLives.initialize(s);
   Object.assign(s,{system:1,localBody:3,x:30000,y:28000,speed:0,angle:0,landed:false,arrivalApproach:null,localCruise:null});

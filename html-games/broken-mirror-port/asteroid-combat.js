@@ -181,7 +181,7 @@
     if((rock.system??state.system)!==state.system)return{ok:false,error:'Choose an asteroid in this system.'};
     if(window.nativeCivilianTraffic?.isMiningRock(state,rock.slotId))return{ok:false,error:'A civilian miner is working this asteroid.'};
     if(window.nativeShipDefinitions.get(state.shipType,'player').capabilities.canMine===false)return{ok:false,error:'This ship cannot use mining equipment.'};
-    if(!state.miningTool)return{ok:false,error:'Buy the mining laser at a planet shop first.'};
+    if(window.nativeShipEquipment?!window.nativeShipEquipment.has(state,state,'mining-laser'):!state.miningTool)return{ok:false,error:'Buy the mining laser at a planet shop first.'};
     if(mining)return{ok:false,error:'Mining already in progress.'};
     if(distance(rock,ship)>360)return{ok:false,error:'Move within 360 units of the asteroid to mine.'};
     activeState=state;

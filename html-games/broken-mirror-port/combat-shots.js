@@ -82,7 +82,7 @@
       const damageMultiplier=window.nativeShipDefinitions?.forEntity(state,holder,{category:holder===state?'player':'civilian'}).weaponDamageMultiplier||1;
       const spec=rules.weaponSpec(weapon,visual.kind,{damageMultiplier});
       if(!eligible(spec,visual.kind,weapon,slot))continue;
-      loadouts.consume(instance,spec,clock);loadout.nextSlot=(index+1)%choices.length;
+      loadouts.consume(instance,spec,clock);loadout.nextSlot=(index+1)%choices.length;if(holder.shipEquipment)holder.shipEquipment.nextSlot=loadout.nextSlot;
       return {ok:true,weapon,slot,instance,spec,...visual};
     }
     return {ok:false,error:!visible?'Weapon visuals are unavailable or still loading.':available?'Target is out of range, outside the firing arc, or blocked.':'All fitted weapons are recharging.'};

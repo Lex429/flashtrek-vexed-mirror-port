@@ -8,7 +8,7 @@
   const systems=world.systems,neighborCache=new Map();
   const miningVisuals=new Map();
   let selected=null,selectedAt=0;
-  const stats=id=>world.ships.find(ship=>ship.id===id);
+  const stats=value=>typeof value==='object'?window.nativeShipDefinitions.forEntity(null,value,{category:'civilian'}):window.nativeShipDefinitions.get(value);
   const systemName=id=>world.systems.find(system=>system.id===id)?.name||`System ${id}`;
   const neighbors=id=>{
     if(!neighborCache.has(id)){const origin=systems.find(system=>system.id===id),position=origin?.mapPosition||{x:0,y:0},distance=system=>{const point=system.mapPosition||{x:0,y:0};return Math.hypot(point.x-position.x,point.y-position.y)};neighborCache.set(id,systems.filter(system=>system.id!==id&&(Number(system.populationBillions)>0||system.asteroids)).sort((a,b)=>distance(a)-distance(b)).slice(0,6).map(system=>system.id));}
@@ -92,7 +92,7 @@
   }
   function load(state,ship){
     if(ship.cargo)return;
-    const good=(ship.id+ship.legs*3)%economy.goods.length,capacity=stats(ship.shipType).cargo;
+    const good=(ship.id+ship.legs*3)%economy.goods.length,capacity=stats(ship).cargo;
     let destination=ship.system===1?solPorts[(ship.id+ship.legs+2)%solPorts.length]:1;
     if(ship.system===1&&destination===ship.port)destination=solPorts[(ship.id+ship.legs+3)%solPorts.length];
     let tons=Math.min(capacity-(ship.oreHold||0),12+((ship.id*13+ship.legs*11)%35));
@@ -128,9 +128,9 @@
   }
   const rockById=id=>window.nativeSolAsteroids?.find?.(id)||window.nativeSolAsteroids?.placements.find(rock=>rock.slotId===id);
   const rockGone=(state,rock)=>!rock||state.minedAsteroids?.includes(rock.slotId)||state.destroyedAsteroids?.includes(rock.slotId);
-  const freeHold=ship=>Math.max(0,stats(ship.shipType).cargo-(ship.cargo?.tons||0)-(ship.oreHold||0));
+  const freeHold=ship=>Math.max(0,stats(ship).cargo-(ship.cargo?.tons||0)-(ship.oreHold||0));
   const canMine=ship=>window.nativeShipDefinitions.get(ship.shipType,'civilian').capabilities.canMine!==false;
-  const disabledHull=ship=>Math.max(1,stats(ship.shipType).hull*.25);
+  const disabledHull=ship=>Math.max(1,stats(ship).hull*.25);
   const operational=ship=>ship&&!['disabled','destroyed','warp','arriving'].includes(ship.phase)&&ship.hull>disabledHull(ship);
   const availableForDispute=(traffic,ship)=>operational(ship)&&!ship.disputeId&&!ship.retaliationId&&(ship.disputeCooldownUntil||0)<=traffic.clock;
   const isMiningRock=(state,id)=>initialize(state).ships.some(ship=>ship.miningRockSlot===id&&['mining-flight','mining','collecting'].includes(ship.phase));
@@ -274,13 +274,13 @@
       }
       let scene=combatScene(state,dispute);
       for(const [ship,opponent] of [[a,b],[b,a]]){
-        ship.cruiseSpeed=Math.max(36,Number(stats(ship.shipType).speedOrOtherStationValue||40)*3);ship.maxCombatHull=stats(ship.shipType).hull;
+        ship.cruiseSpeed=stats(ship).movement.maxSpeed;ship.maxCombatHull=stats(ship).hull;
         ship.combatRadius=Math.max(7,Math.max(dimensions(ship).width,dimensions(ship).height)*.35);
         if(!ship.combatAI)combat.begin(ship,ship===a?'claimant':'thief',traffic.clock);
         if(!Number.isFinite(ship.vx)){ship.vx=0;ship.vy=0;}
         opponent.vx=Number(opponent.vx)||0;opponent.vy=Number(opponent.vy)||0;
         const attacker=traffic.clock<=ship.retaliationUntil&&scene.bystanders.find(candidate=>candidate.id===ship.retaliationTargetId&&candidate.hull>0&&tacticallyDetailed(state,candidate));
-        combat.steer(ship,attacker||opponent,dispute,{...scene,dt,clock:traffic.clock,hull:stats(ship.shipType).hull,shields:stats(ship.shipType).shields});
+        combat.steer(ship,attacker||opponent,dispute,{...scene,dt,clock:traffic.clock,hull:stats(ship).hull,shields:stats(ship).shields});
         window.nativeShipSystems.invalidate?.(state,dispute.system);window.nativeSimulationFrame?.count(state,'tacticalUpdates');
       }
       if(dispute.hails?.length&&traffic.clock>=(dispute.nextHailAt||0)){
@@ -320,9 +320,9 @@
         endRetaliation(state,retaliation,ship);continue;
       }
       retaliation.b=attacker.id;retaliation.anchor={x:(ship.x+attacker.x)/2,y:(ship.y+attacker.y)/2};
-      ship.cruiseSpeed=Math.max(36,Number(stats(ship.shipType).speedOrOtherStationValue||40)*3);ship.maxCombatHull=stats(ship.shipType).hull;
+      ship.cruiseSpeed=stats(ship).movement.maxSpeed;ship.maxCombatHull=stats(ship).hull;
       ship.combatRadius=Math.max(7,Math.max(dimensions(ship).width,dimensions(ship).height)*.35);
-      combat.steer(ship,attacker,retaliation,{...scene,dt,clock:traffic.clock,hull:stats(ship.shipType).hull,shields:stats(ship.shipType).shields});
+      combat.steer(ship,attacker,retaliation,{...scene,dt,clock:traffic.clock,hull:stats(ship).hull,shields:stats(ship).shields});
       window.nativeShipSystems.invalidate?.(state,retaliation.system);window.nativeSimulationFrame?.count(state,'tacticalUpdates');
       scene=combatScene(state,retaliation);
       if(traffic.clock>=retaliation.nextShotAt)retaliation.nextShotAt=traffic.clock+fireDisputeShot(state,retaliation,ship,attacker,scene);
@@ -347,7 +347,7 @@
     const miner=traffic.ships.find(ship=>ship.id===0),thief=traffic.ships.find(ship=>ship.id===1);
     if(!rock||!miner||!thief)return false;
     for(const dispute of [...traffic.disputes].filter(entry=>entry.system===1))endDispute(state,dispute,traffic.ships.find(ship=>ship.id===dispute.a),traffic.ships.find(ship=>ship.id===dispute.b));
-    for(const ship of [miner,thief]){if(ship.phase==='ore-theft')cancelOreTheft(ship);ship.hull=stats(ship.shipType).hull;ship.shields=stats(ship.shipType).shields;ship.disputeCooldownUntil=0;ship.phase='docked';ship.cargo=null;ship.oreHold=0;}
+    for(const ship of [miner,thief]){if(ship.phase==='ore-theft')cancelOreTheft(ship);ship.hull=stats(ship).hull;ship.shields=stats(ship).shields;ship.disputeCooldownUntil=0;ship.phase='docked';ship.cargo=null;ship.oreHold=0;}
     if(!startMiningDemo(state,{force:true,theft:false}))return false;
     Object.assign(thief,{system:1,port:3,x:rock.x+280,y:rock.y-70,timer:10,speed:0});
     window.nativeNpcLives?.refreshLocation(state,thief);
@@ -364,7 +364,7 @@
     const resident=state.civilianTraffic.ships.filter(other=>other.stationSystem===ship.stationSystem&&other.system===ship.system&&other.phase!=='warp'&&other.phase!=='destroyed').length;
     if(cargo&&cargo.toSystem!==ship.system){if(ship.system===ship.stationSystem&&resident<=1){if(ship.system===1)ship.timer=8;else localPatrol(ship);return;}warp(state,ship,cargo.toSystem);return;}
     if(ship.system!==1){if(ship.system===ship.stationSystem&&resident<=1){localPatrol(ship);return;}warp(state,ship,ship.system===ship.stationSystem?neighbors(ship.system)[(ship.id+ship.legs)%neighbors(ship.system).length]:ship.stationSystem);return;}
-    if(canMine(ship)&&ship.legs%5===3&&stats(ship.shipType).cargo-(ship.cargo?.tons||0)-(ship.oreHold||0)>=4){const rock=availableRock(state,'Asteroid Belt');if(rock){miningFlight(state,ship,rock);return;}}
+    if(canMine(ship)&&ship.legs%5===3&&stats(ship).cargo-(ship.cargo?.tons||0)-(ship.oreHold||0)>=4){const rock=availableRock(state,'Asteroid Belt');if(rock){miningFlight(state,ship,rock);return;}}
     const next=cargo?.toPort||solPorts[(ship.id+ship.legs+2)%solPorts.length];
     if(next!==ship.port){cruise(state,ship,next);return;}
     warp(state,ship,destinations[(ship.id+ship.legs+1)%destinations.length]||14);

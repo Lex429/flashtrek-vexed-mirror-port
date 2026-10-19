@@ -84,7 +84,7 @@ INSTALL = r"""() => {
 SETUP = r"""async ({saved,mode}) => {
   for(const timer of window.__stabilityTimers||[])clearInterval(timer);
   if(window.__stabilityOriginalWarp){window.vexedWarp=window.__stabilityOriginalWarp;delete window.__stabilityOriginalWarp;}
-  const state=JSON.parse(saved);localStorage.setItem('broken-mirror-native-save',saved);resumeNativeGame();
+  const state=JSON.parse(saved);(window.nativeSaveStorage?nativeSaveStorage.write(JSON.parse(saved)):localStorage.setItem('broken-mirror-native-save',saved));resumeNativeGame();
   const s=nativeNpcDev.getState(),origin=vexedSolFlight.shipPosition(s);
   window.__stabilityTimers=[];window.__stabilityMode=mode;
   if(mode==='crowdedCombat'){

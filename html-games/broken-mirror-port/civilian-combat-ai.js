@@ -86,8 +86,8 @@
   function steer(ship,target,dispute,scene){
     if(!Number.isFinite(scene.dt)||scene.dt<=0||!target||!Number.isFinite(target.x)||!Number.isFinite(target.y))return ship.combatAI;
     let command=decide(ship,target,dispute,scene);
-    const definition=window.nativeShipDefinitions?.get(ship.shipType,'civilian');
-    const movement=definition?.combatMovement||definition?.profile.combatMovement||window.nativeShipMotion.profiles.combat(ship.shipType,ship.cruiseSpeed||105);
+    const definition=window.nativeShipDefinitions?.forEntity(scene.state||null,ship,{category:'civilian'});
+    const movement=definition?.movement||window.nativeShipMotion.profiles.manual(definition);
     if(window.nativeShipDefinitions){const descriptor=window.nativeShipDefinitions.describe(scene.state||{},ship,{category:'civilian'});command=window.nativeShipMotion.avoidShips(descriptor,scene.bystanders||[],command,movement);}
     ship.motionTime=scene.clock;
     window.nativeShipMotion.step(ship,command,movement,scene.dt);

@@ -1,5 +1,13 @@
 # Vexed Mirror implementation rules
 
+Hull hardware is ownership-independent. `ship-definitions.js` owns typed slot
+capacities, starting equipment, effective stats and permitted crew policies;
+`weapon-loadout.js` owns version-2 equipment instances and fitting. Legacy weapon
+arrays and repair bays are projections. See `docs/unified-ships.md`. Preserve
+overflow equipment in the locker and reject unsafe hull purchases before charging.
+Use the mode-separated save owner and verify writes. Run `unified-equipment.test.cjs`
+and `browser-unified-equipment.py`, including actual Inventory evidence.
+
 The active entry point is `html-games/broken-mirror-port/index.html`. Shared showcase artwork and shaders live in `html-games/flashtrek-broken-mirror/`. Do not migrate the archived previews as if they were active gameplay.
 
 Preserve artwork, ship statistics, faction differences, deliveries, civilian jobs, ore rewards and old saves. Keep changes incremental. Controllers select goals and commands; they must not duplicate movement integration, weapon specifications, recharge, collision, damage or impact rendering.

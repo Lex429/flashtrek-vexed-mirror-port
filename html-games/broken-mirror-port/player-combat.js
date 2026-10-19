@@ -6,7 +6,7 @@
   function hit(state,damage,impact={}){
     currentState=state;const descriptor=describe(state),result=window.nativeShipDamage.apply(descriptor,damage,impact);
     window.nativeShipEffects.hit(state,descriptor,result,impact);
-    if(result.ok&&(result.destroyed||result.disabled)){window.nativeShipMotion.stop(state);state.localCruise=null;state.arrivalApproach=null;state.phase=result.destroyed?'destroyed':'disabled';}
+    if(result.ok&&(result.destroyed||result.disabled)){(result.destroyed?window.nativeShipMotion.stop:window.nativeShipMotion.powerOff)(state);state.localCruise=null;state.arrivalApproach=null;state.phase=result.destroyed?'destroyed':'disabled';}
     return result.ok?{ok:true,destroyed:result.destroyed,disabled:result.disabled,shields:result.shields,hull:result.hull}:result;
   }
   function visualImpact(state,impact={}){currentState=state;return window.nativeShipEffects.visualImpact(state,describe(state),impact);}

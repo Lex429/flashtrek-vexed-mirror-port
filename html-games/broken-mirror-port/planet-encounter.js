@@ -46,7 +46,7 @@
     const size = 4;
     const pages = Math.max(1, Math.ceil(offers.length / size));
     cargoPage = Math.min(cargoPage, pages - 1);
-    const capacity = Number(world.ships.find(ship => ship.id === state.shipType)?.cargo || 0);
+    const capacity = Number(window.nativeShipDefinitions.forEntity(state).cargo || 0);
     const reserved = jobs.reduce((total, job) => total + Number(job.tons || 0), 0);
     const canLoad = state.system === 1 && place.port && !state.localCruise && jobs.length < 2;
     return `<div class="encounter-cargo-controls">

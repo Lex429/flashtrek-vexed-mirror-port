@@ -79,14 +79,14 @@ try:
           const templateCivilian=base.civilianTraffic.ships[0],templateTug=base.solEconomy.freighters[0];
           const categories=Object.keys(nativeShipDefinitions.profiles);
           check(categories.includes('player')&&categories.includes('tug')&&categories.includes('civilian'),'Missing ship categories');
-          // Delivery tugs stay unarmed in production; the parity fixture opts in.
+          // This fixture explicitly fits the same armed hull for each controller.
           nativeShipDefinitions.register(10,{profiles:{tug:{capabilities:{armed:true}}}});
-          nativeShipDefinitions.register(9001,{name:'Contract test ship',hull:1000,shields:1000,speedOrOtherStationValue:40,turn:8,
+          nativeShipDefinitions.register(9001,{name:'Contract test ship',artworkProfile:nativeShipDefinitions.artworkProfile(7),hull:1000,shields:1000,speedOrOtherStationValue:40,turn:8,
             dimensions:{width:38,height:66},movement:{maxSpeed:73,acceleration:80,braking:90,turnRate:.9},
             emitters:{beam:{x:.17,y:-.28},projectile:{x:-.12,y:-.32}}});
           function scenario(sourceCategory,targetCategory,kind='beam',shieldState='active',custom=false){
             nativeCombatShots.reset();nativeShipEffects.reset();
-            const state=clone(base);delete state.weaponCombat;delete state.shipSimulation;delete state.weaponLoadout;
+            const state=clone(base);delete state.weaponCombat;delete state.shipSimulation;delete state.shipEquipment;delete state.weaponLoadout;
             Object.assign(state,{devMode:false,system:1,localBody:3,x:100000,y:100000,angle:0,speed:0,landed:false,hull:1000,shields:1000,weapons:[models[kind].id,null,null],weaponInventory:[]});
             state.civilianTraffic.ships=[];state.civilianTraffic.disputes=[];state.civilianTraffic.retaliations=[];state.civilianTraffic.strayShots=[];
             state.solEconomy.freighters=[];
@@ -97,7 +97,7 @@ try:
               if(category==='player'){entity=state;putPlayer(point);}
               else if(category==='tug'){entity={...clone(templateTug),id,shipType:10,phase:'waiting',x:point.x,y:point.y,heading:0,speed:0,hull:1000,shields:1000};state.solEconomy.freighters.push(entity);}
               else{entity={...clone(templateCivilian),id,shipType:custom&&isSource?9001:47,system:1,phase:'cruise',x:point.x,y:point.y,heading:0,speed:0,hull:1000,shields:1000};state.civilianTraffic.ships.push(entity);}
-              if(isSource){delete entity.weaponLoadout;entity.weapons=[models[kind].id,null,null];}
+              if(isSource){delete entity.shipEquipment;delete entity.weaponLoadout;entity.weapons=[models[kind].id,null,null];}
               return {entity,category};
             };
             const source=create(sourceCategory,origin,88001,true),target=create(targetCategory,{x:origin.x+240,y:origin.y},88002,false);
@@ -135,7 +135,7 @@ try:
             nativeShipSystems.move(test.state,test.target.entity,targetCategory,{turn:-.7,throttle:.3},profile,.035);
             tick(test,.035);geometry=draw(test,fired);emitter=expectedEmitter(test);
             near(geometry.x1,210+emitter.x-test.camera.x,'Moving and rotating emitter x');near(geometry.y1,250+emitter.y-test.camera.y,'Moving and rotating emitter y');
-            check(Math.hypot(geometry.x1-initial.x,geometry.y1-initial.y)>1,'Beam failed to follow moving ship');
+            check(Math.hypot(geometry.x1-initial.x,geometry.y1-initial.y)>1,'Beam failed to follow moving ship '+JSON.stringify({sourceCategory,custom,phase:test.source.entity.phase,speed:test.source.entity.speed,engine:test.source.entity.shipEquipment?.slots.engineering,initial,geometry,source:test.describe(test.source).definition}));
             check(pixels(geometry.x1+5,geometry.y1)>0,'Moving emitter has no beam pixels');
             test.camera.x+=37;test.camera.y-=19;
             const pan=draw(test,fired);near(pan.x1,geometry.x1-37,'Camera pan emitter x');near(pan.y1,geometry.y1+19,'Camera pan emitter y');

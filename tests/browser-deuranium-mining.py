@@ -63,7 +63,7 @@ try:
           for(const e of s.civilianTraffic.ships){nativeNpcLives.interrupt(s,e,'browser fixture');e.nextActionAt=null;e.lifeScheduleToken++;}
           s.solEconomy.freighters=[];nativeAsteroidCombat.clear();
           Object.assign(s,{devMode:false,deuranium:20,latinum:500,system:43,planet:'Hof-Maso',x:rock.x-100,y:rock.y,speed:0,angle:Math.PI/2,miningTool:true,localCruise:null,arrivalApproach:null,phase:'flight',landed:false});
-          window.__deuraniumState=s;window.__deuraniumRock=rock;window.__oreBefore=s.minerals?.deuranium||0;
+          nativeShipEquipment.grant(s,'mining-laser',{location:'slot',slot:0});window.__deuraniumState=s;window.__deuraniumRock=rock;window.__oreBefore=s.minerals?.deuranium||0;
           vexedSpace.enterSystem(43,true);const view=nativeView.measure(document.querySelector('#space'));return {x:view.w/2+100,y:view.h/2,w:view.w,h:view.h};
         }''')
         page.wait_for_timeout(500)
@@ -75,7 +75,7 @@ try:
         page.wait_for_timeout(300)
         assert page.evaluate('__deuraniumState.asteroidDamage[__deuraniumRock.slotId]===__damagePaused')
         page.screenshot(path=str(OUT/'actual-player-mining.png'))
-        page.evaluate('()=>{localStorage.setItem("broken-mirror-native-save",JSON.stringify(__deuraniumState));const initialize=nativeShipRepairs.initialize;window.nativeShipRepairs={...nativeShipRepairs,initialize:s=>{window.__deuraniumState=s;return initialize(s);}};resumeNativeGame();window.nativeShipRepairs={...nativeShipRepairs,initialize};window.nativeSimulation={...nativeSimulation,blocked:__originalBlocked};}')
+        page.evaluate('()=>{nativeSaveStorage.write(__deuraniumState);const initialize=nativeShipRepairs.initialize;window.nativeShipRepairs={...nativeShipRepairs,initialize:s=>{window.__deuraniumState=s;return initialize(s);}};resumeNativeGame();window.nativeShipRepairs={...nativeShipRepairs,initialize};window.nativeSimulation={...nativeSimulation,blocked:__originalBlocked};}')
         page.wait_for_function('()=>__deuraniumState.minedAsteroids?.includes(__deuraniumRock.slotId)',timeout=15000)
         page.mouse.click(x,y)
         page.wait_for_function('()=>__deuraniumState.asteroidOreDrops[__deuraniumRock.slotId]===0')

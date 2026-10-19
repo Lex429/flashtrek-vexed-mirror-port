@@ -6,6 +6,8 @@
   const initialized=new WeakSet(),clock=s=>window.nativeSimulation.seconds(s);
   const qty=n=>Math.max(0,Number(n)||0),alive=e=>e&&e.hull>0&&e.phase!=='destroyed';
   const definition=(s,e,category)=>window.nativeShipDefinitions.forEntity(s,e,{category});
+  const medical=e=>definition(null,e,'civilian').capabilities.medical===true;
+  const policy=e=>definition(null,e,'civilian').npcPolicy.supplies;
   const ref=(category,e)=>({category,id:category==='player'?'player':e.id,generation:e.lifeGeneration||0});
   const key=r=>`${r.category}:${r.id}:${r.generation||0}`;
   function resolve(s,r){
@@ -16,12 +18,9 @@
   const fleet=s=>[{category:'player',entity:s},...(s.solEconomy?.freighters||[]).map(entity=>({category:'tug',entity})),...(s.civilianTraffic?.ships||[]).map(entity=>({category:'civilian',entity}))];
   function pose(s,r){const e=resolve(s,r);if(!e)return null;return window.nativeShipDefinitions.describe(s,e,{category:r.category});}
   function bay(s,e,category){
-    const generation=e.lifeGeneration||0;
-    if(e.repairBay?.generation===generation)return e.repairBay;
-    const count=category==='civilian'&&e.shipType===58?6:definition(s,e,category).cargo<100?1:2;
-    e.repairBay={version:1,generation,slots:Array.from({length:count},(_,i)=>({id:`dot:${key(ref(category,e))}:${i}`,slot:i,shipType:BASIC,hull:40,shields:0,phase:'stowed',heading:0,speed:0}))};
-    e.repairDeuranium??=0;return e.repairBay;
+    window.nativeShipEquipment.ensure(s,e);e.repairDeuranium??=0;return e.repairBay;
   }
+
   function initialize(s){
     if(initialized.has(s))return s.shipRepairs;
     const r=s.shipRepairs||={version:1,sequence:0,calls:[],missions:[],ledger:{consumed:0,lost:0,medicalCapital:0},nextPollAt:clock(s)};
@@ -52,7 +51,7 @@
   function destroyed(s,e,category){
     if(!s.shipRepairs||category==='repair-drone')return;
     if(category!=='player'){s.shipRepairs.ledger.lost+=qty(e.repairDeuranium);e.repairDeuranium=0;}
-    for(const d of e.repairBay?.slots||[]){d.hull=0;d.phase='destroyed';delete d.localLeg;}
+    for(const d of [...(e.repairBay?.slots||[]),...Object.values(e.shipEquipment?.instances||{}).filter(d=>d.category==='repairDrone'&&!['stowed','destroyed'].includes(d.phase))]){d.hull=0;d.phase='destroyed';delete d.localLeg;}
   }
   function announce(s,r,text){
     const e=resolve(s,r);if(!e)return;
@@ -64,27 +63,27 @@
   function distress(s,r){
     if(callFor(s,r))return;
     const p=pose(s,r),c={id:`distress:${++s.shipRepairs.sequence}`,target:r,system:p.system,x:p.x,y:p.y,createdAt:clock(s),status:'queued',claim:null};
-    s.shipRepairs.calls.push(c);announce(s,r,`Distress signal: disabled, ${supplies(s,r)>EPS?'no operational repair drones':'repair deuranium exhausted'}. Requesting Olympic medical assistance.`);
+    s.shipRepairs.calls.push(c);announce(s,r,`Distress signal: disabled, ${supplies(s,r)>EPS?'no operational repair drones':'repair deuranium exhausted'}. Requesting medical assistance.`);
   }
   function restock(s,e){
     if(!alive(e)||e.journey||e.phase==='disabled')return 0;
     const b=window.nativePortDocking.inspect(s,e,false);
     if(b?.kind!=='berth'||b.port!==e.port||Math.hypot(e.x-b.x,e.y-b.y)>.01)return 0;
-    const d=definition(s,e,'civilian'),target=e.shipType===58?MEDICAL_STOCK:d.cargo<100?4:12;
+    const d=definition(s,e,'civilian'),target=medical(e)?policy(e).target:d.cargo<100?4:12;
     const committed=!e.cargo&&e.task?.phase==='loading'?qty(e.task.requirements?.tons):0;
     const room=Math.max(0,d.cargo-qty(e.cargo?.tons)-qty(e.oreHold)-qty(e.repairDeuranium)-committed);
     const committedPayment=!e.cargo&&e.task?.phase==='loading'?qty(e.task.requirements?.credits):0;
-    const budget=Math.min(Math.max(0,qty(e.credits)-committedPayment),e.shipType===58?Infinity:qty(e.credits)*.25);
-    const m=window.nativeNpcLives.market(s,e.system,e.port),tons=Math.floor(Math.min(target-qty(e.repairDeuranium),room,qty(m.stock[7])-qty(m.reserved[7]),budget/55));
+    const budget=Math.min(Math.max(0,qty(e.credits)-committedPayment),medical(e)?Infinity:qty(e.credits)*.25);
+    const supply=medical(e)?policy(e):{good:7,price:55},m=window.nativeNpcLives.market(s,e.system,e.port),tons=Math.floor(Math.min(target-qty(e.repairDeuranium),room,qty(m.stock[supply.good])-qty(m.reserved[supply.good]),budget/supply.price));
     if(tons<1)return 0;
-    const result=window.nativeNpcLives.exchange(s,m,e,{good:7,tons,payment:tons*55,buy:true,capacity:room,repairSupplies:true});
+    const result=window.nativeNpcLives.exchange(s,m,e,{good:supply.good,tons,payment:tons*supply.price,buy:true,capacity:room,repairSupplies:true});
     return result.ok?tons:0;
   }
   function restockTug(s,e){
     if(!alive(e)||!['waiting','loading','unloading'].includes(e.phase))return;
     const stock=s.solEconomy.ports[e.port],reserved=s.solEconomy.stockReserved?.[e.port]?.[7]||0;
     if(!stock)return;
-    const tons=Math.floor(Math.min(12-qty(e.repairDeuranium),qty(stock[7])-reserved));
+    const tons=Math.floor(Math.min(12-qty(e.repairDeuranium),definition(s,e,'tug').cargo-qty(e.tons)-qty(e.repairDeuranium),qty(stock[7])-reserved));
     if(tons>0){stock[7]-=tons;e.repairDeuranium=qty(e.repairDeuranium)+tons;}
   }
   function call(s,id){return s.shipRepairs?.calls.find(c=>c.id===id);}
@@ -106,7 +105,7 @@
         if(!alive(e)||e.phase==='disabled'||e.task?.kind!=='medical'||e.task?.status!=='active'){c.claim=null;c.status='queued';}
         else continue;
       }
-      const candidates=s.civilianTraffic.ships.filter(e=>e.shipType===58&&alive(e)&&e.phase!=='disabled'&&!e.journey&&!e.disputeId&&!e.retaliationId&&!e.scriptedDemo&&e.task?.kind!=='medical'&&qty(e.repairDeuranium)>EPS&&bay(s,e,'civilian').slots.some(d=>d.phase==='stowed'&&d.hull>0));
+      const candidates=s.civilianTraffic.ships.filter(e=>medical(e)&&alive(e)&&e.phase!=='disabled'&&!e.journey&&!e.disputeId&&!e.retaliationId&&!e.scriptedDemo&&e.task?.kind!=='medical'&&qty(e.repairDeuranium)>EPS&&bay(s,e,'civilian').slots.some(d=>d.phase==='stowed'&&d.hull>0));
       candidates.sort((a,b)=>{
         const distance=e=>{const p=window.nativeNpcLives.galaxyPosition(s,e),anchor=window.nativeManualFlight.anchor(c.system);return Math.hypot(p.x-anchor.x-c.x,p.y-anchor.y-c.y);};
         return distance(a)-distance(b)||a.id-b.id;
@@ -114,7 +113,7 @@
       const e=candidates[0];if(!e)continue;
       c.claim=key(ref('civilian',e));c.status='claimed';c.claimedAt=clock(s);
       if(!window.nativeNpcLives.startRescue(s,e,c,clock(s))){c.claim=null;c.status='queued';continue;}
-      announce(s,ref('civilian',e),'Olympic medical team responding to distress. Repair drones standing by.');
+      announce(s,ref('civilian',e),'Medical team responding to distress. Repair drones standing by.');
     }
   }
   function dronePose(s,d){const p={...d};if(d.localLeg)window.nativeShipMotion.sampleLeg(p,d.localLeg,clock(s));return p;}
@@ -156,7 +155,7 @@
     announce(s,r,'Hull repair complete. Drones recovered; resuming operations.');
   }
   function advanceMission(s,m,at){
-    const carrier=resolve(s,m.carrier),target=resolve(s,m.target),slots=carrier?.repairBay?.slots||[],ds=m.drones.map(id=>slots.find(d=>d.id===id)).filter(Boolean);
+    const carrier=resolve(s,m.carrier),target=resolve(s,m.target),slots=carrier?.repairBay?.slots||[],ds=m.drones.map(id=>slots.find(d=>d.id===id)||carrier?.shipEquipment?.instances[id]).filter(Boolean);
     const carrierPose=alive(carrier)?pose(s,m.carrier):null,targetPose=alive(target)?pose(s,m.target):null;
     const self=key(m.carrier)===key(m.target),valid=alive(target)&&target.phase==='disabled'&&alive(carrier)&&(self||carrier.task?.kind==='medical'&&carrier.task.status==='active'&&carrier.phase!=='disabled'&&!carrier.journey&&carrierPose.system===targetPose.system&&Math.hypot(carrierPose.x-targetPose.x,carrierPose.y-targetPose.y)<=1000);
     const returning=d=>{
@@ -247,21 +246,21 @@
   }
   function drones(s,system){
     const result=[];
-    for(const m of s.shipRepairs?.missions||[])if(active(m))for(const d of resolve(s,m.carrier)?.repairBay?.slots||[])if(d.missionId===m.id&&d.hull>0&&(system===undefined||d.system===system)&&!['stowed','destroyed'].includes(d.phase)&&!(d.phase==='launching'&&d.localLeg?.startedAt>clock(s))){
+    for(const m of s.shipRepairs?.missions||[])if(active(m))for(const d of m.drones.map(id=>resolve(s,m.carrier)?.shipEquipment?.instances[id]||resolve(s,m.carrier)?.repairBay?.slots.find(d=>d.id===id)).filter(Boolean))if(d.missionId===m.id&&d.hull>0&&(system===undefined||d.system===system)&&!['stowed','destroyed'].includes(d.phase)&&!(d.phase==='launching'&&d.localLeg?.startedAt>clock(s))){
       const p=dronePose(s,d),base=window.nativeShipDefinitions.describe(s,d,{category:'repair-drone'});
       result.push({...base,x:p.x,y:p.y,heading:p.heading,speed:p.speed,vx:p.vx,vy:p.vy});
     }
     return result;
   }
   function hit(s,t,amount,impact){
-    const r=s.shipRepairs,m=r?.missions.find(m=>m.id===t.entity.missionId),e=m&&resolve(s,m.carrier),d=e?.repairBay?.slots.find(d=>d.id===t.entity.id);
+    const r=s.shipRepairs,m=r?.missions.find(m=>m.id===t.entity.missionId),e=m&&resolve(s,m.carrier),d=e?.shipEquipment?.instances[t.entity.id]||e?.repairBay?.slots.find(d=>d.id===t.entity.id);
     if(!d)return {ok:false};
     const descriptor={...t,entity:d},result=window.nativeShipDamage.apply(descriptor,amount,impact);
     window.nativeShipEffects.hit(s,descriptor,result,impact);
     if(result.destroyed){d.phase='destroyed';delete d.localLeg;}return result;
   }
   const renderer={draw:(...args)=>window.nativeRepairVisuals?.drawDrone(...args),hit:(...args)=>window.nativeRepairVisuals?.hit(...args)};
-  window.nativeShipDefinitions.register(BASIC,{name:'Basic Dot repair drone',hull:40,shields:0,cargo:0,equipment:[],movement:{maxSpeed:85,acceleration:100,braking:120,turnRate:Infinity,directGoal:true,snap:true,arrivalRadius:.1,serviceApproach:true},dimensions:{width:41.382,height:41.382},
+  window.nativeShipDefinitions.register(BASIC,{name:'Basic Dot repair drone',slots:{weapon:0,repairDrone:0,ability:0},hull:40,shields:0,cargo:0,equipment:[],movement:{maxSpeed:85,acceleration:100,braking:120,turnRate:Infinity,directGoal:true,snap:true,arrivalRadius:.1,serviceApproach:true},dimensions:{width:41.382,height:41.382},
     geometry:{hull:{width:.34,height:.34,minX:0,minY:0}},capabilities:{armed:false,canMine:false,canDock:false,canTrade:false,disableRatio:0},renderer});
   window.nativeShipSystems.register('repair-drone',{collect:drones,inspect:s=>[],hit,resolve:(s,id,system)=>drones(s,system).find(d=>d.id===id),visualImpact:(s,t,e)=>window.nativeShipEffects.visualImpact(s,t,e)});
   window.nativeShipRepairs=Object.freeze({initialize,advance,restock,call,claimed,validCall,releaseClaim,rendezvous,service,ref,key,resolve,pose,launch,missionFor,supplies,workPoint,drones,destroyed,

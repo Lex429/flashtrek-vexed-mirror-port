@@ -24,9 +24,9 @@
 
   function selectOffer(id) {
     if (!session) return;
-    const item = world.ships.find(ship => ship.id === id);
+    const item = window.nativeShipDefinitions.get(id);
     const detail = root.querySelector('.comm-detail');
-    if (!item) return;
+    if (!item?.name) return;
     detail.innerHTML = `<strong>${escape(item.name)}</strong><small>${Number(item.price).toLocaleString()} bars of latinum · ${item.cargo} cargo</small><p>${escape(item.description)}</p>`;
   }
 
@@ -55,7 +55,7 @@
       <button class="comm-resource comm-resource-0" type="button" aria-label="Trade antimatter" title="Antimatter"></button>
       <button class="comm-resource comm-resource-1" type="button" aria-label="Trade deuranium" title="Deuranium"></button>
       ${Array.from({length:6}, (_,index) => {
-        const item = world.ships.find(ship => ship.id === Number(offers[index]));
+        const definition=window.nativeShipDefinitions.get(Number(offers[index])),item=definition.name?definition:null;
         return `<button class="comm-offer comm-offer-${index}${item?'':' empty'}" type="button" data-offer="${item?.id || ''}" ${item?'':'disabled'} aria-label="${item?'Inspect '+escape(item.name):'Empty shop slot'}" title="${item?escape(item.name):'Empty'}"></button>`;
       }).join('')}
     </div>`;

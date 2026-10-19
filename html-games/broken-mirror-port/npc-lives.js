@@ -6,6 +6,9 @@
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const now=state=>window.nativeSimulation.seconds(state);
   const stats=ship=>window.nativeShipDefinitions.forEntity(null,ship,{category:'civilian'});
+  const policy=ship=>stats(ship).npcPolicy;
+  const permits=(ship,activity)=>policy(ship).activities.includes(activity);
+  const medical=ship=>stats(ship).capabilities.medical===true;
   const costs=[12,24,48,70,30,16,42,55,110];
   const DEFAULTS={secondsPerDay:120,warpUnitsPerSecond:1400,warpGameplayScale:1,minJourneySeconds:8,
     eventBudget:64,distantInterval:5,eventHistory:24,idleSeconds:30,handlingSeconds:3,connectedSystems:[1,2,4],detailedRadius:6500,
@@ -58,7 +61,7 @@
   function indexMove(rt,ship,oldSystem){const previous=oldSystem??rt.indexedSystems.get(ship.id);if(previous!==undefined)rt.bySystem.get(previous)?.delete(ship.id);if(!rt.bySystem.has(ship.system))rt.bySystem.set(ship.system,new Set());rt.bySystem.get(ship.system).add(ship.id);rt.indexedSystems.set(ship.id,ship.system);}
   function migrateShip(state,ship,life){
     if(ship.lifeVersion===1)return;
-    ship.lifeVersion=1;ship.role||=ship.shipType===18?'mining':ship.shipType===23?'trading':'freight';
+    ship.lifeVersion=1;ship.role||=stats(ship).defaultRole||'freight';
     const home=ship.homeSystem||ship.stationSystem||ship.system;
     ship.homeBase||={system:home,port:home===1?(ship.system===1?ship.port||3:3):0};
     ship.recentEvents||=[];ship.taskSequence||=0;ship.cargoOwner||=ship.id;
@@ -99,7 +102,7 @@
       for(const ship of traffic.ships){
         ship.operatingBase??=Number(ship.stationSystem||ship.homeBase?.system||ship.system);
         if(!inhabited(state,ship.operatingBase))ship.operatingBase=access().nearestHome(state,ship.operatingBase)??1;
-        if(!resident.has(ship.operatingBase)&&stats(ship).capabilities.canMine!==false){ship.regionalResident=true;resident.add(ship.operatingBase);}
+        if(!resident.has(ship.operatingBase)&&permits(ship,'mining')&&stats(ship).capabilities.canMine!==false){ship.regionalResident=true;resident.add(ship.operatingBase);}
       }
     }
     life.economicLedger||={version:1,produced:costs.map(()=>0),consumed:costs.map(()=>0),householdSpending:0,cycles:0};
@@ -147,7 +150,7 @@
       for(const ship of state.civilianTraffic.ships){
         // A claimed medical rescue may enter an empty or excluded system solely
         // to reach this casualty. It grants no residency, market or mining access.
-        if(window.nativeShipRepairs?.claimed(state,ship)||ship.shipType===58&&ship.task?.status==='active'&&ship.task.requirements?.medicalReturn&&inhabited(state,ship.task.destination.system))continue;
+        if(window.nativeShipRepairs?.claimed(state,ship)||medical(ship)&&ship.task?.status==='active'&&ship.task.requirements?.medicalReturn&&inhabited(state,ship.task.destination.system))continue;
         const safe=policy.nearestHome(state,ship.system);if(!safe)continue;
         const base=inhabited(state,ship.operatingBase)?ship.operatingBase:inhabited(state,ship.stationSystem)?ship.stationSystem:safe;
         ship.operatingBase=base;
@@ -198,7 +201,7 @@
   const cargoTons=ship=>finite(ship.cargo?.tons)+finite(ship.oreHold);
   const capacity=ship=>Math.max(0,finite(stats(ship).cargo)-cargoTons(ship)-finite(ship.repairDeuranium));
   const oreGood=type=>minerals()?.goodForOre(type)??0;
-  const medicalOre=ship=>ship.shipType===58&&ship.cargo?.oreType==='deuranium'&&ship.cargo.raw===true;
+  const medicalOre=ship=>medical(ship)&&ship.cargo?.oreType==='deuranium'&&ship.cargo.raw===true;
   const buyPrice=(m,g)=>costs[g];
   const sellPrice=(m,g,oreType)=>g===0&&minerals()?.ores[oreType]?minerals().orePrice(m.system,oreType):Math.ceil(costs[g]*(finite(m.stock[g])<m.target[g]?1.35:1));
   const availableFunds=m=>Math.max(0,finite(m.credits)-finite(m.fundsReserved));
@@ -411,8 +414,8 @@
       const ledger=initialize(state).economicLedger;
       ledger.npcMineralsRefined||={};ledger.npcMineralsRefined.deuranium=finite(ledger.npcMineralsRefined.deuranium)+cargo.tons;
       cargo.raw=false;
-      if(ship.shipType===58){
-        const kept=Math.min(cargo.tons,Math.max(0,(window.nativeShipRepairs?.rules.medicalStock??200)-finite(ship.repairDeuranium)));
+      if(medical(ship)){
+        const kept=Math.min(cargo.tons,Math.max(0,policy(ship).supplies.target-finite(ship.repairDeuranium)));
         ship.repairDeuranium=finite(ship.repairDeuranium)+kept;cargo.tons-=kept;
         ship.repairMined=finite(ship.repairMined)+kept;
         event(state,ship,'refined',`Refined ${kept} t mined deuranium into owned medical reserves`,at);
@@ -463,7 +466,7 @@
       life.strandedCargo.length=Math.min(64,life.strandedCargo.length);ship.cargo=null;ship.oreHold=0;
     }
     delete ship.localLeg;
-    if(reason==='disabled'||reason==='destroyed'){ship.phase=reason;delete ship.journey;ship.nextActionAt=null;window.nativeShipMotion.stop(ship);}
+    if(reason==='disabled'||reason==='destroyed'){ship.phase=reason;delete ship.journey;ship.nextActionAt=null;(reason==='destroyed'?window.nativeShipMotion.stop:window.nativeShipMotion.powerOff)(ship);}
     else{ship.phase='docked';schedule(state,ship,at+initialize(state).config.idleSeconds);}
   }
   function resumeWork(state,ship,reason='combat ended'){
@@ -472,7 +475,7 @@
   }
   function startRescue(state,ship,call,at=now(state)){
     const repairs=window.nativeShipRepairs;
-    if(!repairs||!repairs.validCall(state,call)||ship.shipType!==58||ship.hull<=0||['destroyed','disabled'].includes(ship.phase))return false;
+    if(!repairs||!repairs.validCall(state,call)||!medical(ship)||ship.hull<=0||['destroyed','disabled'].includes(ship.phase))return false;
     interrupt(state,ship,'Medical distress response; retained cargo remains owned aboard',at);
     delete ship.needsDockRecovery;delete ship.dockRecoveryResumeAt;delete ship.journey;
     call.claim=repairs.key(repairs.ref('civilian',ship));call.status='claimed';
@@ -503,7 +506,7 @@
     end();
   }
   function chooseMining(state,ship,at,{oreType,medicalSupply=false}={}){
-    if((!minerals()&&ship.system!==1)||access()?.blocked(ship.system)||capacity(ship)<1||stats(ship).capabilities.canMine===false)return false;
+    if((window.nativeShipEquipment&&!window.nativeShipEquipment.has(state,ship,'mining-laser'))||(!medicalSupply&&!permits(ship,'mining'))||(!minerals()&&ship.system!==1)||access()?.blocked(ship.system)||capacity(ship)<1||stats(ship).capabilities.canMine===false)return false;
     const life=initialize(state),gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
     const refineries=new Map();
     const buyersFor=rock=>{
@@ -591,30 +594,30 @@
       if(cost>0){task(state,ship,'repair','Hull damage or low shields require paid service before commercial work',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},
         {cost,quote,hull:ship.hull+missingHull*fraction,shields:ship.shields+missingShields*fraction},at);
         ship.credits-=cost;m.credits+=cost;ship.task.phase='repairing';ship.phase='docked';schedule(state,ship,at+8);return;}}
-    if(ship.shipType===58&&window.nativeShipRepairs){
+    if(medical(ship)&&window.nativeShipRepairs){
       ship.medicalSupplyVersion=1;
-      if(finite(ship.repairDeuranium)<60)ship.repairProvisioning=true;
-      if(finite(ship.repairDeuranium)>=window.nativeShipRepairs.rules.medicalStock)ship.repairProvisioning=false;
+      if(finite(ship.repairDeuranium)<policy(ship).supplies.low)ship.repairProvisioning=true;
+      if(finite(ship.repairDeuranium)>=policy(ship).supplies.target)ship.repairProvisioning=false;
     }
-    if(ship.shipType===58&&ship.repairProvisioning&&window.nativeShipRepairs){
+    if(medical(ship)&&ship.repairProvisioning&&window.nativeShipRepairs){
       let supplier=null;
-      if(ship.credits>=55)for(const id of initialize(state).config.connectedSystems)for(const port of portsIn(state,id)){
+      if(policy(ship).supplies.buy&&ship.credits>=policy(ship).supplies.price)for(const id of initialize(state).config.connectedSystems)for(const port of portsIn(state,id)){
         const m=market(state,id,port),stock=available(m,7);if(stock<1)continue;
         const score=stock/(id===ship.system?1:4);if(!supplier||score>supplier.score)supplier={system:id,port,score};
       }
       if(supplier){task(state,ship,'repair-supply','Purchase finite deuranium reserves for medical distress responses',{system:ship.system,port:ship.port},supplier,{},at);depart(state,ship,at);return;}
-      if(minerals()&&chooseMining(state,ship,at,{oreType:'deuranium',medicalSupply:true}))return;
+      if(policy(ship).supplies.mine&&minerals()&&chooseMining(state,ship,at,{oreType:policy(ship).supplies.material,medicalSupply:true}))return;
     }
     const custom=roles.get(ship.role);if(custom?.(state,ship,{at,startDelivery,chooseMining,schedule}))return;
-    if(minerals()&&ship.shipType!==58&&(ship.regionalResident||ship.role==='mining')){
+    if(minerals()&&!medical(ship)&&permits(ship,'mining')&&(ship.regionalResident||ship.role==='mining')){
       const base=ship.operatingBase??ship.stationSystem??ship.system;
       if(ship.system!==base){returnToBase(state,ship,base,at);return;}
       if(chooseMining(state,ship,at))return;
       task(state,ship,'idle','Waiting for a local mining claim or funded ore buyer',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},{},at);ship.task.phase='idle';ship.phase='docked';schedule(state,ship,at+30);park(state,ship,at);return;
     }
-    if(ship.role==='mining'&&chooseMining(state,ship,at))return;
+    if(permits(ship,'mining')&&ship.role==='mining'&&chooseMining(state,ship,at))return;
     if(minerals()&&ship.system!==(ship.operatingBase??ship.system)&&finite(ship.legs)%4===0){returnToBase(state,ship,ship.operatingBase,at);return;}
-    if(chooseDelivery(state,ship,at).ok)return;
+    if(permits(ship,'trade')&&chooseDelivery(state,ship,at).ok)return;
     task(state,ship,'idle','No affordable stock, destination shortage, repair or available mining claim',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},{},at);ship.task.phase='idle';ship.phase='docked';schedule(state,ship,Math.max(at,now(state))+initialize(state).config.idleSeconds);park(state,ship,at);
   }
   function action(state,ship,at){

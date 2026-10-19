@@ -17,7 +17,7 @@ HELPERS=r'''()=>{
   const check=(value,message)=>{if(!value)throw Error(message);};
   window.__accessTest={check,original:JSON.stringify(nativeNpcDev.getState())};const t=__accessTest;
   t.state=()=>nativeNpcDev.getState();
-  t.reload=value=>{localStorage.setItem('broken-mirror-native-save',typeof value==='string'?value:JSON.stringify(value));resumeNativeGame();const s=t.state();nativeNpcLives.initialize(s);return s;};
+  t.reload=value=>{nativeSaveStorage.write(typeof value==='string'?JSON.parse(value):value);resumeNativeGame();const s=t.state();nativeNpcLives.initialize(s);return s;};
   t.tick=()=>{const s=t.state(),dt=.25;nativeSimulation.advance(s,dt);nativeSolEconomy.advance(s,dt);nativeCivilianTraffic.advance(s,dt);nativeCombatShots.advance(s,dt);nativeEnvironmentalImpacts.advance(s,dt);nativeShipEffects.advance(s,dt);nativeAsteroidCombat.advance(s,dt);};
   t.until=(predicate)=>{let n=0;while(!predicate()){t.tick();check(++n<6000,'Civilian access scenario stalled');}};
   t.assert=()=>{const s=t.state(),a=nativeCivilianAccess;

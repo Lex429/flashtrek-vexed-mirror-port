@@ -18,7 +18,7 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
 SETUP=r"""saved=>{
  const original=nativeNpcDev.getState(),state={...original,...JSON.parse(JSON.stringify(saved)),devMode:true};
  const stuck=state.civilianTraffic.ships.filter(s=>s.system===1&&s.port===3&&s.task?.phase==='waiting-payment');
- localStorage.setItem('broken-mirror-native-save',JSON.stringify(state));resumeNativeGame();
+ nativeSaveStorage.write(state);resumeNativeGame();
  const s=nativeNpcDev.getState(),ids=stuck.map(s=>s.id),before=new Map(stuck.map(s=>[s.id,{x:s.x,y:s.y,deliveries:s.deliveries||0}]));
  window.__jam={ids,before,moved:new Set(),delivered:new Set(),rerouted:new Set(),initialCount:s.civilianTraffic.ships.length,maxQueue:0,leases:new Set(),series:[]};
  __jam.check=(ok,label)=>{if(!ok)throw Error(label);};
@@ -78,7 +78,7 @@ def main():
             page.wait_for_function('()=>nativeNpcDev.getState() && nativeSolAsteroids.placements.length')
             page.evaluate('()=>{window.__jamFrozen=true;window.requestAnimationFrame=()=>0;}')
             # Exercise the real lot selector/buttons, not only calculation APIs.
-            page.evaluate("""()=>{const s=nativeNpcDev.getState();window.__retailState=s;Object.assign(s,{devMode:false,shipType:4,system:1,localBody:3,localCruise:null,latinum:100000,solFreightHold:{}});const m=nativeNpcLives.market(s,1,3);m.stock[6]=120;m.reserved[6]=0;m.incoming[6]=0;m.fundsReserved=0;window.__retailBank=m.credits;}""")
+            page.evaluate("""()=>{const s=nativeNpcDev.getState();window.__retailState=s;Object.assign(s,{devMode:false,deuranium:0,shipType:4,system:1,localBody:3,localCruise:null,latinum:100000,solFreightHold:{}});const m=nativeNpcLives.market(s,1,3);m.stock[6]=120;m.reserved[6]=0;m.incoming[6]=0;m.fundsReserved=0;window.__retailBank=m.credits;}""")
             page.locator('#tradeBtn').click()
             page.locator('#freight-lot').select_option('100')
             buy=int(page.locator('[data-freight-buy="6"]').get_attribute('data-quote'))

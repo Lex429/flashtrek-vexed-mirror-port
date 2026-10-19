@@ -24,6 +24,13 @@ The `flashtrek-broken-mirror` folder contains artwork, audio, data, and JavaScri
 
 ## Combat and effects
 
+Inventory now displays and fits the current hull's weapon, repair-drone, ability,
+engineering and shield bays. The Olympic has six drone bays for players and NPCs.
+Hull changes preserve owned equipment in fitted bays or the locker; buy additional
+Dots at a port instead of receiving free equipment with empty slots. Normal and
+Dev games have separate Continue buttons and save slots. See the
+[shared hardware and registration guide](docs/unified-ships.md).
+
 All flight ships render above planets. Weapon shots collide with the first ship, asteroid, or registered destructible object in their path, including when the original target moves away or disappears. Armed civilian ships can return fire against the actual attacker.
 
 The port and [damage showcase](html-games/flashtrek-broken-mirror/damage-showcase.html) use the same phaser, disruptor, and torpedo renderer. Explosion pressure and flying wreckage trigger shield flashes or hull sparks without reducing ship health. Nearby asteroids can be destroyed by these environmental impacts.

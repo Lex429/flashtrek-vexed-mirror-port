@@ -123,7 +123,7 @@ try:
         page.evaluate("""() => {
           const advance=nativeCivilianTraffic.advance;
           nativeCivilianTraffic.advance=(state,dt)=>{window.__restoredState=state;return advance(state,dt);};
-          document.querySelector('[data-menu="continue"]').click();
+          document.querySelector('[data-menu="continue-dev"]').click();
         }""")
         page.wait_for_function('() => !!window.__restoredState')
         owned_after = page.evaluate("""() => {

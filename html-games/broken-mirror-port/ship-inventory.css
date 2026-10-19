@@ -101,3 +101,12 @@
 .inventory-contract-actions button:first-child{border-color:#83d4e4a6;background:#1d5266a6;color:#efffff}
 @media(max-width:440px){.inventory-contract-card,.inventory-contract-card:only-child{padding:7px 8px 7px 11px}.inventory-contract-main{grid-template-columns:56px minmax(0,1fr) 56px;gap:7px}.inventory-contract-planet{width:56px;height:56px}.inventory-contract-destination{font-size:16px}.inventory-contract-kicker{font-size:7px}.inventory-contract-cargo{font-size:9px}.inventory-contract-cargo img{width:17px;height:17px}.inventory-contract-payment strong{font-size:13px}.inventory-contract-actions button{font-size:8px}}
 @media(max-height:550px){.inventory-contract-cards{gap:4px}.inventory-contract-card,.inventory-contract-card:only-child{gap:4px;padding:4px 7px 4px 10px}.inventory-contract-main{grid-template-columns:44px minmax(0,1fr) 54px;gap:7px}.inventory-contract-planet{width:44px;height:44px}.inventory-contract-kicker{font-size:7px}.inventory-contract-destination{font-size:14px}.inventory-contract-cargo{font-size:8px}.inventory-contract-cargo img{width:14px;height:14px}.inventory-contract-payment strong{font-size:12px}.inventory-contract-actions{padding-top:3px}.inventory-contract-actions button{min-height:20px;padding:0 3px;font-size:8px}}
+
+/* Typed bays stay visible for every hull; the equipment panel scrolls on small screens. */
+.inventory-panel{height:min(800px,100%);width:min(1280px,100%)}
+.inventory-loadout{overflow:auto;display:flex;flex-direction:column}.inventory-rig{min-height:220px;flex:1}
+.inventory-drone-bays{margin-top:9px}.inventory-drone-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.inventory-drone-grid .inventory-slot{min-height:51px;text-align:left}.inventory-drone-grid strong{font-size:11px}
+.inventory-fitting-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11px}.inventory-fitting-actions button,.inventory-fitting-actions select{background:#102b3a;color:#d9ecf1;border:1px solid #477b8c;padding:7px;border-radius:4px}.inventory-fitting-actions button:disabled{opacity:.4}
+.inventory-system{cursor:pointer;text-align:left}.inventory-system:focus-visible{outline:2px solid #8ce3ef}.inventory-drone-grid .empty strong{color:#9db1bc}
+@media(max-width:760px){.inventory-drone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-rig{min-height:220px}}

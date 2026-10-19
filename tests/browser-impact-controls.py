@@ -69,7 +69,7 @@ try:
               Object.assign(tug,{x:0,y:0,previousX:0,previousY:0,heading:0,speed:0,vx:0,vy:0,phase:'waiting',hull:1000,shields:1000,lifeEventAt:1e8,dimensions:{width:24,height:120},tons:4});
               s.solEconomy.freighters=[tug];
             }
-            localStorage.setItem('broken-mirror-native-save',JSON.stringify(s));resumeNativeGame();__impactTick(1);return nativeNpcDev.getState();
+            nativeSaveStorage.write(s);resumeNativeGame();__impactTick(1);return nativeNpcDev.getState();
           };
           window.__impactSnapshot=()=>{const s=nativeNpcDev.getState();return copy({x:s.x,y:s.y,angle:s.angle,speed:s.speed,vx:s.vx,vy:s.vy,kick:s.motionKick,spin:s.motionSpin,clock:nativeSimulation.seconds(s)});};
           __impactActivate();

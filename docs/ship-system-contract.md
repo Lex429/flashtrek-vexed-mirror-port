@@ -1,5 +1,8 @@
 # Ship system contract
 
+The current hardware/equipment migration is specified in [unified ships](unified-ships.md).
+It supersedes the old ownership-specific capacity and movement exceptions below.
+
 The active game starts at `html-games/broken-mirror-port/index.html` and
 `native-game.js`. The archived previews are not alternate gameplay engines.
 The live game and damage showcase share their weapon and shield shaders in
@@ -134,16 +137,14 @@ Intentional differences belong in data, including default equipment, hull/shield
 capacities, emitter offsets, geometry, dimensions, movement profile and explicit
 capabilities. The civilian display heights remain shuttle size for type 18, 22.5
 for type 23, 72 for type 47 and 90 for type 52. Regular delivery tugs retain the
-164/512 artwork aspect ratio at the established flight height. Delivery tugs have
-`armed:false` and `canMine:false`; owning the same tug hull as a player does not
-prevent the player from equipping it. Civilian fallback defensive weapon IDs are
+164/512 artwork aspect ratio at the established flight height. Delivery tugs select a cargo-only job policy and an initially empty weapon
+loadout; their hull supports the same equipment and capabilities as a player tug. Civilian fallback defensive weapon IDs are
 definition data, not a private NPC weapon implementation.
 
 The standard damage stages are hull fractions below .75, .5 and .25. The old tug
 implementation alone switched its last frame at exactly .25; all ships now use
 the canonical flight-art threshold `< .25`. The disabled threshold remains its
-separate explicit capability, normally .25 for civilian and delivery roles and
-zero for the player. Disabling and a damage-stage frame are separate results.
+separate explicit capability, normally .25 for all ordinary hulls, regardless of controller. Disabling and a damage-stage frame are separate results.
 
 Controllers may set goals, choose paths, select movement profiles, choose a
 target/weapon and react to completed commands. They may not introduce private
@@ -279,8 +280,9 @@ commands; controllers retain the decision to mine and what to do with collected 
 ## Save compatibility
 
 The existing numeric `weapons` and `weaponInventory` arrays remain projections
-for compatible saves and UI. `weaponLoadout.version:1` stores stable owned weapon
-instances, fitted/locker instance IDs and per-instance `readyAt` deadlines. Moving
+for compatible saves and UI. `shipEquipment.version:2` stores typed owned equipment; `weaponLoadout.version:1`
+is its compatibility projection. Instances retain fitted/locker IDs and
+per-instance `readyAt` deadlines. Moving
 the same weapon between slots or the locker preserves its recharge. Granting a
 new weapon creates a new identity. Loading projects the saved instance state
 back to the existing arrays.
