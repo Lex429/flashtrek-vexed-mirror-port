@@ -119,7 +119,11 @@ def main():
                     fixture.parent.mkdir(parents=True,exist_ok=True)
                     fixture.write_text(page.evaluate('JSON.stringify(nativeNpcDev.getState())'),encoding='utf-8')
                 saved=fixture.read_text(encoding='utf-8');report['initialSaveSha256']=hashlib.sha256(fixture.read_bytes()).hexdigest()
-                initial=page.evaluate(SETUP,saved);assert initial['population']==169,initial
+                initial=page.evaluate(SETUP,saved)
+                initial_save=json.loads(saved)
+                medical_added=3 if page.evaluate('()=>!!window.nativeShipRepairs') and not initial_save.get('shipRepairs',{}).get('medicalFleetVersion') else 0
+                expected_population=len(initial_save['civilianTraffic']['ships'])+len(initial_save['solEconomy']['freighters'])+1+medical_added
+                assert initial['population']==expected_population,initial
                 try:
                     page.wait_for_function('()=>__oreMiners.every(ship=>ship.task?.kind==="mining"&&ship.task.status==="active")',timeout=10000)
                 except Exception as error:

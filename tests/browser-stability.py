@@ -1,7 +1,7 @@
 """Cold artwork regressions and repeatable long-window stability measurements.
 
-Default: functional checks, suitable for CI.  --measure adds the unchanged 169
-ship save, five 20-second scenarios and three repetitions by default. Serve an
+Default: functional checks, suitable for CI.  --measure adds the same saved
+ship population, five 20-second scenarios and three repetitions by default. Serve an
 exact Git revision with --revision; compare using the same fixture and browser.
 Cold probes render an existing nearby civilian for five seconds per uncached
 class. --diagnostic-only records representative detail counts and mining read
@@ -376,7 +376,10 @@ def main():
                     report['scenarios'][mode]=[]
                     for repeat in range(args.repetitions):
                         page=open_page();population=page.evaluate(SETUP,{'saved':saved,'mode':mode})
-                        assert population['population']==169,population
+                        initial_save=json.loads(saved)
+                        medical_added=3 if page.evaluate('()=>!!window.nativeShipRepairs') and not initial_save.get('shipRepairs',{}).get('medicalFleetVersion') else 0
+                        expected_population=len(initial_save['civilianTraffic']['ships'])+len(initial_save['solEconomy']['freighters'])+1+medical_added
+                        assert population['population']==expected_population,population
                         page.wait_for_timeout(2000)
                         reset_measurement(page);before=page.evaluate(SNAPSHOT)
                         page.wait_for_timeout(args.seconds*1000)
