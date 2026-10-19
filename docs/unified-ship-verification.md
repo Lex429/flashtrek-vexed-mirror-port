@@ -19,6 +19,11 @@ on rerun. The deuranium fixture required a Python quoting correction after
 switching its saved mining equipment fixture; its corrected complete run passed.
 Original failure logs and successful rechecks remain in ignored test-results.
 
+The first GitHub run exposed inherited startup collision momentum in the beam
+attachment fixture. Its controlled actors now explicitly start at rest through
+the shared motion owner. The complete contract suite passed locally in both Edge
+and bundled Chromium after this fixture correction; gameplay physics is unchanged.
+
 The new Inventory browser suite purchases Olympic, Constellation Tug and Runabout
 hulls through ordinary shipyard buttons. It buys and fits six actual Dots, launches
 all six through the shared repair owner, verifies cargo rejection before charging,

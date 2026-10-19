@@ -97,6 +97,10 @@ try:
               if(category==='player'){entity=state;putPlayer(point);}
               else if(category==='tug'){entity={...clone(templateTug),id,shipType:10,phase:'waiting',x:point.x,y:point.y,heading:0,speed:0,hull:1000,shields:1000};state.solEconomy.freighters.push(entity);}
               else{entity={...clone(templateCivilian),id,shipType:custom&&isSource?9001:47,system:1,phase:'cruise',x:point.x,y:point.y,heading:0,speed:0,hull:1000,shields:1000};state.civilianTraffic.ships.push(entity);}
+              // Startup can leave a real collision impulse in the captured game.
+              // A controlled attachment fixture starts at rest for every actor;
+              // otherwise its inherited drift can cancel the commanded movement.
+              nativeShipMotion.stop(entity);entity.motionAngularVelocity=0;
               if(isSource){delete entity.shipEquipment;delete entity.weaponLoadout;entity.weapons=[models[kind].id,null,null];}
               return {entity,category};
             };
