@@ -28,7 +28,7 @@
     r.calls||=[];r.missions||=[];r.ledger||={consumed:0,lost:0,medicalCapital:0};
     initialized.add(s);
     // Install medical crews once in the existing persistent fleet. Initial capital
-    // is an explicit source; all deuranium thereafter comes from actual markets.
+    // is an explicit source; later deuranium comes from paid markets or finite mining.
     if(!r.medicalFleetVersion&&s.civilianTraffic?.ships){
       r.medicalFleetVersion=1;
       let id=Math.max(-1,...s.civilianTraffic.ships.map(e=>e.id))+1;

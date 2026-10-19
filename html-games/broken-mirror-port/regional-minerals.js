@@ -7,7 +7,8 @@
     tritanium:{name:'Tritanium',use:'Hull strength and armor',value:24},
     dilithium:{name:'Dilithium',use:'Weapon upgrades',value:32},
     gallicite:{name:'Gallicite',use:'Engines and speed',value:38},
-    benamite:{name:'Benamite',use:'Advanced interstellar drives',value:180}
+    benamite:{name:'Benamite',use:'Advanced interstellar drives',value:180},
+    deuranium:{name:'Deuranium ore',use:'Refine into deuranium for hull repair and medical supplies',value:55,good:7}
   });
   const mixes={
     earth:{name:'Earth and nearby independent space',weights:{trellium:60,tritanium:18,dilithium:12,gallicite:9.7,benamite:.3}},
@@ -30,7 +31,9 @@
     return major[nearest?.governmentId]||'earth';
   }
   function profile(id){
-    id=Number(id);if(!profiles.has(id)){const key=region(id),mix=mixes[key];profiles.set(id,Object.freeze({system:id,key,name:mix.name,weights:Object.freeze({...mix.weights}),count:id===1?360:144+(id*17%5)*24}));}
+    id=Number(id);if(!profiles.has(id)){const key=region(id),mix=mixes[key];profiles.set(id,Object.freeze({system:id,key,name:mix.name,weights:Object.freeze({...mix.weights}),count:id===1?360:144+(id*17%5)*24,
+      // Supplemental deposits never reshuffle an existing belt or its ore IDs.
+      deposits:Object.freeze({deuranium:({earth:16,klingon:12,vulcan:20,cardassian:16,romulan:16,ferengi:12,frontier:8})[key]})}));}
     return profiles.get(id);
   }
   function neighbors(id,count=6){
@@ -50,7 +53,8 @@
     for(let i=result.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[result[i],result[j]]=[result[j],result[i]];}
     return result;
   }
-  function orePrice(system,type){const ore=ores[type];if(!ore)return 0;const weight=profile(system).weights[type];return Math.max(1,Math.round(ore.value*(weight>=30?.85:weight>=10?1:1.25)));}
+  function orePrice(system,type){const ore=ores[type];if(!ore)return 0;if(type==='deuranium')return ore.value;const weight=profile(system).weights[type];return Math.max(1,Math.round(ore.value*(weight>=30?.85:weight>=10?1:1.25)));}
+  const goodForOre=type=>ores[type]?.good??0;
   const recipes=Object.freeze({
     shield:{name:'Trellium shield reinforcement',benefit:'+10% shield capacity per level',materials:{trellium:12,tritanium:4},cost:500,max:3},
     hull:{name:'Tritanium hull plating',benefit:'+10% hull capacity per level',materials:{tritanium:12,dilithium:4},cost:500,max:3},
@@ -66,5 +70,5 @@
     value.speedOrOtherStationValue*=1+.08*level(state,'engine');value.weaponDamageMultiplier=1+.08*level(state,'weapons');value.warpSpeedMultiplier=1+.15*level(state,'drive');value.antimatterUseOrPopulationEffect*=value.warpSpeedMultiplier;
     return value;
   }
-  window.nativeRegionalMinerals=Object.freeze({ores,profile,neighbors,position,distance,seed,oreSequence,orePrice,recipes,held,level,upgradeQuote,stats});
+  window.nativeRegionalMinerals=Object.freeze({ores,profile,neighbors,position,distance,seed,oreSequence,orePrice,goodForOre,recipes,held,level,upgradeQuote,stats});
 })();

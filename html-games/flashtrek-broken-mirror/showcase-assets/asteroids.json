@@ -207,5 +207,16 @@
     "file": "asteroids/asteroid_51.png",
     "width": 156,
     "height": 156
+  },
+  {
+    "id": 1900,
+    "name": "Deuranium asteroid",
+    "oreType": "deuranium",
+    "oreLabel": "Deuranium ore",
+    "oreRole": "Refine into existing deuranium supplies for hull repair and Olympic rescue missions.",
+    "oreImage": "deuranium/ore.png",
+    "file": "deuranium/asteroid.png",
+    "width": 1280,
+    "height": 1280
   }
 ]

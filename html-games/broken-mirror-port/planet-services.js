@@ -66,13 +66,13 @@
     const region=geology.profile(state.system),main=Object.entries(region.weights).filter(([,n])=>n>=30).map(([ore])=>geology.ores[ore].name).join(' and ');
     const sales=Object.entries(geology.ores).map(([type,ore])=>{
       const held=geology.held(state,type),quote=window.nativeNpcLives.mineralQuote(state,type,place.id),canSell=usable&&held>0&&quote.funded&&quote.room;
-      return `<article class="encounter-repair"><strong>${safe(ore.name)} · ${fmt(held)} aboard</strong><span>${safe(ore.use)} · Local refinery offers ${quote.unit} L per unit</span><button data-sell-mineral="${type}" ${canSell?'':'disabled'}>Sell 1</button></article>`;
+      return `<article class="encounter-repair"><strong>${safe(ore.name)} · ${fmt(held)} aboard</strong><span>${safe(ore.use)} · Local refinery offers ${quote.unit} L per unit</span><button data-sell-mineral="${type}" ${canSell?'':'disabled'}>Sell 1</button>${type==='deuranium'?`<button data-refine-deuranium ${usable&&held>0?'':'disabled'}>Refine 1 for repairs</button>`:''}</article>`;
     }).join('');
     const upgrades=Object.keys(geology.recipes).map(kind=>{
       const quote=geology.upgradeQuote(state,kind),enough=Object.entries(quote.materials).every(([ore,n])=>geology.held(state,ore)>=n),full=quote.level>=quote.max;
       return `<article class="encounter-repair"><strong>${safe(quote.name)} · ${quote.level}/${quote.max}</strong><span>${safe(quote.benefit)}</span><small>${Object.entries(quote.materials).map(([ore,n])=>`${n} ${safe(geology.ores[ore].name)}`).join(' + ')} · ${fmt(quote.price)} L</small><button data-upgrade-mineral="${kind}" ${usable&&!full&&enough&&state.latinum>=quote.price?'':'disabled'}>${full?'Fully upgraded':'Install level '+(quote.level+1)}</button></article>`;
     }).join('');
-    return `<section class="regional-mining"><h3>${safe(region.name)}</h3><p>Richest deposits: ${safe(main||'mixed ores')}. Basic ores occur throughout the galaxy. Frontier belts offer the best chance of rare Benamite.</p><button data-prospect type="button">Find an unclaimed asteroid</button><h3>Local ore refinery</h3><p>Sell raw minerals here for funded payment, or keep them for ship upgrades. Refining adds industrial ore to this port's inventory.</p>${sales}<h3>Mineral technology</h3><p>Upgrades stay with this hull model. Each level consumes the listed minerals.</p>${upgrades}</section>`;
+    return `<section class="regional-mining"><h3>${safe(region.name)}</h3><p>Richest deposits: ${safe(main||'mixed ores')}. Basic ores occur throughout the galaxy. Frontier belts offer the best chance of rare Benamite. This system also has ${region.deposits?.deuranium||0} deuranium-bearing deposits.</p><button data-prospect type="button">Find an unclaimed asteroid</button><button data-prospect-ore="deuranium" type="button">Find a deuranium asteroid</button><h3>Local ore refinery</h3><p>Sell raw minerals here for funded payment, or keep them for ship upgrades. Deuranium ore refines one-for-one into repair supplies: keep the supplies or sell ore to replenish this port's deuranium stock. Other minerals refine into industrial ore.</p>${sales}<h3>Mineral technology</h3><p>Upgrades stay with this hull model. Each level consumes the listed minerals.</p>${upgrades}</section>`;
   }
   function shop(state, place, bridge, notice, usable) {
     const ship = currentShip(state, place), ships = offeredShips(state, place);
@@ -101,7 +101,8 @@
     root.querySelectorAll('[data-buy-weapon]').forEach(button => button.onclick = () => act(bridge.buyWeapon(Number(button.dataset.buyWeapon), place.id)));
     root.querySelector('[data-repair]')?.addEventListener('click', () => act(bridge.repair(place.id)));
     root.querySelector('[data-buy-mining]')?.addEventListener('click', () => act(bridge.buyMiningTool(place.id)));
-    root.querySelector('[data-prospect]')?.addEventListener('click',()=>act(bridge.prospect()));
+    root.querySelectorAll('[data-prospect], [data-prospect-ore]').forEach(button=>button.onclick=()=>act(bridge.prospect(button.dataset.prospectOre)));
+    root.querySelectorAll('[data-refine-deuranium]').forEach(button=>button.onclick=()=>act(bridge.refineDeuranium(place.id,1)));
     root.querySelectorAll('[data-sell-mineral]').forEach(button=>button.onclick=()=>act(bridge.sellMineral(button.dataset.sellMineral,place.id,1)));
     root.querySelectorAll('[data-upgrade-mineral]').forEach(button=>button.onclick=()=>act(bridge.upgradeMinerals(button.dataset.upgradeMineral,place.id)));
     root.querySelectorAll('[data-trade-quantity]').forEach(button => button.onclick = () => {quantity = Number(button.dataset.tradeQuantity); update('');});

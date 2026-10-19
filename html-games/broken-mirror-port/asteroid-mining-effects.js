@@ -4,8 +4,8 @@
   const cache=new WeakMap(),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   function artwork(image){
     if(cache.has(image))return cache.get(image);
-    const w=image.naturalWidth,h=image.naturalHeight,canvas=document.createElement('canvas');
-    canvas.width=w;canvas.height=h;const g=canvas.getContext('2d',{willReadFrequently:true});g.drawImage(image,0,0);
+    const w=Math.min(512,image.naturalWidth),h=Math.round(image.naturalHeight*w/image.naturalWidth),canvas=document.createElement('canvas');
+    canvas.width=w;canvas.height=h;const g=canvas.getContext('2d',{willReadFrequently:true});g.drawImage(image,0,0,w,h);
     const alpha=g.getImageData(0,0,w,h).data;
     let left=w,top=h,right=0,bottom=0;
     for(let y=0;y<h;y+=2)for(let x=0;x<w;x+=2)if(alpha[(y*w+x)*4+3]>90){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);}
@@ -19,11 +19,11 @@
       if(row===0){p.moveTo(0,0);p.lineTo(w,0);p.lineTo(w,at(0,28).y);for(let i=28;i>=0;i--){const q=at(0,i);p.lineTo(q.x,q.y);}}
       else if(row===3){p.moveTo(0,h);p.lineTo(w,h);p.lineTo(w,at(2,28).y);for(let i=28;i>=0;i--){const q=at(2,i);p.lineTo(q.x,q.y);}}
       else{p.moveTo(0,at(row-1,0).y);for(let i=1;i<=28;i++){const q=at(row-1,i);p.lineTo(q.x,q.y);}p.lineTo(w,at(row,28).y);for(let i=28;i>=0;i--){const q=at(row,i);p.lineTo(q.x,q.y);}}
-      p.closePath();p.clip();p.drawImage(image,0,0);pieces.push(piece);
+      p.closePath();p.clip();p.drawImage(canvas,0,0);pieces.push(piece);
       const hot=document.createElement('canvas');hot.width=w;hot.height=h;const hg=hot.getContext('2d');hg.drawImage(piece,0,0);hg.globalCompositeOperation='source-atop';hg.fillStyle='#ff5b16';hg.fillRect(0,0,w,h);heat.push(hot);
     }
     const outline=document.createElement('canvas');outline.width=w;outline.height=h;
-    const og=outline.getContext('2d');og.shadowColor='#49c9ff';og.shadowBlur=Math.max(3,w*.012);og.drawImage(image,0,0);og.globalCompositeOperation='destination-out';og.shadowBlur=0;og.drawImage(image,0,0);
+    const og=outline.getContext('2d');og.shadowColor='#49c9ff';og.shadowBlur=Math.max(3,w*.012);og.drawImage(canvas,0,0);og.globalCompositeOperation='destination-out';og.shadowBlur=0;og.drawImage(canvas,0,0);
     const result={image,w,h,alpha,cuts,cut,pieces,heat,outline};cache.set(image,result);return result;
   }
   function solid(data,x,y,scale=1){
@@ -60,12 +60,14 @@
     return{pass,raw,ease,point:data.cut(pass,data.cuts.x0+(data.cuts.x1-data.cuts.x0)*progress)};
   }
   function draw(ctx,m,{x,y,source,zoom,now,w=Infinity,h=Infinity}){
-    const age=now-m.born,rock=m.rock,im=window.nativeSolAsteroids.image(rock.file);
+    const age=now-m.born,rock=m.rock;
+    const damage=rock.oreType==='deuranium'?Math.max(Number(m.state?.asteroidDamage?.[rock.slotId])||0,rock.maxHull*.75*clamp(age/6000,0,1)):0;
+    const im=window.nativeSolAsteroids.image(damage?window.nativeSolAsteroids.frame(rock,damage):rock.file);
     if(!im.complete||!im.naturalWidth)return;
     const visible=window.nativeEffectVisibility?.mining(x,y,source,rock.size,{w,h})??true;
     // Avoid image sampling and texture construction for unseen mining effects.
     if(!visible&&!m.effect)return;
-    if(!m.effect)m.effect=create(im,rock,now);
+    if(!m.effect||m.effect.data.image!==im)m.effect=create(im,rock,now);
     const effect=m.effect,{data,parts,unit,preview}=effect,size=rock.size,heatAge=age-3950,pressure=clamp(heatAge/3600,0,1),ease=pressure*pressure*(3-2*pressure),shieldScale=1.05-.43*ease;
     const dt=clamp((now-effect.clock)/1000,0,.06);effect.clock=now;
     for(let row=0;row<4;row++){
@@ -102,7 +104,7 @@
       const trail=effect.trail,tg=trail.getContext('2d');tg.clearRect(0,0,trail.width,trail.height);tg.globalCompositeOperation='source-over';tg.lineCap='round';tg.lineJoin='round';
       const pixelScale=data.w/preview;
       const trailPass=(pass,length)=>{tg.beginPath();for(let i=0;i<=28*length;i++){const f=pass%2?1-i/28:i/28,q=data.cut(pass,data.cuts.x0+(data.cuts.x1-data.cuts.x0)*f);if(i)tg.lineTo((q.x+.5)*data.w,(q.y+.5)*data.h);else tg.moveTo((q.x+.5)*data.w,(q.y+.5)*data.h);}tg.strokeStyle='#ff9b42';tg.shadowColor='#ff681c';tg.shadowBlur=8*pixelScale;tg.lineWidth=4*pixelScale;tg.stroke();tg.strokeStyle='#fff2b0';tg.lineWidth=1*pixelScale;tg.stroke();};
-      for(let pass=0;pass<s.pass;pass++)trailPass(pass,1);trailPass(s.pass,s.ease);tg.globalCompositeOperation='destination-in';tg.shadowBlur=0;tg.drawImage(im,0,0);
+      for(let pass=0;pass<s.pass;pass++)trailPass(pass,1);trailPass(s.pass,s.ease);tg.globalCompositeOperation='destination-in';tg.shadowBlur=0;tg.drawImage(im,0,0,data.w,data.h);
       ctx.save();ctx.translate(x,y);ctx.rotate(rock.angle);ctx.globalCompositeOperation='lighter';ctx.drawImage(trail,-size/2,-size/2,size,size);ctx.restore();
       if(s.raw>0&&s.raw<1){const power=Math.sin(Math.PI*s.raw),beamUnit=Math.max(.8,unit);ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=power;ctx.lineCap='round';ctx.shadowColor='#36c9ff';ctx.shadowBlur=(8+8*power)*beamUnit;ctx.strokeStyle='rgba(51,184,255,.48)';ctx.lineWidth=(3.5+1.2*power)*beamUnit;ctx.beginPath();ctx.moveTo(source.x,source.y);ctx.lineTo(tipX,tipY);ctx.stroke();ctx.shadowBlur=(4+4*power)*beamUnit;ctx.strokeStyle='#d8faff';ctx.lineWidth=(1+.6*power)*beamUnit;ctx.stroke();ctx.fillStyle='#fff8dc';ctx.beginPath();ctx.arc(tipX,tipY,(2.5+power)*beamUnit,0,Math.PI*2);ctx.fill();ctx.restore();
         for(let j=0;j<3;j++){const a=now*.017+j*2.4,d=(3+j*2)*beamUnit;ctx.save();ctx.fillStyle=j?'#ffb35b':'#fff8ce';ctx.fillRect(tipX+Math.cos(a)*d,tipY+Math.sin(a)*d,1.4*beamUnit,1.4*beamUnit);ctx.restore();}
@@ -128,7 +130,7 @@
         arc.strokeStyle='#9de7ff';arc.shadowColor='#2faeff';arc.shadowBlur=4*pixelScale;
         arc.globalAlpha=.65*pressure;arc.lineWidth=.7*pixelScale;arc.stroke();
       }
-      arc.globalAlpha=1;arc.shadowBlur=0;arc.globalCompositeOperation='destination-in';arc.drawImage(im,0,0);
+      arc.globalAlpha=1;arc.shadowBlur=0;arc.globalCompositeOperation='destination-in';arc.drawImage(im,0,0,data.w,data.h);
       ctx.save();ctx.translate(x,y);ctx.rotate(rock.angle);ctx.globalCompositeOperation='lighter';
       ctx.drawImage(arcCanvas,-size/2,-size/2,size,size);ctx.restore();
     }

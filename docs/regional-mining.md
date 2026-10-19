@@ -95,3 +95,11 @@ was 5.40 ms in both runs. Dev map simulation p95 remained 0.40 ms. Flight frame
 interval p95 was 30.3/30.4 ms, with one/two intervals above 50 ms. These short
 machine-specific measurements do not establish a smoothness improvement;
 occasional frame stalls remain.
+
+## Deuranium mining extension
+
+Deuranium-bearing deposits supplement both belts in every system. A separate deterministic random stream assigns `system * 100000 + 90000 + index` IDs. The original 262 Sol slots and all 10,462 pre-extension regional rocks keep their exact IDs, ores, poses, sizes and artwork. Existing mined/destroyed IDs remain depleted. `regional-minerals.js` owns the immutable supplemental counts; the original geological weights and ore sequence remain unchanged.
+
+The new transparent artwork is in `showcase-assets/deuranium/`: intact, light, heavy and severe asteroid sprites plus the matching ore nugget. The built-in image generation prompts are in `provenance.json`. Visible damage surfaces are bounded to 512 pixels and intersect the previous stage's alpha so missing stone cannot return. Mining advances saved damage over six seconds through `asteroid-combat.js`; player and scheduled NPC cuts use the same owner. Cancellation and save/load retain that damage. Environmental hits retain the existing 25% hull floor. Weapon destruction produces debris, not deuranium ore; the ordinary timed mining completion still grants exactly four pickup bits once.
+
+Use **Find a deuranium asteroid** in the Mining shop or local Market. Collect its raw ore, then choose **Refine 1 for repairs** at an inhabited port to replenish the existing deuranium balance, or sell raw ore to add deuranium to the port's good 7 stock. Other minerals continue to refine into industrial Ore. Olympic crews automatically buy or mine and refine their own medical reserves; see [ship repairs](ship-repairs.md).

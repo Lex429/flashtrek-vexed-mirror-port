@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "created": "2026-10-19",
+  "tool": "Built-in image_gen.imagegen",
+  "transparent_background": true,
+  "notes": "Project copies preserve the generated PNGs and alpha. Runtime damage surfaces intersect prior-stage alpha at a bounded 512px working size to prevent silhouette regrowth. Gameplay fragments sample the actual asteroid artwork; they are never ore entitlements.",
+  "assets": [
+    {
+      "file": "asteroid.png",
+      "kind": "intact",
+      "prompt": "Use case: stylized-concept. Asset type: transparent top-down asteroid sprite for the existing 2D browser space game FlashTrek Vexed Mirror. Create ONE isolated intact deuranium-bearing asteroid, a compact irregular chunky charcoal-gray meteorite with rough photorealistic cratered stone, distinct pale turquoise metallic mineral seams and small cloudy silver-aqua inclusions embedded INSIDE the rock (not tall crystal spikes), restrained subtle aqua glow. Orthographic top-down view, upper-left directional light, realistic weathered granular stone, highly readable rocky silhouette, no perspective ground. Composition: square image, asteroid centered occupying 78% of width and height, generous transparent padding around every edge, no detached pieces. This is the master undamaged sprite for later damage edits: asymmetrical broad rock with a notch at upper right and two rounded lobes at lower left; strong stable recognizable crater landmarks. Fully intact rock, no mining scars yet. Genuine transparent background, no background shadow, no stars, no text, no labels, no watermark. Match a realistic painted/raster space-game asteroid rather than a cartoon gem."
+    },
+    {
+      "file": "asteroid_light.png",
+      "kind": "light",
+      "reference": "asteroid.png",
+      "prompt": "Edit target: supplied intact deuranium asteroid sprite. Create its LIGHT DAMAGE state. Preserve exactly the same asteroid, canvas dimensions, camera, scale, position, upper-left light, silhouette and all crater landmarks. Change only a few local rock faces: fine branching hairline cracks, tiny freshly chipped edges and a small shallow chipped wound on its upper-left aqua vein. Reveal slightly more pale turquoise metallic deuranium in that wound. At least 90% of the source rock stays unchanged. No detached debris, no fire or neon glow. Genuine transparent background; no text. This must align pixel-for-pixel as the next frame in a game damage sequence."
+    },
+    {
+      "file": "asteroid_heavy.png",
+      "kind": "heavy",
+      "reference": "asteroid.png",
+      "prompt": "Edit target: supplied intact deuranium asteroid sprite. Create its HEAVY DAMAGE state. Preserve same canvas dimensions, position, camera, scale, upper-left lighting and the undamaged crater landmarks. Same asteroid identity. Carve substantial jagged fractures along the central diagonal aqua mineral seam and excavate a localized rock wound on the upper-left face, exposing cloudy silver-turquoise metallic mineral inside. Small missing chunks at the top-right notch and lower-left lobe; surface largely still recognizable and 80% intact. Fractures are actual torn stone with depth and irregular dark crevices, not painted lines. No detached debris, no fire, no extra rock outside original silhouette, genuine transparent background, no text. Game damage sprite aligned exactly to reference."
+    },
+    {
+      "file": "asteroid_severe.png",
+      "kind": "severe",
+      "reference": "asteroid.png",
+      "prompt": "Edit target: supplied intact deuranium asteroid sprite. Create its SEVERE DAMAGE state. Preserve canvas dimensions, exact center/scale/orientation and surviving crater landmarks of same asteroid. Extend large jagged fractures through its central diagonal aqua seams, expose deep pale turquoise metallic deuranium core, crumble and remove chunks along the top-right notch, left-middle and lower-left lobe. Keep a single recognizably matching fractured rock, around 65-75% of original silhouette remaining, with serious through-cracks and ragged broken rock faces. Missing material must be transparent, never grow outside original silhouette. Highly detailed realistic stone, same upper-left lighting. No floating fragments, no fire, no artificial glow, genuine transparent background, no text."
+    },
+    {
+      "file": "ore.png",
+      "kind": "ore",
+      "prompt": "Use case: stylized-concept. Asset type: single deuranium ore pickup sprite in a realistic 2D top-down space game. One compact irregular mineral nugget, freshly broken pale turquoise and cloudy silver metallic deuranium ore with natural opaque crystalline grain, narrow charcoal rock crust along one side, jagged mineral faces, subtle aqua highlights. Orthographic view, upper-left directional light, realistic painted 3D raster style matching cratered asteroid artwork. Centered square composition occupying 65% of canvas, entire nugget visible with generous clear padding. No other nuggets, no asteroid background, no light rays, no huge neon glow, no stars, no cast shadow on a surface, no text. Truly transparent background. Should remain readable as a tiny ore pickup at 12-24 pixels."
+    }
+  ]
+}

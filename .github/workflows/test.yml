@@ -64,6 +64,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-regional-mining.py
+      - name: Deuranium damage artwork, player refinery and Olympic mining to rescue
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-deuranium-mining.py
       - name: Offscreen mining preserves gameplay without drawing ore effects
         env:
           BROWSER_CHANNEL: ''

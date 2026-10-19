@@ -102,3 +102,16 @@ Ship, asteroid and fragment dispatchers mark effects `physicalContact`; shared
 effects keep their brief hull-local glint separate from weapon shield flashes.
 Never change weapon interception to make navigation easier. Run
 `hull-navigation.test.cjs` and real-key hull-clear passage/weapon pixel checks.
+
+Deuranium deposits append reserved `system * 100000 + 90000 + index` IDs using
+an independent seed; never change the original regional ore sequence or poses.
+Raw deuranium refines into existing good 7/repair supplies, unlike other minerals'
+industrial Ore output. NPC collection records its material source once in
+`economicLedger.produced[7]`; refinery transfer cannot produce it again.
+Olympic refill hysteresis (below 60 t through a 200 t goal), buying/mining choices,
+claims, real refinery docking and trade/rescue interruption belong to
+`npc-lives.js`. Keep raw cargo, completed claims, reserves and policy flags saved.
+`asteroid-combat.js` owns saved mining damage; rendering only reads it. Retain the
+environmental floor and prevent weapon destruction from granting deuranium ore.
+Run `deuranium-mining.test.cjs` and `browser-deuranium-mining.py` plus regional,
+repair, conservation, traffic, physics and same-save browser performance checks.

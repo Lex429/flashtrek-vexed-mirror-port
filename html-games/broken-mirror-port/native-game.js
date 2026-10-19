@@ -366,7 +366,7 @@ function openHub(tab='navigation'){
  cancelTargetPress();
  if(tab==='navigation'){showMap();return;}
  window.nativeGalaxyMap?.close(false);window.nativePlanetEncounter?.close(false);modal.hidden=true;keys={};
- window.nativeSystemHub.open({getState:()=>game,price:hubPrice,cruise:hubCruise,trade:hubTrade,freightTrade:hubFreightTrade,buyShip:hubBuyShip,upgradeTug:hubUpgradeTug,sellMineral:hubSellMineral,upgradeMinerals:hubUpgradeMinerals,prospect:hubProspect,contract:hubContract,deliver:hubDeliver,openMap:showMap,openEncounter},tab);
+ window.nativeSystemHub.open({getState:()=>game,price:hubPrice,cruise:hubCruise,trade:hubTrade,freightTrade:hubFreightTrade,buyShip:hubBuyShip,upgradeTug:hubUpgradeTug,sellMineral:hubSellMineral,refineDeuranium:hubRefineDeuranium,upgradeMinerals:hubUpgradeMinerals,prospect:hubProspect,contract:hubContract,deliver:hubDeliver,openMap:showMap,openEncounter},tab);
 }
 function hubBuyMiningTool(port){
  if(!hubHere(port))return{ok:false,error:'Reach this port to buy the mining laser.'};
@@ -380,14 +380,18 @@ function hubSellMineral(type,port,tons){
  if(!hubHere(port))return{ok:false,error:'Reach this port to sell minerals.'};
  const result=window.nativeNpcLives.sellMineral(game,type,port,tons);if(result.ok){save(true);refresh();}return result;
 }
+function hubRefineDeuranium(port,tons=1){
+ if(!hubHere(port))return{ok:false,error:'Reach this port to refine deuranium.'};
+ const result=window.nativeNpcLives.refineDeuranium(game,port,tons);if(result.ok){save(true);refresh();}return result;
+}
 function hubUpgradeMinerals(kind,port){
  if(!hubHere(port))return{ok:false,error:'Reach this port to install mineral technology.'};
  const result=window.nativeNpcLives.upgradeMinerals(game,kind,port);if(result.ok){updateVisuals();save(true);refresh();}return result;
 }
-function hubProspect(){
+function hubProspect(oreType){
  const ship=game.system===1?window.vexedSolFlight.shipPosition(game):game,gone=new Set([...(game.minedAsteroids||[]),...(game.destroyedAsteroids||[])]);
- const rock=(window.nativeSolAsteroids.forSystem(game.system)||[]).filter(r=>!r.demo&&!gone.has(r.slotId)&&!window.nativeCivilianTraffic.isMiningRock(game,r.slotId)).sort((a,b)=>Math.hypot(a.x-ship.x,a.y-ship.y)-Math.hypot(b.x-ship.x,b.y-ship.y))[0];
- if(!rock)return{ok:false,error:'No unclaimed asteroids remain in this system.'};
+ const rock=(window.nativeSolAsteroids.forSystem(game.system)||[]).filter(r=>(!oreType||r.oreType===oreType)&&!r.demo&&!gone.has(r.slotId)&&!window.nativeCivilianTraffic.isMiningRock(game,r.slotId)).sort((a,b)=>Math.hypot(a.x-ship.x,a.y-ship.y)-Math.hypot(b.x-ship.x,b.y-ship.y))[0];
+ if(!rock)return{ok:false,error:oreType==='deuranium'?'No unclaimed deuranium deposits remain in this system.':'No unclaimed asteroids remain in this system.'};
  const dx=rock.x-ship.x,dy=rock.y-ship.y,distance=Math.hypot(dx,dy),factor=Math.max(0,1-220/Math.max(1,distance));
  game.arrivalApproach={system:game.system,x:game.x+dx*factor,y:game.y+dy*factor};game.landed=false;game.speed=window.vexedRebirthWarp.arrivalSpeed;
  window.nativeSystemHub.close(false);window.nativePlanetEncounter.close(false);window.nativeAsteroidCombat.select(rock);save(true);message('Approaching '+rock.region+'. Stop near the asteroid, then choose Mine.');return{ok:true};
@@ -396,7 +400,7 @@ function openEncounter(){
  if(!game||busy())return;
  cancelTargetPress();
  window.nativeSystemHub?.close(false);window.nativeGalaxyMap?.close(false);modal.hidden=true;keys={};
- window.nativePlanetEncounter.open({getState:()=>game,price:hubPrice,trade:hubTrade,buyShip:hubBuyShip,buyWeapon:hubBuyWeapon,buyMiningTool:hubBuyMiningTool,repair:hubRepair,sellMineral:hubSellMineral,upgradeMinerals:hubUpgradeMinerals,prospect:hubProspect,quote:hubCargoPay,contract:hubContract,deliver:hubDeliver});
+ window.nativePlanetEncounter.open({getState:()=>game,price:hubPrice,trade:hubTrade,buyShip:hubBuyShip,buyWeapon:hubBuyWeapon,buyMiningTool:hubBuyMiningTool,repair:hubRepair,sellMineral:hubSellMineral,refineDeuranium:hubRefineDeuranium,upgradeMinerals:hubUpgradeMinerals,prospect:hubProspect,quote:hubCargoPay,contract:hubContract,deliver:hubDeliver});
 }
 function trade(){if(!game||busy())return;window.nativeGalaxyMap?.close(false);const hailed=window.nativePlanetComm?.active;if(!game.landed&&!game.devMode&&!hailed&&!marketFromPlanet){toast('Click the planet or dock nearby [E]');return}if(hailed)marketFromPlanet=true;window.nativePlanetComm?.close(false);dialog.innerHTML=`<p style="color:var(--cyan);letter-spacing:.12em">LOCAL EXCHANGE · ${sys(game.system).name.toUpperCase()}</p><h2>Cargo market</h2><p>Exchange goods at local rates. One unit per transaction.</p><div class="market">${goods.map((g,i)=>{const price=([18,24,45,8][i])+((game.system*7+i*13)%19);return`<div><b>${g}</b><br><small>In hold: ${game.devMode?'∞':game[g.toLowerCase()]}</small></div><div>${game.devMode?'FREE':price+' L'}</div><button data-buy="${g}" data-price="${price}">Buy</button><button data-sell="${g}" data-price="${Math.max(1,price-4)}">Sell</button>`}).join('')}</div><p id="marketmsg" class="muted"></p><div class="row"><button data-close>Close</button></div>`;dialog.querySelector('[data-close]').onclick=close;dialog.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>tradeOne(b.dataset.buy,Number(b.dataset.price),true));dialog.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>tradeOne(b.dataset.sell,Number(b.dataset.price),false));modal.hidden=false}
 function tradeOne(item,price,buy){const key=item.toLowerCase(),msg=dialog.querySelector('#marketmsg');if(game.devMode){msg.textContent=`${item} is unlimited in Dev mode.`;return}if(buy&&game.latinum<price){msg.textContent='Not enough latinum.';return}if(buy&&game.stocks[item]<=0){msg.textContent='Market depleted.';return}if(!buy&&game[key]<1){msg.textContent='No cargo available to sell.';return}game[key]+=buy?1:-1;game.latinum+=buy?-price:price;game.stocks[item]+=buy?-1:1;msg.textContent=`${buy?'Bought':'Sold'} 1 ${item}.`;refresh();save();trade()}

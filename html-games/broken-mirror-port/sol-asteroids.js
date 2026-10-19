@@ -3,6 +3,7 @@
   'use strict';
   const catalogUrl='../flashtrek-broken-mirror/showcase-assets/asteroids.json';
   const artRoot='../flashtrek-broken-mirror/showcase-assets/';
+  const deuraniumStages=Object.freeze(['deuranium/asteroid.png','deuranium/asteroid_light.png','deuranium/asteroid_heavy.png','deuranium/asteroid_severe.png']);
   const regions=[
     {name:'Earth',x:0,y:0,count:7,range:520,shield:2},
     {name:'Moon',x:1400,y:-250,count:7,range:520,shield:2},
@@ -133,6 +134,23 @@
           rocks.push({...art,...point,slotId:system*100000+index,system,region:name,oreType,size,maxHull:Math.max(9,Math.round(size*.45)),angle:random()*Math.PI*2});
         }
       }
+      // Version 1 deuranium extension: independent random stream and a reserved
+      // index range preserve EVERY existing regional pose, ore and depleted ID.
+      const deuranium=catalogData.get('deuranium');
+      if(deuranium?.length){
+        const extra=geology.seed(system*1297+771041);
+        for(let index=0;index<(profile.deposits?.deuranium||0);index++){
+          const belt=index%2,radius=belts[belt].radius,width=belts[belt].width;
+          let point;
+          for(let attempt=0;attempt<240;attempt++){
+            const angle=extra()*Math.PI*2,distance=radius+(extra()-.5)*width*2,candidate={x:origin.x+Math.cos(angle)*distance,y:origin.y+Math.sin(angle)*distance,angle};
+            if(!clear(candidate)||rocks.some(r=>Math.hypot(r.x-candidate.x,r.y-candidate.y)<70))continue;point=candidate;break;
+          }
+          if(!point)continue;
+          const art=deuranium[index%deuranium.length],size=34+extra()*16;
+          rocks.push({...art,...point,slotId:system*100000+90000+index,system,region:belts[belt].name,oreType:'deuranium',size,maxHull:Math.max(9,Math.round(size*.45)),angle:extra()*Math.PI*2,depositVersion:1});
+        }
+      }
       const byId=new Map(rocks.map(r=>[r.slotId,r])),grid=new Map();
       for(const rock of rocks){const key=Math.floor(rock.x/cellSize)+':'+Math.floor(rock.y/cellSize),bucket=grid.get(key)||[];bucket.push(rock);grid.set(key,bucket);}
       systems.set(system,rocks);indexes.set(system,byId);grids.set(system,grid);beltData.set(system,belts);
@@ -167,7 +185,19 @@
       art.src=artRoot+file;
       images.set(file,art);
     }
-    return images.get(file);
+    const art=images.get(file);
+    const stage=deuraniumStages.indexOf(file);
+    if(stage>0&&!art.getContext&&art.complete&&art.naturalWidth){
+      const prior=image(deuraniumStages[stage-1]);if(!prior.complete||!prior.naturalWidth)return prior;
+      // Keep the generated wounds but intersect each silhouette with its prior
+      // stage. Missing stone cannot reappear when a later frame is selected.
+      const frame=document.createElement('canvas');frame.width=frame.height=512;
+      const g=frame.getContext('2d',{willReadFrequently:true});g.drawImage(prior,0,0,512,512);
+      const before=g.getImageData(0,0,512,512).data;g.clearRect(0,0,512,512);g.drawImage(art,0,0,512,512);
+      const after=g.getImageData(0,0,512,512);for(let i=3;i<after.data.length;i+=4)after.data[i]=Math.min(after.data[i],before[i]);g.putImageData(after,0,0);
+      Object.assign(frame,{complete:true,naturalWidth:512,naturalHeight:512,src:art.src});images.set(file,frame);return frame;
+    }
+    return art;
   }
   function screenSize(rock,zoom){return rock.size*Math.min(zoom,2.2);}
   function hitTest({ship,cx,cy,zoom,x,y,mined=[],system=1}){

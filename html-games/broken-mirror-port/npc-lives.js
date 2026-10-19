@@ -197,6 +197,8 @@
   const available=(m,g)=>Math.max(0,finite(m.stock[g])-finite(m.reserved[g]));
   const cargoTons=ship=>finite(ship.cargo?.tons)+finite(ship.oreHold);
   const capacity=ship=>Math.max(0,finite(stats(ship).cargo)-cargoTons(ship)-finite(ship.repairDeuranium));
+  const oreGood=type=>minerals()?.goodForOre(type)??0;
+  const medicalOre=ship=>ship.shipType===58&&ship.cargo?.oreType==='deuranium'&&ship.cargo.raw===true;
   const buyPrice=(m,g)=>costs[g];
   const sellPrice=(m,g,oreType)=>g===0&&minerals()?.ores[oreType]?minerals().orePrice(m.system,oreType):Math.ceil(costs[g]*(finite(m.stock[g])<m.target[g]?1.35:1));
   const availableFunds=m=>Math.max(0,finite(m.credits)-finite(m.fundsReserved));
@@ -215,7 +217,7 @@
     if(reservationId&&(!reservation||reservation.owner!==actor.id||reservation.good!==good||reservation.tons!==tons))return {ok:false,error:'Cargo contract no longer matches.'};
     const ownStock=reservation?.sourceReserved!==false&&reservation?.system===m.system&&reservation?.port===m.port?reservation.tons:0;
     const ownFunds=reservation?.destinationReserved&&reservation.destination.system===m.system&&reservation.destination.port===m.port?reservation.payment:0;
-    if(mineral&&(!player||buy||good!==0||!minerals()?.ores[mineral]))return {ok:false,error:'Invalid mineral refinery transaction.'};
+    if(mineral&&(!player||buy||good!==oreGood(mineral)||!minerals()?.ores[mineral]))return {ok:false,error:'Invalid mineral refinery transaction.'};
     const creditKey=player?'latinum':'credits',balance=finite(actor[creditKey]),held=mineral?minerals().held(actor,mineral):player?finite(actor.solFreightHold?.[good]):actor.cargo?.good===good?finite(actor.cargo.tons):0;
     if(buy){
       if(available(m,good)+ownStock<tons)return {ok:false,error:'The port does not have that much unreserved cargo.'};
@@ -248,6 +250,9 @@
   function reserveBuyer(state,ship,destination,at){
     if(!inhabited(state,destination.system))return false;
     const cargo=ship.cargo,job=ship.task;if(!cargo||cargo.tons<=0)return false;
+    // An Olympic's own mined reserves need a real refinery berth, not a buyer
+    // or treasury escrow. The material remains owned aboard throughout travel.
+    if(medicalOre(ship)){job.destination={system:destination.system,port:destination.port};cargo.toSystem=destination.system;cargo.toPort=destination.port;return true;}
     const payment=cargo.tons*sellPrice(destination,cargo.good,cargo.oreType);
     if(demand(destination,cargo.good)<cargo.tons||availableFunds(destination)<payment)return false;
     release(state,ship);
@@ -282,6 +287,7 @@
       if(job.origin)job.origin.port=portFor(state,job.origin.system,job.origin.port);
       if(job.destination)job.destination.port=portFor(state,job.destination.system,job.destination.port);
       if(ship.cargo){ship.cargo.toPort=portFor(state,ship.cargo.toSystem??job.destination.system,ship.cargo.toPort);ship.cargo.fromPort=portFor(state,ship.cargo.fromSystem??job.origin.system,ship.cargo.fromPort);}
+      if(medicalOre(ship))continue;
       const old=saved[job.id],good=ship.cargo?.good??job.requirements?.good,tons=ship.cargo?.tons??old?.tons??job.requirements?.tons;
       if(!Number.isInteger(good)||!costs[good]||!(tons>0)||(!ship.cargo&&!old))continue;
       const destination=market(state,job.destination.system,job.destination.port),source=ship.cargo?null:market(state,job.origin.system,job.origin.port);
@@ -399,9 +405,21 @@
   }
   function unload(state,ship,at){
     if(!atBerth(state,ship)){approachDock(state,ship,ship.task.destination.port,at,'unloading');return;}
-    window.nativeShipRepairs?.restock(state,ship);
     const job=ship.task;if(job.deliveredAt!==undefined)return finish(state,ship,at);
     const cargo=ship.cargo;if(!cargo||cargo.toSystem!==ship.system){interrupt(state,ship,'cargo unavailable',at);return;}
+    if(cargo.raw&&cargo.oreType==='deuranium'){
+      const ledger=initialize(state).economicLedger;
+      ledger.npcMineralsRefined||={};ledger.npcMineralsRefined.deuranium=finite(ledger.npcMineralsRefined.deuranium)+cargo.tons;
+      cargo.raw=false;
+      if(ship.shipType===58){
+        const kept=Math.min(cargo.tons,Math.max(0,(window.nativeShipRepairs?.rules.medicalStock??200)-finite(ship.repairDeuranium)));
+        ship.repairDeuranium=finite(ship.repairDeuranium)+kept;cargo.tons-=kept;
+        ship.repairMined=finite(ship.repairMined)+kept;
+        event(state,ship,'refined',`Refined ${kept} t mined deuranium into owned medical reserves`,at);
+        if(!cargo.tons){ship.cargo=null;job.deliveredAt=at;job.deliveredTons=kept;return finish(state,ship,at);}
+      }
+    }
+    window.nativeShipRepairs?.restock(state,ship);
     let reservation=initialize(state).reservations[job.id];
     const destination=market(state,job.destination.system,job.destination.port);
     if(!reservation?.destinationReserved){if(!reserveBuyer(state,ship,destination,at)){recoverPayment(state,ship,at);return;}reservation=initialize(state).reservations[job.id];}
@@ -484,31 +502,38 @@
     }
     end();
   }
-  function chooseMining(state,ship,at){
+  function chooseMining(state,ship,at,{oreType,medicalSupply=false}={}){
     if((!minerals()&&ship.system!==1)||access()?.blocked(ship.system)||capacity(ship)<1||stats(ship).capabilities.canMine===false)return false;
     const life=initialize(state),gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
+    const refineries=new Map();
+    const buyersFor=rock=>{
+      const buyerSystem=inhabited(state,rock.system??ship.system)?rock.system??ship.system:ship.operatingBase,good=oreGood(rock.oreType),key=buyerSystem+':'+rock.oreType;
+      if(!refineries.has(key))refineries.set(key,portsIn(state,buyerSystem).map(id=>market(state,buyerSystem,id)).filter(m=>medicalSupply||demand(m,good)>=Math.min(4,capacity(ship))&&availableFunds(m)>=sellPrice(m,good,rock.oreType)*Math.min(4,capacity(ship))));
+      return refineries.get(key);
+    };
     let regions=[ship.system];
     if(access()&&minerals()){
-      const remote=minerals().neighbors(ship.system,world.systems.length).filter(id=>!access().blocked(id)&&!inhabited(state,id)&&access().distance(ship.system,id)<=100).slice(0,3);
-      regions=(ship.id+finite(ship.miningTrips))%3===0?[...remote,ship.system]:[ship.system,...remote];
+      const remote=minerals().neighbors(ship.system,world.systems.length).filter(id=>!access().blocked(id)&&(medicalSupply||!inhabited(state,id)&&access().distance(ship.system,id)<=100)).slice(0,medicalSupply?world.systems.length:3);
+      regions=medicalSupply?[ship.system,...remote]:(ship.id+finite(ship.miningTrips))%3===0?[...remote,ship.system]:[ship.system,...remote];
     }
     let rock;
     for(const id of regions){
-      const candidates=rocksIn(id).filter(r=>!r.demo&&!gone.has(r.slotId)&&!life.reservations[`rock:${r.slotId}`]&&r.slotId!==window.nativeAsteroidCombat?.miningId);
+      const candidates=rocksIn(id).filter(r=>(!oreType||r.oreType===oreType)&&!r.demo&&!gone.has(r.slotId)&&!life.reservations[`rock:${r.slotId}`]&&r.slotId!==window.nativeAsteroidCombat?.miningId);
       if(minerals())candidates.sort((a,b)=>Math.hypot(a.x-ship.x,a.y-ship.y)-Math.hypot(b.x-ship.x,b.y-ship.y));
-      if(candidates.length){rock=candidates[0];break;}
+      rock=candidates.find(r=>!minerals()||buyersFor(r).length);
+      if(rock)break;
     }
     if(!rock)return false;
     const miningSystem=rock.system??ship.system,buyerSystem=inhabited(state,miningSystem)?miningSystem:ship.operatingBase;
     let port=1;
     if(minerals()){
-      const buyers=portsIn(state,buyerSystem).map(id=>market(state,buyerSystem,id)).filter(m=>demand(m,0)>=Math.min(4,capacity(ship))&&availableFunds(m)>=sellPrice(m,0,rock.oreType)*Math.min(4,capacity(ship)));
+      const buyers=buyersFor(rock);
       const source=anchor(miningSystem),buyer=anchor(buyerSystem),distance=m=>{const p=docking().center(buyerSystem,m.port);return Math.hypot(buyer.x+p.x-source.x-rock.x,buyer.y+p.y-source.y-rock.y);};
       buyers.sort((a,b)=>distance(a)-distance(b));
       if(!buyers.length)return false;port=buyers[0].port;
     }
     docking().release(state,ship);
-    const job=task(state,ship,'mining',`Reserved ${rock.oreLabel||'ore'} asteroid; deliver to an inhabited refinery`,{system:miningSystem,port:miningSystem===ship.system?ship.port:0},{system:buyerSystem,port},{rockId:rock.slotId,oreType:rock.oreType,miningSystem,capacity:capacity(ship)},at);
+    const job=task(state,ship,'mining',medicalSupply?'Mine deuranium and refine it into owned medical rescue supplies':`Reserved ${rock.oreLabel||'ore'} asteroid; deliver to an inhabited refinery`,{system:miningSystem,port:miningSystem===ship.system?ship.port:0},{system:buyerSystem,port},{rockId:rock.slotId,oreType:rock.oreType,miningSystem,capacity:capacity(ship),...(medicalSupply?{medicalSupply:true}: {})},at);
     ship.miningReservation=rock.slotId;ship.miningRockSlot=rock.slotId;life.reservations[`rock:${rock.slotId}`]={owner:ship.id,taskId:job.id};
     if(access())ship.miningTrips=finite(ship.miningTrips)+1;
     if(miningSystem!==ship.system){
@@ -520,6 +545,11 @@
   function mine(state,ship,at){
     const rock=rockById(ship.task.requirements.rockId,ship.system);
     if(rock&&!gone(state,rock.slotId)&&Math.hypot(ship.x-rock.x,ship.y-rock.y)>360){localLeg(state,ship,{x:rock.x+110,y:rock.y+40},at,'mining-flight');return;}
+    if(rock?.oreType==='deuranium'){
+      const elapsed=at-ship.miningStartedAt,cut=window.nativeAsteroidCombat.miningTiming.cutSeconds;
+      window.nativeAsteroidCombat.miningDamage(state,rock,elapsed);
+      if(elapsed<cut-1e-7){schedule(state,ship,ship.miningStartedAt+Math.min(cut,(Math.floor((elapsed+1e-7)/2)+1)*2));return;}
+    }
     if(!rock||!window.nativeAsteroidCombat.completeMining(state,rock).ok){interrupt(state,ship,'resource unavailable',at);return;}
     ship.task.cutAt=at;ship.task.phase='collecting';ship.phase='collecting';
     event(state,ship,'mining-cut',`Cut the reserved asteroid; ore transport is in progress`,at);
@@ -533,7 +563,9 @@
     delete initialize(state).reservations[`rock:${rock.slotId}`];delete ship.miningReservation;ship.miningRockSlot=null;
     event(state,ship,'mined',`Consumed asteroid claim and collected ${indices.length} t ore once`,at);
     const destination=ship.task.destination;
-    ship.cargo={good:0,tons:ship.oreHold,owner:ship.id,toSystem:destination.system,toPort:destination.port,fromSystem:ship.system,fromPort:ship.port,...(minerals()?{oreType:rock.oreType,name:rock.oreLabel}: {})};ship.oreHold=0;
+    const good=oreGood(rock.oreType);
+    ship.cargo={good,tons:ship.oreHold,owner:ship.id,toSystem:destination.system,toPort:destination.port,fromSystem:ship.system,fromPort:ship.port,...(minerals()?{oreType:rock.oreType,name:rock.oreLabel,...(good===7?{raw:true}: {})}: {})};ship.oreHold=0;
+    if(good===7){const ledger=initialize(state).economicLedger;ledger.produced[7]+=indices.length;ledger.minedDeuranium=finite(ledger.minedDeuranium)+indices.length;}
     if(destination.system!==ship.system){reserveBuyer(state,ship,market(state,destination.system,destination.port),at);depart(state,ship,at);}
     else approachDock(state,ship,destination.port,at,'unloading');
   }
@@ -559,16 +591,22 @@
       if(cost>0){task(state,ship,'repair','Hull damage or low shields require paid service before commercial work',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},
         {cost,quote,hull:ship.hull+missingHull*fraction,shields:ship.shields+missingShields*fraction},at);
         ship.credits-=cost;m.credits+=cost;ship.task.phase='repairing';ship.phase='docked';schedule(state,ship,at+8);return;}}
-    if(ship.shipType===58&&window.nativeShipRepairs&&finite(ship.repairDeuranium)<60&&ship.credits>=550){
+    if(ship.shipType===58&&window.nativeShipRepairs){
+      ship.medicalSupplyVersion=1;
+      if(finite(ship.repairDeuranium)<60)ship.repairProvisioning=true;
+      if(finite(ship.repairDeuranium)>=window.nativeShipRepairs.rules.medicalStock)ship.repairProvisioning=false;
+    }
+    if(ship.shipType===58&&ship.repairProvisioning&&window.nativeShipRepairs){
       let supplier=null;
-      for(const id of initialize(state).config.connectedSystems)for(const port of portsIn(state,id)){
-        const m=market(state,id,port),stock=available(m,7);if(stock<10)continue;
+      if(ship.credits>=55)for(const id of initialize(state).config.connectedSystems)for(const port of portsIn(state,id)){
+        const m=market(state,id,port),stock=available(m,7);if(stock<1)continue;
         const score=stock/(id===ship.system?1:4);if(!supplier||score>supplier.score)supplier={system:id,port,score};
       }
       if(supplier){task(state,ship,'repair-supply','Purchase finite deuranium reserves for medical distress responses',{system:ship.system,port:ship.port},supplier,{},at);depart(state,ship,at);return;}
+      if(minerals()&&chooseMining(state,ship,at,{oreType:'deuranium',medicalSupply:true}))return;
     }
     const custom=roles.get(ship.role);if(custom?.(state,ship,{at,startDelivery,chooseMining,schedule}))return;
-    if(minerals()&&(ship.regionalResident||ship.role==='mining')){
+    if(minerals()&&ship.shipType!==58&&(ship.regionalResident||ship.role==='mining')){
       const base=ship.operatingBase??ship.stationSystem??ship.system;
       if(ship.system!==base){returnToBase(state,ship,base,at);return;}
       if(chooseMining(state,ship,at))return;
@@ -635,7 +673,7 @@
       const rock=rockById(job.requirements.rockId,ship.system);
       if(!rock||gone(state,rock.slotId)){interrupt(state,ship,'resource unavailable',at);return;}
       if(Math.hypot(ship.x-rock.x,ship.y-rock.y)>300){localLeg(state,ship,{x:rock.x+110,y:rock.y+40},at,'mining-flight');return;}
-      delete ship.localLeg;job.phase='mining';ship.phase='mining';ship.miningStartedAt=at;ship.miningSourceX=ship.x;ship.miningSourceY=ship.y;schedule(state,ship,at+window.nativeAsteroidCombat.miningTiming.cutSeconds);return;
+      delete ship.localLeg;job.phase='mining';ship.phase='mining';ship.miningStartedAt=at;ship.miningSourceX=ship.x;ship.miningSourceY=ship.y;schedule(state,ship,at+(rock.oreType==='deuranium'?2:window.nativeAsteroidCombat.miningTiming.cutSeconds));return;
     }
     if(job.phase==='mining'){mine(state,ship,at);return;}
     if(job.phase==='collecting'){const rock=rockById(job.requirements.rockId,ship.system);if(rock)claimMined(state,ship,rock,at);else interrupt(state,ship,'resource unavailable',at);return;}
@@ -727,13 +765,20 @@
   function mineralQuote(state,type,port,tons=1){
     const ore=minerals()?.ores[type],amount=Number(tons);
     if(!ore||!Number.isSafeInteger(amount)||amount<1)return {ok:false,error:'Choose a valid mineral amount.'};
-    const m=market(state,state.system,port),unit=minerals().orePrice(state.system,type),payment=unit*amount;
-    return {ok:true,type,name:ore.name,tons:amount,unit,total:payment,held:minerals().held(state,type),funded:availableFunds(m)>=payment,room:m.stock[0]+m.incoming[0]+amount<=9999};
+    const m=market(state,state.system,port),good=oreGood(type),unit=minerals().orePrice(state.system,type),payment=unit*amount;
+    return {ok:true,type,name:ore.name,good,tons:amount,unit,total:payment,held:minerals().held(state,type),funded:availableFunds(m)>=payment,room:m.stock[good]+m.incoming[good]+amount<=9999};
   }
   function sellMineral(state,type,port,tons=1){
     const quote=mineralQuote(state,type,port,tons);if(!quote.ok)return quote;
-    const result=exchange(state,market(state,state.system,port),state,{good:0,tons:quote.tons,payment:quote.total,buy:false,player:true,mineral:type});
+    const result=exchange(state,market(state,state.system,port),state,{good:quote.good,tons:quote.tons,payment:quote.total,buy:false,player:true,mineral:type});
     return result.ok?{...result,message:`Sold ${quote.tons} ${quote.name} to the local refinery for ${quote.total} latinum.`}:result;
+  }
+  function refineDeuranium(state,port,tons=1){
+    if(!minerals()||!inhabited(state,state.system)||!portsIn(state,state.system).includes(Number(port)))return {ok:false,error:'Reach an inhabited refinery port.'};
+    if(!Number.isSafeInteger(tons)||tons<1||minerals().held(state,'deuranium')<tons)return {ok:false,error:'Not enough raw deuranium ore.'};
+    state.minerals.deuranium-=tons;state.deuranium=finite(state.deuranium)+tons;
+    const ledger=initialize(state).economicLedger;ledger.playerMineralsRefined||={};ledger.playerMineralsRefined.deuranium=finite(ledger.playerMineralsRefined.deuranium)+tons;
+    return {ok:true,tons,message:`Refined ${tons} deuranium ore into repair supplies.`};
   }
   function upgradeMinerals(state,kind,port){
     const quote=minerals()?.upgradeQuote(state,kind);if(!quote)return {ok:false,error:'Unknown mineral technology.'};
@@ -753,6 +798,6 @@
     initialize(state);if(!ship.localLeg||ship.journey||!(ship.task?.status==='active'||ship.dockingMove)||leg.valid===false)return false;
     ship.localLeg=leg;schedule(state,ship,leg.startedAt+leg.duration);return true;
   }
-  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,resumeWork,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,upgradeMinerals,reroute,startRescue,
+  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,resumeWork,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,refineDeuranium,upgradeMinerals,reroute,startRescue,
     scheduled:state=>{initialize(state);return runtime.get(state).heap.length;}};
 })();
