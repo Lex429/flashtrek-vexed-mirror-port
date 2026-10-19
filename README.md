@@ -4,13 +4,21 @@ Browser port of FlashTrek: Vexed Mirror, extracted from the local Games Hub.
 
 ## Play locally
 
-Serve this folder over HTTP, then open `html-games/broken-mirror-port/index.html` in a browser. For example, with Python installed:
+On Alex's Windows computer, open **http://127.0.0.1:7790/** or the **Vexed Mirror** desktop shortcut. The **Vexed Mirror Local Site** scheduled task starts the loopback-only server and background Git sync at sign-in. This is a standalone local website; it does not require Games Hub or public hosting.
+
+The served project is `C:\Users\alphi\Vexed-Mirror-Port-GitHub`, connected to `Lex429/flashtrek-vexed-mirror-port`. Edit this folder to update the standalone game. The older Games Hub copies are separate installations.
+
+Local changes wait for 60 seconds without edits, then the sync service runs its own integration tests, all Node regressions and the browser smoke suite before committing and pushing to GitHub `main`. New GitHub commits are pulled automatically after their `regression` Actions check passes. Refresh the game after an update. Existing browser saves are not uploaded, and saved game schemas remain unchanged. The old Games Hub's browser saves remain at its original address; browser storage is separate at the new address.
+
+If GitHub and local work both advance, checks fail, someone stages a manual commit, or the working branch changes, synchronization pauses instead of discarding work. Resolve the cause to resume; after a failed test, editing the affected files or restarting the task retries the checks. No reset, stash, rebase, force push or automatic conflict resolution is used. Logs and current status are outside the repository in `%LOCALAPPDATA%\VexedMirror`; `http://127.0.0.1:7790/__vexed/status` reports the current phase. Stop/start the scheduled task to pause/resume the entire local service.
+
+For another computer, serve this folder over HTTP and open `html-games/broken-mirror-port/index.html`. For a local server without synchronization:
 
 ```sh
-python -m http.server 8000
+python tools/local_site.py --serve-only
 ```
 
-Open `http://localhost:8000/`.
+Open `http://127.0.0.1:7790/`. To enable synchronization, omit `--serve-only`; GitHub CLI authentication and the test dependencies below must already be installed.
 
 The `flashtrek-broken-mirror` folder contains artwork, audio, data, and JavaScript shared by the browser port. The original Flash builds and development previews are excluded.
 

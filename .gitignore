@@ -4,3 +4,11 @@ Thumbs.db
 *.log
 test-results/
 __pycache__/
+.env*
+.venv/
+node_modules/
+*.sqlite*
+*.db
+saves/
+profiles/
+backups/
