@@ -121,6 +121,14 @@ def main():
         def log_message(self, *_args):
             pass
 
+        def do_GET(self):
+            try:
+                super().do_GET()
+            except (ConnectionResetError, BrokenPipeError):
+                # Closing an isolated probe may cancel an unrelated image load.
+                # A cancelled HTTP transfer is not an artwork/page failure.
+                pass
+
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=str(source)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     result = {'label': args.label, 'sourceRoot': str(source), 'viewport': {'width': 1280, 'height': 850}, 'diagnosticOnly': True,

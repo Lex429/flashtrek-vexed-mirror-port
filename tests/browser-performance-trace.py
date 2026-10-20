@@ -25,7 +25,7 @@ review=module('performance_review','browser-performance-review.py')
 combat=module('save_cost_review','browser-combat-performance.py')
 
 DIAGNOSTICS=r"""() => {
-  const p=window.__diagnosticCosts={record:false,projectileCandidates:0,debrisCandidates:0,fragmentSteps:0,shotAdvances:0,descriptions:0,stats:0,sceneRequests:0};
+  const p=window.__diagnosticCosts={record:false,weaponCandidates:0,beamCandidates:null,projectileCandidates:null,debrisCandidates:0,fragmentSteps:0,shotAdvances:0,descriptions:0,stats:0,sceneRequests:0};
   for(const [name,method,counter] of [['nativeShipDefinitions','describe','descriptions'],['nativeShipDefinitions','forEntity','stats'],['nativeShipSystems','scene','sceneRequests'],['nativeEnvironmentalImpacts','debris','fragmentSteps'],['nativeCombatShots','advance','shotAdvances']]){
     const api=window[name],fn=api[method];window[name]={...api,[method](...args){if(p.record)p[counter]++;return fn(...args);}};
   }
@@ -36,14 +36,21 @@ def main():
     parser.add_argument('--source-root',type=Path,default=ROOT)
     parser.add_argument('--label',required=True)
     parser.add_argument('--fixture',type=Path,default=OUTPUT/'initial-save.json')
-    parser.add_argument('--scenario',choices=['flight','crowdedCombat','miningDebris','warp','devMap'],default='crowdedCombat')
+    parser.add_argument('--scenario',choices=['flight','crowdedFlight','crowdedCombat','miningDebris','warp','devMap'],default='crowdedCombat')
     parser.add_argument('--seconds',type=float,default=8)
     parser.add_argument('--held-fire',action='store_true',help='Add sustained real player fire to measure hit checkpoints')
     args=parser.parse_args();OUTPUT.mkdir(parents=True,exist_ok=True)
     source=args.source_root.resolve();saved=args.fixture.read_text(encoding='utf-8')
+    source_hashes={str(path.relative_to(source)).replace('\\','/'):hashlib.sha256(path.read_bytes()).hexdigest()
+        for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for path in sorted((source/folder).glob('*.js'))}
+    harness_hashes={name:hashlib.sha256((ROOT/'tests'/name).read_bytes()).hexdigest()
+        for name in ['browser-performance-trace.py','browser-performance-review.py','browser-stability.py','browser-combat-performance.py']}
     class Handler(http.server.SimpleHTTPRequestHandler):
         def log_message(self,*_args):pass
         def do_GET(self):
+            try:self._serve_get()
+            except (ConnectionResetError,BrokenPipeError):pass # A closed diagnostic page can cancel an unrelated image transfer.
+        def _serve_get(self):
             relative=self.path.split('?')[0].lstrip('/')
             if relative.endswith(('weapon-rules.js','debris-impacts.js')):
                 file=source/relative
@@ -53,7 +60,7 @@ def main():
                     # themselves. The injected increments cannot change geometry.
                     if relative.endswith('weapon-rules.js') and "'collisionCandidates'" not in text:
                         for token in ['const d=candidate.dimensions,r=candidate.radii;','if(rock.targetable===false)continue;']:
-                            text=text.replace(token,token+"if(window.__diagnosticCosts?.record)window.__diagnosticCosts.projectileCandidates++;")
+                            text=text.replace(token,token+"if(window.__diagnosticCosts?.record)window.__diagnosticCosts.weaponCandidates++;")
                     if relative.endswith('debris-impacts.js') and 'queryTargets' not in text:
                         text=text.replace('const contact=debrisContact?',"if(window.__diagnosticCosts?.record)window.__diagnosticCosts.debrisCandidates++;const contact=debrisContact?")
                     body=text.encode();self.send_response(200);self.send_header('Content-Type','text/javascript');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
@@ -68,7 +75,11 @@ def main():
             cdp=browser.new_browser_cdp_session();gpu=cdp.send('SystemInfo.getInfo')
             page=browser.new_page(viewport={'width':1280,'height':850})
             page.on('pageerror',lambda error:errors.append(str(error)))
-            page.add_init_script('('+review.stability.INSTRUMENT+')();('+review.INSTRUMENT+')();('+combat.INSTRUMENT+')()')
+            # Both diagnostic RAF wrappers inspect callback.name. Stability must
+            # be outermost so it sees the actual draw callback rather than the
+            # anonymous callback forwarded by the save-cost companion. Its
+            # detailed frame records are the sole source of simulation work.
+            page.add_init_script('('+combat.INSTRUMENT+')();('+review.stability.INSTRUMENT+')();('+review.INSTRUMENT+')()')
             page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
             page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
             page.evaluate(review.INSTALL);page.evaluate(review.stability.INSTALL)
@@ -77,11 +88,14 @@ def main():
             # extract the instrumentation before its controller-start statement.
             page.evaluate(combat.INSTALL.replace('  startNativeDevGame();',''))
             page.evaluate('()=>{window.__traceBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};}')
-            page.evaluate(review.stability.SETUP,{'saved':saved,'mode':args.scenario})
+            page.evaluate(review.stability.SETUP,{'saved':saved,'mode':'flight' if args.scenario=='crowdedFlight' else args.scenario})
+            page.evaluate('(mode)=>{window.__reviewMode=mode;}',args.scenario)
+            if args.scenario=='crowdedFlight':page.evaluate('()=>{const s=nativeNpcDev.getState(),origin=vexedSolFlight.shipPosition(s);nativeShipMotion.stop(s);s.civilianTraffic.ships.filter(e=>e.hull>0).slice(0,12).forEach((ship,index)=>{nativeNpcLives.interrupt(s,ship,"rendering stress fixture");ship.scriptedDemo="benchmark";const angle=index*Math.PI/6,radius=180+(index%3)*35;Object.assign(ship,{system:s.system,x:origin.x+Math.cos(angle)*radius,y:origin.y+Math.sin(angle)*radius,phase:"docked",timer:1e6,heading:angle+Math.PI,speed:0});nativeNpcLives.refreshLocation(s,ship);});nativeShipSystems.invalidate(s);}')
             page.wait_for_timeout(3000)
             page.wait_for_function('()=>!nativeShipEffects.metrics().pending && !vexedFlightAssets.cacheSnapshot().ships.pending && !(nativeShipEffects.metrics().preparation?.pending)',timeout=120000)
+            if args.scenario!='devMap' or args.held_fire:page.locator('#space').focus()
+            if args.scenario in ['flight','crowdedFlight']:page.evaluate(review.SCRIPTED_INPUT)
             if args.held_fire:
-                page.locator('#space').focus()
                 page.evaluate('()=>{const s=nativeNpcDev.getState(),p=vexedSolFlight.shipPosition(s),ship=s.civilianTraffic.ships.filter(e=>e.system===s.system&&e.hull>0&&Math.hypot(e.x-p.x,e.y-p.y)<500).sort((a,b)=>b.hull-a.hull)[0];if(!ship)throw Error("No valid sustained-fire target");nativeCivilianTraffic.select(ship.id);}')
             page.evaluate(DIAGNOSTICS)
             page_cdp=page.context.new_cdp_session(page);page_cdp.send('Profiler.enable');page_cdp.send('Profiler.setSamplingInterval',{'interval':1000});page_cdp.send('Performance.enable')
@@ -89,22 +103,31 @@ def main():
             completion=[];cdp.on('Tracing.tracingComplete',lambda event:completion.append(event))
             cdp.send('Tracing.start',{'transferMode':'ReturnAsStream','traceConfig':{'recordMode':'recordContinuously','includedCategories':['devtools.timeline','v8','blink','blink.user_timing','cc','gpu','viz','benchmark','latencyInfo','disabled-by-default-devtools.timeline','disabled-by-default-devtools.timeline.frame','disabled-by-default-v8.gc']}})
             page_cdp.send('Profiler.start')
-            before=page.evaluate('()=>{__diagnosticCosts.record=true;__combatPerf.record=true;__stability.frames=[];__stability.record=true;performance.mark("vexed-measure-start");window.nativeSimulation={...nativeSimulation,blocked:window.__traceBlocked};return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),counters:__reviewCounters()};}')
+            before=page.evaluate('()=>{__diagnosticCosts.record=true;__combatPerf.record=true;__stability.frames=[];__stability.record=true;__renderReview.inputs=[];performance.mark("vexed-measure-start");window.nativeSimulation={...nativeSimulation,blocked:window.__traceBlocked};return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),counters:__reviewCounters()};}')
             if args.held_fire:page.keyboard.down('Space')
             page.wait_for_timeout(args.seconds*1000)
-            after=page.evaluate('()=>{performance.mark("vexed-measure-end");window.nativeSimulation={...nativeSimulation,blocked:()=>true};__diagnosticCosts.record=false;__combatPerf.record=false;__stability.record=false;return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),costs:__diagnosticCosts,counters:__reviewCounters(),frames:__stability.frames,saves:__combatPerf.saves,playerHits:__combatPerf.hits.length};}')
+            after=page.evaluate('()=>{performance.mark("vexed-measure-end");window.nativeSimulation={...nativeSimulation,blocked:()=>true};__diagnosticCosts.record=false;__combatPerf.record=false;__stability.record=false;return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),costs:__diagnosticCosts,counters:__reviewCounters(),frames:__stability.frames,saves:__combatPerf.saves,playerHits:__combatPerf.hits.length,inputs:__renderReview.inputs};}')
             work={}
             for frame in after['frames']:
                 for name,count in frame.get('frameBudget',{}).get('counters',{}).items():
                     work[name]=work.get(name,0)+count
             after['simulationWork']=work
             after['physicsSubsteps']=sum(frame.get('frameBudget',{}).get('steps',0) for frame in after['frames'])
+            assert len(after['frames'])>=2,'Trace recorder received fewer than two actual draw frames'
+            assert after['physicsSubsteps']>0,'Trace recorder captured no physics substeps'
+            assert after['simulation']>before['simulation'],'Trace simulation did not advance'
             after['population']=page.evaluate('()=>{const s=nativeNpcDev.getState();return {total:s.civilianTraffic.ships.length+s.solEconomy.freighters.length+1,survivingCivilians:s.civilianTraffic.ships.filter(e=>e.hull>0).length,activeCombatants:s.civilianTraffic.ships.filter(e=>e.hull>0&&(e.disputeId||e.retaliationId)).length};}')
             # Current owners count their actual narrow-phase tests. The frozen
             # baseline lacks those counters and uses the diagnostic-only source
             # injection above. Both count immediately before exact geometry.
-            for name in ['projectileCandidates','debrisCandidates']:
-                if name in work:after['costs'][name]=work[name]
+            if 'beamCandidates' in work or 'projectileCandidates' in work:
+                for name in ['beamCandidates','projectileCandidates']:after['costs'][name]=work.get(name,0)
+                after['costs']['weaponCandidates']=after['costs']['beamCandidates']+after['costs']['projectileCandidates']
+            if 'debrisCandidates' in work:after['costs']['debrisCandidates']=work['debrisCandidates']
+            after['acceptedShots']=after['counters']['acceptedShots']-before['counters']['acceptedShots']
+            if args.scenario=='crowdedCombat':
+                assert after['acceptedShots']>0,'Combat trace accepted no shots'
+                assert after['costs']['weaponCandidates']>0,'Combat trace captured no exact weapon collision tests'
             if args.held_fire:page.keyboard.up('Space')
             profile=page_cdp.send('Profiler.stop')['profile'];metrics_after=page_cdp.send('Performance.getMetrics');cdp.send('Tracing.end')
             deadline=time.monotonic()+30
@@ -122,7 +145,7 @@ def main():
                 if event.get('ph') not in ['X','I','i']:continue
                 name=event.get('name','');row=names.setdefault(name,{'count':0,'inclusiveMs':0,'maxMs':0,'threads':set()});row['count']+=1;duration=event.get('dur',0)/1000;row['inclusiveMs']+=duration;row['maxMs']=max(row['maxMs'],duration);row['threads'].add((event['pid'],event['tid']))
             names={name:{**row,'threads':sorted(row['threads'])} for name,row in names.items()}
-            report={'label':args.label,'sourceRoot':str(source),'browser':browser.version,'graphics':gpu,'fixtureSha256':hashlib.sha256(args.fixture.read_bytes()).hexdigest(),'requestedSeconds':args.seconds,'scenario':args.scenario,'before':before,'after':after,'performanceBefore':metrics_before,'performanceAfter':metrics_after,'traceEventNames':names,'errors':errors,'notes':['Heavy trace/source counters/CPU profiler/save timings are diagnostic only. Inclusive event durations overlap: never sum parent and child events or all threads as frame time. Compositor/presentation events include browser work outside game JS.']}
+            report={'label':args.label,'sourceRoot':str(source),'sourceHashes':source_hashes,'harnessSha256':harness_hashes['browser-performance-trace.py'],'harnessHashes':harness_hashes,'browser':browser.version,'graphics':gpu,'fixtureSha256':hashlib.sha256(args.fixture.read_bytes()).hexdigest(),'requestedSeconds':args.seconds,'scenario':args.scenario,'before':before,'after':after,'performanceBefore':metrics_before,'performanceAfter':metrics_after,'traceEventNames':names,'errors':errors,'notes':['Heavy trace/source counters/CPU profiler/save timings are diagnostic only. Inclusive event durations overlap: never sum parent and child events or all threads as frame time. Compositor/presentation events include browser work outside game JS.','Flight inputs and crowded-flight placement match browser-performance-review.py; other fixtures use its shared stability setup. Source hashes describe served files before diagnostic-only candidate-counter injection.','weaponCandidates counts exact collision tests for beams plus flying projectiles on both revisions. Baseline beam/projectile splits are unavailable (null); current simulationWork preserves separate categories.']}
             (OUTPUT/f'{args.label}-{args.scenario}-diagnostic.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
             page.screenshot(path=str(OUTPUT/f'{args.label}-{args.scenario}-diagnostic.png'));browser.close();assert not errors,errors
             print(json.dumps({'label':args.label,'scenario':args.scenario,'costs':after['costs'],'saves':len(after['saves']),'traceEvents':len(events)}),flush=True)
