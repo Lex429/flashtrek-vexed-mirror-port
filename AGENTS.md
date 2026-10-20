@@ -37,9 +37,29 @@ Life changes must pass stock/money conservation, exactly-once delivery/mining, r
 
 Delivery contracts reserve source goods, destination purchasing funds and incoming demand through `npc-lives.js`; never spend another contract's escrow or price a funded delivery again at arrival. Economic sources/sinks must be explicit and accounted for. Run the full 30-minute population and legacy-payment recovery regressions in `tests/npc-economy.test.cjs`.
 
-`ship-detail.js` owns tactical eligibility from authoritative world poses and the configured radius. Combat outside that boundary breaks contact through the existing task owner; launched shots still belong to `combat-shots.js`. `simulation-frame.js` bounds expensive scheduler work across catch-up substeps. Scene caches last only a physics step and must be invalidated after movement or collision consequences. Never drop authoritative simulation time to hide a scheduling backlog.
+`ship-detail.js` owns tactical eligibility from authoritative world poses and the configured radius. Combat outside that boundary breaks contact through the existing task owner; launched shots still belong to `combat-shots.js`.
+`simulation-frame.js` bounds expensive scheduler work across catch-up substeps.
+The registered target owner separates reusable geometry from step-local poses.
+Use `ship-systems.refreshShip` / `refreshAsteroid` after an individual mutation;
+use `invalidateShips` for known ship-membership batches and `invalidate` for
+unclassified geometry changes. Query swept bounds
+through the same owner's `query` / `collisionScene`, not a separate registry.
+Completed-step read models remain valid through inspection/rendering until the
+next integration step, clock change or explicit mutation. Never drop
+authoritative simulation time to hide a scheduling backlog.
 
-Optional pixel preparation uses the bounded cooperative queue exported by the existing stage-fragment library. Keep base ships visible while it runs; preparation and painting cannot apply damage, create resources or replay an explosion. Player lighting/warp uses the bounded shared sprite cache. Require the render-path pixel checks and cold-art preparation browser checks in CI. For smoothness measurements use `tests/browser-stability.py --measure` before/after with the same save, device and viewport; distinguish CPU costs from frame delivery.
+Civilian tactical intent can be reused for at most 1/30 simulation second per
+crew; damage, changed targets, fitted capabilities and expired threats refresh it.
+Integrate movement, nearby traffic avoidance, contacts and firing eligibility on
+every required physics substep. Active slow frames retain their full elapsed time;
+pause, inventory and hidden-tab gates still stop simulation. Run
+`tactical-cadence.test.cjs`, `shared-spatial-scene.test.cjs`,
+`swept-collision-search.test.cjs`, `browser-spatial-performance.py` and
+`browser-incremental-art.py` with the existing suites. Keep heavy traces and
+preparation diagnostics separate from the sequential clean timing runs in
+`browser-performance-review.py`.
+
+Optional pixel preparation uses the bounded cooperative queue exported by the existing stage-fragment library. Keep base ships visible while it runs; preparation and painting cannot apply damage, create resources or replay an explosion. Player lighting/warp uses the bounded shared sprite cache. Require the render-path pixel checks and cold-art preparation browser checks in CI. For smoothness measurements use `tests/browser-performance-review.py` before/after with the same save, device and viewport; it extends the stability scenarios with crowded flight and fresh browser contexts for each window. Keep `browser-stability.py` functional checks in CI and distinguish CPU costs from frame delivery.
 
 Directional light changes update a reusable mask and sprite composition, not
 the animated-effect cache identity. Preserve 60 Hz player/damaged/warp effects
@@ -49,7 +69,9 @@ full fragment/wreck readiness. Keep old valid art visible during stage loading
 or failure. Profile image load, decode, preparation and first visible paint
 separately; appearance latency alone does not establish a game freeze. Run
 `browser-ship-lighting.py`, `browser-cold-ship-loading.py` and the same-save
-`browser-render-review-performance.py` alongside existing rendering checks.
+`browser-performance-review.py` alongside existing rendering checks. This extended
+review includes the original `browser-render-review-performance.py` flight,
+crowded-flight, combat and cold-appearance workloads.
 
 `port-docking.js` owns civilian berth/queue/holding occupancy and hull clearance.
 NPC tasks must request a berth and physically reach it before handling cargo.

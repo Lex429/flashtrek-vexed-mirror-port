@@ -25,6 +25,9 @@
     const amount=Math.min(requested,before.shields+Math.max(0,before.hull-floor)),absorbed=Math.min(before.shields,amount),hullDamage=Math.min(before.hull-floor,amount-absorbed);
     const contacts={shield:absorbed>0?collision(descriptor,impact,true):null,hull:hullDamage>0?collision(descriptor,impact,false):null};
     ship.shields=before.shields-absorbed;ship.hull=before.hull-hullDamage;
+    // Damage can enter through an adapter/direct shared call as well as a shot.
+    // Notify the same registry immediately when the active surface changes.
+    if(descriptor.state&&(absorbed>0||hullDamage>0))window.nativeShipSystems?.refreshShip?.(descriptor.state,ship,descriptor.category,descriptor.system);
     return {ok:true,requested,amount,absorbed,hullDamage,before,beforeStage,afterStage:definitions.stage(descriptor),contacts,
       destroyed:ship.hull<=0,disabled:ship.hull>0&&disableHull>0&&ship.hull<=disableHull,shields:ship.shields,hull:ship.hull};
   }

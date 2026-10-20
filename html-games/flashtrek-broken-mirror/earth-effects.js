@@ -15,7 +15,9 @@
   for(const [key,d] of Object.entries(profiles)){
     const base=window.createShowcaseEffects(d),lampFrames=[],alignments=new WeakMap(),unlit=new WeakMap();
     const complete=iterator=>{let result;do{result=iterator.next();}while(!result.done);return result.value;};
-    const deferred=iterator=>window.nativeDamageArtPreparation?window.nativeDamageArtPreparation.run(iterator):Promise.resolve().then(()=>complete(iterator));
+    const deferred=iterator=>window.nativeDamageArtPreparation?window.nativeDamageArtPreparation.run(iterator,{priority:1,label:'appearance:earth'}):Promise.resolve().then(()=>complete(iterator));
+    function* read(context,width,height){if(window.nativeDamageArtPreparation?.pixels)return yield* window.nativeDamageArtPreparation.pixels.read(context,width,height);return context.getImageData(0,0,width,height);}
+    function* write(context,image){if(window.nativeDamageArtPreparation?.pixels)yield* window.nativeDamageArtPreparation.pixels.write(context,image);else context.putImageData(image,0,0);}
     function* alignment(image,stage){
       // Cached frames already have the translation applied, including severe.
       const c=image.earthAligned?image:canvas(d.width,d.height);
@@ -26,16 +28,16 @@
         c.earthAligned=true;
       }
       yield;
-      const rgba=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,d.width,d.height).data;yield;
+      const rgba=(yield* read(c.getContext('2d',{willReadFrequently:true}),d.width,d.height)).data;
       const textures=[];
       for(const p of d.lights){
-        const lit=canvas(p.w,p.h),g=lit.getContext('2d'),pixels=g.createImageData(p.w,p.h);
+        const lit=canvas(p.w,p.h),g=lit.getContext('2d',{willReadFrequently:true}),pixels=g.createImageData(p.w,p.h);
         let processed=0;
         for(const [y,x,length] of p.runs)for(let dx=x;dx<x+length;dx++){
           if((++processed&1023)===0)yield;
           const i=((p.top+y)*d.width+p.left+dx)*4,j=(y*p.w+dx)*4;
           if(matches(rgba,i,p.tint)){
-            pixels.data.set(rgba.subarray(i,i+4),j);
+            for(let channel=0;channel<4;channel++)pixels.data[j+channel]=rgba[i+channel];
             if(p.added){
               const color=parseInt(p.color.slice(1),16),hot=p.kind==='core'?Math.max(0,1-Math.hypot(dx-(p.w-1)/2,y-(p.h-1)/2)/Math.max(p.w,p.h))*(p.hotScale??.5):0;
               for(let channel=0;channel<3;channel++){
@@ -45,7 +47,7 @@
             }
           }
         }
-        g.putImageData(pixels,0,0);yield;
+        yield* write(g,pixels);
         const dim=canvas(p.w,p.h),dg=dim.getContext('2d');dg.filter='brightness(.2)';dg.drawImage(lit,0,0);
         textures.push({lit,dim});yield;
       }
@@ -61,7 +63,7 @@
     function* unlighting(image){
       if(image.coreUnlit)return image;
       const c=canvas(d.width,d.height),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(image,0,0);yield;
-      const pixels=g.getImageData(0,0,d.width,d.height),rgba=pixels.data;yield;let processed=0;
+      const pixels=yield* read(g,d.width,d.height),rgba=pixels.data;let processed=0;
       for(const p of d.lights)for(const [y,x,length] of p.runs)for(let dx=x;dx<x+length;dx++){
         if((++processed&1023)===0)yield;
         const i=((p.top+y)*d.width+p.left+dx)*4;
@@ -69,7 +71,7 @@
         const grey=Math.round((rgba[i]*.2126+rgba[i+1]*.7152+rgba[i+2]*.0722)*.45);
         rgba[i]=rgba[i+1]=rgba[i+2]=grey;
       }
-      g.putImageData(pixels,0,0);c.coreUnlit=true;c.earthAligned=true;return c;
+      yield* write(g,pixels);c.coreUnlit=true;c.earthAligned=true;return c;
     }
     const unlitFrame=image=>complete(unlighting(image));
     function unlitFrameAsync(image){if(!unlit.has(image)){const promise=deferred(unlighting(image));unlit.set(image,promise);promise.catch(()=>unlit.delete(image));}return unlit.get(image);}

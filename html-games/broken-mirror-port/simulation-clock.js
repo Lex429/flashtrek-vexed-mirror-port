@@ -12,10 +12,13 @@
   }
   const seconds=state=>state?ensure(state).seconds:0;
   const now=state=>seconds(state)*1000;
+  // Visibility/pause gates discard suspended wall time at the host boundary.
+  // A slow active frame keeps all its elapsed time for physical integration.
+  const frameSeconds=milliseconds=>Number.isFinite(milliseconds)?Math.max(0,milliseconds)/1000:0;
   function advance(state,dt){
     if(!state||blocked()||!Number.isFinite(dt)||dt<=0)return 0;
     ensure(state).seconds+=dt;
     return dt;
   }
-  window.nativeSimulation=Object.freeze({ensure,seconds,now,advance,blocked});
+  window.nativeSimulation=Object.freeze({ensure,seconds,now,advance,blocked,frameSeconds});
 })();

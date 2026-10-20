@@ -76,7 +76,7 @@
       if(e.motionSpin)e.motionSpin={version:1,mode:'scheduled',at,angle:0,velocity:spin.velocity};
       const maneuver=route.segments.at(-2)||route.segments[0];
       e.trafficControl={version:1,mode:waiting?'yielding':'passing',obstacle:key(other),nextPlanAt:at+(waiting?.6:1),until:maneuver.startedAt+maneuver.duration};rt.plans++;
-      window.nativeShipSystems.invalidate(state,ship.system);
+      window.nativeShipSystems.refreshShip(state,e,ship.category,ship.system);
     }
   }
   function steer(state,ship,command,profile){
@@ -103,7 +103,7 @@
       if(s.category!=='player'&&!s.entity.localLeg&&!s.entity.lifeLeg&&(s.entity.motionKick||s.entity.motionSpin)&&!['fighting','ore-theft'].includes(s.entity.phase)){
         const oldHeading=s.heading,pose={...s,heading:s.heading,motionKick:s.entity.motionKick,motionSpin:s.entity.motionSpin,motionTime:at};motion().step(pose,s.entity.phase==='disabled'?{}:{hold:true},s.definition.movement,elapsed);
         Object.assign(s.entity,{x:pose.x,y:pose.y,heading:pose.heading,vx:pose.vx,vy:pose.vy,speed:pose.speed,motionKick:pose.motionKick,motionSpin:pose.motionSpin,previousX:pose.previousX,previousY:pose.previousY});Object.assign(s,{x:pose.x,y:pose.y,heading:pose.heading,vx:pose.vx,vy:pose.vy,previousX:pose.previousX,previousY:pose.previousY,angularVelocity:motion().spinSample(pose.motionSpin,at).velocity});
-        if(pose.x!==pose.previousX||pose.y!==pose.previousY||pose.heading!==oldHeading)window.nativeShipSystems.invalidate(state,s.system);
+        if(pose.x!==pose.previousX||pose.y!==pose.previousY||pose.heading!==oldHeading)window.nativeShipSystems.refreshShip(state,s.entity,s.category,s.system);
       }
     }
     const space=grid(ships),seen=new Set();

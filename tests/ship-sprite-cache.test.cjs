@@ -109,3 +109,38 @@ test('sprite, shade and lamp cache memory is bounded and observable under churn'
   assert.equal(snapshot.bytes,snapshot.pixels*4);
   cache.reset();assert.equal(cache.snapshot().bytes,0);assert.equal(cache.snapshot().entries,0);
 });
+
+test('all original lamp pulse phases update one retained glow without enlarging the cache',()=>{
+  const {cache,ctx,canvases}=fixture(),textures={lit:{width:19,height:23},dim:{}},point={left:2,top:3};
+  for(let phase=0;phase<=16;phase++)assert.equal(cache.drawLamp(ctx,textures,point,phase/16,{lightGain:2.8,lightBloom:2.5}),true);
+  const snapshot=cache.snapshot();
+  assert.equal(snapshot.lamps.entries,1,'a changing pulse reuses its retained lamp');
+  assert.equal(snapshot.lamps.brightnessEntries,1);assert.equal(snapshot.counters.lampBrightMisses,1);assert.equal(snapshot.counters.lampHits,16);
+  assert.equal(snapshot.counters.lampGlowRebuilds,17,'all original quantized phases still get their exact blur');
+  assert.equal(canvases.length,2,'brightness and maximum-pad glow surfaces survive every phase');
+  cache.drawLamp(ctx,textures,point,1,{lightGain:2.8,lightBloom:2.5});
+  assert.equal(cache.snapshot().counters.lampGlowRebuilds,17,'an unchanged paused phase does not rerasterize');
+  cache.drawLamp(ctx,textures,point,.5,{lightGain:1,lightBloom:2.5});
+  assert.equal(cache.snapshot().lamps.brightnessEntries,2,'a different gain has independent bright pixels');
+  cache.drawLamp(ctx,textures,point,.5,{lightGain:2.8,lightBloom:1});
+  assert.equal(cache.snapshot().lamps.brightnessEntries,2,'different glow blooms share unchanged bright pixels');
+  assert.equal(cache.snapshot().lamps.entries,3);assert.equal(cache.snapshot().counters.lampBrightHits,1);
+});
+
+test('evicted lamp surfaces are reused only at matching dimensions and stay within the same byte limit',()=>{
+  const {cache,ctx}=fixture(),point={left:0,top:0};
+  for(let i=0;i<1500;i++)cache.drawLamp(ctx,{lit:{width:40,height:40},dim:{}},point,.5,{lightGain:2.8,lightBloom:2.5});
+  const snapshot=cache.snapshot();assert.ok(snapshot.counters.lampEvictions>0);assert.ok(snapshot.counters.canvasReuses>1000);
+  assert.ok(snapshot.counters.canvasAllocations<1500,'surface churn is lower than the number of new lamps');
+  assert.ok(snapshot.bytes<=snapshot.limits.bytes);assert.equal(snapshot.lamps.brightnessEntries,snapshot.lamps.entries);
+  cache.reset();assert.equal(cache.snapshot().lamps.brightnessEntries,0);
+});
+
+test('continuous raster changes update exact blur content while equal dimensions retain their surfaces',()=>{
+  const {cache,ctx,canvases}=fixture(),textures={lit:{width:19,height:23},dim:{}},point={left:0,top:0};
+  cache.drawLamp(ctx,textures,point,.5,{lightGain:2.8,lightBloom:2.5,rasterScale:1.01});
+  const before=cache.snapshot(),allocations=canvases.length;
+  cache.drawLamp(ctx,textures,point,.5,{lightGain:2.8,lightBloom:2.5,rasterScale:1.015});
+  const after=cache.snapshot();assert.equal(canvases.length,allocations);assert.equal(after.lamps.entries,1);
+  assert.equal(after.counters.lampGlowRebuilds,before.counters.lampGlowRebuilds+1,'the new radius repaints rather than reusing stale blur');
+});

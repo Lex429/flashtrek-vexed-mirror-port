@@ -32,24 +32,45 @@
     [right,left,bow,rightWing,crossbar,lower,{x:42,y:319,r:13},{x:328,y:320,r:13},{x:253,y:447,r:15},{x:137,y:391,r:9}]];
   const wave=(t,frequency,phase=0)=>.5+.5*Math.sin(t*frequency+phase);
   const corePulse=t=>wave(t,2.1);
-  function unlitFrame(image){
+  const unlitPending=new WeakMap();
+  const finish=iterator=>{let result;do{result=iterator.next();}while(!result.done);return result.value;};
+  function* unlighting(image,asynchronous=false){
     if(image.coreUnlit)return image;
     const c=document.createElement('canvas');c.width=image.width;c.height=image.height;
-    const g=c.getContext('2d');g.drawImage(image,0,0);g.save();
+    // Retain the original GPU filter/clip rasterization. Explicit false also
+    // prevents repeated striped reads from silently switching its backend.
+    const g=c.getContext('2d',{willReadFrequently:false});g.drawImage(image,0,0);yield 'appearance:base';g.save();
     for(const region of config.offRegions||[{x:181,y:362,r:26}]){
       g.save();g.beginPath();
       if(region.r)g.arc(region.x,region.y,region.r,0,Math.PI*2);
       else g.rect(region.x-region.w/2,region.y-region.h/2,region.w,region.h);
-      g.clip();g.clearRect(0,0,c.width,c.height);g.filter='grayscale(1) brightness(.55)';g.drawImage(image,0,0);g.restore();
+      g.clip();g.clearRect(0,0,c.width,c.height);g.filter='grayscale(1) brightness(.55)';
+      // These colour filters are pointwise. Filtering the whole hull for each
+      // small clipped lamp queues unnecessary full-frame GPU rasterization.
+      const left=Math.max(0,Math.floor(region.x-(region.r||region.w/2))-1),top=Math.max(0,Math.floor(region.y-(region.r||region.h/2))-1),
+        right=Math.min(c.width,Math.ceil(region.x+(region.r||region.w/2))+1),bottom=Math.min(c.height,Math.ceil(region.y+(region.r||region.h/2))+1);
+      if(right>left&&bottom>top)g.drawImage(image,left,top,right-left,bottom-top,left,top,right-left,bottom-top);
+      g.restore();yield 'appearance:off-region';
     }g.restore();
+    let output=c;
     if(config.offTint==='green'){
-      const pixels=g.getImageData(0,0,c.width,c.height),rgba=pixels.data;
-      for(let i=0;i<rgba.length;i+=4)if(rgba[i+1]>rgba[i]*1.3&&rgba[i+1]>rgba[i+2]*1.2){
-        const grey=Math.round((rgba[i]*.2126+rgba[i+1]*.7152+rgba[i+2]*.0722)*.55);
-        rgba[i]=rgba[i+1]=rgba[i+2]=grey;
-      }g.putImageData(pixels,0,0);
+      const queue=window.nativeDamageArtPreparation;let pixels;
+      if(asynchronous&&queue?.pixels?.readAsync&&window.createShipArtReadback){try{pixels=yield queue.pixels.readAsync(c);}catch(_error){/* The owner records failure; retained art remains valid during the striped fallback. */}}
+      pixels||=queue?.pixels?yield* queue.pixels.read(g,c.width,c.height):g.getImageData(0,0,c.width,c.height);const rgba=pixels.data;
+      for(let i=0;i<rgba.length;i+=4){if(rgba[i+1]>rgba[i]*1.3&&rgba[i+1]>rgba[i+2]*1.2){
+          const grey=Math.round((rgba[i]*.2126+rgba[i+1]*.7152+rgba[i+2]*.0722)*.55);rgba[i]=rgba[i+1]=rgba[i+2]=grey;
+        }if((i&4095)===4092)yield 'appearance:unlight';}
+      // Pixel-only output stays CPU-backed. Uploading every stripe to a GPU
+      // canvas and immediately reading it for fragments otherwise adds fences.
+      output=document.createElement('canvas');output.width=c.width;output.height=c.height;const target=output.getContext('2d',{willReadFrequently:true});
+      if(queue?.pixels)yield* queue.pixels.write(target,pixels);else target.putImageData(pixels,0,0);
     }
-    c.coreUnlit=true;c.olympicAligned=image.olympicAligned===true;c.tugAligned=image.tugAligned===true;c.starterAligned=image.starterAligned===true;return c;
+    output.coreUnlit=true;output.olympicAligned=image.olympicAligned===true;output.tugAligned=image.tugAligned===true;output.starterAligned=image.starterAligned===true;return output;
+  }
+  const unlitFrame=image=>finish(unlighting(image));
+  function unlitFrameAsync(image){
+    if(!unlitPending.has(image)){const queue=window.nativeDamageArtPreparation,iterator=unlighting(image,Boolean(queue)),promise=queue?queue.run(iterator,{priority:1,label:'appearance:unlit'}):Promise.resolve().then(()=>finish(iterator));unlitPending.set(image,promise);promise.catch(()=>unlitPending.delete(image));}
+    return unlitPending.get(image);
   }
   const noise=n=>{const v=Math.sin(n*12.9898+78.233)*43758.5453;return v-Math.floor(v);};
   function glow(ctx,x,y,r,color,alpha){
@@ -144,7 +165,7 @@
     const current=damage[Math.max(0,Math.min(3,stage))]||[],previous=damage[Math.max(0,stage-1)]||[];
     return current.filter(p=>!previous.some(old=>Math.hypot(p.x-old.x,p.y-old.y)<3)).map(p=>({x:p.x/width-.5,y:p.y/height-.5}));
   }
-  return Object.freeze({draw,snapshot,unlitFrame,damageSites});
+  return Object.freeze({draw,snapshot,unlitFrame,unlitFrameAsync,damageSites});
   }
   window.createShowcaseEffects=createEffects;
   window.cthiaEffects=createEffects();

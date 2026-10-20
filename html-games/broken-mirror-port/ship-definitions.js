@@ -1,7 +1,7 @@
 /* Shared ship data and world-space target descriptors. No controller behavior. */
 (() => {
   'use strict';
-  const overrides=new Map(),definitionCache=new Map();
+  const overrides=new Map(),definitionCache=new Map(),effectiveCache=new WeakMap(),geometryCache=new WeakMap();let revision=0;
   const profiles={
     player:{artwork:'flight',disableRatio:.25,dimensions:'flight'},
     tug:{artwork:'showcase',disableRatio:.25,dimensions:'regular-tug',shipType:10},
@@ -63,7 +63,7 @@
     return errors;
   }
   function register(type,data){
-    type=Number(type);const previous=overrides.get(type);overrides.set(type,data||{});definitionCache.clear();
+    type=Number(type);const previous=overrides.get(type);overrides.set(type,data||{});definitionCache.clear();revision++;
     const definition=get(type),errors=validate(definition).filter(e=>references.size||!['Missing ship name','Missing artwork profile','Invalid display dimensions'].includes(e));
     if(errors.length){if(previous)overrides.set(type,previous);else overrides.delete(type);definitionCache.clear();throw new TypeError(errors.join('; '));}
     return definition;
@@ -99,8 +99,18 @@
     if(custom.physical?.inertia!==undefined)result.inertia=custom.physical.inertia;
     definitionCache.set(cacheKey,result);return {...result};
   }
-  function forEntity(state,entity=state,{category=entity===state?'player':'civilian'}={}){
-    const type=Number(entity.shipType??(category==='tug'?10:entity.type??entity.id)),definition=get(type,category);
+  function effective(state,entity,category){
+    const type=Number(entity.shipType??(category==='tug'?10:entity.type??entity.id)),cacheKey=type+':'+category;
+    if(!definitionCache.has(cacheKey))get(type,category);
+    const base=definitionCache.get(cacheKey),eq=entity.shipEquipment,slots=eq?.slots,instances=eq?.instances;
+    // Only ownership/configuration affects capabilities. Charge, damage and pose do
+    // not; checking the actual fitted IDs also admits direct legacy save repairs.
+    let signature=revision+':'+cacheKey+':'+(eq?'equipment':'legacy');
+    for(const kind of ['engineering','shield'])for(const id of slots?.[kind]||[])signature+=':'+kind+':'+id+':'+!!instances?.[id];
+    for(const upgrade of base.statUpgrades){const installed=instances?.[slots?.engineering?.[0]];signature+=':'+number(eq?installed?.upgrades?.[upgrade.levelField]:entity[upgrade.levelField]);}
+    const levels=entity.mineralUpgrades?.[entity.shipType];for(const kind of ['shield','hull','engine','weapons','drive'])signature+=':'+number(levels?.[kind]);
+    const cached=effectiveCache.get(entity);if(cached?.signature===signature)return cached.value;
+    const definition={...base};
     for(const upgrade of definition.statUpgrades){const installed=entity.shipEquipment?.instances[entity.shipEquipment.slots.engineering[0]],level=number(entity.shipEquipment?installed?.upgrades?.[upgrade.levelField]:entity[upgrade.levelField]);
       if(level>0)definition[upgrade.stat]=upgrade.base+upgrade.perLevel*Math.min(upgrade.maxLevel??Infinity,level);}
     const effective=window.nativeRegionalMinerals?window.nativeRegionalMinerals.stats(entity,definition):definition;
@@ -111,7 +121,12 @@
     }
     if(!overrides.get(type)?.movement)effective.movement=window.nativeShipMotion?.profiles.manual(effective);
     if(effective.engineOnline===false&&effective.movement)effective.movement={...effective.movement,maxSpeed:0,acceleration:0,turnRate:0};
-    return effective;
+    effectiveCache.set(entity,{signature,value:effective});window.nativeSimulationFrame?.count(state,'effectiveStatsBuilds');return effective;
+  }
+  function forEntity(state,entity=state,{category=entity===state?'player':'civilian'}={}){
+    // Preserve the public read-model copy: callers may annotate it without
+    // changing a future description or another ship of the same class.
+    return {...effective(state,entity,category)};
   }
   function dimensions(entity,category='player'){
     if(entity.dimensions)return {...entity.dimensions};
@@ -140,19 +155,25 @@
     return shielded&&window.showcaseShieldRadii?window.showcaseShieldRadii(d.width,d.height):{rx:Math.max(8,d.width*.34),ry:Math.max(12,d.height*.44)};
   }
   function describe(state,entity=state,{category=entity===state?'player':'civilian'}={}){
-    const shipType=Number(entity.shipType??(category==='tug'?10:entity.type??entity.id)),definition=forEntity(state,entity,{category});
+    const shipType=Number(entity.shipType??(category==='tug'?10:entity.type??entity.id)),definition=effective(state,entity,category);
     const pose=category==='player'&&state.system===1?window.vexedSolFlight.shipPosition(state):entity;
-    const heading=number(category==='player'?entity.angle:entity.heading),d=dimensions(entity,category),speed=number(entity.speed);
+    const heading=number(category==='player'?entity.angle:entity.heading),speed=number(entity.speed);
+    let geometry=geometryCache.get(entity),explicit=entity.dimensions;
+    if(!geometry||geometry.definition!==definition||geometry.category!==category||geometry.width!==explicit?.width||geometry.height!==explicit?.height||typeof definition.dimensions==='function'){
+      const d=dimensions(entity,category);geometry={definition,category,width:explicit?.width,height:explicit?.height,dimensions:d,hull:surfaceRadii(d,false,definition),shield:surfaceRadii(d,true,definition)};geometryCache.set(entity,geometry);
+    }
+    const d=geometry.dimensions;
     const motion=window.nativeShipMotion?.profiles;
     const configured=definition.movement;
     const movement=typeof configured==='function'?configured(state,entity,definition):configured||motion?.manual(definition);
+    window.nativeSimulationFrame?.count(state,'shipDescriptors');
     return {entity,state,id:category==='player'?'player':category==='tug'?`tug:${entity.id}`:entity.id,
-      category,shipType,system:category==='tug'?1:entity.system??state.system,definition:{...definition,movement},
+      category,shipType,system:category==='tug'?1:entity.system??state.system,definition:movement===definition.movement?definition:{...definition,movement},
       x:number(pose.x),y:number(pose.y),heading,speed,vx:number(entity.vx,Math.cos(heading)*speed),vy:number(entity.vy,Math.sin(heading)*speed),
       previousX:number(entity.previousX,number(pose.x)),previousY:number(entity.previousY,number(pose.y)),
       angularVelocity:window.nativeShipMotion?.spinSample?.(entity.motionSpin,number(state.shipSimulation?.seconds))?.velocity||0,
       hull:number(entity.hull),shields:number(entity.shields),dimensions:d,radius:Math.max(8,Math.max(d.width,d.height)*.35),
-      hullRadii:surfaceRadii(d,false,definition),radii:surfaceRadii(d,entity.shields>0,definition)};
+      hullRadii:geometry.hull,radii:entity.shields>0?geometry.shield:geometry.hull};
   }
   function stage(descriptor){
     const {entity,definition}=descriptor,fraction=number(entity.hull)/Math.max(1,definition.hull);

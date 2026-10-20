@@ -71,7 +71,9 @@
   }
   // Resolve the first physical contact, including objects that were clear at launch.
   function firstContact(from,to,source,target,scene,radii,dimensions,padding=0,{instant=false}={}){
-    let best=null;
+    const state=scene.state;
+    scene=scene.querySwept?.(from,to,padding,{instant})||scene;
+    let best=null,tested=0;
     const consider=(candidate,t)=>{
       if(t==null||best&&t>=best.t)return;
       const intersection={x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t};
@@ -86,25 +88,34 @@
       }
       best={kind:'hit',t,target:candidate,point:contact.world,sweepPoint:intersection,from:{...from},contact};
     };
-    const candidates=[...(scene.bystanders||[]),...(scene.destructibles||[])].filter(other=>other.id!==source?.id&&other.id!==target?.id&&other.targetable!==false);
-    if(target&&target.targetable!==false)candidates.push({...target,dimensions,radii});
-    for(let candidate of candidates){
-      if(candidate.rockId!=null)continue; // Asteroids use their physical rock outline below.
+    const testShip=original=>{
+      let candidate=original;
+      if(candidate.rockId!=null)return; // Asteroids use their physical rock outline below.
       if(instant)candidate={...candidate,previousX:candidate.x,previousY:candidate.y};
       const d=candidate.dimensions,r=candidate.radii;
+      tested++;
       const t=r?targetSweep(from,to,candidate,d,r,padding):circleSweep(from,to,candidate,Math.max(1,candidate.radius||15)*(instant ? .96 : 1)+padding);
       consider(candidate,t);
+    };
+    for(const collection of [scene.bystanders||[],scene.destructibles||[]])for(const candidate of collection){
+      if(candidate.id===source?.id||candidate.id===target?.id||candidate.targetable===false)continue;
+      testShip(candidate);
     }
+    if(target&&target.targetable!==false&&target.rockId==null)testShip({...target,dimensions,radii});
     for(let rock of scene.rocks||[]){
       if(rock.targetable===false)continue;
       if(instant)rock={...rock,previousX:rock.x,previousY:rock.y};
+      tested++;
       consider({...rock,id:rock.id??'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid'},movingRockSweep(from,to,rock,padding));
     }
     // Permit a rock target supplied without a full scene (such as an isolated test).
     if(target?.rockId!=null&&target.targetable!==false&&!(scene.rocks||[]).some(rock=>rock.slotId===target.rockId)){
       const rock=instant?{...target,previousX:target.x,previousY:target.y}:target;
+      tested++;
       consider(rock,movingRockSweep(from,to,rock,padding));
     }
+    window.nativeSimulationFrame?.count(state,'collisionCandidates',tested);
+    window.nativeSimulationFrame?.count(state,instant?'beamCandidates':'projectileCandidates',tested);
     return best;
   }
   // Collision owns the exact local surface. Damage and rendering consume this result.
@@ -150,6 +161,9 @@
   }
   function firingStatus(source,target,spec,kind,scene){
     const aim=kind==='beam'?target:intercept(source,target,spec.speed);
+    // Launch clearance historically gives even a tiny hull a 10-unit margin.
+    // The physical index can be smaller, so include that margin in this query.
+    if(kind!=='beam')scene=scene.querySwept?.(source,aim,10,{instant:true})||scene;
     return fireEligibility(source,target,spec,aim,kind==='beam'?[]:blockers(scene,source,target));
   }
   // A short linear forecast is awareness, not a second projectile simulator.
@@ -159,7 +173,8 @@
     if(!(remaining>0))return null;
     const predict=other=>{const v=velocity(other);return {...other,previousX:other.x,previousY:other.y,x:other.x+v.x*remaining,y:other.y+v.y*remaining};};
     const future=predict(target),from={x:event.x,y:event.y},to={x:from.x+event.vx*remaining,y:from.y+event.vy*remaining};
-    const predicted={bystanders:(scene.bystanders||[]).map(predict),destructibles:(scene.destructibles||[]).map(predict),rocks:(scene.rocks||[]).map(predict)};
+    scene=scene.querySwept?.(from,to,event.radius||0,{instant:true,horizon:remaining})||scene;
+    const predicted={state:scene.state,bystanders:(scene.bystanders||[]).map(predict),destructibles:(scene.destructibles||[]).map(predict),rocks:(scene.rocks||[]).map(predict)};
     const contact=firstContact(from,to,{id:event.sourceId},future,predicted,future.radii,future.dimensions,event.radius||0);
     return contact&&String(contact.target.id)===String(target.id)?{timeToImpact:contact.t*remaining,point:contact.point}:null;
   }

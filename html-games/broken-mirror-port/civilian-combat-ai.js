@@ -5,6 +5,7 @@
   const wrap=angle=>window.nativeShipMotion.wrap(angle);
   const {intercept,weaponSpec,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile}=window.nativeWeaponRules;
   const defaults={caution:.55,aggression:.55,retreatHull:.48,retreatShield:.12,protectCargo:false,distanceFactor:.7};
+  const commands=new WeakMap();
   const profile=type=>({...defaults,...window.nativeShipDefinitions?.get(type,'civilian').npcPolicy?.combat});
   function traits(ship){
     if(ship.crewTraits?.version===1)return ship.crewTraits;
@@ -26,11 +27,11 @@
     const weight=weapons.reduce((sum,w)=>sum+w.spec.damage,0)||1,p=profile(ship.shipType);
     return {range:Math.max(...weapons.map(w=>w.spec.range)),preferred:weapons.reduce((sum,w)=>sum+w.spec.range*w.spec.damage,0)/weight*p.distanceFactor,beam:weapons.some(w=>w.spec.kind==='beam')};
   }
-  function incomingThreat(state,ship,ai,clock){
+  function incomingThreat(state,ship,ai,clock,provided){
     if(!state||!window.nativeCombatShots?.threats)return null;
     if(clock>=ai.nextThreatAt){
       ai.nextThreatAt=clock+.08;
-      const descriptor=window.nativeShipDefinitions.describe(state,ship,{category:'civilian'});
+      const descriptor=provided?.entity===ship&&provided.state===state?provided:window.nativeShipDefinitions.describe(state,ship,{category:'civilian'});
       const threats=window.nativeCombatShots.threats(state,descriptor,{horizon:.9,reaction:.15,limit:8});
       ai.observedThreats=threats.map(threat=>({...threat,scannedAt:clock,seenAt:ai.observedThreats?.find(old=>old.id===threat.id)?.seenAt??clock}));
     }
@@ -47,12 +48,12 @@
     for(const body of bodies)score-=Math.max(0,body.radius+radius+75-Math.hypot(point.x-body.x,point.y-body.y))*4;
     return score;
   }
-  function decide(ship,target,dispute,{state,clock,hull,shields,rocks=[],bystanders=[],bodies=[]}){
+  function decide(ship,target,dispute,{state,clock,hull,shields,rocks=[],bystanders=[],bodies=[],actor}){
     if(!ship.combatAI)begin(ship,ship.id===dispute.b?'thief':'claimant',clock);
     const ai=ship.combatAI;
-    if(ai.version!==2){const old=ai;begin(ship,old.role||'defender',clock);ship.combatAI.lastHitAt=old.lastHitAt??-100;ship.combatAI.shots=old.shots||0;return decide(ship,target,dispute,{state,clock,hull,shields,rocks,bystanders,bodies});}
+    if(ai.version!==2){const old=ai;begin(ship,old.role||'defender',clock);ship.combatAI.lastHitAt=old.lastHitAt??-100;ship.combatAI.shots=old.shots||0;return decide(ship,target,dispute,{state,clock,hull,shields,rocks,bystanders,bodies,actor});}
     const crew=traits(ship),p=profile(ship.shipType),dx=target.x-ship.x,dy=target.y-ship.y,distance=Math.hypot(dx,dy)||1,ux=dx/distance,uy=dy/distance;
-    const hp=ship.hull/Math.max(1,hull),shield=shields?ship.shields/shields:1,range=combatRange(state,ship),incoming=incomingThreat(state,ship,ai,clock);
+    const hp=ship.hull/Math.max(1,hull),shield=shields?ship.shields/shields:1,range=combatRange(state,ship),incoming=incomingThreat(state,ship,ai,clock,actor);
     if(state&&ai.threatId!=null&&!window.nativeCombatShots.activeProjectile(state,ai.threatId)){ai.dodgeUntil=clock;delete ai.threatId;}
     const loaded=!!(ship.cargo?.tons||ship.oreHold||ship.repairDeuranium),hurt=clock-ai.lastHitAt<3;
     const retreatAt=p.retreatHull+(crew.caution-.5)*.15;
@@ -102,9 +103,25 @@
   }
   function steer(ship,target,dispute,scene){
     if(!Number.isFinite(scene.dt)||scene.dt<=0||!target||!Number.isFinite(target.x)||!Number.isFinite(target.y))return ship.combatAI;
-    let command=decide(ship,target,dispute,scene);
-    const definition=window.nativeShipDefinitions?.forEntity(scene.state||null,ship,{category:'civilian'}),movement=definition?.movement||window.nativeShipMotion.profiles.manual(definition);
-    if(window.nativeShipDefinitions){const descriptor=window.nativeShipDefinitions.describe(scene.state||{},ship,{category:'civilian'});command=window.nativeShipMotion.avoidShips(descriptor,scene.bystanders||[],command,movement);}
+    const actor=scene.actor?.entity===ship&&scene.actor.state===scene.state?scene.actor:window.nativeShipDefinitions?.describe(scene.state||{},ship,{category:'civilian'});
+    const definition=actor?.definition,movement=definition?.movement||window.nativeShipMotion.profiles.manual(definition);
+    const previous=commands.get(ship),clock=scene.clock,slots=ship.shipEquipment?.slots?.weapon||ship.weapons||[];
+    const changedFit=!previous||previous.slots.length!==slots.length||slots.some((id,index)=>id!==previous.slots[index]||ship.shipEquipment?.instances?.[id]?.modelId!==previous.models[index]);
+    const expiredThreat=scene.state&&ship.combatAI?.threatId!=null&&!window.nativeCombatShots?.activeProjectile(scene.state,ship.combatAI.threatId);
+    // Intent is evaluated at most 30 Hz in catch-up, independently for every
+    // crew. Damage, fitting, target changes and expired threats react immediately.
+    // Motion and nearby physical avoidance still run for every physics substep.
+    const reassess=changedFit||!previous||previous.state!==scene.state||previous.ai!==ship.combatAI||previous.target!==target.id||clock<previous.at||clock-previous.at>=1/30-1e-9||
+      previous.hull!==ship.hull||previous.shields!==ship.shields||previous.type!==ship.shipType||previous.maxHull!==scene.hull||previous.maxShields!==scene.shields||
+      previous.maxSpeed!==movement.maxSpeed||previous.damageMultiplier!==definition?.weaponDamageMultiplier||expiredThreat;
+    let command;
+    if(reassess){
+      command=decide(ship,target,dispute,{...scene,actor});
+      commands.set(ship,{state:scene.state,at:clock,ai:ship.combatAI,target:target.id,type:ship.shipType,hull:ship.hull,shields:ship.shields,maxHull:scene.hull,maxShields:scene.shields,maxSpeed:movement.maxSpeed,damageMultiplier:definition?.weaponDamageMultiplier,
+        slots:slots.slice(),models:slots.map(id=>ship.shipEquipment?.instances?.[id]?.modelId),command});
+      window.nativeSimulationFrame?.count(scene.state,'tacticalDecisions');
+    }else{command=previous.command;window.nativeSimulationFrame?.count(scene.state,'tacticalDecisionReuses');}
+    if(actor)command=window.nativeShipMotion.avoidShips(actor,scene.bystanders||[],command,movement);
     ship.motionTime=scene.clock;window.nativeShipMotion.step(ship,command,movement,scene.dt);return ship.combatAI;
   }
   function coast(ship,dt){if(ship.combatAI)window.nativeShipMotion.step(ship,{coast:true},window.nativeShipMotion.profiles.coast(),dt);}

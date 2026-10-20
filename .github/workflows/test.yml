@@ -48,6 +48,14 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-lighting.py
+      - name: Incremental artwork pixels and reusable painted lamp textures
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-incremental-art.py
+      - name: Shared spatial scenes, complete catch-up and durable reload
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-spatial-performance.py
       - name: Current ship appearance first, damage promotion and loading fallback
         env:
           BROWSER_CHANNEL: ''

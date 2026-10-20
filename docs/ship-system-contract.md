@@ -140,6 +140,17 @@ uses speed stat `35 + 15 * min(2, tugEngineLevel)`; its shared manual movement
 profile derives from that effective value. A definition/profile `movement`
 override is honored by commands that omit an explicit profile.
 
+Effective statistics and hull/shield shapes reuse configuration-owned data.
+Their cache checks the hull/category, definition registration revision, fitted
+engineering/shield IDs and live instance presence, configured engineering upgrade
+fields, all five mineral technology levels and explicit dimensions. Ordinary
+movement, damage and weapon charge do not rebuild effective statistics. Shield
+charge still chooses the current shield or hull surface on every description.
+`forEntity` returns a top-level copy; shared nested definition, dimensions and
+radii data are read-only. A consumer that needs to annotate a shape must copy it.
+Definition changes go through `register`; fitting and upgrade transactions notify
+the target owner after changing the authoritative equipment or capabilities.
+
 Intentional differences belong in data, including default equipment, hull/shield
 capacities, emitter offsets, geometry, dimensions, movement profile and explicit
 capabilities. The civilian display heights remain shuttle size for type 18, 22.5
@@ -217,13 +228,53 @@ must use distinct IDs. Collection excludes entities that cannot currently be hit
 Collision dispatch refreshes the target before applying a hit so an earlier shot
 destroying it does not cause a second destruction/reward.
 
-During a host animation frame, a target ID index and scene collection may be reused
-within one physics substep. `nativeSimulationFrame.step` clears that cache before
-the next substep. Shared movement, tactical steering and hit dispatch invalidate
-it immediately; an extension that directly changes target membership or geometry
-must call `nativeShipSystems.invalidate(state, system)`. Built-in target resolution
-also refreshes health, shield geometry and poses from the live entity. Never reuse
-a whole-frame collision scene across moving-target substeps.
+The registry separates asteroid geometry, current ship descriptions and spatial
+membership. `nativeSimulationFrame.step` clears pose collections before the next
+integration step. `simulationFrame.cache` also exposes the final completed-step
+read model until another step, authoritative clock advance or explicit mutation;
+inspection between host frames does not need another fleet census. Snapshot
+descriptors stay unchanged when their entities move. The step's scene/ship arrays
+are live registry views: copy an array when retaining a simultaneous snapshot.
+
+`refreshShip(state, entity, category, system)` replaces that actor's description
+and grid membership without rebuilding other ships or asteroids. Shared motion,
+contact, damage, fitting and upgrade paths notify this owner. A custom category
+may supply `adapter.resolve(state, id, system)` for individual refresh; otherwise
+it uses full collection invalidation to preserve its IDs and metadata.
+`refreshAsteroid(state, rock)` updates only its pose/depletion view; unchanged
+size geometry remains reusable. Known ship-membership batches (docking and drone
+missions) use `invalidateShips(state, system)` without dirtying asteroid indexes.
+Mission advancement must invalidate after terminal transitions too: a returned
+Dot is owned equipment immediately and cannot remain in same-step physical queries.
+Unclassified geometry mutations outside these owners must call
+`invalidate(state, system)`; this also lazily reconciles the existing asteroid
+index. Field-array length changes are detected directly; same-length replacement
+and direct geometry edits require explicit invalidation. Built-in ID resolution reads
+the current entity without constructing the entire scene. Destruction, system
+changes, landing and warp cannot leave a valid old collision target behind.
+
+`query(state, {system, minX, minY, maxX, maxY, swept, predictSeconds, categories})`
+returns fresh result arrays from the existing registered ship grid and asteroid
+index. Its conservative bounds include previous/current translation, the maximum
+oriented hull/shield extent and optional velocity prediction; extreme sweeps use
+bounded overflow storage rather than truncating a path. The asteroid owner grows
+conservative component-wise displacement
+and velocity bounds on relocation and recomputes them once after drift integration,
+before contacts. Queries expand its existing center grid and then filter actual
+swept bounds; they must not scan every moving rock per actor/fragment. Contact
+responses can enlarge the bounds during the same step. Private bound objects are
+reused. `broadphaseVisits` and `summaryVisits` distinguish candidate filtering from
+the once-per-step motion scan; exact-test counters alone do not prove bounded work.
+Very large calendar sweeps retain a conservative full-field fallback. Exact
+collision remains in the shared weapon/motion owners. `collisionScene(state, {system})` is a light
+query-only view whose `querySwept(from, to, padding, {instant, horizon})` prepares
+only candidates, while `scene` remains the full collection API. It must not be
+used as an empty full scene by a consumer that does not call `querySwept`.
+
+Counters distinguish full `sceneCollections`, `asteroidGeometryBuilds` when size
+data is first needed, `asteroidDescriptors` for changed rock pose descriptions,
+`shipDescriptors`, `effectiveStatsBuilds` and conservative spatial candidates.
+Never reuse stale poses or geometry to reduce these counters.
 
 Collision results carry the struck target, approach direction, world point and
 `contact`, including `local`, `world`, `from`, `dx`, `dy`, `shielded`, `radii` and
@@ -250,10 +301,26 @@ wreck never emits its debris. Mining completion and ore awards likewise happen
 in simulation, never in a paint function.
 
 The live path publishes base artwork before optional fragment/wreck preparation
-finishes. Those pixel loops share one cooperative queue (2 ms target slice, 64
-queued generators); image readback and canvas upload remain indivisible calls.
-The synchronous preparation entry points remain for the showcase and exact pixel
-regressions. Preparation completion cannot mutate health or replay explosion
+finishes. Pixel loops and striped native transfers share one cooperative queue
+(2 ms target slice, 64 queued or waiting generators, at most 4096 pixels per
+read/upload stripe). Pure pixel buffers stay CPU-backed; GPU colour filters and
+clipping retain their original rasterization. Foreground appearances pass optional
+work with a bounded service opportunity for the oldest task every eighth step.
+The queue owns one lazy `ship-art-readback.js` worker for snapshots of already
+filtered GPU artwork. A generator can suspend on its snapshot promise and resumes
+with its pixels or an exception; suspended tasks still count toward admission.
+Readback is bounded to eight requests, one million pixels per request and 16 MiB
+of staging reservations (bitmap, worker surface and returned RGBA), with a
+15-second timeout. Failed or unsupported readback records its failure and uses
+the same striped main-thread fallback without dropping valid artwork. Native
+bitmap creation cannot be cancelled, so its reservation remains until a late
+bitmap settles and is closed. Report main-queue steps, bitmap snapshot time,
+worker work and total worker wait separately; these overlapping times must not
+be added together, and the slice target is not a hard native-operation deadline.
+Synchronous entry points remain for showcase and exact pixel regressions;
+specialized egg/creature preparation retains its own mask work and live readiness.
+Explicit full preparation still waits for fragment and wreck readiness.
+Preparation completion cannot mutate health or replay explosion
 consequences. Deferred visual emission drains only during unpaused simulation.
 The damage-art owner bounds retained prepared classes and reports its byte
 estimate; active effects and external live artwork references have separate
@@ -333,6 +400,15 @@ continue unchanged. Player mining uses a saved `miningOperation.version:1`;
 restoration and completion run in simulation, including without a render pass.
 
 ## Combat intent and verified checkpoints
+
+Civilian intent is sampled independently per crew at up to 30 Hz. Shared motion
+and traffic avoidance still integrate every physics substep; weapon eligibility
+and owned recharge are not delayed by this intent cache. Damage, changed targets,
+changed fitted capabilities and expired threats force reassessment. The transient
+cache is keyed by the actual crew/AI identity and simulation time, so loading a
+save cannot retain another session's command. Slow active host frames retain all
+their elapsed seconds through the existing movement/contact substeps. Hidden-tab,
+pause and inventory gates still suspend the clock.
 
 `combat-shots.threats(state, descriptor, options)` reads live shared projectiles,
 including strays without a matching target ID. It applies a launch reaction delay,

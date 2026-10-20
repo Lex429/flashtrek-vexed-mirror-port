@@ -24,8 +24,12 @@
   const abundance={trellium:43,dilithium:30,tritanium:16,gallicite:9,benamite:3};
   const images=new Map();
   let placements=[];
-  let catalogData=null,ready;
+  let catalogData=null,ready,indexBuilds=0,broadphaseQueries=0,broadphaseVisits=0,summaryVisits=0;
   const systems=new Map(),indexes=new Map(),grids=new Map(),beltData=new Map(),cellSize=700;
+  // This is the existing geometry index's moving subset, not another target
+  // registry. Swept queries must include a rock that crossed the rectangle and
+  // finished in a different grid cell.
+  const moving=new Map(),maxRadii=new Map(),indexedFields=new Map(),motionBounds=new Map();
   let seed=61357;
   const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   function shuffle(values){for(let i=values.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}return values;}
@@ -107,10 +111,10 @@
     placements=points;catalogData=rocksByOre;
   }
   function forSystem(system=1){
-    system=Number(system);if(!catalogData)return system===1?placements:[];
+    system=Number(system);if(!catalogData){if(system===1)ensureIndex(system,placements);return system===1?placements:[];}
     if(!systems.has(system)){
       const geology=window.nativeRegionalMinerals;
-      if(!geology)return system===1?placements:[];
+      if(!geology){if(system===1)ensureIndex(system,placements);return system===1?placements:[];}
       const profile=geology.profile(system),random=geology.seed(system*811+413977),legacy=system===1?placements:[],rocks=[...legacy],types=geology.oreSequence(system,profile.count,legacy),belts=[];
       const origin=system===1?{x:-6220,y:-925}:{x:-220,y:75};
       const neighbors=geology.neighbors(system,4),position=geology.position(system);
@@ -151,19 +155,87 @@
           rocks.push({...art,...point,slotId:system*100000+90000+index,system,region:belts[belt].name,oreType:'deuranium',size,maxHull:Math.max(9,Math.round(size*.45)),angle:extra()*Math.PI*2,depositVersion:1});
         }
       }
-      const byId=new Map(rocks.map(r=>[r.slotId,r])),grid=new Map();
-      for(const rock of rocks){const key=Math.floor(rock.x/cellSize)+':'+Math.floor(rock.y/cellSize),bucket=grid.get(key)||[];bucket.push(rock);grid.set(key,bucket);}
-      systems.set(system,rocks);indexes.set(system,byId);grids.set(system,grid);beltData.set(system,belts);
+      systems.set(system,rocks);beltData.set(system,belts);
     }
-    return systems.get(system);
+    const field=systems.get(system);ensureIndex(system,field);return field;
+  }
+  // Public field arrays retain their established editing semantics. Length
+  // changes are detected cheaply; explicit shared invalidation covers edits
+  // that keep the same length, including object replacement and direct poses.
+  // Ordinary motion updates the same index incrementally through relocate.
+  function ensureIndex(system,field){
+    const indexed=indexedFields.get(system);
+    if(indexed&&indexed.field===field&&indexed.length===field.length&&!indexed.dirty)return;
+    const byId=new Map(),grid=new Map(),displaced=new Set(),motion={dx:0,dy:0,vx:0,vy:0};let maximum=0;
+    for(const rock of field){
+      byId.set(rock.slotId,rock);
+      const key=Math.floor(rock.x/cellSize)+':'+Math.floor(rock.y/cellSize),bucket=grid.get(key)||[];bucket.push(rock);grid.set(key,bucket);
+      if(Number.isFinite(rock.previousX)&&rock.previousX!==rock.x||Number.isFinite(rock.previousY)&&rock.previousY!==rock.y||rock.vx||rock.vy)displaced.add(rock);
+      maximum=Math.max(maximum,rock.size*.43);growMotion(motion,rock);
+    }
+    indexes.set(system,byId);grids.set(system,grid);moving.set(system,displaced);maxRadii.set(system,maximum);motionBounds.set(system,motion);
+    indexedFields.set(system,{field,length:field.length,dirty:false});
+    indexBuilds++;
+  }
+  // A swept rock can finish outside a local query. Expand the existing
+  // center grid by conservative component-wise motion maxima, then retain the
+  // exact swept AABB filter below. This avoids scanning all movers per query.
+  function growMotion(bounds,rock){
+    bounds.dx=Math.max(bounds.dx,Math.abs(rock.x-(Number.isFinite(rock.previousX)?rock.previousX:rock.x)));
+    bounds.dy=Math.max(bounds.dy,Math.abs(rock.y-(Number.isFinite(rock.previousY)?rock.previousY:rock.y)));
+    bounds.vx=Math.max(bounds.vx,Math.abs(Number(rock.vx)||0));
+    bounds.vy=Math.max(bounds.vy,Math.abs(Number(rock.vy)||0));
+  }
+  function prepareStep(){
+    for(const bounds of motionBounds.values())bounds.dx=bounds.dy=bounds.vx=bounds.vy=0;
+    for(const [system,displaced] of moving){
+      let bounds=motionBounds.get(system);if(!bounds){bounds={dx:0,dy:0,vx:0,vy:0};motionBounds.set(system,bounds);}
+      summaryVisits+=displaced.size;
+      for(const rock of displaced)growMotion(bounds,rock);
+    }
+  }
+  function invalidateIndex(system){
+    if(system===undefined){for(const indexed of indexedFields.values())indexed.dirty=true;}
+    else{const indexed=indexedFields.get(Number(system));if(indexed)indexed.dirty=true;}
   }
   function find(id,system){if(id===null||id===undefined)return null;system=Number(system??(Number(id)>=100000?Math.floor(Number(id)/100000):1));const field=forSystem(system);return indexes.get(system)?.get(Number(id))||field.find(r=>r.slotId===Number(id))||null;}
   // Keep the spatial index authoritative when a saved physical rock moves.
   // Seeded IDs, sizes and ore geology never change.
   function relocate(rock,pose){
-    const grid=grids.get(Number(rock.system??1)),key=p=>Math.floor(p.x/cellSize)+':'+Math.floor(p.y/cellSize),before=key(rock),after=key(pose);
-    if(grid&&before!==after){const bucket=grid.get(before),index=bucket?.indexOf(rock)??-1;if(index>=0){bucket.splice(index,1);if(!bucket.length)grid.delete(before);}const next=grid.get(after)||[];if(!next.includes(rock))next.push(rock);grid.set(after,next);}
+    const system=Number(rock.system??1),field=systems.get(system)||(system===1?placements:null);
+    if(field)ensureIndex(system,field);
+    const registered=indexes.get(system)?.get(rock.slotId)===rock,grid=grids.get(system),key=p=>Math.floor(p.x/cellSize)+':'+Math.floor(p.y/cellSize),before=key(rock),after=key(pose);
+    if(registered&&grid&&before!==after){const bucket=grid.get(before),index=bucket?.indexOf(rock)??-1;if(index>=0){bucket.splice(index,1);if(!bucket.length)grid.delete(before);}const next=grid.get(after)||[];if(!next.includes(rock))next.push(rock);grid.set(after,next);}
     Object.assign(rock,{previousX:pose.previousX??rock.x,previousY:pose.previousY??rock.y,x:pose.x,y:pose.y,angle:pose.angle,vx:pose.vx||0,vy:pose.vy||0,spin:pose.spin||0});
+    // Save cleanup may restore an object removed or replaced in the public
+    // field. Its old reference must not become a collision target again.
+    if(!registered)return;
+    let displaced=moving.get(system);if(!displaced){displaced=new Set();moving.set(system,displaced);}
+    if(rock.previousX!==rock.x||rock.previousY!==rock.y||rock.vx||rock.vy)displaced.add(rock);else displaced.delete(rock);
+    maxRadii.set(system,Math.max(maxRadii.get(system)||0,rock.size*.43));
+    let bounds=motionBounds.get(system);if(!bounds){bounds={dx:0,dy:0,vx:0,vy:0};motionBounds.set(system,bounds);}growMotion(bounds,rock);
+  }
+  function queryBounds(system,bounds,{swept=true,predictSeconds=0}={}){
+    system=Number(system);const rocks=forSystem(system),grid=grids.get(system);
+    if(!bounds||!['minX','minY','maxX','maxY'].every(key=>Number.isFinite(bounds[key])))return rocks;
+    const radius=maxRadii.get(system)||55,motion=motionBounds.get(system),horizon=Math.max(0,Number(predictSeconds)||0),
+      paddingX=radius+(swept?motion?.dx||0:0)+(motion?.vx||0)*horizon,
+      paddingY=radius+(swept?motion?.dy||0:0)+(motion?.vy||0)*horizon,
+      left=Math.floor((bounds.minX-paddingX)/cellSize),right=Math.floor((bounds.maxX+paddingX)/cellSize),
+      top=Math.floor((bounds.minY-paddingY)/cellSize),bottom=Math.floor((bounds.maxY+paddingY)/cellSize),
+      candidates=new Set();
+    // Calendar sweeps can cross enormous empty areas; inspecting the existing
+    // small geometry field is bounded more tightly than walking empty cells.
+    if(!grid||(right-left+1)*(bottom-top+1)>Math.max(16,grid.size*2))for(const rock of rocks)candidates.add(rock);
+    else for(let x=left;x<=right;x++)for(let y=top;y<=bottom;y++)for(const rock of grid.get(x+':'+y)||[])candidates.add(rock);
+    broadphaseQueries++;broadphaseVisits+=candidates.size;
+    const result=[];
+    for(const rock of candidates){
+      const r=rock.size*.43,px=swept&&Number.isFinite(rock.previousX)?rock.previousX:rock.x,py=swept&&Number.isFinite(rock.previousY)?rock.previousY:rock.y,
+        fx=rock.x+(Number(rock.vx)||0)*horizon,fy=rock.y+(Number(rock.vy)||0)*horizon;
+      if(Math.min(px,rock.x,fx)-r<=bounds.maxX&&Math.max(px,rock.x,fx)+r>=bounds.minX&&Math.min(py,rock.y,fy)-r<=bounds.maxY&&Math.max(py,rock.y,fy)+r>=bounds.minY)result.push(rock);
+    }
+    return result;
   }
   function nearby(system,point,radius){
     const rocks=forSystem(system),grid=grids.get(Number(system));if(!grid||!point||!Number.isFinite(radius))return rocks;
@@ -231,7 +303,7 @@
       ctx.drawImage(art,-size/2,-size/2,size,size);ctx.restore();
     }
   }
-  window.nativeSolAsteroids={paint,hitTest,frame,image,peekImage:file=>images.get(file)||null,forSystem,find,nearby,sweptNearby,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size};},get ready(){return ready;},get placements(){return placements;},abundance};
+  window.nativeSolAsteroids={paint,hitTest,frame,image,peekImage:file=>images.get(file)||null,forSystem,find,nearby,sweptNearby,queryBounds,invalidateIndex,prepareStep,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size,indexBuilds,broadphaseQueries,broadphaseVisits,summaryVisits};},get ready(){return ready;},get placements(){return placements;},abundance};
   ready=fetch(catalogUrl).then(response=>{if(!response.ok)throw new Error('Asteroid catalog unavailable');return response.json();})
     .then(populate).catch(error=>console.warn('Sol asteroid artwork unavailable',error));
 })();

@@ -9,15 +9,17 @@
     const existing=cache.get(source);if(existing)return existing;
     const ratio=Math.min(1,384/Math.max(source.width,source.height)),w=Math.max(1,Math.round(source.width*ratio)),h=Math.max(1,Math.round(source.height*ratio));
     const texture=make(w,h),g=texture.getContext('2d',{willReadFrequently:true});g.drawImage(source,0,0,w,h);
-    const image=g.getImageData(0,0,w,h),raw=new Uint8ClampedArray(image.data),distance=new Uint8Array(w*h),hot=make(w,h),hg=hot.getContext('2d'),heat=hg.createImageData(w,h),anchors=[];
-    for(let y=0;y<h;y++){for(let x=0;x<w;x++){const q=y*w+x;distance[q]=raw[q*4+3]>80?8:0;}if(y%32===31)yield;}
+    yield 'material:draw';
+    const queue=window.nativeDamageArtPreparation;
+    const image=queue?.pixels?yield* queue.pixels.read(g,w,h):g.getImageData(0,0,w,h),raw=new Uint8ClampedArray(image.data),distance=new Uint8Array(w*h),hot=make(w,h),hg=hot.getContext('2d',{willReadFrequently:true}),heat=hg.createImageData(w,h),anchors=[];yield 'material:allocate';
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const q=y*w+x;distance[q]=raw[q*4+3]>80?8:0;if((q&1023)===1023)yield 'material:distance';}
     // A bounded distance field follows the actual material boundary, including holes.
-    for(let y=0;y<h;y++){for(let x=0;x<w;x++){const q=y*w+x;if(!distance[q])continue;distance[q]=Math.min(distance[q],x?distance[q-1]+1:1,y?distance[q-w]+1:1);}if(y%32===31)yield;}
-    for(let y=h-1;y>=0;y--){for(let x=w-1;x>=0;x--){const q=y*w+x;if(!distance[q])continue;distance[q]=Math.min(distance[q],x<w-1?distance[q+1]+1:1,y<h-1?distance[q+w]+1:1);}if(y%32===0)yield;}
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const q=y*w+x;if((q&1023)===1023)yield 'material:distance';if(!distance[q])continue;distance[q]=Math.min(distance[q],x?distance[q-1]+1:1,y?distance[q-w]+1:1);}
+    for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const q=y*w+x;if((q&1023)===1023)yield 'material:distance';if(!distance[q])continue;distance[q]=Math.min(distance[q],x<w-1?distance[q+1]+1:1,y<h-1?distance[q+w]+1:1);}
     let sourcePixels=0,tornPixels=0;
     for(let y=0;y<h;y++){
       for(let x=0;x<w;x++){
-        const q=y*w+x,i=q*4;if(!raw[i+3])continue;sourcePixels++;
+        const q=y*w+x,i=q*4;if((q&1023)===1023)yield 'material:scorch';if(!raw[i+3])continue;sourcePixels++;
         const grain=noise(x*.37+y*1.71+seed),coarse=noise(Math.floor(x/11)+Math.floor(y/9)*73+seed),depth=distance[q],bite=Math.min(3,Math.max(0,Math.floor(Math.min(w,h)/35)))+(grain>.68?1:0);
         if(depth&&depth<=bite){image.data[i+3]=0;tornPixels++;continue;}
         const retained=organic?.13+coarse*.19:.17+coarse*.23,blister=grain>.94?.55:1;
@@ -25,9 +27,9 @@
         if(depth&&depth<=bite+2){const edge=organic?34:63;image.data[i]=Math.max(image.data[i],edge+grain*26);image.data[i+1]=Math.max(image.data[i+1],edge*.7);image.data[i+2]=Math.max(image.data[i+2],edge*.48);
           if(coarse>.3){heat.data.set([255,Math.round(80+grain*100),20,Math.round(130+coarse*100)],i);if(anchors.length<5&&noise(q+seed)>.987&&anchors.every(p=>Math.hypot(p.x-x/w,p.y-y/h)>.22))anchors.push({x:x/w,y:y/h});}
         }
-      }if(y%24===23)yield;
+      }
     }
-    g.putImageData(image,0,0);hg.putImageData(heat,0,0);yield;
+    if(queue?.pixels){yield* queue.pixels.write(g,image);yield* queue.pixels.write(hg,heat);}else{g.putImageData(image,0,0);hg.putImageData(heat,0,0);yield;}
     const result=Object.freeze({texture,hot,organic,anchors:Object.freeze(anchors.map(Object.freeze)),sourcePixels,tornPixels});cache.set(source,result);metrics.prepared++;metrics.sourcePixels+=sourcePixels;metrics.tornPixels+=tornPixels;return result;
   }
   function schedule(iterator){

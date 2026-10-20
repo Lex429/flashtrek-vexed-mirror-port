@@ -6,6 +6,12 @@
  const cache=new WeakMap(),clock=s=>(window.nativeSimulation?.seconds(s)??Number(s?.weaponCombat?.clock))||0;
  function model(id){if(catalog[id])return catalog[id];const w=window.VexedMirrorWeapons?.find(w=>w.id===Number(id));return w?{...w,category:w.category||'weapon'}:null;}
  const compatible=(kind,id)=>model(id)?.category===kind;
+ function fittingChanged(state,holder){
+  if(!state)return;
+  const category=holder===state?'player':state.solEconomy?.freighters?.includes(holder)?'tug':'civilian';
+  if(window.nativeShipSystems?.refreshShip)window.nativeShipSystems.refreshShip(state,holder,category);
+  else window.nativeShipSystems?.invalidate?.(state,holder.system??state.system);
+ }
  const definition=e=>window.nativeShipDefinitions?.get(e.shipType??7)||{slots:{weapon:3,repairDrone:0,ability:2,engineering:1,shield:1},startingEquipment:{}};
  const capacities=e=>definition(e).slots;
  function create(eq,id){
@@ -61,7 +67,7 @@
   const eq=ensure(state,holder),kind=data.category,index=location==='slot'?(slot??eq.slots[kind].findIndex(id=>!id)):eq.locker.length,list=target(eq,kind,location,index);
   if(!list)return {ok:false,error:'That equipment slot is outside this hull capacity.'};
   if(location==='slot'&&eq.instances[list[index]]?.category==='repairDrone'&&!['stowed','destroyed'].includes(eq.instances[list[index]].phase))return {ok:false,error:'Recover deployed drones before changing equipment.'};
-  const item=create(eq,id);if(list[index])eq.locker.push(list[index]);list[index]=item.id;project(holder,eq);return {ok:true,instance:item};
+  const item=create(eq,id);if(list[index])eq.locker.push(list[index]);list[index]=item.id;project(holder,eq);fittingChanged(state,holder);return {ok:true,instance:item};
  }
  function move(state,{holder=state,category='weapon',fromType,fromIndex,toType,toIndex,toCategory=category}={}){
   const eq=ensure(state,holder),source=target(eq,category,fromType,fromIndex),dest=target(eq,toCategory,toType,toIndex),id=source?.[fromIndex],other=dest?.[toIndex],item=eq.instances[id],swapped=eq.instances[other];
@@ -70,12 +76,12 @@
   if(source===dest&&fromIndex===toIndex)return {ok:true};
   if(fromType==='locker'){source.splice(fromIndex,1);if(toType==='locker')source.splice(Math.min(toIndex,source.length),0,id);else{dest[toIndex]=id;if(other)eq.locker.splice(Math.min(fromIndex,eq.locker.length),0,other);}}
   else if(toType==='locker'){source[fromIndex]=other||null;if(toIndex===dest.length)dest.push(id);else dest[toIndex]=id;}else{source[fromIndex]=other||null;dest[toIndex]=id;}
-  project(holder,eq);if(!eq.slots.shield.some(Boolean))holder.shields=0;return {ok:true};
+  project(holder,eq);if(!eq.slots.shield.some(Boolean))holder.shields=0;fittingChanged(state,holder);return {ok:true};
  }
  function equipped(state,holder=state,defaults){const eq=ensure(state,holder,defaults);return eq.slots.weapon.map((id,slot)=>({slot,instance:eq.instances[id],weapon:model(eq.instances[id]?.modelId)})).filter(i=>i.instance&&i.weapon);}
  function cargoUsed(state,holder=state){const qty=n=>Math.max(0,Number(n)||0);return holder===state?qty(holder.devMode?0:holder.deuranium)+Object.values(holder.solFreightHold||{}).reduce((n,v)=>n+qty(v),0)+(holder.localContracts||[]).reduce((n,j)=>n+qty(j.tons),0)+Object.values(holder.minerals||{}).reduce((n,v)=>n+qty(v),0):qty(holder.cargo?.tons)+qty(holder.oreHold)+qty(holder.tons)+qty(holder.repairDeuranium);}
  function canChangeHull(state,type,{holder=state}={}){const def=window.nativeShipDefinitions.get(type),used=cargoUsed(state,holder);if(used>def.cargo)return {ok:false,error:`Cargo aboard is ${used} t; ${def.name} holds ${def.cargo} t. Deliver or sell cargo before buying this hull.`};const eq=ensure(state,holder);if(Object.values(eq.instances).some(i=>i.category==='repairDrone'&&!['stowed','destroyed'].includes(i.phase)))return {ok:false,error:'Recover deployed drones before changing hulls.'};return {ok:true};}
- function changeHull(state,type,{holder=state}={}){const allowed=canChangeHull(state,type,{holder});if(!allowed.ok)return allowed;const eq=ensure(state,holder),def=window.nativeShipDefinitions.get(type);holder.shipType=Number(type);holder.shipClass=def.name;reconcile(holder,eq);holder.hull=window.nativeShipDefinitions.forEntity(state,holder).hull;holder.shields=0;holder.speed=0;holder.vitalsVersion=2;holder.phase='docked';return {ok:true};}
+ function changeHull(state,type,{holder=state}={}){const allowed=canChangeHull(state,type,{holder});if(!allowed.ok)return allowed;const eq=ensure(state,holder),def=window.nativeShipDefinitions.get(type);holder.shipType=Number(type);holder.shipClass=def.name;reconcile(holder,eq);holder.hull=window.nativeShipDefinitions.forEntity(state,holder).hull;holder.shields=0;holder.speed=0;holder.vitalsVersion=2;holder.phase='docked';fittingChanged(state,holder);return {ok:true};}
  function refit(state,ids,{holder=state}={}){const eq=ensure(state,holder);for(const kind of ['weapon','ability']){eq.locker.push(...eq.slots[kind].filter(Boolean));eq.slots[kind].fill(null);}for(const id of ids||[]){const kind=model(id)?.category;if(!kind)continue;const slot=eq.slots[kind].findIndex(id=>!id);grant(state,id,{holder,location:slot<0?'locker':'slot',slot});}eq.nextSlot=0;project(holder,eq);return holder.weaponLoadout;}
  function purchase(state,id,{holder=state}={}){const item=model(id);if(!item)return {ok:false,error:'Unknown equipment.'};if((holder===state?state.latinum:holder.credits)<item.price)return {ok:false,error:'Not enough credits for this equipment.'};const result=grant(state,id,{holder});if(result.ok){if(holder===state)state.latinum-=item.price;else holder.credits-=item.price;}return result;}
  const ready=(item,now)=>(Number(item?.readyAt)||0)<=now,consume=(item,spec,now)=>{item.readyAt=now+spec.recharge;};

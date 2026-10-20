@@ -7,14 +7,18 @@ window.createShipDestruction = () => {
     ['lower left hull',100,431],['lower right hull',262,431],['stern',181,461],
     ['bow chip',181,36],['left edge fragment',12,303],['right edge fragment',350,303],['stern chip',181,479]];
   let stages=[];
+  function* read(context,width,height){if(window.nativeDamageArtPreparation?.pixels)return yield* window.nativeDamageArtPreparation.pixels.read(context,width,height);return context.getImageData(0,0,width,height);}
+  function* write(context,image){if(window.nativeDamageArtPreparation?.pixels)yield* window.nativeDamageArtPreparation.pixels.write(context,image);else context.putImageData(image,0,0);}
   function* preparation(frames,config={}){
     const cutSites=config.sites||sites,materialSites=cutSites.map(p=>[p[1],p[2]]),core=config.core||[181,362],coreIndex=config.coreIndex??5;
+    const adjacent=[[1,0],[-1,0],[0,1],[0,-1]];
     // All stages share the same hull coordinates. Compute each ownership once.
     const ownerCache=new Int16Array(frames[0].width*frames[0].height).fill(-1);
     const result=[];
     for(const im of frames){
       const w=im.width,h=im.height,c=document.createElement('canvas');c.width=w;c.height=h;
-      const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0);const source=g.getImageData(0,0,w,h),groups=cutSites.map(()=>[]);
+      const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0);yield 'wreck:draw';
+      const source=yield* read(g,w,h),sourceWords=new Uint32Array(source.data.buffer,source.data.byteOffset,source.data.length/4),groups=cutSites.map(()=>[]);
       let sourcePixels=0;const owners=new Int16Array(w*h).fill(-1);yield;
       for(let pixel=0;pixel<w*h;pixel++){
         if((pixel&1023)===1023)yield;
@@ -23,7 +27,7 @@ window.createShipDestruction = () => {
         let best=ownerCache[pixel],distance=Infinity;
         if(best<0){
           best=0;
-          if(window.wreckageEffects){const amp=Math.max(1,Math.min(6,Math.min(w,h)*.014)),xx=x+amp*(Math.sin(y*.19)+.45*Math.sin(y*.73+x*.09)),yy=y+amp*(Math.sin(x*.17)+.4*Math.sin(x*.67-y*.11));best=config.partition?config.partition.owner(xx,yy):window.wreckageEffects.owner(x,y,materialSites,w,h);}
+          if(window.wreckageEffects){if(config.partition){const amp=Math.max(1,Math.min(6,Math.min(w,h)*.014)),xx=x+amp*(Math.sin(y*.19)+.45*Math.sin(y*.73+x*.09)),yy=y+amp*(Math.sin(x*.17)+.4*Math.sin(x*.67-y*.11));best=config.partition.owner(xx,yy);}else best=window.wreckageEffects.owner(x,y,materialSites,w,h);}
           else if(config.partition)best=config.partition.owner(x,y);
           else cutSites.forEach(([,sx,sy],n)=>{const d=(x-sx)**2+(y-sy)**2;if(d<distance){distance=d;best=n;}});
           ownerCache[pixel]=best;
@@ -37,21 +41,21 @@ window.createShipDestruction = () => {
         let x=w,y=h,right=0,bottom=0;
         for(let i=0;i<pixels.length;i++){const pixel=pixels[i],px=pixel%w,py=Math.floor(pixel/w);x=Math.min(x,px);y=Math.min(y,py);right=Math.max(right,px);bottom=Math.max(bottom,py);if((i&1023)===1023)yield;}
         const width=right-x+1,height=bottom-y+1,texture=document.createElement('canvas');texture.width=width;texture.height=height;
-        const tg=texture.getContext('2d'),cut=tg.createImageData(width,height);
-        for(let i=0;i<pixels.length;i++){const pixel=pixels[i];cut.data.set(source.data.subarray(pixel*4,pixel*4+4),((Math.floor(pixel/w)-y)*width+pixel%w-x)*4);if((i&1023)===1023)yield;}
-        tg.putImageData(cut,0,0);yield;
+        const tg=texture.getContext('2d',{willReadFrequently:true}),cut=tg.createImageData(width,height),cutWords=new Uint32Array(cut.data.buffer,cut.data.byteOffset,cut.data.length/4);
+        for(let i=0;i<pixels.length;i++){const pixel=pixels[i];cutWords[(Math.floor(pixel/w)-y)*width+pixel%w-x]=sourceWords[pixel];if((i&1023)===1023)yield;}
+        yield* write(tg,cut);
         if(window.wreckageEffects)yield* window.wreckageEffects.prepare(texture,{seed:n});
         let fracture=null;
         if(config.structural){
           const edge=document.createElement('canvas'),hot=document.createElement('canvas'),side=document.createElement('canvas');
           for(const c of [edge,hot,side]){c.width=width;c.height=height;}
-          const eg=edge.getContext('2d'),hg=hot.getContext('2d'),ed=eg.createImageData(width,height),hd=hg.createImageData(width,height),boundary=[];
+          const eg=edge.getContext('2d',{willReadFrequently:true}),hg=hot.getContext('2d',{willReadFrequently:true}),ed=eg.createImageData(width,height),hd=hg.createImageData(width,height),boundary=[];
           for(let index=0;index<pixels.length;index++){
             if((index&1023)===1023)yield;
             const pixel=pixels[index],px=pixel%w,py=Math.floor(pixel/w);
             let depth=0;
-            for(let d=1;d<=2&&!depth;d++)for(const [dx,dy] of [[d,0],[-d,0],[0,d],[0,-d]]){
-              const xx=px+dx,yy=py+dy;
+            for(let d=1;d<=2&&!depth;d++)for(const [dx,dy] of adjacent){
+              const xx=px+dx*d,yy=py+dy*d;
               if(xx>=0&&xx<w&&yy>=0&&yy<h&&owners[yy*w+xx]>=0&&owners[yy*w+xx]!==n){depth=d;break;}
             }
             if(!depth)continue;
@@ -59,7 +63,7 @@ window.createShipDestruction = () => {
             ed.data.set(depth===1?[91+variation,83+variation,72+variation,220]:[21,22,24,190],i);
             if(depth===1){boundary.push({x:px,y:py});if(variation<7)hd.data.set([255,105+variation*9,25,210],i);}
           }
-          eg.putImageData(ed,0,0);hg.putImageData(hd,0,0);yield;
+          yield* write(eg,ed);yield* write(hg,hd);
           const sg=side.getContext('2d');sg.drawImage(texture,0,0);sg.globalCompositeOperation='source-atop';sg.fillStyle='#11151b';sg.fillRect(0,0,width,height);
           const mx=boundary.reduce((sum,p)=>sum+p.x,0)/(boundary.length||1),my=boundary.reduce((sum,p)=>sum+p.y,0)/(boundary.length||1);
           let anchor=boundary[0];for(let i=0;i<boundary.length;i++){const p=boundary[i];if((p.x-mx)**2+(p.y-my)**2<(anchor.x-mx)**2+(anchor.y-my)**2)anchor=p;if((i&1023)===1023)yield;}
@@ -78,7 +82,7 @@ window.createShipDestruction = () => {
   function prepare(frames,config={}){const iterator=preparation(frames,config);let result;do{result=iterator.next();}while(!result.done);stages=result.value;}
   async function prepareAsync(frames,config={}){
     const iterator=preparation(frames,config);
-    if(window.nativeDamageArtPreparation)stages=await window.nativeDamageArtPreparation.run(iterator);
+    if(window.nativeDamageArtPreparation)stages=await window.nativeDamageArtPreparation.run(iterator,{label:'wreck'});
     else{let result;do{result=iterator.next();if(!result.done)await new Promise(resolve=>setTimeout(resolve,0));}while(!result.done);stages=result.value;}
   }
   function emit(state,layout,world,stage,zoom,target=null,fragmentData=null){

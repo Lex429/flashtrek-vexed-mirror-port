@@ -137,7 +137,8 @@
       lights:o.lights&&s<3?glowPixels[s]:0,organs:o.lights&&s<3?1:0,vascularPixels:glowPixels[s]||0,
       internalGlow:o.lights&&s<3?[1,.55,.15,0][s]*(.35+.65*Math.max(0,Math.sin(t*.002*pace))):0};}};
     const release=()=>{base.prepare([]);textures=[];glows=[];dimmers=[];glowPixels=[];};
-    const biology={...base,prepare,drawBody,effects,release};
+    // This specialized preparation must not inherit the base-only async path.
+    const biology={...base,prepare,prepareAsync:null,get ready(){return base.ready;},drawBody,effects,release};
     window.starterShips.set(id,{width:512,height:704,animationReady:true,biological:true,biology,effects,align:im=>im});
   }
 })();

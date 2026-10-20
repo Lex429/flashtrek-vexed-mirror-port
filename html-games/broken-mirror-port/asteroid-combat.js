@@ -111,10 +111,10 @@
     activeState=state;
     if(gone(state,rock.slotId))return;
     window.nativeAsteroidMotion?.freeze(state,rock);
-    window.nativeShipSystems?.invalidate(state,rock.system??state.system);
     if(targetId===rock.slotId)targetId=null;
     if(fromMining)state.minedAsteroids=[...(state.minedAsteroids||[]),rock.slotId];
     else state.destroyedAsteroids=[...(state.destroyedAsteroids||[]),rock.slotId];
+    window.nativeShipSystems?.refreshAsteroid?.(state,rock);
     if(fromMining||rock.oreType!=='deuranium'&&(rock.guaranteedOre||((rock.slotId*37+17)%100)<5)){
       state.asteroidOreDrops ||= {};
       state.asteroidOreDrops[rock.slotId]=fromMining?15:1;

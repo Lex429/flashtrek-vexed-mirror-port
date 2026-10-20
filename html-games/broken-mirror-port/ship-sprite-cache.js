@@ -6,36 +6,59 @@
   let nextAssetId=0,nextArtId=0,pixels=0,lightingPixels=0;
   const maxLightingPixels=1_000_000,maxLightingEntries=64;
   const counters={spriteHits:0,spriteMisses:0,spriteRebuilds:0,spriteBuildMs:0,effectBuildMs:0,spriteCompositions:0,compositionBuildMs:0,
-    lightingHits:0,lightingMisses:0,lightingBuildMs:0,canvasAllocations:0,lampHits:0,lampMisses:0,evictions:0,rejected:0};
-  const lamps=new Map(),lampIds=new WeakMap(),maxLampPixels=4_000_000,maxLamps=4096;
+    lightingHits:0,lightingMisses:0,lightingBuildMs:0,canvasAllocations:0,canvasReuses:0,lampHits:0,lampMisses:0,lampBrightHits:0,lampBrightMisses:0,lampGlowRebuilds:0,lampEvictions:0,evictions:0,rejected:0};
+  const lamps=new Map(),lampBrightness=new Map(),lampIds=new WeakMap(),maxLampPixels=4_000_000,maxLamps=4096;
   let nextLampId=0,lampPixels=0;
-  function discardLamp(key){const lamp=lamps.get(key);lampPixels-=lamp.pixels;lamps.delete(key);counters.evictions++;}
+  function discardLamp(key,released){
+    const lamp=lamps.get(key);lampPixels-=lamp.pixels;lamps.delete(key);released.push(lamp.glow);
+    if(!--lamp.brightness.references){lampBrightness.delete(lamp.brightnessKey);lampPixels-=lamp.brightness.pixels;released.push(lamp.brightness.canvas);}
+    counters.evictions++;counters.lampEvictions++;
+  }
+  function lampSurface(width,height,released){
+    const index=released.findIndex(canvas=>canvas.width===width&&canvas.height===height);
+    if(index<0)return surface(width,height);
+    counters.canvasReuses++;const canvas=released.splice(index,1)[0],context=canvas.getContext('2d');
+    context.setTransform(1,0,0,1,0,0);context.clearRect(0,0,width,height);return canvas;
+  }
   function drawLamp(ctx,textures,point,pulse,options){
     const transform=ctx.getTransform(),sx=Math.hypot(transform.a,transform.b),sy=Math.hypot(transform.c,transform.d);
     if(!(sx>0&&sy>0))return false;
     const width=Math.max(1,Math.round(textures.lit.width*sx)),height=Math.max(1,Math.round(textures.lit.height*sy));
     const gain=options.lightGain||1,bloom=options.lightBloom||1,phase=Math.round(Math.max(0,Math.min(1,pulse))*16);
-    const radius=(2+2*phase/16)*bloom*(options.rasterScale||1),pad=Math.ceil(radius*3),cw=width+pad*2,ch=height+pad*2;
-    const area=width*height+cw*ch;
+    const rasterScale=options.rasterScale||1,radius=(2+2*phase/16)*bloom*rasterScale;
+    // One retained surface accommodates every original blur phase. Changing a
+    // pulse updates its pixels instead of retaining seventeen mostly evicted
+    // variants or allocating replacement canvases during ordinary animation.
+    const pad=Math.ceil(4*bloom*rasterScale*3),cw=width+pad*2,ch=height+pad*2;
+    const brightArea=width*height,area=brightArea+cw*ch;
     if(area>maxLampPixels)return false;
     if(!lampIds.has(textures))lampIds.set(textures,++nextLampId);
-    const key=[lampIds.get(textures),width,height,gain,bloom,phase,options.rasterScale||1].join(':');
+    // Continuous warp scale/bloom changes are pixel content, too. Native size
+    // and padding own the surface; the exact radius below owns its contents.
+    const brightnessKey=[lampIds.get(textures),width,height,gain].join(':'),key=[brightnessKey,pad].join(':');
     let lamp=lamps.get(key);
     if(!lamp){
       counters.lampMisses++;
-      while(lamps.size>=maxLamps||lampPixels+area>maxLampPixels)discardLamp(lamps.keys().next().value);
-      const bright=surface(width,height);
-      const b=bright.getContext('2d');b.filter=`brightness(${gain})`;b.drawImage(textures.lit,0,0,width,height);
-      const glow=surface(cw,ch);
-      const g=glow.getContext('2d');g.filter=`brightness(${gain}) blur(${radius}px)`;g.drawImage(textures.lit,pad,pad,width,height);
-      lamp={bright,glow,pixels:area};lamps.set(key,lamp);lampPixels+=area;
+      // Bright pixels also stay shared when different callers request a bloom.
+      const released=[];
+      while(lamps.size>=maxLamps||lampPixels+cw*ch+(lampBrightness.has(brightnessKey)?0:brightArea)>maxLampPixels)discardLamp(lamps.keys().next().value,released);
+      let brightness=lampBrightness.get(brightnessKey);
+      if(!brightness){const canvas=lampSurface(width,height,released),b=canvas.getContext('2d');b.filter=`brightness(${gain})`;b.drawImage(textures.lit,0,0,width,height);
+        brightness={canvas,pixels:brightArea,references:0};lampBrightness.set(brightnessKey,brightness);lampPixels+=brightArea;counters.lampBrightMisses++;
+      }else counters.lampBrightHits++;
+      const glow=lampSurface(cw,ch,released);
+      lamp={brightness,brightnessKey,glow,context:glow.getContext('2d'),radius:-1,pixels:cw*ch};brightness.references++;lamps.set(key,lamp);lampPixels+=lamp.pixels;
     }else{counters.lampHits++;lamps.delete(key);lamps.set(key,lamp);}
+    if(lamp.radius!==radius){const g=lamp.context;g.clearRect(0,0,cw,ch);g.filter=`brightness(${gain}) blur(${radius}px)`;g.drawImage(textures.lit,pad,pad,width,height);lamp.radius=radius;counters.lampGlowRebuilds++;}
     ctx.drawImage(textures.dim,point.left,point.top);
     ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=pulse;
-    ctx.drawImage(lamp.bright,point.left,point.top,textures.lit.width,textures.lit.height);
+    ctx.drawImage(lamp.brightness.canvas,point.left,point.top,textures.lit.width,textures.lit.height);
     ctx.globalAlpha=Math.min(1,pulse*.65*bloom);
-    const px=pad*textures.lit.width/width,py=pad*textures.lit.height/height;
-    ctx.drawImage(lamp.glow,point.left-px,point.top-py,textures.lit.width+px*2,textures.lit.height+py*2);
+    // Present the original phase-sized bounds. The retained transparent margin
+    // must not change fractional resampling or add needless transparent blits.
+    const phasePad=Math.ceil(radius*3),px=phasePad*textures.lit.width/width,py=phasePad*textures.lit.height/height;
+    ctx.drawImage(lamp.glow,pad-phasePad,pad-phasePad,width+phasePad*2,height+phasePad*2,
+      point.left-px,point.top-py,textures.lit.width+px*2,textures.lit.height+py*2);
     ctx.restore();return true;
   }
   function discard(key){const entry=sprites.get(key);pixels-=entry.pixels;sprites.delete(key);counters.evictions++;}
@@ -133,9 +156,9 @@
   function snapshot(){
     return {entries:sprites.size+lighting.size+lamps.size,pixels:pixels+lightingPixels+lampPixels,bytes:(pixels+lightingPixels+lampPixels)*4,
       sprites:{entries:sprites.size,pixels,bytes:pixels*4},lighting:{entries:lighting.size,pixels:lightingPixels,bytes:lightingPixels*4},
-      lamps:{entries:lamps.size,pixels:lampPixels,bytes:lampPixels*4},counters:{...counters},
+      lamps:{entries:lamps.size,brightnessEntries:lampBrightness.size,pixels:lampPixels,bytes:lampPixels*4},counters:{...counters},
       limits:{entries:maxEntries+maxLightingEntries+maxLamps,bytes:(maxPixels+maxLightingPixels+maxLampPixels)*4}};
   }
-  function reset(){sprites.clear();lighting.clear();lamps.clear();pixels=lightingPixels=lampPixels=0;for(const key of Object.keys(counters))counters[key]=0;}
+  function reset(){sprites.clear();lighting.clear();lamps.clear();lampBrightness.clear();pixels=lightingPixels=lampPixels=0;for(const key of Object.keys(counters))counters[key]=0;}
   window.nativeShipSpriteCache=Object.freeze({draw,drawLamp,snapshot,reset});
 })();

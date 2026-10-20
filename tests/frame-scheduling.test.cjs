@@ -13,11 +13,11 @@ test('scene indexing is shared within a physics step and refreshed after movemen
  assert.equal(systems.resolve(state,'probe:1').hull,9);assert.equal(collections,2);
  const civilian=state.civilianTraffic.ships[0],before=systems.resolve(state,civilian.id).x;
  systems.move(state,civilian,'civilian',{heading:0,throttle:1},{maxSpeed:10,acceleration:10,braking:10,turnRate:1},.1);
- assert.ok(systems.resolve(state,civilian.id).x>before);assert.equal(collections,3);
- entity.x=12;frames.step(state);assert.equal(systems.resolve(state,'probe:1').x,12);assert.equal(collections,4);
+ assert.ok(systems.resolve(state,civilian.id).x>before);assert.equal(collections,2,'moving one ship does not recollect unrelated categories');
+ entity.x=12;frames.step(state);assert.equal(systems.resolve(state,'probe:1').x,12);assert.equal(collections,3);
  civilian.shields=0;assert.equal(systems.resolve(state,civilian.id).shields,0,'shield collapse cannot retain stale collision geometry');
  civilian.phase='destroyed';assert.equal(systems.resolve(state,civilian.id),null);frames.end(state);
- assert.equal(frames.current(state),null);assert.equal(frames.snapshot(state).counters.sceneCollections,4);
+ assert.equal(frames.current(state),null);assert.equal(frames.snapshot(state).counters.sceneCollections,3);
 });
 
 test('slow-frame catch-up shares Sol work limits across substeps and preserves due-event debt',async()=>{

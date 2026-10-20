@@ -890,6 +890,7 @@
     }
     state.latinum-=quote.price;m.credits+=quote.price;state.mineralUpgrades||={};state.mineralUpgrades[state.shipType]||={};state.mineralUpgrades[state.shipType][kind]=quote.level+1;
     const after=window.nativeShipDefinitions.forEntity(state);state.hull+=Math.max(0,after.hull-before.hull);state.shields+=Math.max(0,after.shields-before.shields);
+    window.nativeShipSystems?.refreshShip?.(state,state,'player',state.system);
     return {ok:true,message:quote.name+' level '+(quote.level+1)+' installed on this hull.'};
   }
   function reroute(state,ship,leg){

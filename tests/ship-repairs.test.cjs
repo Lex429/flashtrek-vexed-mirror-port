@@ -37,6 +37,29 @@ test('self repair consumes exactly one ton per five hull across flight, pause, r
  assert.equal(f.ship.repairBay.slots.filter(d=>d.phase==='stowed').length,2);assert.equal(f.state.shipRepairs.missions[0].status,'completed');
 });
 
+test('the last recovered Dot leaves same-clock cached physical views without changing owned equipment or cargo',async()=>{
+ const f=await small(),w=f.window,s=f.state,repairs=f.repairs,systems=w.nativeShipSystems,frames=w.nativeSimulationFrame;
+ Object.assign(s,{system:47,x:0,y:0,angle:0,speed:0,vx:0,vy:0,phase:'disabled',hull:w.nativeShipDefinitions.forEntity(s).hull-1,shields:0,deuranium:5,latinum:500,solFreightHold:{5:2}});
+ const equipment=w.nativeShipEquipment.ensure(s),dot=equipment.instances[equipment.slots.repairDrone[0]];
+ dot.hull=17;dot.readyAt=123;const reference=repairs.ref('player',s),mission=repairs.launch(s,reference,reference);assert.ok(mission);
+ for(let i=0;i<2000&&dot.phase!=='returning';i++){w.nativeSimulation.advance(s,.05);repairs.advance(s,.05);}
+ assert.equal(dot.phase,'returning');assert.equal(mission.status,'active');assert.ok(dot.localLeg);
+ const finish=dot.localLeg.startedAt+dot.localLeg.duration,delta=finish-w.nativeSimulation.seconds(s);
+ assert.ok(delta>0);w.nativeSimulation.advance(s,delta);s.shipRepairs.nextPollAt=finish+100;
+ const owned=()=>copy({ids:Object.keys(equipment.instances),slots:equipment.slots,locker:equipment.locker,condition:dot.hull,readyAt:dot.readyAt,cargo:s.solFreightHold,money:s.latinum,material:s.deuranium});
+ const before=owned();frames.begin(s);frames.step(s);
+ const cached=systems.collectShips(s,47),descriptor=cached.find(target=>target.id===dot.id);assert.ok(descriptor);
+ const region={system:47,minX:descriptor.x-5,minY:descriptor.y-5,maxX:descriptor.x+5,maxY:descriptor.y+5,categories:['repair-drone']};
+ assert.ok(systems.query(s,region).bystanders.some(target=>target.id===dot.id));
+ const at=w.nativeSimulation.seconds(s);repairs.advance(s,.05);
+ assert.equal(w.nativeSimulation.seconds(s),at,'repair completion does not advance the shared clock');
+ assert.equal(dot.phase,'stowed');assert.equal(mission.status,'completed');assert.equal(repairs.drones(s,47).length,0);
+ assert.deepEqual(owned(),before,'recovering equipment cannot change identities, condition, charge, cargo or balances');
+ assert.ok(!systems.collectShips(s,47).some(target=>target.id===dot.id),'a returned Dot immediately leaves the cached physical fleet');
+ assert.ok(!systems.query(s,region).bystanders.some(target=>target.id===dot.id),'stowed equipment cannot intercept a shot or participate in contacts');
+ frames.end(s);
+});
+
 test('exhausted self repair hails once, stays disabled and retains its cargo after reload',async()=>{
  let f=await small();disable(f,f.ship,10);f.ship.repairDeuranium=2;f.ship.cargo={good:5,tons:4,owner:f.ship.id};
  until(f,()=>f.state.shipRepairs.calls.length===1);near(f.ship.hull,20,'partial hull');near(f.state.shipRepairs.ledger.consumed,2,'spent');assert.equal(f.ship.phase,'disabled');

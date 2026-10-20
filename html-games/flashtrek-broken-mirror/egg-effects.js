@@ -240,7 +240,8 @@
       ctx.restore();
     }
     const release=()=>{base.prepare([]);coreMasks=[];baby=null;intact=null;rupture=null;husk=null;};
-    const biology={...base,prepare,drawBody,drawDeath,effects,prepareHatch,drawHatch,drawHatchLip,hatchSnapshot,release};
+    // The specialized shell/core masks are part of preparation, too.
+    const biology={...base,prepare,prepareAsync:null,get ready(){return base.ready;},drawBody,drawDeath,effects,prepareHatch,drawHatch,drawHatchLip,hatchSnapshot,release};
     window.starterShips.set(id,{width:512,height:704,biological:true,biology,effects,
       align:im=>im,breakAnchors:wounds[3].map(([x,y])=>[x,y])});
   }

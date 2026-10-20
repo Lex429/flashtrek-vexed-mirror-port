@@ -42,9 +42,35 @@ test('ship collection shares a physics-step view and refreshes after physical di
   w.nativeSimulationFrame.begin(s);w.nativeSimulationFrame.step(s);
   const first=w.nativeShipSystems.collectShips(s),same=w.nativeShipSystems.collectShips(s);assert.equal(first,same);
   const ship=first.find(d=>d.entity===e);w.nativeShipSystems.applyContact(s,ship,{x:20,y:10,vx:30,vy:0});
-  const moved=w.nativeShipSystems.collectShips(s);assert.notEqual(moved,first);near(moved.find(d=>d.entity===e).x,20);near(ship.x,0);
+  const moved=w.nativeShipSystems.collectShips(s),current=moved.find(d=>d.entity===e);
+  assert.equal(moved,first,'the registry keeps its live physics-step array');assert.notEqual(current,ship,'the changed actor receives a new descriptor');
+  near(current.x,20);near(current.y,10);near(ship.x,0);near(ship.y,0);
   e.shields=0;w.nativeSimulationFrame.step(s);const next=w.nativeShipSystems.collectShips(s);assert.equal(next.find(d=>d.entity===e).shields,0);
   w.nativeSimulationFrame.end(s);
+});
+
+test('ordinary traffic integrates post-impact drift without rebuilding its scene or unchanged asteroid geometry',async()=>{
+  const f=await setup(),w=f.window,s=f.state,systems=w.nativeShipSystems;
+  const ships=Array.from({length:6},(_,index)=>add(f,{id:index+1,x:index*500,moving:false}));
+  const rocks=Array.from({length:20},(_,slotId)=>({slotId,system:2,x:100000+slotId*100,y:5000,size:40,angle:.2,maxHull:20}));
+  w.nativeSolAsteroids={...w.nativeSolAsteroids,forSystem:system=>system===2?rocks:[]};
+  for(const entity of ships){
+    const before=w.nativeShipDefinitions.describe(s,entity,{category:'civilian'});
+    systems.applyContact(s,before,{x:before.x,y:before.y,vx:30,vy:15,heading:before.heading,angularVelocity:.6});
+  }
+  w.nativeSimulationFrame.begin(s);w.nativeSimulationFrame.step(s);w.nativeSimulation.advance(s,1/60);
+  const initial=systems.scene(s),snapshots=ships.map(entity=>initial.bystanders.find(target=>target.entity===entity)),firstRock=initial.rocks[0];
+  w.nativeShipTraffic.collide(s,1/60);
+  const after=systems.scene(s),work=w.nativeSimulationFrame.snapshot(s).counters;
+  assert.equal(after,initial,'each drifting pilot refreshes its own current pose');assert.equal(after.rocks[0],firstRock);
+  assert.equal(work.sceneCollections,1);assert.equal(work.asteroidGeometryBuilds,rocks.length);assert.equal(work.asteroidDescriptors,rocks.length);
+  for(let index=0;index<ships.length;index++){
+    const current=after.bystanders.find(target=>target.entity===ships[index]),snapshot=snapshots[index];
+    assert.notEqual(current,snapshot);assert.ok(current.x>snapshot.x);assert.ok(current.y>snapshot.y);
+    near(snapshot.x,index*500);near(snapshot.y,0);assert.notEqual(current.heading,snapshot.heading);
+    assert.equal(current.hull,snapshot.hull);assert.equal(current.shields,snapshot.shields);
+  }
+  assert.equal(w.nativeShipTraffic.snapshot(s).contacts.length,0);w.nativeSimulationFrame.end(s);
 });
 
 test('rotated physical footprints determine ship contact rather than broad-phase circles',async()=>{

@@ -10,12 +10,13 @@
     const t=(-b-Math.sqrt(disc))/(2*a);
     return t>=0&&t<=1?{x:from.x+dx*t,y:from.y+dy*t,t}:null;
   }
-  window.createEnvironmentalImpacts=({getShips=()=>[],getAsteroids=()=>[],onShipImpact=()=>{},onAsteroidHit=()=>{},debrisContact=null,resolveDebris=null}={})=>{
+  window.createEnvironmentalImpacts=({getShips=()=>[],getAsteroids=()=>[],queryTargets=null,querySource=null,onCandidates=()=>{},onShipImpact=()=>{},onAsteroidHit=()=>{},debrisContact=null,resolveDebris=null}={})=>{
     let waves=[],pieceHits=new WeakMap(),sourceCleared=new WeakSet(),history=[];
     const key=(type,target)=>`${type}:${target.id??target.slotId}`;
     const radius=target=>Math.max(1,Number(target.radius)||Number(target.size)*.45||Math.hypot(target.w||0,target.h||0)*.5);
     const position=target=>({x:target.centerX??target.x,y:target.centerY??target.y});
     const matches=(source,target)=>source.system==null||target.system==null||source.system===target.system;
+    const targetsIn=(bounds,swept)=>queryTargets?.(bounds,{swept})||{ships:getShips(),asteroids:getAsteroids()};
     function record(type,target,event){
       history.push({target:key(type,target),...event});if(history.length>80)history.shift();
       if(type==='ship')onShipImpact(target,event);else onAsteroidHit(target,event);
@@ -29,7 +30,11 @@
       for(const wave of [...waves]){
         const age=time-wave.born;if(age<0)continue;
         const reach=wave.radius*Math.min(1,age/wave.duration);
-        for(const [type,targets] of [['ship',getShips()],['asteroid',getAsteroids()]])for(const target of targets){
+        // Pressure flashes keep their existing visual radii, which can exceed
+        // physical contact radii slightly. Their rare full view is cached by
+        // the host; physical fragments below use the spatial query instead.
+        const nearby=targetsIn(null,false);
+        for(const [type,targets] of [['ship',nearby.ships],['asteroid',nearby.asteroids]])for(const target of targets){
           if(type==='asteroid'&&!wave.affectAsteroids)continue;
           const id=key(type,target);if(id===wave.sourceKey||wave.hits.has(id)||!matches(wave,target))continue;
           const center=position(target),dx=center.x-wave.x,dy=center.y-wave.y,distance=Math.hypot(dx,dy),r=radius(target);
@@ -44,17 +49,33 @@
       if(time<(piece.born||0)||piece.ore)return [];
       let hits=pieceHits.get(piece);if(!hits){hits=new Set();pieceHits.set(piece,hits);}
       const from={x:oldX,y:oldY},to={x:piece.x,y:piece.y},padding=Math.min(12,Math.max(piece.w||0,piece.h||0,piece.size||0)*.25),contacts=[];
-      for(const [type,targets] of [['ship',getShips()],['asteroid',getAsteroids()]])for(const target of targets){
+      const margin=Math.max(padding,(piece.size||0)*.43),nearby=targetsIn({minX:Math.min(from.x,to.x)-margin,minY:Math.min(from.y,to.y)-margin,maxX:Math.max(from.x,to.x)+margin,maxY:Math.max(from.y,to.y)+margin},true);
+      let tested=0,best=null,sourceSeen=false;
+      for(const [type,targets] of [['ship',nearby.ships],['asteroid',nearby.asteroids]])for(const target of targets){
         if(skipShips&&type==='ship')continue;
         const id=key(type,target);if((!resolveDebris&&hits.has(id))||!matches({system},target))continue;
+        if(id===sourceKey)sourceSeen=true;
         if(id===sourceKey&&(!resolveDebris||!sourceCleared.has(piece))){
           const center=position(target),r=target.descriptor?.hullRadii||target.descriptor?.radii,bound=r?Math.max(r.rx,r.ry):radius(target);
           if(resolveDebris&&Math.hypot(to.x-center.x,to.y-center.y)>bound+padding)sourceCleared.add(piece);
           continue; // Birth immunity ends once the fragment leaves its parent.
         }
-        const contact=debrisContact?debrisContact(piece,from,target,type):sweptCircleContact(from,to,position(target),radius(target)+padding);if(contact)contacts.push({type,target,id,contact});
+        tested++;
+        const contact=debrisContact?debrisContact(piece,from,target,type):sweptCircleContact(from,to,position(target),radius(target)+padding);
+        if(contact){const entry={type,target,id,contact};if(resolveDebris){if(!best||contact.t<best.contact.t)best=entry;}else contacts.push(entry);}
       }
-      contacts.sort((a,b)=>a.contact.t-b.contact.t);
+      // A fragment can already be outside its parent on its first sample.
+      // Narrow bounds then omit that parent; end birth immunity through one
+      // direct lookup so the first returning fragment still rebounds.
+      if(resolveDebris&&sourceKey&&!sourceSeen&&!sourceCleared.has(piece)&&!(skipShips&&sourceKey.startsWith('ship:'))){
+        const source=querySource?.(sourceKey);
+        if(source&&matches({system},source)){
+          const center=position(source),r=source.descriptor?.hullRadii||source.descriptor?.radii,bound=r?Math.max(r.rx,r.ry):radius(source);
+          if(Math.hypot(to.x-center.x,to.y-center.y)>bound+padding)sourceCleared.add(piece);
+        }
+      }
+      onCandidates(tested);
+      if(best)contacts.push(best);else contacts.sort((a,b)=>a.contact.t-b.contact.t);
       for(const {type,target,id,contact} of contacts){
         const firstHit=!hits.has(id);hits.add(id);
         if(resolveDebris)resolveDebris(piece,target,type,contact);

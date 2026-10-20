@@ -9,63 +9,82 @@
   let frames=[],parts=[],cutAudit=[],masks=[],veinBands=[],veinPixels=[];
   const make=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
   const local=(x,y,l)=>({x:(x/W-.5)*l.w,y:(y/H-.5)*l.h});
-  const visualFrames=new WeakMap();
-  function prepareFrame(im,stage){
+  const visualFrames=new WeakMap(),visualPending=new WeakMap();
+  const finish=iterator=>{let result;do{result=iterator.next();}while(!result.done);return result.value;};
+  const schedule=(iterator,options)=>window.nativeDamageArtPreparation?window.nativeDamageArtPreparation.run(iterator,options):Promise.resolve().then(()=>finish(iterator));
+  function* read(context,width,height){if(window.nativeDamageArtPreparation?.pixels)return yield* window.nativeDamageArtPreparation.pixels.read(context,width,height);return context.getImageData(0,0,width,height);}
+  function* write(context,image){if(window.nativeDamageArtPreparation?.pixels)yield* window.nativeDamageArtPreparation.pixels.write(context,image);else context.putImageData(image,0,0);}
+  function* framePreparation(im,stage){
     let visual=visualFrames.get(im);
     if(!visual){
       const mask=make(W,H),mg=mask.getContext('2d');mg.drawImage(im,0,0,W,H);
       mg.globalCompositeOperation='source-in';mg.fillStyle='#6b203d';mg.fillRect(0,0,W,H);
-      visual={mask,bands:[],pixels:0};
+      visual={mask,bands:[],pixels:0};yield 'biology:mask';
       if(config.vascular){
         const c=make(W,H),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,W,H);
-        const data=g.getImageData(0,0,W,H).data,veins=make(W,H),vg=veins.getContext('2d'),pixels=vg.createImageData(W,H);
+        yield 'biology:base';
+        const data=(yield* read(g,W,H)).data,veins=make(W,H),vg=veins.getContext('2d',{willReadFrequently:true}),pixels=vg.createImageData(W,H);
         for(let i=0;i<data.length;i+=4){
           const r=data[i],green=data[i+1],b=data[i+2],a=data[i+3];
           if(a>80&&r>100&&green>70&&b<r*.59&&r>green*1.04&&green>r*.48){
             pixels.data.set([255,205,85,Math.round(a*.85)],i);visual.pixels++;
-          }
+          }if((i&4095)===4092)yield 'biology:vascular';
         }
-        vg.putImageData(pixels,0,0);
-        visual.bands=Array.from({length:24},(_,n)=>{
+        yield* write(vg,pixels);
+        for(let n=0;n<24;n++){
           const top=Math.floor(n*H/24),bottom=Math.floor((n+1)*H/24),texture=make(W,bottom-top);
           texture.getContext('2d').drawImage(veins,0,top,W,bottom-top,0,0,W,bottom-top);
           const dim=make(W,bottom-top),dg=dim.getContext('2d');dg.drawImage(texture,0,0);
           dg.globalCompositeOperation='source-in';dg.fillStyle='#26131d';dg.fillRect(0,0,W,bottom-top);
-          return {texture,dim,top,h:bottom-top};
-        });
+          visual.bands.push({texture,dim,top,h:bottom-top});yield 'biology:band';
+        }
       }
       visualFrames.set(im,visual);
     }
     masks[stage]=visual.mask;veinBands[stage]=visual.bands;veinPixels[stage]=visual.pixels;
   }
-  function prepare(images){
-    frames=images;parts=[];cutAudit=[];masks=[];veinBands=[];veinPixels=[];
-    for(const [stage,im]of frames.entries()){
-      prepareFrame(im,stage);
-      const c=make(W,H),g=c.getContext('2d');g.drawImage(im,0,0,W,H);
-      const data=g.getImageData(0,0,W,H).data,groups=sites.map(()=>[]);let sourcePixels=0;
+  const prepareFrame=(image,stage)=>finish(framePreparation(image,stage));
+  function prepareFrameAsync(image,stage){
+    let pending=visualPending.get(image);if(!pending){pending=new Map();visualPending.set(image,pending);}
+    if(!pending.has(stage)){const promise=schedule(framePreparation(image,stage),{priority:1,label:'appearance:biology'});pending.set(stage,promise);promise.catch(()=>pending.delete(stage));}
+    return pending.get(stage);
+  }
+  function* preparation(images){
+    const preparedParts=[],preparedAudit=[];
+    // Publish complete breakup data together. Existing masks and material stay
+    // readable while a new explicit preparation yields to the shared queue.
+    for(const [stage,im]of images.entries()){
+      yield* framePreparation(im,stage);
+      const c=make(W,H),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,W,H);
+      yield 'biology:partition-base';
+      const data=(yield* read(g,W,H)).data,words=new Uint32Array(data.buffer,data.byteOffset,data.length/4),groups=sites.map(()=>[]);let sourcePixels=0;
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+        if(((y*W+x)&1023)===1023)yield 'biology:partition';
         const i=(y*W+x)*4;if(!data[i+3])continue;sourcePixels++;
         let best=0,distance=Infinity;
         sites.forEach(([sx,sy],n)=>{
           const membrane=config.vascular?950*Math.sin(x*.065+n*1.3)*Math.cos(y*.045-n*.9):0;
           const d=(x-sx)**2+(y-sy)**2+membrane;if(d<distance){distance=d;best=n;}
         });
-        groups[best].push({x,y,i});
+        groups[best].push(y*W+x);
       }
-      const pieces=groups.map((pixels,n)=>{
-        if(!pixels.length)return null;
+      const pieces=[];
+      for(let n=0;n<groups.length;n++){
+        const pixels=groups[n];if(!pixels.length)continue;
         let left=W,top=H,right=0,bottom=0;
-        for(const p of pixels){left=Math.min(left,p.x);top=Math.min(top,p.y);right=Math.max(right,p.x);bottom=Math.max(bottom,p.y);}
-        const w=right-left+1,h=bottom-top+1,texture=make(w,h),tg=texture.getContext('2d'),cut=tg.createImageData(w,h);
-        for(const p of pixels)cut.data.set(data.subarray(p.i,p.i+4),((p.y-top)*w+p.x-left)*4);
-        tg.putImageData(cut,0,0);
-        return {texture,x:(left+w/2)/W-.5,y:(top+h/2)/H-.5,w:w/W,h:h/H,pixels:pixels.length,organ:n===(config.organIndex??7),phase:n*1.37};
-      }).filter(Boolean);
-      parts.push(pieces);cutAudit.push({sourcePixels,cutPixels:pieces.reduce((n,p)=>n+p.pixels,0),pieces:pieces.length,biological:true});
+        for(let i=0;i<pixels.length;i++){const x=pixels[i]%W,y=Math.floor(pixels[i]/W);left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y);if((i&1023)===1023)yield 'biology:bounds';}
+        const w=right-left+1,h=bottom-top+1,texture=make(w,h),tg=texture.getContext('2d',{willReadFrequently:true}),cut=tg.createImageData(w,h),cutWords=new Uint32Array(cut.data.buffer,cut.data.byteOffset,cut.data.length/4);
+        for(let i=0;i<pixels.length;i++){const pixel=pixels[i];cutWords[(Math.floor(pixel/W)-top)*w+pixel%W-left]=words[pixel];if((i&1023)===1023)yield 'biology:cut';}
+        yield* write(tg,cut);
+        pieces.push({texture,x:(left+w/2)/W-.5,y:(top+h/2)/H-.5,w:w/W,h:h/H,pixels:pixels.length,organ:n===(config.organIndex??7),phase:n*1.37});
+      }
+      preparedParts.push(pieces);preparedAudit.push({sourcePixels,cutPixels:pieces.reduce((n,p)=>n+p.pixels,0),pieces:pieces.length,biological:true});
     }
-    burnReady=window.wreckageEffects?.primeAll(parts.flat().map(p=>p.texture),{organic:true})||Promise.resolve();
+    frames=images;parts=preparedParts;cutAudit=preparedAudit;
   }
+  const prime=()=>window.wreckageEffects?.primeAll(parts.flat().map(p=>p.texture),{organic:true})||Promise.resolve();
+  function prepare(images){finish(preparation(images));burnReady=prime();}
+  function prepareAsync(images){burnReady=schedule(preparation(images),{label:'biology:fragments'}).then(prime);return burnReady;}
   function breathing(stage,time){
     if(config.fixedSilhouette||config.deadFinal&&stage===3)return {x:1,y:1,twitch:0};
     const t=time/1000,pulse=Math.sin(t*(stage===3?5.8:2.1));
@@ -220,10 +239,10 @@
   const snapshot=(s,time,o)=>({biological:true,lights:o.lights&&!(config.deadFinal&&s===3)?organs.length:0,damageSites:o.damage?wounds[s].length:0,
     breathing:breathing(s,time),vascular:!!config.vascular,vascularPixels:veinPixels[s]||0,veinPulse:o.lights&&config.vascular?(.5+.5*Math.sin(time*.0017)):0,
     dead:!!config.deadFinal&&s===3,internalGlow:config.deadFinal?(s===3?0:[1,.6,.18][s]):null,organs:o.lights&&!(config.deadFinal&&s===3)?organs.length:0,activeWounds:o.damage?wounds[s].length:0});
-  const effects=Object.freeze({draw,snapshot,prepareFrame,unlitFrame:im=>{
+  const effects=Object.freeze({draw,snapshot,prepareFrame,prepareFrameAsync,unlitFrame:im=>{
     const c=make(W,H);c.getContext('2d').drawImage(im,0,0,W,H);return c;
   }});
-  return Object.freeze({prepare,get ready(){return burnReady;},drawBody,drawDeath,emit,spray,stageRupture,drawParticle,drawWreck,updateTrails,updateLiving,effects,audit:()=>cutAudit});
+  return Object.freeze({prepare,prepareAsync,get ready(){return burnReady;},drawBody,drawDeath,emit,spray,stageRupture,drawParticle,drawWreck,updateTrails,updateLiving,effects,audit:()=>cutAudit});
   };
   const config={width:313,height:512,
     wounds:[[],[[197,92,13]],[[197,92,18],[190,207,12],[211,310,17]],[[198,92,22],[186,200,16],[209,305,23],[166,423,20],[285,315,9]]],

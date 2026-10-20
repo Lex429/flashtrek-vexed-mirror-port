@@ -139,7 +139,7 @@
       Object.assign(d,{x:exit.x,y:exit.y,heading,speed:0,system:origin.system,missionId:m.id,carrier:carrier,target:target,approachTarget:{category:dest.category,id:dest.id}});
       leg(d,{x:contact.x+Math.cos(a)*(32+rx*.5),y:contact.y+Math.sin(a)*(32+ry*.5)},at+i*.8,'launching');
     }
-    window.nativeShipSystems.invalidate(s);return m;
+    window.nativeShipSystems.invalidateShips(s);return m;
   }
   function workPoint(p,d){const a=p.heading+Math.PI/2,c=Math.cos(a),sn=Math.sin(a);return {x:p.x+d.workLocal.x*c-d.workLocal.y*sn,y:p.y+d.workLocal.x*sn+d.workLocal.y*c};}
   function bayPoint(p,heading=p.heading){const a=heading-p.heading-Math.PI/2,c=Math.cos(a),sn=Math.sin(a),r=1/Math.sqrt((c/p.hullRadii.rx)**2+(sn/p.hullRadii.ry)**2)+25;return {x:p.x+Math.cos(heading)*r,y:p.y+Math.sin(heading)*r};}
@@ -224,8 +224,10 @@
     if(!s||!(dt>0)||window.nativeSimulation.blocked())return;
     const r=initialize(s),at=clock(s);
     window.nativeRepairVisuals?.advance(s,dt);
-    for(const m of r.missions)if(active(m))advanceMission(s,m,at);
-    if(r.missions.some(active))window.nativeShipSystems.invalidate(s);
+    let advanced=false;
+    for(const m of r.missions)if(active(m)){advanced=true;advanceMission(s,m,at);}
+    // The last mission can finish and stow its drones during this advance.
+    if(advanced)window.nativeShipSystems.invalidateShips(s);
     if(at+EPS<r.nextPollAt)return;
     r.nextPollAt=at+1;
     for(const {category,entity:e} of fleet(s)){

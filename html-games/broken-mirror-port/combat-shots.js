@@ -42,6 +42,9 @@
   function scene(state,system=state.system){
     return sceneProvider?.(state,{system})||window.nativeShipSystems?.scene(state,{system})||window.nativeCivilianTraffic?.combatScene(state,{system})||{bystanders:[],rocks:[]};
   }
+  function collisionScene(state,system=state.system){
+    return sceneProvider?.(state,{system})||window.nativeShipSystems?.collisionScene?.(state,{system})||scene(state,system);
+  }
   function resolve(state,id,system){
     if(window.nativeShipSystems)return window.nativeShipSystems.resolve(state,id,system);
     if(id==='player')return state.system===system&&state.hull!==0?player(state):null;
@@ -84,7 +87,7 @@
     if(source.definition?.capabilities?.armed===false)return finish('unarmed','This ship cannot fire weapons.');
     const loadouts=window.nativeWeaponLoadout;if(!loadouts)return finish('no-weapons','Shared weapon equipment is unavailable.');
     defaults||=source.definition?.equipment;
-    const fitted=choicesFor(loadouts.equipped(state,holder,defaults),selection),clock=now(state),scenery=scene(state,source.system??state.system);
+    const fitted=choicesFor(loadouts.equipped(state,holder,defaults),selection),clock=now(state),scenery=collisionScene(state,source.system??state.system);
     result.weapons=fitted.filter(item=>item.weapon.damage>0).map(item=>{
       const visual=weaponVisual(item.weapon),spec=effectiveSpec(state,holder,item.weapon,visual.kind),eligible=validTarget?rules.firingStatus(source,target,spec,visual.kind,scenery):{ok:false,reason:'unavailable',inRange:false,inArc:false};
       const remaining=Math.max(0,(Number(item.instance.readyAt)||0)-clock),ready=loadouts.ready(item.instance,clock);
@@ -117,7 +120,7 @@
       candidates.push({event,closest,distance:Math.hypot(dx,dy)});
     }
     candidates.sort((a,b)=>a.closest-b.closest);
-    const scenery=candidates.length?scene(state,target.system):null,results=[];
+    const scenery=candidates.length?collisionScene(state,target.system):null,results=[];
     let narrow=0;
     for(const candidate of candidates.slice(0,16)){
       narrow++;const hit=rules.projectileThreat(candidate.event,target,scenery,horizon);if(!hit)continue;
@@ -194,7 +197,7 @@
     if(shooter.entity?.phase==='disabled')return {ok:false,error:'Engines and weapons are disabled during hull repair.'};
     const system=shooter.system??state.system,holder=shooter.id==='player'?state:shooter.entity||options.shooter||shooter;
     const defaults=options.defaults||shooter.definition?.equipment||window.VexedMirrorWorld?.ships?.find(item=>item.id===Number(shooter.shipType))?.defaultWeapons;
-    const scenery=scene(state,system),armed=arm(state,undefined,(spec,kind)=>rules.firingSolution(shooter,target,spec,kind,scenery),{holder,defaults,selection:options.weaponInstance?{instance:options.weaponInstance}:options.selection});
+    const scenery=collisionScene(state,system),armed=arm(state,undefined,(spec,kind)=>rules.firingSolution(shooter,target,spec,kind,scenery),{holder,defaults,selection:options.weaponInstance?{instance:options.weaponInstance}:options.selection});
     if(!armed.ok){const status=firingStatus(state,shooter,target,{holder,defaults,selection:options.weaponInstance?{instance:options.weaponInstance}:options.selection});return {...armed,reason:status.reason,error:status.message};}
     const combat=combatState(state),clock=now(state),height=options.shipHeight??shooter.dimensions?.height??0;
     const event=rules.startShot(armed.weapon,armed.kind,shooter,target,clock,height*.36,armed.spec);
@@ -236,10 +239,10 @@
     if(event.resolved&&(!current||!resolve(state,event.hitTargetId,event.system))){
       const from=rules.emitter(source,event),end=event.point||event.beamEnd,dx=end.x-from.x,dy=end.y-from.y;
       const scale=Math.min(1,event.spec.range/(Math.hypot(dx,dy)||1)),to={x:from.x+dx*scale,y:from.y+dy*scale};
-      return rules.firstContact(from,to,source,null,scene(state,event.system),undefined,undefined,0,{instant:true})||{kind:'miss',point:to,from};
+      return rules.firstContact(from,to,source,null,collisionScene(state,event.system),undefined,undefined,0,{instant:true})||{kind:'miss',point:to,from};
     }
     const target=fitTarget(current||{...event.targetSnapshot,targetable:false},entry);
-    return rules.beamTrace(event,source,target,scene(state,event.system),target.radii,target.dimensions);
+    return rules.beamTrace(event,source,target,collisionScene(state,event.system),target.radii,target.dimensions);
   }
   function beamContactFor(state,eventId,targetId){
     const event=state.weaponCombat?.events?.find(event=>event.id===eventId);
@@ -275,19 +278,25 @@
     for(const event of [...combat.events]){
       if(event.cancelled||event.resolved)continue;
       if(event.sourceId==='player'&&(event.system!==state.system||window.vexedWarp?.active)){event.cancelled=true;event.alive=false;continue;}
+      // A pending instantaneous beam has no flight to integrate. Its preview
+      // reads current poses when painted; resolve those poses only when due.
+      if(!event.projectile&&now(state)<event.dueAt)continue;
       const entry=cache(state).get(event.id),sourceShip=liveSource(state,event,entry),current=liveTarget(state,event,entry);
       const target=fitTarget(current||{...event.targetSnapshot,targetable:false},entry);
       if(current)event.targetSnapshot=snapshot(current);
-      const result=rules.stepShot(event,sourceShip,target,scene(state,event.system),now(state),dt,target.radii,target.dimensions);
+      const result=rules.stepShot(event,sourceShip,target,collisionScene(state,event.system),now(state),dt,target.radii,target.dimensions);
       if(!result)continue;
       event.resolved=true;event.alive=false;event.resolvedAt=now(state);event.point=result.point;
       if(result.kind==='hit'){
         event.hitTargetId=result.target.id;event.hitTargetSnapshot=snapshot(result.target);event.contact=result.contact;
         const shot=visualFor(state,event,entry);
         shot.lockedImpactLocal=result.contact?.local;
-        if(entry?.onHit&&current&&String(result.target.id)===String(current.id))result.damage=entry.onHit(event.weapon,result.point,shot,result);
-        else result.damage=applyHit(state,result,event,sourceShip);
-        window.nativeShipSystems?.invalidate?.(state,event.system);
+        if(entry?.onHit&&current&&String(result.target.id)===String(current.id)){
+          result.damage=entry.onHit(event.weapon,result.point,shot,result);
+          if(current.category==='asteroid'&&current.entity)window.nativeShipSystems?.refreshAsteroid?.(state,current.entity);
+          else if(current.entity&&['player','civilian','tug'].includes(current.category))window.nativeShipSystems?.refreshShip?.(state,current.entity,current.category);
+          else window.nativeShipSystems?.invalidate?.(state,event.system);
+        }else result.damage=applyHit(state,result,event,sourceShip);
       }
       entry?.onResolved?.(result,event,visualFor(state,event,entry));
       window.nativeShipSystems?.resolved?.(state,result,event);
