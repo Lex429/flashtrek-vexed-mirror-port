@@ -1,4 +1,4 @@
-> The current market/docking verification and Linux browser comparison are in [Earth traffic recovery](earth-traffic-recovery.md). Historical measurements below remain tied to their original revisions and device.
+> The civilian combat verification is [below](#civilian-combat-and-held-controls-2026-10-20). Market/docking verification and its Linux browser comparison remain in [Earth traffic recovery](earth-traffic-recovery.md). Historical measurements retain their original revisions and device.
 
 # Persistent life scheduling: measured verification
 
@@ -104,3 +104,146 @@ Raw before/after JSON, frame samples, comparison JSON, screenshots and browser
 reports remain under the ignored `test-results` directory. CI uploads browser
 reports as artifacts. The [life contract](npc-life-contract.md) records limits,
 ownership, detail tolerances, calendar policy and future-role extension rules.
+
+## Civilian combat and held controls (2026-10-20)
+
+This pass starts from exact `01d5ea2`, which already contains the rearward beam,
+current-position aiming and shield-contact correction. Browser reproduction on
+that revision confirmed the separate civilian/control failures: a shared live
+projectile left the defender in `hold-range`, while copying it into obsolete
+`dispute.pending` caused a dodge; maneuvers reversed repeatedly; holding Space
+produced one shot; clicking a target cleared held movement input.
+
+The final fix passed **320/320 Node tests**, **8/8 local-site tests**, and all
+**21 gameplay browser suites** (the 19 existing suites plus civilian tactics and
+combat controls). The exact baseline passed its 290 Node, eight local-site and
+19 existing browser suites before the change. Runtime source hashes remained
+unchanged during the final full Node/local-site pass. The browser evidence covers
+live stray-shot reactions, fitted-weapon distances, physical cargo/medical escape,
+retained funded jobs and escrow through reload/disable/repair, held-fire stop
+gates, steering-preserving selection, target ordering and weapon feedback. Existing
+beam, interception, exactly-once damage, equipment, economy and rendering checks
+remain green. The old beam fixture now advances a zero-duration native input
+frame between independent frozen-animation scenes, matching the new rule of at
+most one player fire request per host frame.
+
+A browser pursuit used two ordinary matching hulls and shared physics for 30
+simulation seconds: the civilian traveled 7,262 units across five extended escape
+legs, maintained a 300-unit pursuer gap and never reversed. A separate regression
+restored the committed escape midway through JSON reload. Held firing accepted
+six shots over 3.2 seconds with the installed weapon's 0.615-second recharge.
+
+### Comparable sustained-hit measurements
+
+The primary before/after comparison uses headless Microsoft Edge
+**155.0.4283.62**, Windows, a **1280 × 850** viewport, and the identical serialized
+save SHA-256
+`b4479e04c15e74b503a6f7db977066b6d02ffa2ba68f59d81a614f5b9aceff16`.
+Its fleet has **162 civilians, nine tugs and the player (172 total)**. Each revision
+runs three 20-second windows sequentially, with no other regression or benchmark
+workers active. Three distinct owned beam mounts fire through actual
+Space taps every 100 ms. They use ordinary damage, shields and recharge against
+a legitimate disabled hull; the full fleet continues to advance. This isolates
+sustained-hit checkpoint costs and does not measure a pursuing AI opponent.
+
+The original isolated write measurement did not establish a stutter bug. The
+comparison records actual animation-frame delivery separately from callback,
+simulation, rendering, serialization and verified storage-write costs. Earlier
+diagnostic runs with another checkout's browser work active are retained in raw
+artifacts but excluded from the primary comparison.
+
+| Primary workload, three 20-second windows | Before `01d5ea2` | After |
+| --- | ---: | ---: |
+| Actual player hits | 460 | 458 |
+| Verified saves | 468 | 55 |
+| Total time in verified writes | 2,547 ms | 349 ms |
+| Mean verified-write cost | 5.44 ms | 6.35 ms |
+| Frame-interval P95, each window | 18.3 / 18.4 / 24.2 ms | 18.3 / 18.3 / 18.3 ms |
+| Intervals above 50 ms, each window | 2 / 1 / 2 | 3 / 0 / 0 |
+
+Verified writes decreased **88.2%**, and their total measured cost decreased **86.3%**.
+Individual writes became more expensive; this establishes useful coalescing,
+not faster serialization. The median window's frame P95 changed only from 18.4
+to 18.3 ms. Three short windows on this headless device do **not** establish a
+reliable frame-rate improvement or prove that saving caused a visible stutter.
+Periodic and explicit saves remain active, and all measured writes verified.
+
+The single-mount current control recorded 52 / 52 / 54 hits and 52 / 53 / 53 saves
+per 20-second window. Its mean write costs were 6.01 / 6.30 / 5.83 ms, totaling
+313 / 334 / 309 ms per window. Earlier baseline control runs had 52–53 hits and
+55 saves: slower firing appropriately remains approximately one write per hit.
+Those earlier control runs had background browser work, so their frame delivery
+is not compared with the quiet current runs.
+
+The ordinary scheduling comparison also uses the same 172-ship fleet, browser
+and viewport within its pair. Its separate starting save SHA-256 is
+`2211a641b0d0f8f6cd686b9c956658cfd2cdf9566b5c256c823b56a444718d01`.
+Each phase is a six-second sample after the harness's existing warmup.
+
+| Ordinary scheduling diagnostic | Before | After |
+| --- | ---: | ---: |
+| Flight mean simulation / render CPU | 2.15 / 6.15 ms | 2.71 / 6.16 ms |
+| Flight frame-interval P95 | 84.9 ms | 84.9 ms |
+| Flight intervals above 50 ms | 42 | 41 |
+| Dev-map mean simulation / render CPU | 0.872 / 0.929 ms | 0.828 / 0.961 ms |
+| Dev-map frame-interval P95 | 6.2 ms | 6.2 ms |
+| Dev-map intervals above 50 ms | 0 | 0 |
+
+The ordinary flight stalls remain. Its simulation CPU increased in this short
+sample while rendering CPU and frame delivery were essentially unchanged.
+These results do not support a general smoothness or scheduling speedup claim.
+
+### Crowded combat and remaining limits
+
+The existing stability harness reuses the ordinary fixture for a separate stress
+scene: 12 NPCs are provoked and the player's test-only health pool is enlarged
+to keep the encounter alive. Production hull statistics are unchanged. It runs
+three 20-second windows per revision, plus cold/warm artwork probes. Current
+reference pixel checks also passed.
+
+| Crowded stress diagnostic | Before | After |
+| --- | ---: | ---: |
+| Median window's mean simulation cost | 67.28 ms | 19.49 ms |
+| Median window's mean render cost | 22.35 ms | 10.74 ms |
+| Frame-interval P95, each window | 260.5 / 248.8 / 260.6 ms | 133.3 / 115.2 / 157.5 ms |
+| Intervals above 50 ms, each window | 138 / 137 / 146 | 119 / 103 / 130 |
+| Median steering calls in separate diagnostics | 748 | 460 |
+| Median firing attempts in separate diagnostics | 110 | 54 |
+| Median scene calls in separate diagnostics | 1,887 | 1,239 |
+
+The call counts come from separate one-second diagnostics after each measured
+window; they are not shot totals for the timed windows. Distant steering/firing
+remained zero. Survival policies change how many ships keep fighting, so the
+lower cost and frame P95 are confounded by a smaller tactical workload. They do
+not establish an equivalent-load algorithmic speedup. Major crowded-combat frame
+stalls remain, alongside the ordinary flight stalls reported above.
+
+These results are limited to one headless Windows device reporting 16 hardware
+threads, 32 GB device memory and DPR 1. The browser/fixture/viewport/population
+guards passed within each comparison pair; uncontrolled OS activity and short
+measurement windows still limit inference. Save coalescing reduces measured
+redundant work, while broader rendering and dense-combat costs remain unresolved.
+
+### Commands and evidence
+
+```sh
+node --test tests/*.test.cjs tests/*.test.js
+python -m unittest discover -s tests -p test_local_site.py -v
+python tests/browser-combat-performance.py --revision 01d5ea2 --label quiet-before-volley --seconds 20 --runs 3
+python tests/browser-combat-performance.py --label quiet-after-volley --seconds 20 --runs 3
+python tests/browser-combat-performance.py --label after-single --mounts 1 --fixture test-results/combat-performance/initial-save.json --seconds 20 --runs 3
+python tests/browser-npc-performance.py --revision 01d5ea2 --label combat-before
+python tests/browser-npc-performance.py --label combat-after
+python tests/browser-stability.py --measure --revision 01d5ea2 --label combat-before --scenarios crowdedCombat --seconds 20 --repetitions 3
+python tests/browser-stability.py --measure --label combat-after --scenarios crowdedCombat --seconds 20 --repetitions 3
+```
+
+The 21 gameplay browser commands are recorded in the repository test workflow.
+Ignored `test-results/combat-final/summary.json` records their actual outcomes and
+the full Node/local-site run. `test-results/combat-performance/comparison.json`
+contains validated paired timings; `required-comparison-summary.json` retains
+exact command arguments, exit codes and durations. Raw frame/write samples remain
+beside those reports. Gameplay screenshots are in `test-results/combat-controls/`
+and `test-results/civilian-tactics/`, including rearward beam shield contact,
+movement while selecting, live projectile evasion, continued pursuit and cargo/
+medical escape. Generated evidence is intentionally excluded from Git.

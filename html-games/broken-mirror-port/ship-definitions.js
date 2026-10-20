@@ -29,7 +29,11 @@
     const height=displayHeights[type]??reference.playerHeight*display/maximum;
     return {width:height*ratio,height};
   }
-  const policies=Object.freeze({medical:{activities:['trade','travel'],supplies:{material:'deuranium',good:7,price:55,low:60,target:200,buy:true,mine:true}},cargo:{activities:['trade','travel']},civilian:{activities:['trade','mining','travel']}});
+  const policies=Object.freeze({
+    medical:{activities:['trade','travel'],supplies:{material:'deuranium',good:7,price:55,low:60,target:200,buy:true,mine:true},combat:{caution:.9,aggression:.12,retreatHull:.8,retreatShield:.35,survivalFirst:true,protectCargo:true,distanceFactor:.8}},
+    cargo:{activities:['trade','travel'],combat:{caution:.78,aggression:.28,retreatHull:.65,retreatShield:.22,protectCargo:true,distanceFactor:.78}},
+    civilian:{activities:['trade','mining','travel'],combat:{caution:.5,aggression:.6,retreatHull:.45,retreatShield:.12,protectCargo:false,distanceFactor:.7}}
+  });
   // Class differences belong here, never in the identity of the controller.
   const classes={18:{npcPolicy:'civilian',defaultRole:'mining'},23:{npcPolicy:'civilian',defaultRole:'trading'},
     10:{npcPolicy:'cargo'},56:{npcPolicy:'cargo'},57:{npcPolicy:'cargo'},
@@ -45,6 +49,10 @@
     if(definition.slots.engineering!==1||definition.slots.shield!==1)errors.push('Engineering and shield capacities must each be one');
     if(Array.isArray(definition.artwork.frames)&&definition.artwork.frames.length!==4)errors.push('Four aligned damage frames are required');
     const supply=definition.npcPolicy?.supplies;if(supply&&(!(supply.low>=0&&supply.target>=supply.low)||!Number.isFinite(supply.low+supply.target)||!(supply.price>0)||!Number.isInteger(supply.good)||supply.good<0||supply.good>8))errors.push('Invalid medical supply settings');
+    const combat=definition.npcPolicy?.combat;
+    for(const key of ['caution','aggression','retreatHull','retreatShield'])if(combat?.[key]!==undefined&&(!Number.isFinite(combat[key])||combat[key]<0||combat[key]>1))errors.push('Invalid combat '+key);
+    if(combat?.distanceFactor!==undefined&&(!Number.isFinite(combat.distanceFactor)||combat.distanceFactor<=0||combat.distanceFactor>1))errors.push('Invalid combat distanceFactor');
+    for(const key of ['protectCargo','survivalFirst'])if(combat?.[key]!==undefined&&typeof combat[key]!=='boolean')errors.push('Invalid combat '+key);
     if(!policies[definition.npcPolicy?.name])errors.push('Unknown NPC policy');
     for(const activity of definition.npcPolicy?.activities||[])if(!['trade','mining','travel'].includes(activity))errors.push('Unknown activity '+activity);
     for(const [kind,items] of Object.entries(definition.startingEquipment)){
@@ -70,6 +78,7 @@
     const policyName=typeof custom.npcPolicy==='string'?custom.npcPolicy:custom.npcPolicy?.name||'civilian';
     const npcPolicy={name:policyName,...policies[policyName],...(typeof custom.npcPolicy==='object'?custom.npcPolicy:{})};
     if(policies[policyName]?.supplies)npcPolicy.supplies={...policies[policyName].supplies,...custom.npcPolicy?.supplies};
+    npcPolicy.combat={...policies[policyName]?.combat,...custom.npcPolicy?.combat};
     const result={...stats,...custom,id:type,category,profile:role,slots,npcPolicy,
       defaultRole:custom.defaultRole||(policyName==='medical'?'medical':'freight'),artworkProfile:custom.artworkProfile||artworkProfile(type),dimensions:custom.dimensions||presentation(type),
       startingEquipment:{weapon:initial.map(id=>itemKind(id)!=='weapon'?null:id||null),repairDrone:Array.from({length:Number.isInteger(slots.repairDrone)&&slots.repairDrone>=0&&slots.repairDrone<=64?slots.repairDrone:0},()=> 'basic-dot'),ability:initial.filter(id=>itemKind(id)==='ability'),engineering:['standard-engine'],shield:(custom.shields??stats.shields)>0?['standard-shield']:[],...custom.startingEquipment},

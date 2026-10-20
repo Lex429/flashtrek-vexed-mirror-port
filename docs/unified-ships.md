@@ -90,6 +90,15 @@ Olympic crew templates remain the existing fleet's one-time migration; medical
 eligibility and jobs no longer compare a ship ID with 58. Buying a medical hull
 does not install an NPC controller on the player's ship.
 
+Combat policy is also definition data under `npcPolicy.combat`: caution,
+aggression, retreat hull/shield fractions, cargo protection, medical survival
+priority and preferred distance factor. Registering another hull with an existing
+policy inherits these decisions. Installed weapons and the ordinary shared hull
+profile govern range and movement; crews receive no hidden statistical bonuses.
+Saved `crewTraits.version:1` provides stable individual caution/aggression.
+See the [combat suspension contract](npc-life-contract.md#combat-detours-and-crew-survival)
+for retained jobs, physical escape and repair/resumption.
+
 Ordinary ships disable at 25% hull, retain cargo and collision momentum, turn
 off powered operation/lights, and wait for shared repairs and drone recovery.
 Zero hull is destruction. Any exception is definition capability data. A service

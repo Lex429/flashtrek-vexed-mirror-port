@@ -29,6 +29,10 @@ try:
         channel = os.environ.get('BROWSER_CHANNEL', 'msedge')
         browser = p.chromium.launch(headless=True, **({'channel': channel} if channel else {}))
         page = browser.new_page(viewport={'width': 1280, 'height': 850})
+        page.add_init_script("""(() => {
+          const raf=window.requestAnimationFrame.bind(window);
+          window.requestAnimationFrame=callback=>{if(callback.name==='draw')window.__beamNativeFrame=callback;return raf(callback);};
+        })();""")
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('response', lambda response: failed.append(response.url) if response.status >= 400 else None)
         page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
@@ -60,7 +64,13 @@ try:
           }
           const tick=(test,dt)=>{const elapsed=nativeSimulation.advance(test.state,dt);nativeCombatShots.advance(test.state,elapsed);nativeShipEffects.advance(test.state,elapsed);return elapsed;};
           const fire=test=>nativeCombatShots.fire({state:test.state,target:test.victim()});
-          window.__beam={clone,base,weapon,fixture,tick,fire};
+          const nativeFrame=()=>{
+            // Each new real-input scene needs a distinct host frame. Keep
+            // authoritative poses/time frozen while advancing the input owner.
+            const simulation=window.nativeSimulation;window.nativeSimulation={...simulation,blocked:()=>true};
+            try{window.__beamNativeFrame(performance.now());}finally{window.nativeSimulation=simulation;}
+          };
+          window.__beam={clone,base,weapon,fixture,tick,fire,nativeFrame};
         }""")
         reproduction = page.evaluate("""() => {
           const {fixture,tick,fire}=__beam;
@@ -161,6 +171,7 @@ try:
                   const h=__beam,test=h.fixture({bearing,live:true});h.nativeTest=test;
                   h.counts.set(test.state,0);h.lastFire=null;
                   nativeSolEconomy.clearTarget();nativeAsteroidCombat.deselect();nativeCivilianTraffic.clearTarget();
+                  h.nativeFrame();
                   document.querySelector('#space').focus();
                 }""", bearing)
                 page.keyboard.press('Shift')
@@ -312,6 +323,7 @@ try:
             page.evaluate("""() => {
               const h=__beam,test=h.fixture({rear:true,live:true});h.nativeTest=test;h.canvas.style.display='none';
               nativeSolEconomy.clearTarget();nativeAsteroidCombat.deselect();nativeCivilianTraffic.clearTarget();
+              h.nativeFrame();
               document.querySelector('#space').focus();
             }""")
             page.keyboard.press('Shift')

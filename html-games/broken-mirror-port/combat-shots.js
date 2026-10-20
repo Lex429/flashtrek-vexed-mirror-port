@@ -1,7 +1,7 @@
 /* One saved firing lifecycle for every controller and physical target. */
 (() => {
   'use strict';
-  const styles=new Map(),states=new Set(),runtime=new WeakMap();
+  const styles=new Map(),states=new Set(),runtime=new WeakMap(),awareness=new WeakMap(),shotIndexes=new WeakMap();
   const rules=window.nativeWeaponRules;
   let units=window.showcaseWeaponAppearance.units,sceneProvider=null;
   const blocked=()=>window.nativeSimulation?.blocked?.()||document.hidden||window.nativePause?.active||window.nativeShipInventory?.active;
@@ -64,14 +64,90 @@
     const d=dimensions(target,entry?.dimensions),shielded=target.rockId!=null?false:target.shields!=null?Number(target.shields)>0:!!entry?.shielded?.(target);
     return {...target,dimensions:d,radii:target.rockId!=null?undefined:radii(target,d,shielded),surfaceShielded:shielded};
   }
+  function choicesFor(fitted,selection){
+    return selection?(Array.isArray(selection)?selection:[selection]).map(choice=>{
+      const slot=choice.slot??fitted.find(item=>choice.instance?item.instance?.id===choice.instance.id:item.weapon.id===(choice.weapon?.id??choice.modelId??choice.id))?.slot;
+      return fitted.find(item=>item.slot===slot);
+    }).filter(Boolean):fitted;
+  }
+  function effectiveSpec(state,holder,weapon,kind){
+    const damageMultiplier=window.nativeShipDefinitions?.forEntity(state,holder,{category:holder===state?'player':'civilian'}).weaponDamageMultiplier||1;
+    return rules.weaponSpec(weapon,kind,{damageMultiplier});
+  }
+  function firingStatus(state,source,target,{holder,defaults,selection}={}){
+    source=describe(state,source||player(state));holder||=source.id==='player'?state:source.entity||source;
+    const result={ok:false,reason:'unavailable',message:'Target unavailable.',weapons:[],maxRange:0,range:0,remaining:0,distance:target?Math.hypot(target.x-source.x,target.y-source.y):0};
+    const finish=(reason,message)=>({...result,reason,message,error:message,ok:reason==='ready'});
+    const validTarget=target&&target.targetable!==false&&(target.system??source.system)===source.system;
+    if(source.hull===0||source.entity?.hull<=0)return finish('destroyed','This ship is destroyed.');
+    if(source.entity?.phase==='disabled')return finish('disabled','Weapons disabled during hull repair.');
+    if(source.definition?.capabilities?.armed===false)return finish('unarmed','This ship cannot fire weapons.');
+    const loadouts=window.nativeWeaponLoadout;if(!loadouts)return finish('no-weapons','Shared weapon equipment is unavailable.');
+    defaults||=source.definition?.equipment;
+    const fitted=choicesFor(loadouts.equipped(state,holder,defaults),selection),clock=now(state),scenery=scene(state,source.system??state.system);
+    result.weapons=fitted.filter(item=>item.weapon.damage>0).map(item=>{
+      const visual=weaponVisual(item.weapon),spec=effectiveSpec(state,holder,item.weapon,visual.kind),eligible=validTarget?rules.firingStatus(source,target,spec,visual.kind,scenery):{ok:false,reason:'unavailable',inRange:false,inArc:false};
+      const remaining=Math.max(0,(Number(item.instance.readyAt)||0)-clock),ready=loadouts.ready(item.instance,clock);
+      return {...item,kind:visual.kind,spec,inRange:eligible.inRange,inArc:eligible.inArc,canReach:eligible.ok,ready,remaining,
+        reason:!visual.style?'visuals':!eligible.ok?eligible.reason:!ready?'recharge':'ready'};
+    });
+    result.maxRange=result.range=Math.max(0,...result.weapons.map(item=>item.spec.range));
+    if(!validTarget)return finish('unavailable','Target unavailable.');
+    if(!result.weapons.length)return finish('no-weapons','This ship has no damaging weapon equipped.');
+    if(result.weapons.some(item=>item.reason==='ready'))return finish('ready','Ready to fire.');
+    const reachable=result.weapons.filter(item=>item.canReach&&item.reason!=='visuals');
+    if(reachable.length){result.remaining=Math.min(...reachable.map(item=>item.remaining));return finish('recharge',`Weapons in range are recharging (${result.remaining.toFixed(1)} s).`);}
+    if(result.weapons.every(item=>item.reason==='visuals'))return finish('visuals','Weapon visuals are unavailable or still loading.');
+    if(result.weapons.every(item=>!item.inRange))return finish('range',`Out of range. Fitted weapons reach up to ${result.maxRange} units.`);
+    if(result.weapons.some(item=>item.reason==='blocked'))return finish('blocked','Projectile firing line is blocked.');
+    return finish('arc','Target is outside the firing arc of weapons in range.');
+  }
+  function threats(state,ship,{horizon=.9,reaction=.15,limit=8}={}){
+    const target=describe(state,ship),events=state.weaponCombat?.events||[],clock=now(state);
+    horizon=Math.max(.05,Math.min(1.2,Number(horizon)||.9));limit=Math.max(1,Math.min(8,Number(limit)||8));
+    const scanned=Math.min(256,events.length),start=events.length>256?(Math.floor(clock*10)*256)%events.length:0,candidates=[];
+    const vx=Number(target.vx)||0,vy=Number(target.vy)||0,radius=Math.max(target.radii?.rx||0,target.radii?.ry||0,target.radius||15);
+    for(let offset=0;offset<scanned;offset++){
+      const event=events[(start+offset)%events.length];
+      if(!event.projectile||!event.alive||event.resolved||event.cancelled||event.system!==target.system||String(event.sourceId)===String(target.id)||clock-event.launchedAt<reaction)continue;
+      const dx=event.x-target.x,dy=event.y-target.y,rvx=event.vx-vx,rvy=event.vy-vy,speed2=rvx*rvx+rvy*rvy;
+      if(!(speed2>0))continue;
+      const approach=-(dx*rvx+dy*rvy)/speed2,closest=Math.min(horizon,approach);
+      if(approach<0||(dx+rvx*closest)**2+(dy+rvy*closest)**2>(radius+(event.radius||0))**2)continue;
+      candidates.push({event,closest,distance:Math.hypot(dx,dy)});
+    }
+    candidates.sort((a,b)=>a.closest-b.closest);
+    const scenery=candidates.length?scene(state,target.system):null,results=[];
+    let narrow=0;
+    for(const candidate of candidates.slice(0,16)){
+      narrow++;const hit=rules.projectileThreat(candidate.event,target,scenery,horizon);if(!hit)continue;
+      const event=candidate.event;
+      results.push({id:event.id,sourceId:event.sourceId,targetId:event.targetId,kind:event.kind,x:event.x,y:event.y,vx:event.vx,vy:event.vy,distance:candidate.distance,...hit});
+    }
+    awareness.set(state,{scanned,narrow,candidates:candidates.length});
+    return results.sort((a,b)=>a.timeToImpact-b.timeToImpact).slice(0,limit);
+  }
+  function hasActiveProjectiles(state,system=state.system){
+    const events=state.weaponCombat?.events||[],count=Math.min(256,events.length),start=events.length>256?(Math.floor(now(state)*10)*256)%events.length:0;
+    for(let offset=0;offset<count;offset++){
+      const event=events[(start+offset)%events.length];
+      if(event.projectile&&event.alive&&!event.cancelled&&!event.resolved&&event.system===system)return true;
+    }
+    return false;
+  }
+  function activeProjectile(state,id){
+    const events=state.weaponCombat?.events||[];
+    let index=shotIndexes.get(state);
+    if(!index||index.events!==events||index.count!==events.length){index={events,count:events.length,byId:new Map(events.map(event=>[String(event.id),event]))};shotIndexes.set(state,index);}
+    const event=index.byId.get(String(id));
+    return event?.projectile&&event.alive&&!event.cancelled&&!event.resolved?{id:event.id,system:event.system,sourceId:event.sourceId,targetId:event.targetId,
+      x:event.x,y:event.y,vx:event.vx,vy:event.vy,launchedAt:event.launchedAt,age:event.age,ttl:event.ttl,kind:event.kind}:null;
+  }
   function arm(state,time,eligible=()=>true,{holder=state,defaults,selection}={}){
     combatState(state);const clock=time==null?now(state):time/1000,loadouts=window.nativeWeaponLoadout;
     if(!loadouts)return {ok:false,error:'Shared weapon equipment is unavailable.'};
     const loadout=loadouts.ensure(state,holder,defaults),fitted=loadouts.equipped(state,holder,defaults);
-    const choices=selection?(Array.isArray(selection)?selection:[selection]).map(choice=>{
-      const slot=choice.slot??fitted.find(item=>choice.instance?item.instance?.id===choice.instance.id:item.weapon.id===(choice.weapon?.id??choice.modelId??choice.id))?.slot;
-      return fitted.find(item=>item.slot===slot);
-    }).filter(Boolean):fitted;
+    const choices=choicesFor(fitted,selection);
     if(!choices.some(item=>item.weapon.damage>0))return {ok:false,error:'This ship has no damaging weapon equipped.'};
     let available=false,visible=false;
     for(let offset=0;offset<choices.length;offset++){
@@ -79,8 +155,7 @@
       const {weapon,slot,instance}=choices[index];if(!(weapon.damage>0))continue;
       const visual=weaponVisual(weapon);if(!visual.style)continue;visible=true;
       if(!loadouts.ready(instance,clock))continue;available=true;
-      const damageMultiplier=window.nativeShipDefinitions?.forEntity(state,holder,{category:holder===state?'player':'civilian'}).weaponDamageMultiplier||1;
-      const spec=rules.weaponSpec(weapon,visual.kind,{damageMultiplier});
+      const spec=effectiveSpec(state,holder,weapon,visual.kind);
       if(!eligible(spec,visual.kind,weapon,slot))continue;
       loadouts.consume(instance,spec,clock);loadout.nextSlot=(index+1)%choices.length;if(holder.shipEquipment)holder.shipEquipment.nextSlot=loadout.nextSlot;
       return {ok:true,weapon,slot,instance,spec,...visual};
@@ -113,14 +188,14 @@
     const {state,getTarget,owner,onHit,onResolved}=options;
     if(blocked()||window.vexedWarp?.active&&(!options.shooter||options.shooter.id==='player'))return {ok:false,error:'Resume flight before firing.'};
     const shooter=describe(state,options.getSource?.()||options.shooter||player(state)),target=getTarget?.()||options.target;
-    if(!target)return {ok:false,error:'Target unavailable.'};
+    if(!target||(target.system??shooter.system)!==shooter.system)return {ok:false,reason:'unavailable',error:'Target unavailable.'};
     if(shooter.definition?.capabilities?.armed===false)return {ok:false,error:'This ship cannot fire weapons.'};
     if(shooter.entity?.hull<=0||shooter.hull===0)return {ok:false,error:'This ship is destroyed.'};
     if(shooter.entity?.phase==='disabled')return {ok:false,error:'Engines and weapons are disabled during hull repair.'};
     const system=shooter.system??state.system,holder=shooter.id==='player'?state:shooter.entity||options.shooter||shooter;
     const defaults=options.defaults||shooter.definition?.equipment||window.VexedMirrorWorld?.ships?.find(item=>item.id===Number(shooter.shipType))?.defaultWeapons;
     const scenery=scene(state,system),armed=arm(state,undefined,(spec,kind)=>rules.firingSolution(shooter,target,spec,kind,scenery),{holder,defaults,selection:options.weaponInstance?{instance:options.weaponInstance}:options.selection});
-    if(!armed.ok)return armed;
+    if(!armed.ok){const status=firingStatus(state,shooter,target,{holder,defaults,selection:options.weaponInstance?{instance:options.weaponInstance}:options.selection});return {...armed,reason:status.reason,error:status.message};}
     const combat=combatState(state),clock=now(state),height=options.shipHeight??shooter.dimensions?.height??0;
     const event=rules.startShot(armed.weapon,armed.kind,shooter,target,clock,height*.36,armed.spec);
     Object.assign(event,{id:combat.nextEventId++,system,owner:owner||shooter.category||'ship',weaponId:armed.weapon.id,weaponInstanceId:armed.instance?.id,
@@ -261,5 +336,5 @@
     for(const event of combatState(view.state).events)if(event.system===view.state.system)paint(ctx,visualFor(view.state,event),view);
   }
   window.nativeCombatShots={arm,fire,fireFor,advance,cancel,isVisible,create,source,paint,paintAll,hitDelay,weaponVisual,reset,contact,worldPoint,ready,setVisualCatalog,applyHit,
-    scene,configureScene:provider=>{sceneProvider=provider;},importEvent,migrate,restore:migrate,snapshot,beamContactFor,isReady:()=>styles.size>0};
+    scene,configureScene:provider=>{sceneProvider=provider;},importEvent,migrate,restore:migrate,snapshot,beamContactFor,firingStatus,threats,activeProjectile,hasActiveProjectiles,awarenessMetrics:state=>({...awareness.get(state)}),isReady:()=>styles.size>0};
 })();

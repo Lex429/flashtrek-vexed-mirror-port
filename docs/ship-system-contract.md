@@ -21,6 +21,8 @@ The live game and damage showcase share their weapon and shield shaders in
 | Owned weapon identities, fitting, locker transfers, recharge deadlines and legacy equipment migration | `weapon-loadout.js` | Request an equipment operation |
 | Model/upgrade weapon specifications, eligibility, ballistic simulation, interception and swept collisions | `weapon-rules.js` | Choose a weapon/target, or request fire |
 | Firing lifecycle, emitter attachment, pending attacks, resolution, visual shot instances and cleanup | `combat-shots.js` | Call `fire` for player input or `fireFor` for NPC intent |
+| Live projectile awareness and fitted-weapon eligibility reports | `combat-shots.js`, querying `weapon-rules.js` geometry/eligibility | Choose a response or present the report; never simulate a private projectile |
+| Held player fire intent and target ordering | `player-combat-controls.js`, hosted by `native-game.js` | Latch one selected target and request at most one shot per host frame |
 | Shield-first damage, hull overflow, nonlethal floors, stage transitions and disabled/destroyed results | `ship-damage.js` | Respond to the result |
 | Ship artwork cache, shared ship rendering, shield/hull impacts, stage fragments and wreck simulation | `ship-effects.js`, using existing showcase shaders and destruction assets | Request a hit/visual event and draw the resulting state |
 | Explosion/debris contact collection, common physical dispatch and ship surface effects | `explosion-impacts.js` and shared `debris-impacts.js`, delegating to `asteroid-motion.js` / `ship-motion.js` | Supply the explosion/debris source; environmental asteroid damage stops at 25% remaining health |
@@ -324,6 +326,41 @@ encounter, meeting and tactical deadlines from the old civilian clock without
 changing their remaining durations. Job timers expressed as remaining seconds
 continue unchanged. Player mining uses a saved `miningOperation.version:1`;
 restoration and completion run in simulation, including without a render pass.
+
+## Combat intent and verified checkpoints
+
+`combat-shots.threats(state, descriptor, options)` reads live shared projectiles,
+including strays without a matching target ID. It applies a launch reaction delay,
+a relative-motion broad phase and the shared physical interception query over a
+short linear forecast. It scans at most 256 saved events and performs at most 16
+narrow queries, returning at most eight threats. Larger queues rotate through
+deterministic chunks every 0.1 simulation seconds. Forecasts do not advance or
+home a projectile, create a hit, or change charge. `activeProjectile` provides an
+indexed read-only snapshot for expiring cached perceptions; `hasActiveProjectiles`
+lets ordinary traffic skip unnecessary awareness work. Actual flight, homing and
+first-object damage remain solely in the existing shot lifecycle.
+
+`firingStatus` reports shared equipped model range, arc, physical launch blockers
+and owned `readyAt` deadlines without consuming a charge. A mixed loadout can
+reach a target with its longer-range weapon even while a shorter weapon cannot.
+The player HUD and firing requests use that same eligibility. Beam weapons retain
+their 360-degree targeting and physical interception from the beam correction.
+
+Holding Space latches the current target until release or an input/flight gate
+clears it. Each host frame requests at most one shared shot; slow frames do not
+replay missed requests. Target changes/loss stop the hold and cannot redirect it.
+Gameplay target selection preserves steering/throttle, while overlays, focus loss,
+warp, disabling and destruction clear flight input. Threatening ships lead the
+selection list; cycling and clicking still admit neutral ships and asteroids.
+
+`save-storage.schedule` coalesces redundant hit checkpoints using a 250 ms trailing
+delay and a one-second maximum wait. The host calls `flushDue` once per frame.
+Explicit saves, purchases, fitting and travel commits remain immediate verified
+writes; menu/focus/page lifecycle boundaries flush a dirty checkpoint. Normal and
+Dev queues remain separate. Failed writes remain dirty and return the real error,
+with retries limited to once per second. The queue is transient; the saved schema
+and existing bounded periodic autosaves remain unchanged. Cost and frame delivery
+comparisons use the same saved fleet in `browser-combat-performance.py`.
 
 ## Verification of this migration
 

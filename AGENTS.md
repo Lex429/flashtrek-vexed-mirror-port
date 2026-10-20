@@ -14,6 +14,19 @@ Preserve artwork, ship statistics, faction differences, deliveries, civilian job
 
 The ownership contract is `docs/ship-system-contract.md`. Shared modules own ship definitions, motion, simulation time, weapon instances, firing, damage and effects. Add differences as explicit definition/profile/capability data. World coordinates and simulation time are authoritative; camera conversion belongs in rendering. Render functions cannot damage objects, complete mining or grant resources.
 
+Civilian awareness reads `combat-shots.threats`, never obsolete dispute pending
+queues or a private projectile simulation. `npcPolicy.combat` and saved crew
+traits choose intent; shared equipment and motion keep their ordinary statistics.
+Combat detours use `npc-lives.suspendCombat` / `resumeWork`, retaining valid cargo,
+agreements and escrow while physically rebuilding the interrupted route. Held
+Space latches one target and requests at most once per host frame; target changes
+stop fire without clearing steering. `firingStatus` supplies shared range/recharge
+feedback. Only redundant hit checkpoints use the verified save owner's bounded
+queue; explicit durable actions still write immediately. Run the new civilian
+tactics, combat awareness/save and player controls Node/browser regressions with
+the existing suites. Use identical saves, fleets and viewports for the combat
+performance comparison; report frame delivery separately from save/CPU costs.
+
 Run the existing Node and browser tests before and after migrations. Add reusable regression coverage and real-browser beam/impact alignment checks. No completion claims for unrun checks. Preserve save compatibility through versioned migrations. Do not commit generated screenshots, profiles, caches or local installation backups.
 
 Independent work may be delegated, with explicit file ownership and shared API agreements. Do not edit a teammate's files without coordinating. Push only the reviewed, tested result when the user authorizes it.

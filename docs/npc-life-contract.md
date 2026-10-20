@@ -89,6 +89,8 @@ the destination, transfers the fixed payment to the ship and releases the
 remaining escrow once. Transaction IDs and saved completion fields prevent a
 second unload or payment. Cancellation and interruption release each unconsumed
 reservation once; disabling never awards cargo or payment to the destination.
+The combat suspension described below preserves valid agreements instead of
+cancelling work merely because a crew must maneuver to safety.
 
 Sol markets alias the existing `solEconomy.ports` arrays used by the player,
 production and tugs. `stockReserved` and `incomingReserved` link to the civilian
@@ -125,9 +127,50 @@ hold or teleport. At the next 120-second economic cycle it may select a new fund
 sale for the same owned cargo. Recovery deadlines and blocked retry deadlines
 survive save/load. A blocked recheck retains the original task and expired
 recovery deadline; it does not repeatedly open a new waiting-payment window.
-`resumeWork` returns operational combat survivors to this task
-owner, releasing obsolete contracts while retaining health, cargo and owned
-weapon recharge; disabled/destroyed ships cannot be woken by that command.
+`resumeWork` returns operational combat survivors to this task owner, retaining a
+valid suspended contract and releasing obsolete contracts while retaining health,
+cargo and owned weapon recharge. Disabled/destroyed ships cannot be woken by it.
+
+### Combat detours and crew survival
+
+`ship-definitions.npcPolicy.combat` supplies cargo, medical and general civilian
+behavior. `crewTraits.version:1` saves each crew's caution and aggression once;
+`combatAI.version:2` saves perceptions, reaction times, maneuver reasons and a
+committed escape goal. Old tactical records migrate without changing equipment,
+statistics, cargo or identity. Fitted shared weapons determine useful engagement
+distances. Maneuver changes respond to actual threats, damage, range and clearance,
+instead of reversing direction on a repeating timer. Cargo policy protects loaded
+holds; medical policy prioritizes survival and its work. These policies add no
+movement, damage, shield or recharge bonuses.
+
+Ordinary traffic checks a bounded rotating set of nearby crews for live shared
+projectiles, including stray shots. Perceptions wait for a saved reaction interval
+and expire when their shared projectile disappears. A no-hit dodge can temporarily
+suspend a job without creating retaliation against a harmless/stray shooter.
+
+`suspendCombat` samples the current authoritative pose, releases berth occupancy,
+and saves `combatInterruption.version:1` with task ID, phase, remaining deadline
+and optional berth/handling intent (older records infer that intent from cargo).
+It retains the task's stock/funds/demand reservations and cargo. Escape uses shared
+motion and avoidance toward a useful refuge or physical separation, without the
+old combat-area boundary pulling the ship back. An escaping crew must achieve
+actual safe separation before declaring escape. A pursued crew extends or replans
+its physical escape leg before reaching or passing an unsafe waypoint; saved
+waypoints never pull it back toward its attacker. `resumeWork` rebuilds the retained
+job's real approach/docking/mining leg
+from its current pose. A temporary disable keeps valid commercial escrow until
+shared repairs finish; destruction and genuine cancellation still release it once.
+Medical claim ownership remains under the shared repair owner.
+
+Queued pickups retain their original loading port and intent. Interrupted ore
+collection returns physically before collecting the retained entitlement once.
+An interrupted paid port repair requests an actual berth and resumes its saved
+remaining repair time only after arriving, without charging for the repair again.
+
+Regression checks include `civilian-tactics.test.cjs` and
+`browser-civilian-tactics.py`, alongside the existing life, economy, traffic and
+repair suites. Midway JSON/page reloads retain crew choices, escape intent, cargo,
+agreements and owned weapon deadlines.
 
 ### Explicit economic sources and sinks
 

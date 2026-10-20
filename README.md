@@ -33,6 +33,19 @@ Dev games have separate Continue buttons and save slots. See the
 
 All flight ships render above planets. Weapon shots collide with the first ship, asteroid, or registered destructible object in their path, including when the original target moves away or disappears. Armed civilian ships can return fire against the actual attacker.
 
+Hold **Space** to keep firing at the selected target as owned weapons recharge.
+Click or tap **Shift** to select a target without releasing throttle or steering;
+attacking ships lead the cycle, which still includes neutral ships and asteroids.
+Hold Shift to clear the target. Changing or losing the target stops held firing.
+The target status shows fitted weapon ranges, recharge and other firing failures.
+Phasers can fire behind the ship and stop at the first physical shield or hull.
+
+Civilian crews notice live projectiles after a reaction delay and choose movement
+from their weapons, damage, surroundings and saved crew traits. Loaded cargo crews
+and medical crews prioritize escape, retaining valid jobs, cargo and escrow through
+combat, repairs and reloads. Their movement and weapons use the same statistics
+and shared systems as the player.
+
 The port and [damage showcase](html-games/flashtrek-broken-mirror/damage-showcase.html) use the same phaser, disruptor, and torpedo renderer. Explosion pressure and flying wreckage trigger shield flashes or hull sparks without reducing ship health. Nearby asteroids can be destroyed by these environmental impacts.
 
 Ships now share definitions, movement, owned weapon recharge, firing, target collisions, damage and animation systems. Controllers choose jobs and commands. See the [ship system contract](docs/ship-system-contract.md) for ownership, extension examples, coordinate/time conventions and save migrations. [AGENTS.md](AGENTS.md) records the rules for future changes.
@@ -53,6 +66,8 @@ The browser checks use Python, Playwright, and Microsoft Edge. They start an iso
 python tests/browser-smoke.py
 python tests/browser-ship-contract.py
 python tests/browser-npc-lives.py
+python tests/browser-civilian-tactics.py
+python tests/browser-combat-controls.py
 python tests/browser-galaxy-controls.py
 python tests/browser-regional-mining.py
 python tests/browser-ore-performance.py
@@ -68,6 +83,11 @@ Install Python test dependencies with `python -m pip install -r requirements-tes
 The [test workflow](.github/workflows/test.yml) runs the Node suite (including full-population economic recovery), the three gameplay browser suites, player lighting/warp pixel checks and cold damage-art preparation checks on pushes and pull requests. It uploads reports as artifacts.
 
 Record a comparable scheduling benchmark with `python tests/browser-npc-performance.py --help`. Its before/after runs use the same saved population, viewport and browser. Measurements are diagnostic rather than machine-independent timing thresholds.
+
+Use `python tests/browser-combat-performance.py --help` to measure sustained-hit
+frame delivery and verified save costs with the same saved fleet and equipment.
+Redundant hit checkpoints coalesce for up to one second; explicit saves and
+required transaction/travel saves remain immediate.
 
 The [ore rendering regression](docs/ore-rendering.md) covers offscreen NPC mining
 while the player flies elsewhere, early ore/effect culling and the bounded cache

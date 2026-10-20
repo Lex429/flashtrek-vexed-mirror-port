@@ -60,6 +60,7 @@
   function schedule(state,ship,at){ship.nextActionAt=Math.max(0,finite(at,now(state)));ship.lifeScheduleToken=(ship.lifeScheduleToken||0)+1;const rt=runtime.get(state);if(rt)push(rt.heap,{at:ship.nextActionAt,id:ship.id,token:ship.lifeScheduleToken});}
   function indexMove(rt,ship,oldSystem){const previous=oldSystem??rt.indexedSystems.get(ship.id);if(previous!==undefined)rt.bySystem.get(previous)?.delete(ship.id);if(!rt.bySystem.has(ship.system))rt.bySystem.set(ship.system,new Set());rt.bySystem.get(ship.system).add(ship.id);rt.indexedSystems.set(ship.id,ship.system);}
   function migrateShip(state,ship,life){
+    window.nativeCivilianCombatAI?.traits(ship);
     if(ship.lifeVersion===1)return;
     ship.lifeVersion=1;ship.role||=stats(ship).defaultRole||'freight';
     const home=ship.homeSystem||ship.stationSystem||ship.system;
@@ -119,7 +120,7 @@
       docking().reconcile(state);
       for(const ship of traffic.ships)if(ship.dockingVersion!==1){
         ship.dockingVersion=1;
-        if(ship.task&&!ship.journey&&!ship.localLeg&&!['disabled','destroyed'].includes(ship.phase)){
+        if(ship.task&&!ship.journey&&!ship.localLeg&&!ship.combatInterruption&&!['disabled','destroyed'].includes(ship.phase)){
           ship.needsDockRecovery=true;ship.dockRecoveryResumeAt=ship.nextActionAt;schedule(state,ship,now(state));
         }
       }
@@ -456,6 +457,13 @@
   }
   function finish(state,ship,at){ship.task.status='completed';ship.task.phase='completed';ship.task.completedAt=at;ship.task.progress=1;ship.phase='docked';delete ship.localLeg;schedule(state,ship,at+4);park(state,ship,at);}
   function interrupt(state,ship,reason,at=now(state)){
+    if(reason==='disabled'&&ship.combatInterruption){
+      // A fight detours an existing job. Temporary loss of powered operation
+      // does not cancel its funded agreement or consume its cargo again.
+      window.nativeShipRepairs?.releaseClaim(state,ship);
+      delete ship.localLeg;delete ship.combatReturn;ship.phase='disabled';ship.nextActionAt=null;window.nativeShipMotion.powerOff(ship);return;
+    }
+    delete ship.combatInterruption;delete ship.combatReturn;
     window.nativeShipRepairs?.releaseClaim(state,ship);
     initialize(state);release(state,ship);docking().release(state,ship);delete ship.dockingMove;delete ship.dockIntent;
     const job=ship.task;if(job?.status==='active'){job.status='failed';job.phase='interrupted';job.failedAt=at;job.failureReason=reason;event(state,ship,'interrupted',`Task interrupted: ${reason}`,at);}
@@ -469,9 +477,66 @@
     if(reason==='disabled'||reason==='destroyed'){ship.phase=reason;delete ship.journey;ship.nextActionAt=null;(reason==='destroyed'?window.nativeShipMotion.stop:window.nativeShipMotion.powerOff)(ship);}
     else{ship.phase='docked';schedule(state,ship,at+initialize(state).config.idleSeconds);}
   }
+  function suspendCombat(state,ship,reason='Combat interrupted work',at=now(state)){
+    if(!ship||ship.journey||['destroyed','disabled'].includes(ship.phase))return false;
+    initialize(state);
+    if(!ship.combatInterruption){
+      sample(state,ship,at);
+      ship.combatInterruption={version:1,taskId:ship.task?.id,phase:ship.task?.phase,dockIntent:ship.dockIntent?{...ship.dockIntent}:null,remaining:ship.combatReturn?.remaining??Math.max(0,finite(ship.nextActionAt,at)-at),at,reason};
+      event(state,ship,'suspended',`${reason}; cargo and valid job commitments retained`,at);
+    }
+    docking().release(state,ship);delete ship.dockingMove;delete ship.dockIntent;delete ship.localLeg;delete ship.combatReturn;
+    delete ship.needsDockRecovery;delete ship.dockRecoveryResumeAt;schedule(state,ship,at+5);return true;
+  }
+  function escapeRoute(state,ship,attacker){
+    const dx=ship.x-attacker.x,dy=ship.y-attacker.y,length=Math.hypot(dx,dy)||1,away={x:dx/length,y:dy/length};
+    if(!state)return {x:ship.x+away.x*1600,y:ship.y+away.y*1600};
+    let best=null;
+    for(const port of portsIn(state,ship.system)){
+      const center=docking().center(ship.system,port),gx=center.x-ship.x,gy=center.y-ship.y,distance=Math.hypot(gx,gy)||1;
+      const separation=Math.hypot(center.x-attacker.x,center.y-attacker.y),alignment=(gx*away.x+gy*away.y)/distance;
+      const score=distance+Math.max(0,-alignment)*2500-Math.min(1200,separation)*.3;
+      if(!best||score<best.score)best={...center,system:ship.system,port,score};
+    }
+    // Uninhabited mining/rescue visits have no fabricated port. They first
+    // make physical separation, then resume their existing return journey.
+    if(best){
+      const gx=best.x-ship.x,gy=best.y-ship.y,distance=Math.hypot(gx,gy)||1;
+      if((gx*away.x+gy*away.y)/distance>.2&&Math.hypot(best.x-attacker.x,best.y-attacker.y)>1100)return best;
+    }
+    return {x:ship.x+away.x*1600,y:ship.y+away.y*1600,system:ship.system,refuge:best};
+  }
   function resumeWork(state,ship,reason='combat ended'){
     if(!ship||['destroyed','disabled'].includes(ship.phase)||ship.hull<=0)return false;
-    const at=now(state);interrupt(state,ship,reason,at);schedule(state,ship,at+.01);return true;
+    const at=now(state),suspended=ship.combatInterruption,job=ship.task;
+    if(suspended&&job&&job.id===suspended.taskId&&job.status==='active'){
+      delete ship.combatInterruption;delete ship.needsDockRecovery;delete ship.dockRecoveryResumeAt;ship.phase='docked';delete ship.localLeg;
+      event(state,ship,'resumed',`${reason}; resuming the retained ${job.kind} job`,at);
+      const phase=suspended.phase;job.phase=phase;
+      if(['loading','pickup-flight'].includes(phase))approachDock(state,ship,job.origin.port,at,'loading');
+      else if(['holding-flight','dock-queue'].includes(phase)){
+        const intent=suspended.dockIntent||{port:ship.cargo?job.destination.port:job.origin.port,handling:ship.cargo?'unloading':'loading'};
+        approachDock(state,ship,intent.port,at,intent.handling);
+      }else if(['approaching','unloading'].includes(phase))approachDock(state,ship,job.destination.port,at,'unloading');
+      else if(['mining','mining-flight','collecting'].includes(phase)){
+        const rock=rockById(job.requirements.rockId,ship.system);
+        if(rock&&phase==='collecting'){ship.combatReturn={version:1,phase,remaining:suspended.remaining};localLeg(state,ship,{x:rock.x+110,y:rock.y+40},at,phase);}
+        else if(rock&&!gone(state,rock.slotId))localLeg(state,ship,{x:rock.x+110,y:rock.y+40},at,'mining-flight');
+        else interrupt(state,ship,'Mining resource unavailable after combat',at);
+      }else if(['rescue-approach','rescue-service'].includes(phase)){
+        const call=window.nativeShipRepairs?.claimed(state,ship),goal=call&&window.nativeShipRepairs.rendezvous(state,call,ship);
+        if(goal)localLeg(state,ship,goal,at,'rescue-approach');else schedule(state,ship,at+.01);
+      }else if(phase==='repairing'){
+        ship.combatReturn={version:1,phase,remaining:suspended.remaining,port:job.destination?.port??job.origin?.port??ship.port};returnPaidRepair(state,ship,at);
+      }else schedule(state,ship,at+.01);
+      return true;
+    }
+    delete ship.combatInterruption;interrupt(state,ship,reason,at);schedule(state,ship,at+.01);return true;
+  }
+  function returnPaidRepair(state,ship,at){
+    const recovery=ship.combatReturn,berth=docking().request(state,ship,ship.system,recovery.port);
+    if(!berth){schedule(state,ship,at+3);return;}
+    localLeg(state,ship,berth,at,recovery.phase);
   }
   function startRescue(state,ship,call,at=now(state)){
     const repairs=window.nativeShipRepairs;
@@ -624,6 +689,15 @@
     if(['destroyed','disabled'].includes(ship.phase)){interrupt(state,ship,ship.phase,at);return;}
     if(ship.scriptedDemo||ship.disputeId||ship.retaliationId||['fighting','ore-theft'].includes(ship.phase)){schedule(state,ship,now(state)+5);return;}
     const job=ship.task;
+    if(ship.combatReturn){
+      if(ship.combatReturn.phase==='repairing'&&!ship.localLeg){returnPaidRepair(state,ship,at);return;}
+      if(!ship.localLeg||!arriveLeg(state,ship,at))return;
+      if(ship.combatReturn.phase==='repairing'){
+        ship.port=ship.combatReturn.port;delete ship.localLeg;ship.phase='docked';
+        if(!atBerth(state,ship)){schedule(state,ship,at+3);return;}
+      }
+      const recovery=ship.combatReturn;delete ship.combatReturn;delete ship.localLeg;ship.phase='docked';job.phase=recovery.phase;schedule(state,ship,at+Math.max(.01,recovery.remaining));return;
+    }
     if(job?.kind==='medical'&&job.status==='active'){medicalAction(state,ship,at);return;}
     if(ship.dockingMove){
       if(!ship.localLeg||!arriveLeg(state,ship,at))return;
@@ -801,6 +875,6 @@
     initialize(state);if(!ship.localLeg||ship.journey||!(ship.task?.status==='active'||ship.dockingMove)||leg.valid===false)return false;
     ship.localLeg=leg;schedule(state,ship,leg.startedAt+leg.duration);return true;
   }
-  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,resumeWork,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,refineDeuranium,upgradeMinerals,reroute,startRescue,
+  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,suspendCombat,resumeWork,escapeRoute,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,refineDeuranium,upgradeMinerals,reroute,startRescue,
     scheduled:state=>{initialize(state);return runtime.get(state).heap.length;}};
 })();

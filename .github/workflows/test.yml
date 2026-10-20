@@ -36,6 +36,14 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-beam-targeting.py
+      - name: Civilian live-shot awareness, survival policies and preserved jobs
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-civilian-tactics.py
+      - name: Held fire, steering-preserving selection and fitted weapon feedback
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-combat-controls.py
       - name: Full fleet dimensions, four damage frames and player/NPC lighting parity
         env:
           BROWSER_CHANNEL: ''

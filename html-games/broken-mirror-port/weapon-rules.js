@@ -47,13 +47,20 @@
     return circleSweep({x:from.x-previous.x,y:from.y-previous.y},{x:to.x-rock.x,y:to.y-rock.y},{x:0,y:0},rock.size*.43+padding);
   }
   function canFire(ship,target,spec,aim,rocks=[],bystanders=[]){
+    return fireEligibility(ship,target,spec,aim,rocks,bystanders).ok;
+  }
+  function fireEligibility(ship,target,spec,aim,rocks=[],bystanders=[]){
     const dx=aim.x-ship.x,dy=aim.y-ship.y;
-    if(Math.hypot(dx,dy)>spec.range||Math.abs(wrap(Math.atan2(dy,dx)-ship.heading))>spec.arc)return false;
+    const distance=Math.hypot(dx,dy);
+    const inRange=distance<=spec.range,inArc=Math.abs(wrap(Math.atan2(dy,dx)-(ship.heading||0)))<=spec.arc;
+    if(!inRange)return {ok:false,reason:'range',distance,inRange,inArc};
+    if(!inArc)return {ok:false,reason:'arc',distance,inRange,inArc};
     // A beam may be fired at an obstructed lock: the first physical surface
     // receives it. Projectile launch/leading and avoidance retain their rules.
-    if(spec.kind==='beam')return true;
-    if(obstacleHit(ship,aim,rocks))return false;
-    return !bystanders.some(other=>other.id!==ship.id&&other.id!==target.id&&circleSweep(ship,aim,other,Math.max(10,other.radius||15))!=null);
+    if(spec.kind==='beam')return {ok:true,reason:'ready',distance,inRange,inArc};
+    if(obstacleHit(ship,aim,rocks))return {ok:false,reason:'blocked',distance,inRange,inArc};
+    const blocked=bystanders.some(other=>other.id!==ship.id&&other.id!==target.id&&circleSweep(ship,aim,other,Math.max(10,other.radius||15))!=null);
+    return {ok:!blocked,reason:blocked?'blocked':'ready',distance,inRange,inArc};
   }
   function launch(ship,target,spec,kind,clock){
     const aim=intercept(ship,target,spec.speed);
@@ -139,8 +146,22 @@
         .map(ship=>({...ship,size:Math.max(10,ship.radius||15)/.43}))];
   }
   function firingSolution(source,target,spec,kind,scene){
+    return firingStatus(source,target,spec,kind,scene).ok;
+  }
+  function firingStatus(source,target,spec,kind,scene){
     const aim=kind==='beam'?target:intercept(source,target,spec.speed);
-    return canFire(source,target,spec,aim,blockers(scene,source,target));
+    return fireEligibility(source,target,spec,aim,kind==='beam'?[]:blockers(scene,source,target));
+  }
+  // A short linear forecast is awareness, not a second projectile simulator.
+  // The actual shot still flies/homes and applies damage only in stepShot.
+  function projectileThreat(event,target,scene,horizon=.9){
+    const remaining=Math.max(0,Math.min(horizon,Number.isFinite(event.ttl)?event.ttl-(Number(event.age)||0):horizon));
+    if(!(remaining>0))return null;
+    const predict=other=>{const v=velocity(other);return {...other,previousX:other.x,previousY:other.y,x:other.x+v.x*remaining,y:other.y+v.y*remaining};};
+    const future=predict(target),from={x:event.x,y:event.y},to={x:from.x+event.vx*remaining,y:from.y+event.vy*remaining};
+    const predicted={bystanders:(scene.bystanders||[]).map(predict),destructibles:(scene.destructibles||[]).map(predict),rocks:(scene.rocks||[]).map(predict)};
+    const contact=firstContact(from,to,{id:event.sourceId},future,predicted,future.radii,future.dimensions,event.radius||0);
+    return contact&&String(contact.target.id)===String(target.id)?{timeToImpact:contact.t*remaining,point:contact.point}:null;
   }
   function startShot(weapon,kind,source,target,clock,muzzle,spec=weaponSpec(weapon,kind)){
     const event={kind,damage:spec.damage,spec,muzzle,sourceId:source.id,targetId:target.id,launchedAt:clock,alive:true};
@@ -175,5 +196,5 @@
     if(attachment){const angle=(source.heading||0)+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle);return {x:source.x+attachment.x*c-attachment.y*s,y:source.y+attachment.x*s+attachment.y*c};}
     return {x:source.x+Math.cos(source.heading||0)*(event.muzzle||0),y:source.y+Math.sin(source.heading||0)*(event.muzzle||0)};
   }
-  window.nativeWeaponRules={weaponSpec,intercept,circleSweep,targetSweep,obstacleHit,firstContact,collisionContact,canFire,launch,stepProjectile,firingSolution,startShot,stepShot,beamTrace,emitter,wrap};
+  window.nativeWeaponRules={weaponSpec,intercept,circleSweep,targetSweep,obstacleHit,firstContact,collisionContact,canFire,launch,stepProjectile,firingSolution,firingStatus,projectileThreat,startShot,stepShot,beamTrace,emitter,wrap};
 })();
