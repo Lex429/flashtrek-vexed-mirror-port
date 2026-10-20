@@ -444,7 +444,7 @@ python tests/browser-npc-performance.py --label after
 ## Correctness verification
 
 The fresh baseline passed 338 Node tests and all 24 existing browser suites. The
-implementation passed388 Node tests (zero skips, 112.8 seconds) and all 26 browser
+implementation passed 388 Node tests (zero skips, 112.8 seconds) and all 26 browser
 suites, including every regression introduced in `665e553`. The eight local-site
 and sync unit tests passed again after the implementation commit. The Node/browser runs
 preceded the implementation commit; their saved runtime hashes match all 168
@@ -564,9 +564,10 @@ they are deliberately excluded from tracked source. They are not ZIP deliveries.
   per-hull cold compositor-delivery timestamps were not captured.
 - Inference from the after traces: native raster/flush/GPU-service work remains
   a major limit outside the JavaScript drawing timer. The trace does not directly
-  measure hardware GPU execution or physical display latency. No software-GPU,
-  discrete-NVIDIA, other-browser, other-hardware or physical-monitor comparison
-  was run. OS scheduling and thermal/power conditions remain uncontrolled.
+  measure hardware GPU execution or physical display latency. No software-GPU, discrete-NVIDIA, other-browser, other-hardware or
+  physical-monitor performance comparison was run. The additional correctness
+  checks below do compare Chromium software rasterization with Edge hardware
+  rasterization; they are not frame-time benchmarks. OS scheduling and thermal/power conditions remain uncontrolled.
 - Source/stat description calls and spatial queries still cost CPU. Large
   calendar/exceptionally fast swept queries can conservatively visit the full
   field, and pressure-wave visuals still legitimately request the cached scene.
@@ -587,3 +588,53 @@ All required local correctness suites and the additional NPC timing comparison
 were executed. The final containing commit also runs the repository CI workflow;
 its publication hash and CI result are reported with delivery. Generated raw
 profiles, screenshots, saves and diagnostics remain outside tracked source.
+
+## CI raster-backend regression follow-up
+
+The first remote run of `52efc0b` passed 388Node tests, 8 site tests and six browser
+suites, then failed the new incremental-art pixel assertion; 19 later browser
+suites were not run in that attempt. On Ubuntu Chromium the mean premultiplied
+lamp error was 0.015025 against an area-dependent 0.01 gate, although the maximum
+pointwise error was only 1.505882/255. This was investigated rather than retried
+as a presumed transient failure.
+
+The exact failure was reproduced locally in Playwright Chromium 153.0.8010.12.
+All 612 cases were then collected in four configurations: Chromium default,
+explicit SwiftShader, GPU-disabled CPU 2D, and Edge 155 hardware. Across all 2,448 cases:
+
+- Maximum premultiplied channel error stays at or below 1.992157/255.
+- Alpha error is at most 1/255, and alpha>=64 support bounds match exactly.
+- Maximum alpha-centroid drift is 0.026932 device pixels.
+- Software maximum padded mean error is 0.016533/255; Edge's is 0.004715/255.
+  The padded mean changes with canvas area and native interpolation, so it is
+  retained as diagnostic data instead of serving as the acceptance gate.
+
+The corrected test keeps the original maximum premultiplied error bound of 2,
+adds explicit alpha<=1, identical visible-support bounds and a 0.05 device-pixel
+centroid bound. Actual fixture mutations must fail for a one-device-pixel shift,
+wrong colour, wrong blur phase and missing glow. The full-gallery, biological
+pixel, unlighting, worker-failure and readiness checks retain their existing
+bounds. No rendering or gameplay code changes for this correction, so all
+performance measurements still describe the same `0a7b062` runtime. The revised
+test passed its complete suite in all four configurations: 612 lamps and four
+mutation rejections per configuration, 51 biological canvases, unlighting,
+worker/fallback/readiness and specialized egg/creature checks. Every full-gallery
+comparison had a maximum channel difference of 1, under the unchanged bound of 2.
+All four use test harness SHA-256
+`bcc4828bef26bb92e072fe9c5fd120894c95209fc188da5b2a215320c399df37`.
+The final containing commit receives a fresh full CI run before delivery.
+
+Reproduce from PowerShell; Python sets the empty Chromium channel because an
+empty PowerShell environment assignment removes the variable:
+
+```powershell
+$env:BROWSER_CHANNEL = 'msedge'
+python tests/browser-incremental-art.py --label final-edge-hardware
+python -c "import os,runpy; os.environ['BROWSER_CHANNEL']=''; runpy.run_path('tests/browser-incremental-art.py',run_name='__main__')" --label final-chromium-default
+python -c "import os,runpy; os.environ['BROWSER_CHANNEL']=''; runpy.run_path('tests/browser-incremental-art.py',run_name='__main__')" --label final-chromium-swiftshader --swiftshader
+python -c "import os,runpy; os.environ['BROWSER_CHANNEL']=''; runpy.run_path('tests/browser-incremental-art.py',run_name='__main__')" --label final-chromium-cpu --cpu
+```
+
+Per-backend metadata, all 612 rows, mutation results and matching images are under
+`test-results/incremental-art/final-*/`. These are correctness checks, kept
+separate from the Edge 155 hardware performance measurements.
