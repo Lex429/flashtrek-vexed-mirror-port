@@ -4,6 +4,17 @@
   const world=window.VexedMirrorWorld,roles=new Map(),runtime=new WeakMap(),marketStates=new WeakMap();
   const finite=(v,f=0)=>Number.isFinite(Number(v))?Number(v):f;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const quantityEpsilon=1e-9;
+  // Cancellation after a large payment can leave a funded fractional remainder
+  // slightly short, including across reload. Only an exact owned escrow may
+  // use dust tolerance: at most 1e-7 credit and one part per million of payment.
+  const coversFunds=(balance,payment,funded=false)=>{
+    if(balance>=payment)return true;
+    // Whole-credit arithmetic must stay strict, even near MAX_SAFE_INTEGER.
+    if(!(balance>0)||Number.isInteger(balance)&&Number.isInteger(payment))return false;
+    const relative=4*Number.EPSILON*Math.max(Math.abs(balance),Math.abs(payment));
+    return payment-balance<=Math.min(1e-7,funded?payment*1e-6:relative);
+  };
   const now=state=>window.nativeSimulation.seconds(state);
   const stats=ship=>window.nativeShipDefinitions.forEntity(null,ship,{category:'civilian'});
   const policy=ship=>stats(ship).npcPolicy;
@@ -216,11 +227,15 @@
   function exchange(state,m,actor,{good,tons,payment,buy,player=false,free=false,capacity:room=0,reservationId,cargo,mineral,repairSupplies=false}){
     if(repairSupplies&&(player||!buy||good!==7))return {ok:false,error:'Invalid repair supply purchase.'};
     if(!player&&!inhabited(state,m.system))return {ok:false,error:'Civilians cannot trade at prohibited or uninhabited worlds.'};
-    if(!Number.isInteger(good)||!costs[good]||!Number.isSafeInteger(tons)||tons<=0||!Number.isSafeInteger(payment)||payment<0)return {ok:false,error:'Invalid cargo transaction.'};
+    // Medical refining can leave real fractional freight and its already
+    // funded fractional payment. Ordinary retail quotes still choose whole
+    // lots; the common settlement must conserve the quantities actually owned.
+    if(!Number.isInteger(good)||!costs[good]||!Number.isFinite(tons)||tons<=0||tons>Number.MAX_SAFE_INTEGER||!Number.isFinite(payment)||payment<0||payment>Number.MAX_SAFE_INTEGER)return {ok:false,error:'Invalid cargo transaction.'};
     const reservation=reservationId?initialize(state).reservations[reservationId]:null;
     if(reservationId&&(!reservation||reservation.owner!==actor.id||reservation.good!==good||reservation.tons!==tons))return {ok:false,error:'Cargo contract no longer matches.'};
     const ownStock=reservation?.sourceReserved!==false&&reservation?.system===m.system&&reservation?.port===m.port?reservation.tons:0;
     const ownFunds=reservation?.destinationReserved&&reservation.destination.system===m.system&&reservation.destination.port===m.port?reservation.payment:0;
+    const funded=ownFunds>0&&reservation.payment===payment;
     if(mineral&&(!player||buy||good!==oreGood(mineral)||!minerals()?.ores[mineral]))return {ok:false,error:'Invalid mineral refinery transaction.'};
     const creditKey=player?'latinum':'credits',balance=finite(actor[creditKey]),held=mineral?minerals().held(actor,mineral):player?finite(actor.solFreightHold?.[good]):actor.cargo?.good===good?finite(actor.cargo.tons):0;
     if(buy){
@@ -229,12 +244,15 @@
       if(!free&&balance<payment)return {ok:false,error:'Not enough latinum.'};
     }else{
       if(held<tons)return {ok:false,error:'You do not have that much cargo aboard.'};
-      if(availableFunds(m)+ownFunds<payment)return {ok:false,error:'The port has insufficient unreserved purchasing funds.'};
+      if(!coversFunds(m.credits,payment,funded)||!coversFunds(availableFunds(m)+ownFunds,payment,funded))return {ok:false,error:'The port has insufficient unreserved purchasing funds.'};
       if(finite(m.stock[good])+finite(m.incoming[good])-(ownFunds?reservation.tons:0)+tons>9999)return {ok:false,error:'The port has insufficient unreserved storage space.'};
     }
     // All checks precede all mutations. A saved result contains only settled
     // balances; there is no pending callback or replayable payment to restore.
-    m.stock[good]+=buy?-tons:tons;m.credits+=buy?payment:-payment;
+    m.stock[good]+=buy?-tons:tons;
+    // The check above permits only bounded rounding dust. Preserve the accepted
+    // payment and canonicalize its tiny negative subtraction to zero.
+    m.credits=buy?m.credits+payment:Math.max(0,m.credits-payment);
     if(!free)actor[creditKey]=balance+(buy?-payment:payment);
     else state.solEconomy.flows.devPurchaseSubsidy=(state.solEconomy.flows.devPurchaseSubsidy||0)+payment;
     if(mineral){if(mineral==='dilithium')actor.dilithium=held-tons;else{actor.minerals||={};actor.minerals[mineral]=held-tons;}const ledger=initialize(state).economicLedger;ledger.playerMineralsRefined||={};ledger.playerMineralsRefined[mineral]=finite(ledger.playerMineralsRefined[mineral])+tons;}
@@ -416,7 +434,10 @@
       ledger.npcMineralsRefined||={};ledger.npcMineralsRefined.deuranium=finite(ledger.npcMineralsRefined.deuranium)+cargo.tons;
       cargo.raw=false;
       if(medical(ship)){
-        const kept=Math.min(cargo.tons,Math.max(0,policy(ship).supplies.target-finite(ship.repairDeuranium)));
+        let kept=Math.min(cargo.tons,Math.max(0,policy(ship).supplies.target-finite(ship.repairDeuranium)));
+        // Complete a numerically exact refill without discarding a tiny owned
+        // remainder or creating an endless dust-sized purchasing contract.
+        if(cargo.tons-kept<=quantityEpsilon)kept=cargo.tons;
         ship.repairDeuranium=finite(ship.repairDeuranium)+kept;cargo.tons-=kept;
         ship.repairMined=finite(ship.repairMined)+kept;
         event(state,ship,'refined',`Refined ${kept} t mined deuranium into owned medical reserves`,at);
@@ -428,7 +449,7 @@
     const destination=market(state,job.destination.system,job.destination.port);
     if(!reservation?.destinationReserved){if(!reserveBuyer(state,ship,destination,at)){recoverPayment(state,ship,at);return;}reservation=initialize(state).reservations[job.id];}
     const payment=reservation.payment;
-    if(reservation.destination.system!==ship.system||reservation.destination.port!==ship.port||reservation.good!==cargo.good||reservation.tons!==cargo.tons||destination.credits<payment){release(state,ship);recoverPayment(state,ship,at);return;}
+    if(reservation.destination.system!==ship.system||reservation.destination.port!==ship.port||reservation.good!==cargo.good||reservation.tons!==cargo.tons||!coversFunds(destination.credits,payment,reservation.owner===ship.id)){release(state,ship);recoverPayment(state,ship,at);return;}
     const settled=exchange(state,destination,ship,{good:cargo.good,tons:cargo.tons,payment,buy:false,reservationId:job.id});
     if(!settled.ok){release(state,ship);recoverPayment(state,ship,at);return;}
     release(state,ship);

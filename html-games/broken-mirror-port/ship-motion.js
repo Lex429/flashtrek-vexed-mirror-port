@@ -98,7 +98,13 @@
       if(magnitude>top){entity.vx*=top/magnitude;entity.vy*=top/magnitude;}
     }else{
       const direction=goal&&profile.directGoal&&distance>0?Math.atan2(dy,dx):entity[key];
-      entity.vx=Math.cos(direction)*speed;entity.vy=Math.sin(direction)*speed;
+      // A free angular impact turns the hull, not the engine command. Reusing
+      // the nose direction while coasting would bend existing world momentum
+      // every frame, even though the pilot has supplied no steering or thrust.
+      const keepCourse=!goal&&!Number.isFinite(command.heading)&&!Number.isFinite(command.speed)&&!command.turn&&!command.throttle;
+      const previousSpeed=Math.hypot(entity.vx,entity.vy);
+      if(keepCourse&&previousSpeed>0){entity.vx*=speed/previousSpeed;entity.vy*=speed/previousSpeed;}
+      else{entity.vx=Math.cos(direction)*speed;entity.vy=Math.sin(direction)*speed;}
     }
     const travel=Math.hypot(entity.vx,entity.vy)*dt;
     const available=goal?Math.max(0,distance-(command.stopAtRadius?radius:0)):Infinity;

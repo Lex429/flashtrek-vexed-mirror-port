@@ -72,6 +72,21 @@ atomically reserves all three requirements at acceptance: source goods,
 destination purchasing funds and the remaining destination demand. Another ship
 cannot commit those goods, funds or tons of demand.
 
+Shared settlement accepts finite positive fractional cargo and finite
+nonnegative fractional agreed payments within the safe numeric range. Medical
+refining can produce fractional surplus; it must use the existing atomic
+`exchange` owner and saved agreement rather than truncate, reprice or strand
+that cargo. Player retail quotes retain whole-lot pricing. A refill remainder
+within 1e-9 tons goes into the ship's owned reserves, preserving all material
+instead of creating a dust-sized delivery.
+Ordinary cash admission uses capped relative floating-point tolerance. Only an
+owned reservation at its exact saved price can also tolerate cancellation dust,
+bounded by both 1e-7 credits and one part per million of that payment. The
+remaining balance must be positive; whole-integer deficits remain strict. A tiny
+negative subtraction becomes zero without changing the agreement. Real treasury
+deficits still reject atomically. Cargo admission uses exact owned quantities,
+with no broad epsilon that could admit unowned goods.
+
 `task.agreement.version:1` saves the agreed unit purchase price, unit sale price,
 total payment and acceptance time. The source quote uses the existing base price;
 the destination quote includes its existing shortage premium. An arrival-time

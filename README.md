@@ -74,13 +74,16 @@ python tests/browser-ore-performance.py
 python tests/browser-civilian-access.py
 python tests/browser-render-paths.py --visual-only
 python tests/browser-stability.py
+python tests/browser-ship-lighting.py
+python tests/browser-cold-ship-loading.py
+python tests/browser-review-gameplay.py
 ```
 
 The second browser suite checks real Canvas beam emitters and target contacts across ship roles, camera movement, custom shield shapes, pause/inventory and projectile save/load. Job regressions also simulate tug deliveries, civilian mining/trading and saved player mining without any rendering.
 
 Install Python test dependencies with `python -m pip install -r requirements-test.txt`. Pass an existing server URL, such as `http://127.0.0.1:7788`, to either browser script to check an installed copy. Browser reports and screenshots are written to the ignored `test-results` folder. Windows uses installed Microsoft Edge by default; set `BROWSER_CHANNEL` to an empty value to use Playwright Chromium after `python -m playwright install chromium`.
 
-The [test workflow](.github/workflows/test.yml) runs the Node suite (including full-population economic recovery), the three gameplay browser suites, player lighting/warp pixel checks and cold damage-art preparation checks on pushes and pull requests. It uploads reports as artifacts.
+The [test workflow](.github/workflows/test.yml) runs the Node and local-site suites, all gameplay browser regressions, player lighting/warp pixel checks and cold damage-art preparation checks on pushes and pull requests. It uploads reports as artifacts.
 
 Record a comparable scheduling benchmark with `python tests/browser-npc-performance.py --help`. Its before/after runs use the same saved population, viewport and browser. Measurements are diagnostic rather than machine-independent timing thresholds.
 
@@ -95,6 +98,14 @@ for visible ore glow. It checks gameplay completion and draw work alongside fram
 timings; use `python tests/browser-ore-performance.py --help` for comparison runs.
 
 The stabilization benchmark is `python tests/browser-stability.py --measure`: three 20-second windows each of flight, crowded combat, mining/debris, warp and the Dev map, plus cold/warm artwork probes. Use `--revision c41559c --label before` and then `--label after` with the same saved fixture. See [performance evidence](docs/npc-performance.md) for measurements and remaining bottlenecks; lower simulation CPU alone does not establish smoother frame delivery.
+
+Use `python tests/browser-render-review-performance.py --help` for separate cold
+appearance and repeated flight/combat measurements, including a crowded scene
+using 12 existing fleet members. It records source hashes, fixture hashes, frame intervals, canvas
+allocations, animated-effect rebuilds and image/preparation phases. Serve the same
+immutable baseline with `--source-root` and keep timing runs sequential. See the
+[rendering review results](docs/render-review-results.md) for the measured scope
+and remaining stalls.
 
 The [Earth traffic recovery report](docs/earth-traffic-recovery.md) covers shared
 player/NPC market settlement, non-exploitable lot quotes, actual Sol destination

@@ -393,7 +393,6 @@
       if(ship.lifeEventAt==null&&ship.phase!=='disabled')scheduleTug(economy,ship,before);
       const level=detail(state,ship);ship.simulationDetail=level;metrics[level==='detailed'?'detailed':'distant']++;
     }
-    if(metrics.detailed&&!window.nativeShipEffects.ready?.(10,'tug'))window.nativeShipEffects.prepare(10,'tug');
     let budget=96;
     // Nine Sol fleet members: choose the next due event globally, independent of visibility.
     while(budget-->0){

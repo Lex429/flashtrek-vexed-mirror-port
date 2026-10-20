@@ -57,7 +57,7 @@ function scheduleCombatSave(){if(game)reportSaveResult(window.nativeSaveStorage.
 function flushCombatSave(){if(game)reportSaveResult(window.nativeSaveStorage.flush(game));}
 function clearFlightInput(){keys={};heldFire.stop();cancelTargetPress();flushCombatSave();}
 function savedGame(mode){const value=window.nativeSaveStorage.read(mode);return value&&navigation.system(value.system)&&Number.isFinite(Number(value.antimatter))?value:null;}
-function updateVisuals(){const token=++visualGeneration;flightShip=null;window.vexedFlightAssets.loadShip(game.shipType,game.hull*window.nativeShipDefinitions.get(game.shipType).hull/Math.max(1,shipStats(game).hull)).then(asset=>{if(token===visualGeneration)flightShip=asset}).catch(()=>{});window.vexedFlightAssets.loadPlanet(game.system).catch(()=>{});if(game.system===1)window.vexedFlightAssets.loadLocalBody(game.localBody??3).catch(()=>{})}
+function updateVisuals(){const token=++visualGeneration;if(flightShip?.type!==Number(game.shipType))flightShip=null;window.vexedFlightAssets.loadShip(game.shipType,game.hull*window.nativeShipDefinitions.get(game.shipType).hull/Math.max(1,shipStats(game).hull)).then(asset=>{if(token===visualGeneration)flightShip=asset}).catch(()=>{});window.vexedFlightAssets.loadPlanet(game.system).catch(()=>{});if(game.system===1)window.vexedFlightAssets.loadLocalBody(game.localBody??3).catch(()=>{})}
 window.nativeCombatShots.onPlayerImpact=impact=>window.nativePlayerCombat.visualImpact(game,impact);
 window.nativeCombatShots.onPlayerHit=(state,damage,impact)=>{
  const before=state.hull,result=window.nativePlayerCombat.hit(state,damage,impact);

@@ -41,6 +41,16 @@ Delivery contracts reserve source goods, destination purchasing funds and incomi
 
 Optional pixel preparation uses the bounded cooperative queue exported by the existing stage-fragment library. Keep base ships visible while it runs; preparation and painting cannot apply damage, create resources or replay an explosion. Player lighting/warp uses the bounded shared sprite cache. Require the render-path pixel checks and cold-art preparation browser checks in CI. For smoothness measurements use `tests/browser-stability.py --measure` before/after with the same save, device and viewport; distinguish CPU costs from frame delivery.
 
+Directional light changes update a reusable mask and sprite composition, not
+the animated-effect cache identity. Preserve 60 Hz player/damaged/warp effects
+and the intended 20 Hz healthy NPC cadence. `ship-effects.request` admits the
+current damage plate before deferred unused plates; explicit `prepare` retains
+full fragment/wreck readiness. Keep old valid art visible during stage loading
+or failure. Profile image load, decode, preparation and first visible paint
+separately; appearance latency alone does not establish a game freeze. Run
+`browser-ship-lighting.py`, `browser-cold-ship-loading.py` and the same-save
+`browser-render-review-performance.py` alongside existing rendering checks.
+
 `port-docking.js` owns civilian berth/queue/holding occupancy and hull clearance.
 NPC tasks must request a berth and physically reach it before handling cargo.
 Never restore ID-modulo parking coordinates or default normal Sol freight to Earth.
@@ -116,6 +126,15 @@ and rebase it when rerouting. Manual steering/thrust counter free collision drif
 unpowered coasting retains linear momentum. Do not change manual ship profiles
 to compensate for a collision-control bug. Run `impact-controls.test.cjs` and
 `browser-impact-controls.py`, including actual WASD/arrows and post-ram braking.
+
+Free collision spin changes hull orientation without redirecting hands-off
+manual velocity. Preserve the world course during coasting and pure braking;
+actual turn/thrust/goal commands still control movement. Fractional medical
+refinery surplus and its existing agreed payment settle atomically through
+`npc-lives.exchange`. Transfer numerical refill dust into owned reserves rather
+than discarding it. Run `review-gameplay.test.cjs` and
+`browser-review-gameplay.py`, including fractional escrow reload/conservation
+and six-to-one-to-six hull fitting with the same owned Dots.
 
 Physical ship contact and traffic clearance use definition-owned `hullRadii`,
 independent of shield charge. Combat `radii` still select the shield/hull surface.

@@ -157,6 +157,16 @@ try:
         }''')
         host.screenshot(path=str(OUTPUT/'fast-off-center-contact.png'))
         page.evaluate('''()=>{const s=nativeNpcDev.getState();__impactPlayer(s,6000,6000);s.previousX=6000;s.previousY=6000;}''')
+        coast_before = page.evaluate('__impactSnapshot()')
+        page.evaluate('__impactTick(360)')
+        coast_after = page.evaluate('__impactSnapshot()')
+        assert abs(coast_after['vx']-coast_before['vx']) < 1e-7
+        assert abs(coast_after['vy']-coast_before['vy']) < 1e-7
+        assert abs(coast_after['speed']-coast_before['speed']) < 1e-7
+        if coast_before.get('spin'):
+            assert abs((coast_after.get('spin') or {}).get('velocity', 0)) < abs(coast_before['spin']['velocity'])*.0001
+        report['handsOffAfterRealImpact'] = {'before': coast_before, 'afterSixSeconds': coast_after, 'worldVelocityPreserved': True}
+        host.screenshot(path=str(OUTPUT/'hands-off-post-impact-coasting.png'))
         before = page.evaluate('__impactSnapshot()')
         thrust = drive('w', 30)
         steer = drive('a', 30)

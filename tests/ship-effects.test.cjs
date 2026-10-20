@@ -5,7 +5,7 @@ const test=require('node:test');
 const vm=require('node:vm');
 const port=path.join(__dirname,'../html-games/broken-mirror-port');
 
-function fixture(){
+function fixture({backgroundTimers=null}={}){
   let time=1000,blocked=false;
   const drawn=[],emitted=[],explosions=[],contacts=[];
   const window={
@@ -23,7 +23,8 @@ function fixture(){
       updateTrails:()=>{},drawParticle:()=>{},drawStructuralWreck:()=>{},drawWreckSurface:()=>{},drawWreckGlow:()=>{}}),
     nativeEnvironmentalImpacts:{explode:(...args)=>explosions.push(args),debris:(...args)=>contacts.push(args)},
   };
-  const sandbox=vm.createContext({window,console,performance:{now:()=>900000},fetch:async()=>({json:async()=>({})})});
+  const sandbox=vm.createContext({window,console,performance:{now:()=>900000},fetch:async()=>({json:async()=>({})}),
+    ...(backgroundTimers?{setTimeout:callback=>backgroundTimers.push(callback)}:{})});
   for(const file of ['world-data.js','ship-motion.js','ship-definitions.js','ship-damage.js','combat-shots.js','ship-effects.js'])vm.runInContext(fs.readFileSync(path.join(port,file),'utf8'),sandbox);
   vm.runInContext(fs.readFileSync(path.join(port,'../flashtrek-broken-mirror/shield-flash.js'),'utf8'),sandbox);
   window.drawShowcaseShieldFlash=(...args)=>drawn.push({kind:'flash',args});
@@ -178,7 +179,8 @@ test('base ship stays visible while optional artwork prepares; queued stage effe
   window.showcaseStageFragments.prepareAsync=()=>new Promise(resolve=>{finishFragments=resolve;});
   const preparation=window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category);
   assert.equal(preparation,window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category),'concurrent work deduplicates');
-  for(let i=0;i<8;i++)await Promise.resolve();
+  for(let i=0;i<32&&!finishFragments;i++)await Promise.resolve();
+  assert.equal(typeof finishFragments,'function','optional fragments admitted after the visible plate');
   assert.ok(window.nativeShipEffects.asset(descriptor),'base frame available before optional pixel processing finishes');
   assert.equal(window.nativeShipEffects.metrics().pending,1);
   const maximum=descriptor.definition.hull;role.entity.hull=maximum;role.entity.shields=0;
@@ -202,7 +204,8 @@ test('destruction while optional artwork is pending applies health and explosion
   const factory=window.createShipDestruction;
   window.createShipDestruction=()=>({...factory(),prepareAsync:()=>new Promise(resolve=>{complete=resolve;})});
   const preparation=window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category);
-  for(let i=0;i<8;i++)await Promise.resolve();
+  for(let i=0;i<32&&!complete;i++)await Promise.resolve();
+  assert.equal(typeof complete,'function','optional wreck preparation admitted after the visible plate');
   const result=window.nativeShipDamage.apply(descriptor,99999,{kind:'torpedo'});
   window.nativeShipEffects.hit(role.state,descriptor,result,{kind:'torpedo'});
   assert.equal(role.entity.hull,0);assert.equal(explosions.length,1);
@@ -241,11 +244,90 @@ test('cold destruction retries saturated artwork admission without repeating the
   assert.equal(explosions.length,1);assert.equal(role.entity.hull,0);
   window.nativeShipEffects.advance(role.state,.1);
   assert.equal(emitted.filter(event=>event.kind==='wreck').length,0);
-  for(const finish of release)await finish();await Promise.all(blockers);
+  // A class's needed plate precedes its other three stages. Drain requests
+  // admitted after those first plates resolve, rather than freezing the list.
+  for(let i=0;i<16;i++){for(const finish of release.splice(0))await finish();await Promise.resolve();}
+  await Promise.all(blockers);
   window.vexedFlightAssets.loadShip=load;
   window.nativeShipEffects.advance(role.state,.1);
   await window.nativeShipEffects.prepare(1008);
   window.nativeShipEffects.advance(role.state,.1);
   assert.equal(emitted.filter(event=>event.kind==='wreck').length,1);
   assert.equal(explosions.length,1);assert.equal(role.entity.hull,0);
+});
+
+test('cold damaged ships request their actual plate first and share it with full optional preparation',async()=>{
+  const {window,entities}=fixture(),role=entities()[0],maximum=role.describe().definition.hull;
+  role.entity.hull=maximum*.1;
+  const descriptor=role.describe(),load=window.vexedFlightAssets.loadShip,requests=[],release=[];
+  window.vexedFlightAssets.loadShip=(...args)=>{requests.push(args[1]/maximum);return new Promise(resolve=>release.push(async()=>resolve(await load(...args))));};
+  assert.equal(window.nativeShipEffects.asset(descriptor),null);
+  assert.deepEqual(requests,[.1],'unused healthy/damage plates cannot delay the visible severe plate');
+  const visible=window.nativeShipEffects.request(descriptor.shipType,descriptor.category,{stage:3});
+  const full=window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category,{stage:3});
+  assert.equal(requests.length,1,'visibility/full requests share the same stage work');
+  await release.shift()();await visible;
+  assert.equal(window.nativeShipEffects.asset(descriptor).hull,maximum*.1);
+  assert.equal(window.nativeShipEffects.ready(descriptor.shipType,descriptor.category),true);
+  assert.equal(window.nativeShipEffects.optionalReady(descriptor.shipType,descriptor.category),false);
+  for(let i=0;i<16;i++){for(const finish of release.splice(0))await finish();await Promise.resolve();}
+  await full;
+  assert.deepEqual(requests.sort((a,b)=>a-b),[.1,.4,.7,1]);
+  assert.equal(window.nativeShipEffects.optionalReady(descriptor.shipType,descriptor.category),true);
+});
+
+test('deferred stages admit one background plate at a time and damage immediately promotes its plate',async()=>{
+  const timers=[],{window,entities}=fixture({backgroundTimers:timers}),role=entities()[0],maximum=role.describe().definition.hull;
+  role.entity.hull=maximum;
+  const load=window.vexedFlightAssets.loadShip,requests=[],release=[];
+  window.vexedFlightAssets.loadShip=(...args)=>{requests.push(args[1]/maximum);return new Promise(resolve=>release.push(async()=>resolve(await load(...args))));};
+  const visible=window.nativeShipEffects.request(role.entity.shipType,role.category);
+  const same=window.nativeShipEffects.request(role.entity.shipType,role.category);
+  assert.equal(visible,same);assert.equal(requests.length,1);
+  await release.shift()();await visible;await Promise.resolve();
+  assert.equal(requests.length,1);assert.equal(timers.length,1);
+  role.entity.hull=maximum*.1;
+  assert.ok(window.nativeShipEffects.asset(role.describe()),'existing plate remains visible during a damage change');
+  assert.deepEqual(requests,[1,.1],'new damage stage is admitted before the deferred intermediate plates');
+  timers.shift()();assert.equal(requests.length,2,'background waits for a foreground appearance');
+  await release.shift()();for(let i=0;i<5;i++)await Promise.resolve();
+  assert.equal(window.nativeShipEffects.asset(role.describe()).hull,maximum*.1);
+  timers.shift()();assert.deepEqual(requests,[1,.1,.7]);
+  assert.equal(release.length,1,'only one unused plate is in flight');
+  await release.shift()();for(let i=0;i<6;i++)await Promise.resolve();
+  timers.shift()();assert.deepEqual(requests,[1,.1,.7,.4]);
+  await release.shift()();for(let i=0;i<6;i++)await Promise.resolve();
+  assert.equal(window.nativeShipEffects.metrics().backgroundPending,0);
+  assert.equal(window.nativeShipEffects.metrics().stageLoads,4,'each plate prepared exactly once');
+});
+
+test('partial visible art still upgrades to fragments and wreck data after a real hit',async()=>{
+  const {window,entities,explosions,emitted}=fixture(),role=entities()[0],descriptor=role.describe();
+  await window.nativeShipEffects.request(descriptor.shipType,descriptor.category);
+  assert.equal(window.nativeShipEffects.optionalReady(descriptor.shipType,descriptor.category),false);
+  const result=window.nativeShipDamage.apply(descriptor,99999,{kind:'torpedo'});
+  window.nativeShipEffects.hit(role.state,descriptor,result,{kind:'torpedo'});
+  assert.equal(explosions.length,1);
+  await window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category);
+  window.nativeShipEffects.advance(role.state,.1);
+  assert.equal(emitted.filter(event=>event.kind==='wreck').length,1);
+  window.nativeShipEffects.advance(role.state,.1);
+  assert.equal(emitted.filter(event=>event.kind==='wreck').length,1);
+  assert.equal(explosions.length,1);assert.equal(role.entity.hull,0);
+});
+
+test('a failed new damage plate retains visible art and can retry without a stale pending request',async()=>{
+  const {window,entities}=fixture(),role=entities()[0],descriptor=role.describe(),load=window.vexedFlightAssets.loadShip;
+  const initial=await window.nativeShipEffects.request(descriptor.shipType,descriptor.category);
+  role.entity.hull=descriptor.definition.hull*.4;
+  window.vexedFlightAssets.loadShip=async()=>{throw Error('controlled decode failure');};
+  assert.equal(window.nativeShipEffects.asset(role.describe()),initial);
+  for(let i=0;i<12;i++)await Promise.resolve();
+  assert.equal(window.nativeShipEffects.ready(descriptor.shipType,descriptor.category),true);
+  assert.equal(window.nativeShipEffects.metrics().foregroundPending,0);
+  assert.equal(window.nativeShipEffects.metrics().failures,1);
+  window.vexedFlightAssets.loadShip=load;
+  const replacement=await window.nativeShipEffects.request(descriptor.shipType,descriptor.category,{stage:2});
+  assert.equal(window.nativeShipEffects.asset(role.describe()),replacement);
+  assert.equal(replacement.hull,descriptor.definition.hull*.4);
 });

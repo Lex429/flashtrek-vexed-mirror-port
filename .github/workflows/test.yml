@@ -7,7 +7,7 @@ permissions:
 jobs:
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -44,6 +44,18 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-combat-controls.py
+      - name: Reused lighting surfaces, animation cadence and turning damage states
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-ship-lighting.py
+      - name: Current ship appearance first, damage promotion and loading fallback
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-cold-ship-loading.py
+      - name: Fractional Olympic settlement and retained hull-change drone capacity
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-review-gameplay.py
       - name: Full fleet dimensions, four damage frames and player/NPC lighting parity
         env:
           BROWSER_CHANNEL: ''

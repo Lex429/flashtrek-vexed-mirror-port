@@ -105,6 +105,11 @@ it without replaying rotation, and lightweight inspector poses carry the same
 field. Stopping, pausing and JSON restoration use the existing common boundaries.
 Steering/thrust damp free collision drift at 2/s and spin at 4/s; braking uses
 4/s and 5/s respectively. Unpowered coasting preserves linear collision momentum.
+An uncommanded angular impulse rotates the hull without repeatedly replacing
+world velocity with that nose direction. Manual coasting and pure braking retain
+their existing world course; turn, thrust and explicit heading/speed/goal commands
+continue to use the common movement profile. This does not change impulse,
+mass, spin damping, hull statistics or manual acceleration/turn/brake settings.
 The existing manual speed, acceleration, turn and braking profiles stay intact.
 See `impact-controls.test.cjs` and `browser-impact-controls.py` for the real-key,
 speed/offset, conservation, saved-spin and rotating shield-attachment regressions.
@@ -421,6 +426,27 @@ and cumulative work budgets. Run `browser-npc-lives.py` for persistent journeys,
 pause, deduplication and bounded retention. All are included in the test workflow.
 Read [stabilization verification](stabilization-results.md) before interpreting
 timing evidence or changing cache/preparation limits.
+
+Directional light changes update the shared cache's existing mask and final
+composition. They do not invalidate its separately cached animated-effect layer.
+Player, damaged and warp effects retain 60 Hz sampling; shared healthy NPC drawing
+explicitly selects 20 Hz. Cache surfaces, raster quality and memory limits remain
+bounded. Direct lit previews retain their existing 60 Hz default.
+
+`ship-effects.request(type, category, {stage})` publishes the currently needed
+appearance first. Unused plates load one at a time after foreground work, using
+the existing cooperative pixel queue. Requests for the same plate share one
+promise; a foreground request can promote a deferred plate. `prepare` retains
+its explicit full fragment/wreck readiness contract. Stage changes and failures
+keep a valid same-hull appearance visible; changing hull clears the old hull and
+the visual generation guard rejects late results. Painting never applies damage.
+
+Run `browser-ship-lighting.py`, `browser-cold-ship-loading.py` and
+`browser-review-gameplay.py`. Separate source-image loading, `decode()` wall
+time, preparation and actual first paint when profiling. Appearance latency is
+not a measurement of a whole-game freeze. Reproduce the same fleet, input,
+viewport and browser with `browser-render-review-performance.py`; see
+[review measurements](render-review-results.md) for limits of the evidence.
 
 ## Deliberate boundaries
 

@@ -4,6 +4,8 @@
   const imageCache = new Map(), shipCache = new Map(), shipReferences = new Map(), imagePending = new Map(), shipPending = new Map(), planetCache = new Map(), localBodyCache = new Map();
   const cacheLimits={sourceBytes:32*1024*1024,sourceEntries:48,shipBytes:24*1024*1024,shipEntries:24};
   const cacheMetrics={imageHits:0,imageMisses:0,shipHits:0,shipMisses:0,imageEvictions:0,shipEvictions:0};
+  const preparation={imageLoads:0,imageLoadMs:0,imageDecodeMs:0,ships:0,catalogMs:0,alignmentMs:0,effectsMs:0,unlitMs:0,wallMs:0},recentPreparation=[];
+  const imageTimings=new WeakMap(),clock=()=>globalThis.performance?.now?.()??Date.now();
   let imageBytes=0,shipBytes=0;
   let catalogPromise, warpRing;
   const shipSizes=new Map(window.VexedFlightReference.shipSizes.map(ship=>[ship.id,ship]));
@@ -27,8 +29,15 @@
     cacheMetrics.imageMisses++;
     const pending = new Promise((resolve, reject) => {
         const art = new Image();
+        const started=clock();
         const timer = setTimeout(() => reject(new Error('Artwork loading timed out')), 15000);
-        art.onload = () => art.decode().then(() => { clearTimeout(timer); resolve(art); }, error => { clearTimeout(timer); reject(error); });
+        art.onload = () => {
+          const loaded=clock();
+          art.decode().then(() => {const decoded=clock(),timing={loadMs:loaded-started,decodeMs:decoded-loaded};
+            preparation.imageLoads++;preparation.imageLoadMs+=timing.loadMs;preparation.imageDecodeMs+=timing.decodeMs;imageTimings.set(art,timing);
+            clearTimeout(timer);resolve(art);
+          },error=>{clearTimeout(timer);reject(error);});
+        };
         art.onerror = () => { clearTimeout(timer); reject(new Error('Artwork unavailable')); };
         art.src = url;
       }).then(art=>{
@@ -58,18 +67,29 @@
     if(retained){cacheMetrics.shipHits++;return Promise.resolve(retained);}
     if(shipPending.has(key))return shipPending.get(key);
     cacheMetrics.shipMisses++;
+    const started=clock(),timing={type,stage:damageStage,catalogMs:0,imageLoadMs:0,imageDecodeMs:0,imageWaitMs:0,imageCached:false,alignmentMs:0,effectsMs:0,unlitMs:0,wallMs:0};
     const pending = catalog().then(async data => {
+        timing.catalogMs=clock()-started;
         const registered=window.nativeShipDefinitions?.get(type),ship = data.ships.find(entry => entry.id === type)||(Array.isArray(registered?.artwork.frames)?{name:registered.name,frames:registered.artwork.frames}:null);
         if (!ship) throw new Error('Ship artwork is not in the catalog');
-        const loaded = await image('../flashtrek-broken-mirror/showcase-assets/' + ship.frames[damageStage]);
+        const url='../flashtrek-broken-mirror/showcase-assets/'+ship.frames[damageStage],imageStarted=clock();timing.imageCached=imageCache.has(url);
+        const loaded = await image(url);timing.imageWaitMs=clock()-imageStarted;
+        const sourceTiming=imageTimings.get(loaded);if(!timing.imageCached){timing.imageLoadMs=sourceTiming?.loadMs||0;timing.imageDecodeMs=sourceTiming?.decodeMs||0;}
         const standard = window.nativeShipDefinitions?.artworkProfile(type)||window.starterShips?.get(type);
         const special = ({56:window.constitutionTugEffects,57:window.tugEffects,58:window.olympicEffects,59:window.cthiaEffects})[type];
         const profile = standard || (special ? {effects:special} : null);
+        let phase=clock();
         const aligned = standard ? await (standard.alignAsync?.(loaded,damageStage) || standard.align(loaded, damageStage)) :
           (type === 57 ? window.alignTugFrame(loaded, damageStage) : type === 58 ? window.alignOlympicFrame(loaded, damageStage) : loaded);
-        profile?.effects.prepareFrame?.(aligned,damageStage);
+        timing.alignmentMs=clock()-phase;phase=clock();
+        if(profile?.effects.prepareFrameAsync)await profile.effects.prepareFrameAsync(aligned,damageStage);
+        else profile?.effects.prepareFrame?.(aligned,damageStage);
+        timing.effectsMs=clock()-phase;phase=clock();
         // Every controller uses the same dim base and animated painted lamps.
         const art = await (profile?.effects.unlitFrameAsync?.(aligned) || profile?.effects.unlitFrame(aligned) || aligned);
+        timing.unlitMs=clock()-phase;timing.wallMs=clock()-started;preparation.ships++;
+        for(const field of ['catalogMs','alignmentMs','effectsMs','unlitMs','wallMs'])preparation[field]+=timing[field];
+        recentPreparation.push(timing);if(recentPreparation.length>64)recentPreparation.shift();
         return {type, damageStage, art, profile, width: art.width || art.naturalWidth, height: art.height || art.naturalHeight, name: ship.name};
       }).then(asset=>{
         if(typeof WeakRef==='function'){
@@ -140,11 +160,12 @@
     return {bytes,uniqueArt:loaderArt,totalOwnedByteEstimate:bytes+auxiliaryBytes,
       auxiliary:{additionalBytes:auxiliaryBytes,planets:planetCache.size,localBodies:localBodyCache.size,warpRing:Boolean(warpRing)},
       source:{entries:imageCache.size,bytes:imageBytes,pending:imagePending.size},
-      ships:{entries:shipCache.size,bytes:shipBytes,pending:shipPending.size,weakReferences:shipReferences.size},limits:{...cacheLimits,weakReferences:256},counters:{...cacheMetrics}};
+      ships:{entries:shipCache.size,bytes:shipBytes,pending:shipPending.size,weakReferences:shipReferences.size},limits:{...cacheLimits,weakReferences:256},counters:{...cacheMetrics},
+      preparation:{...preparation,recent:recentPreparation.map(row=>({...row}))}};
   }
   // Active ships/effects own their references; eviction only releases this
   // loader's retention. Pending requests remain deduplicated during a reset.
-  function resetCaches(){imageCache.clear();shipCache.clear();shipReferences.clear();imageBytes=shipBytes=0;for(const key of Object.keys(cacheMetrics))cacheMetrics[key]=0;}
+  function resetCaches(){imageCache.clear();shipCache.clear();shipReferences.clear();imageBytes=shipBytes=0;for(const key of Object.keys(cacheMetrics))cacheMetrics[key]=0;for(const key of Object.keys(preparation))preparation[key]=0;recentPreparation.length=0;}
   window.vexedFlightAssets = {loadShip, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing,cacheSnapshot,resetCaches, size:id=>shipSizes.get(Number(id))||(()=>{const d=window.nativeShipDefinitions?.dimensions({shipType:Number(id)});return d?{id:Number(id),playerWidth:d.width,playerHeight:d.height}:null;})(),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
   loadWarpRing().catch(()=>{});
 })();

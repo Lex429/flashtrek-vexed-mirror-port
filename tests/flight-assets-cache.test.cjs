@@ -4,7 +4,7 @@ const path=require('node:path');
 const test=require('node:test');
 const vm=require('node:vm');
 
-function fixture(){
+function fixture({prepareFrameAsync=null}={}){
   const images=[],world={ships:Array.from({length:40},(_,i)=>({id:i+1,hull:100}))};
   class Image{
     constructor(){this.width=512;this.height=512;images.push(this);}
@@ -13,6 +13,7 @@ function fixture(){
   }
   const aligned=[],unlit=[];
   const standard={alignAsync:async(image,stage)=>{aligned.push(stage);return image;},effects:{unlitFrameAsync:async image=>{unlit.push(image);return {width:512,height:512};}}};
+  if(prepareFrameAsync){standard.effects.prepareFrameAsync=prepareFrameAsync;standard.effects.prepareFrame=()=>{throw Error('synchronous frame preparation bypassed the cooperative API');};}
   const window={VexedFlightReference:{shipSizes:[]},VexedMirrorWorld:world,starterShips:{get:()=>standard}};
   const context=vm.createContext({window,Image,console,setTimeout,clearTimeout,
     fetch:async()=>({ok:true,json:async()=>({ships:world.ships.map(s=>({id:s.id,name:`Ship ${s.id}`,frames:[0,1,2,3].map(stage=>`${s.id}-${stage}.png`)}))})})});
@@ -44,4 +45,16 @@ test('decoded source and processed ship-art loader retention stays bounded under
   assert.equal(snapshot.source.pending,0);assert.equal(snapshot.ships.pending,0);
   assert.equal(await api.loadShip(1),active,'an active owner keeps the same asset after loader LRU eviction');
   api.resetCaches();assert.equal(api.cacheSnapshot().bytes,0);
+});
+
+test('loader reports image loading, decode and processing phases without duplicating concurrent preparation',async()=>{
+  const frames=[],{api}=fixture({prepareFrameAsync:async(image,stage)=>frames.push(stage)});
+  await Promise.all([api.loadShip(7,40),api.loadShip(7,40)]);
+  const report=api.cacheSnapshot().preparation;
+  assert.deepEqual(frames,[2]);assert.equal(report.ships,1);
+  const ship=report.recent.find(row=>row.type===7&&row.stage===2);
+  assert.ok(ship);assert.ok(report.imageLoads>=1);
+  for(const phase of ['imageLoadMs','imageDecodeMs','alignmentMs','effectsMs','unlitMs','wallMs'])assert.ok(Number.isFinite(ship[phase])&&ship[phase]>=0,phase);
+  await api.loadShip(7,40);assert.equal(api.cacheSnapshot().preparation.ships,1,'cache hits cannot report another preparation');
+  api.resetCaches();assert.equal(api.cacheSnapshot().preparation.ships,0);assert.equal(api.cacheSnapshot().preparation.recent.length,0);
 });
