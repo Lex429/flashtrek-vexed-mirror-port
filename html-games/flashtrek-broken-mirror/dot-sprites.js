@@ -25,7 +25,7 @@
   ].map(([tier,level,engines])=>[tier,Object.freeze({level,status:Object.freeze(Array.from({length:level},(_,i)=>Object.freeze([(627+(i-(level-1)/2)*10)*ratio,898*ratio]))),engines:Object.freeze(engines.map(p=>Object.freeze(p.map((n,i)=>i<4?n*ratio:n))))})])));
   const key=(tier,role)=>role+':'+tier;
   const matchesLamp=(r,g,b,role)=>role==='attack'?r>180&&g>85&&g>b*1.5&&r>g*1.05:role==='defense'?g>145&&b>170&&g>r*1.4&&b>g*.94:b>115&&b>r*1.45&&b>g*1.12;
-  const prepared=new Map();
+  const prepared=new Map(),pictures=new Map();
   function outline(ctx,x,y,r,seed){
     ctx.beginPath();for(let i=0;i<12;i++){const a=i*Math.PI/6,len=r*(.76+noise(seed+i)*.34),px=x+Math.cos(a)*len,py=y+Math.sin(a)*len;if(i)ctx.lineTo(px,py);else ctx.moveTo(px,py);}ctx.closePath();
   }
@@ -100,11 +100,12 @@
       return {status:profile.status.map(survives),engines:profile.engines.map(survives)};
     });
     const local=part=>{const nativeX=part.cx/ratio-definition.pivot[0],nativeY=part.cy/ratio-definition.pivot[1];return Object.freeze({...part,x:-nativeY*definition.scale,y:nativeX*definition.scale,width:part.width/ratio*definition.scale,height:part.height/ratio*definition.scale});};
-    prepared.set(key(tier,role),{frames,lampFrames,fragments:painted?painted.wrecks[3].map(local):fragments,wrecks:painted?.wrecks.map(parts=>parts.map(local)),transitions:painted?.transitions.map(parts=>parts.map(local)),damageSites:painted?.damageSites,hardware,lightCache:[]});return true;
+    prepared.set(key(tier,role),{frames,lampFrames,fragments:painted?painted.wrecks[3].map(local):fragments,wrecks:painted?.wrecks.map(parts=>parts.map(local)),transitions:painted?.transitions.map(parts=>parts.map(local)),damageSites:painted?.damageSites,hardware,lightCache:[]});pictures.delete(key(tier,role));return true;
   }
-  const ready=Promise.all(Object.entries(variants).flatMap(([role,tiers])=>Object.entries(tiers).map(([tier,d])=>new Promise(resolve=>{
+  const ready=Promise.all(Object.entries(variants).flatMap(([role,tiers])=>Object.entries(tiers).filter(([tier])=>!window.droneSpriteSelection||window.droneSpriteSelection.includes(key(tier,role))).map(([tier,d])=>new Promise(resolve=>{
     let attempts=0;
     const load=()=>{const picture=new Image();picture.onload=async()=>{
+      pictures.set(key(tier,role),picture);
       if(window.dotBasicDamage){const loaded=await (role==='repair'&&tier==='basic'?window.dotBasicDamage.ready:window.droneDamageArt?.ready||Promise.resolve([true]));if(!loaded.every(Boolean)){resolve(false);return;}}
       const iterator=prepare(picture,tier,role);
       if(window.nativeDamageArtPreparation)window.nativeDamageArtPreparation.run(iterator).then(()=>resolve(true),()=>resolve(false));
@@ -158,7 +159,10 @@
     g.restore();g.globalCompositeOperation='destination-in';g.drawImage(p.frames[s],0,0);g.globalCompositeOperation='source-over';cached.signature=signature;return cached.texture;
   }
   function paint(ctx,tier,{health=100,maxHealth=100,time=0,lights=true,effects=true,role='repair',thrust=0,activity=0,barrel=0}={}){
-    const p=prepared.get(key(tier,role));if(!p)return false;const s=stage(health,maxHealth);ctx.drawImage(p.frames[s],0,0);
+    const p=prepared.get(key(tier,role));
+    // Keep the supplied body visible while optional damage/lamp caches prepare.
+    if(!p){const picture=pictures.get(key(tier,role));if(!picture)return false;ctx.drawImage(picture,0,0,size,size);return true;}
+    const s=stage(health,maxHealth);ctx.drawImage(p.frames[s],0,0);
     if(lights&&s<4){ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha*=.95+.05*Math.sin(time*.003);ctx.drawImage(lighting(p,s,time,role,tier),0,0);
       if(thrust>0||activity>0)ctx.drawImage(workingLight(p,s,time,role,tier,thrust,activity,barrel),0,0);
       if(activity>0)for(const tool of activityPoints(tier,role,barrel)){
@@ -179,10 +183,10 @@
   }
   function nozzle(tier){const d=definitions[tier];return {x:(d.pivot[1]-d.tip[1])*d.scale,y:(d.tip[0]-d.pivot[0])*d.scale};}
   function draw(ctx,tier,options={}){
-    const role=options.role||'repair';if(!prepared.has(key(tier,role)))return false;const d=variants[role][tier];ctx.save();ctx.rotate(Math.PI/2);ctx.translate(-d.pivot[0]*d.scale,-d.pivot[1]*d.scale);ctx.scale(1254*d.scale/size,1254*d.scale/size);paint(ctx,tier,options);ctx.restore();return true;
+    const role=options.role||'repair';if(!prepared.has(key(tier,role))&&!pictures.has(key(tier,role)))return false;const d=variants[role][tier];ctx.save();ctx.rotate(Math.PI/2);ctx.translate(-d.pivot[0]*d.scale,-d.pivot[1]*d.scale);ctx.scale(1254*d.scale/size,1254*d.scale/size);paint(ctx,tier,options);ctx.restore();return true;
   }
   function drawPreview(ctx,tier,width,height,options={}){
-    if(!prepared.has(key(tier,options.role||'repair')))return false;const extent=Math.min(width,height)-12;ctx.clearRect(0,0,width,height);ctx.save();ctx.translate((width-extent)/2,(height-extent)/2);ctx.scale(extent/size,extent/size);paint(ctx,tier,options);ctx.restore();return true;
+    const id=key(tier,options.role||'repair');if(!prepared.has(id)&&!pictures.has(id))return false;const extent=Math.min(width,height)-12;ctx.clearRect(0,0,width,height);ctx.save();ctx.translate((width-extent)/2,(height-extent)/2);ctx.scale(extent/size,extent/size);paint(ctx,tier,options);ctx.restore();return true;
   }
   function inspect(tier,health=100,maxHealth=100,time=0,role='repair'){const p=prepared.get(key(tier,role)),s=stage(health,maxHealth),at=Math.floor(time/75)*75;return {stage:s,powered:s<4,lamps:p?.lampFrames[s].map((l,i)=>({x:l.cx,y:l.cy,on:lampOn(i,s,at)}))||[],fragments:p?.fragments.length||0};}
   function muzzle(tier,role,volley=0){const d=variants[role][tier],point=d.muzzles[volley%d.muzzles.length];return {x:(d.pivot[1]-point[1])*d.scale,y:(point[0]-d.pivot[0])*d.scale};}

@@ -20,6 +20,48 @@ try:
     with sync_playwright() as p:
         channel=os.environ.get('BROWSER_CHANNEL','msedge')
         browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
+        # Exercise a first repair through the real flight loop. Hold optional
+        # damage preparation so it cannot hide a missing cold-start body.
+        cold=browser.new_page(viewport={'width':1280,'height':850})
+        cold.on('pageerror',lambda e:errors.append(str(e)))
+        requested=[]
+        cold.on('request',lambda r:requested.append(r.url))
+        cold_assets=(ROOT/'html-games/flashtrek-broken-mirror/live-repair-assets.html').read_text(encoding='utf-8').replace(
+            'window.nativeDamageArtPreparation=parent.nativeDamageArtPreparation;',
+            'window.nativeDamageArtPreparation={run:iterator=>new Promise((resolve,reject)=>{window.releaseDotPreparation=()=>parent.nativeDamageArtPreparation.run(iterator).then(resolve,reject);})};')
+        cold.route('**/live-repair-assets.html*',lambda route:route.fulfill(content_type='text/html',body=cold_assets))
+        cold.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+        cold.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
+        cold.evaluate('startNativeDevGame()')
+        cold.wait_for_function('()=>nativeNpcDev.getState()?.civilianTraffic?.ships.length')
+        cold.evaluate(r"""()=>{
+          const s=nativeNpcDev.getState(),e=s.civilianTraffic.ships.find(e=>e.shipType===23);
+          s.system=47;s.landed=false;s.x=1000;s.y=1000;s.speed=0;s.localCruise=null;
+          s.civilianTraffic.ships=[e];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.solEconomy.freighters=[];
+          s.shipRepairs.missions=[];s.shipRepairs.calls=[];s.shipRepairs.nextPollAt=0;
+          e.nextActionAt=null;e.lifeScheduleToken++;e.cargo=null;delete e.localLeg;delete e.journey;
+          Object.assign(e,{system:47,x:1080,y:1000,shields:0,phase:'docked',repairDeuranium:20});
+          const d=nativeShipDefinitions.describe(s,e,{category:'civilian'});
+          nativeShipSystems.applyHit(s,{target:d,point:{x:e.x,y:e.y},from:{x:1000,y:1000}},{damage:d.definition.hull*.8,kind:'beam'},{id:'player',system:47});
+          window.coldDotDraws=0;const ctx=document.querySelector('#space').getContext('2d'),drawImage=ctx.drawImage;
+          ctx.drawImage=function(image,...args){if((image.src||'').includes('/dot-basic.png'))coldDotDraws++;return drawImage.call(this,image,...args);};
+        }""")
+        cold.wait_for_function('()=>nativeNpcDev.getState().civilianTraffic.ships[0].hull>11 && coldDotDraws>0',timeout=15000)
+        cold_result=cold.evaluate(r"""()=>{
+          const check=(v,m)=>{if(!v)throw Error(m);},s=nativeNpcDev.getState(),e=s.civilianTraffic.ships[0],d=nativeShipRepairs.drones(s,47)[0];
+          const w=document.querySelector('iframe').contentWindow,canvas=document.querySelector('#space'),ctx=canvas.getContext('2d'),view=nativeView.measure(canvas);
+          check(d?.entity.phase==='repairing','Sail ship repaired without an active drone');
+          check(w.droneSprites.inspect('basic').lamps.length===0,'Optional preparation was not held');
+          const x=(view.w/2+d.x-s.x)*canvas.width/view.w,y=(view.h/2+d.y-s.y)*canvas.height/view.h,pixels=ctx.getImageData(Math.round(x)-15,Math.round(y)-15,30,30).data;
+          let visible=0;for(let i=0;i<pixels.length;i+=4)if(Math.max(pixels[i],pixels[i+1],pixels[i+2])>40)visible++;
+          check(visible>10,'Missing DOT body pixels in the real flight canvas');
+          return {shipType:e.shipType,hull:e.hull,bodyDraws:coldDotDraws,visiblePixels:visible,optionalPreparationHeld:true,droneWidth:d.dimensions.width};
+        }""")
+        assert not any('/attack-drone-' in url or '/defense-drone-' in url or '/dot-upgraded.png' in url or '/dot-advanced.png' in url for url in requested), 'Live repair loaded unused drone variants'
+        cold.locator('#space').screenshot(path=str(OUTPUT/'sail-repair-cold-start.png'))
+        cold.evaluate("()=>document.querySelector('iframe').contentWindow.releaseDotPreparation()")
+        cold.wait_for_function("()=>document.querySelector('iframe').contentWindow.droneSprites.inspect('basic').lamps.length>0")
+        cold.close()
         page=browser.new_page(viewport={'width':1280,'height':850})
         page.on('pageerror',lambda e:errors.append(str(e)))
         page.on('response',lambda r:errors.append(str(r.status)+' '+r.url) if r.status>=400 else None)
@@ -43,17 +85,27 @@ try:
           nativeRepairVisuals.paint(s,ctx,{...view,ship:{x:1e7,y:1e7}});
           check(document.querySelectorAll('iframe').length===framesBefore,'Offscreen repair requested artwork');
           await Promise.all([nativeRepairVisuals.ensure(),nativeShipEffects.prepare(47,'civilian')]);
+          const sprites=document.querySelector('iframe').contentWindow.droneSprites,sourceExtent=1254*sprites.definitions.repair.basic.scale;
+          const referenceScale=nativeShipDefinitions.dimensions({shipType:58},'civilian').height/235;
           let tries=0;while(!nativeShipRepairs.drones(s,1).some(d=>d.entity.phase==='repairing')){tick(.1);check(tries++<200,'Drone approach stalled');}
           const before=JSON.stringify(s),contacts=[];
           const draw=()=>{ctx.fillStyle='#000';ctx.fillRect(0,0,c.width,c.height);nativeShipEffects.paintShip(ctx,nativeShipDefinitions.describe(s,e,{category:'civilian'}),view);nativeRepairVisuals.paint(s,ctx,view);};
           for(const heading of [0,Math.PI/2,Math.PI,-Math.PI/2])for(const zoom of [.7,1,1.7]){
             const d=e.repairBay.slots[0];d.heading=heading;view.zoom=zoom;
             const described=nativeShipRepairs.drones(s,1).find(t=>t.id===d.id),b=nativeRepairVisuals.beam(s,described);
-            const n=document.querySelector('iframe').contentWindow.droneSprites.nozzle('basic');
-            near(b.from.x,described.x+n.x*Math.cos(heading)-n.y*Math.sin(heading),'Nozzle world X');near(b.from.y,described.y+n.x*Math.sin(heading)+n.y*Math.cos(heading),'Nozzle world Y');
+            near(described.dimensions.width/75,sourceExtent/235,'Showcase DOT/carrier width proportion');
+            near(described.hullRadii.rx,sourceExtent*referenceScale*.34,'Scaled physical hull');
+            const extents=[],drawImage=ctx.drawImage;
+            ctx.drawImage=function(image,...args){const m=this.getTransform();extents.push(Math.hypot(m.a,m.b)*image.width);return drawImage.call(this,image,...args);};
+            try{nativeRepairVisuals.drawDrone(ctx,described,view);}finally{ctx.drawImage=drawImage;}
+            check(extents.length>0,'Missing rendered DOT artwork');near(extents[0],sourceExtent*referenceScale*zoom,'Actual rendered DOT extent');
+            const n=sprites.nozzle('basic');
+            near(b.from.x,described.x+(n.x*Math.cos(heading)-n.y*Math.sin(heading))*referenceScale,'Nozzle world X');near(b.from.y,described.y+(n.x*Math.sin(heading)+n.y*Math.cos(heading))*referenceScale,'Nozzle world Y');
             draw();const px=Math.round(view.cx+(b.from.x-view.ship.x)*zoom),py=Math.round(view.cy+(b.from.y-view.ship.y)*zoom),pixels=ctx.getImageData(px-2,py-2,5,5).data;
-            let green=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i+1]>pixels[i]+15&&pixels[i+1]>80)green++;
-            check(green>0,'No green welding pixels at rotated nozzle');contacts.push({heading,zoom,from:b.from,to:b.to,green});
+            // At the showcase proportion the zoomed-out beam is subpixel-wide;
+            // antialiasing lowers brightness while preserving its green tint.
+            let green=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i+1]>pixels[i]+8&&pixels[i+1]>30)green++;
+            check(green>0,'No green welding pixels at rotated nozzle');contacts.push({heading,zoom,from:b.from,to:b.to,green,extent:extents[0],hullRadius:described.hullRadii.rx});
           }
           // Restore headings changed by this controlled pixel fixture before
           // asserting that ordinary painting cannot alter any saved state.
@@ -63,10 +115,14 @@ try:
           check(new Set(plates).size===3,'Repair paint did not advance with real hull progress');
           e.hull=JSON.parse(before).civilianTraffic.ships[0].hull;view.zoom=1;draw();
           const paused=JSON.stringify(s);nativePause.open();nativeShipRepairs.advance(s,20);nativeRepairVisuals.advance(s,20);draw();check(JSON.stringify(s)===paused,'Paused repairs consumed material');nativePause.close();
-          const d=nativeShipRepairs.drones(s,1)[0];nativeShipSystems.applyHit(s,{target:d,point:{x:d.x,y:d.y},from:{x:d.x-50,y:d.y}},{damage:100,kind:'beam'},{id:'player',system:1});
+          const d=nativeShipRepairs.drones(s,1)[0],assetWindow=document.querySelector('iframe').contentWindow,destruction=assetWindow.cthiaDestruction,explosionLayouts=[];
+          assetWindow.cthiaDestruction={...destruction,emitFragments:(...args)=>{explosionLayouts.push({...args[1]});return destruction.emitFragments(...args);}};
+          try{nativeShipSystems.applyHit(s,{target:d,point:{x:d.x,y:d.y},from:{x:d.x-50,y:d.y}},{damage:100,kind:'beam'},{id:'player',system:1});}finally{assetWindow.cthiaDestruction=destruction;}
+          check(explosionLayouts.length===1,'Missing shared DOT destruction');near(explosionLayouts[0].w,d.dimensions.width,'Wreckage matches scaled DOT width');near(explosionLayouts[0].h,d.dimensions.height,'Wreckage matches scaled DOT height');
           tick(.1);draw();const wreck=nativeRepairVisuals.snapshot(s).destruction;check(wreck.wreckCount>0,'Dot destruction omitted actual hull fragments');
-          window.__repairProof={s,draw};return {contacts,plates,wreck,missions:s.shipRepairs.missions.length,consumed:s.shipRepairs.ledger.consumed};
+          window.__repairProof={s,draw};return {contacts,plates,wreck,explosionLayouts,missions:s.shipRepairs.missions.length,consumed:s.shipRepairs.ledger.consumed};
         }""")
+        result['coldStart']=cold_result
         result['medical']=page.evaluate(r"""async()=>{
           const check=(v,m)=>{if(!v)throw Error(m);},s=JSON.parse(JSON.stringify(nativeNpcDev.getState()));
           const target=s.civilianTraffic.ships.find(e=>e.id===3),medic=s.civilianTraffic.ships.find(e=>e.shipType===58);
@@ -92,7 +148,7 @@ try:
         page.locator('#repair-browser-proof').screenshot(path=str(OUTPUT/'live-repair-drones.png'))
         if errors: raise AssertionError(errors)
         (OUTPUT/'browser-ship-repairs.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
-        print(json.dumps({'ok':True,'contacts':len(result['contacts']),'wreck':result['wreck']}))
+        print(json.dumps({'ok':True,'contacts':len(result['contacts']),'wreck':result['wreck'],'coldStart':cold_result}))
         browser.close()
 finally:
     server.shutdown()

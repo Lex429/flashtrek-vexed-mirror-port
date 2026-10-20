@@ -10,26 +10,28 @@
     loading=new Promise((resolve,reject)=>{
       const frame=document.createElement('iframe');frame.hidden=true;frame.title='Repair artwork cache';
       frame.onload=async()=>{try{
-        const w=frame.contentWindow,loaded=await w.droneSprites.ready;
+        const w=frame.contentWindow;
+        art={sprites:w.droneSprites,damage:w.dotBasicDamage,showcase:w.droneShowcase};
+        const loaded=await w.droneSprites.ready;
         if(!loaded.every(Boolean))throw Error('Dot artwork preparation failed');
-        art={sprites:w.droneSprites,damage:w.dotBasicDamage,showcase:w.droneShowcase};resolve(art);
+        resolve(art);
       }catch(error){reject(error);}};
       frame.onerror=()=>reject(Error('Could not load repair artwork'));
-      frame.src='../flashtrek-broken-mirror/live-repair-assets.html';document.body.append(frame);
+      frame.src='../flashtrek-broken-mirror/live-repair-assets.html?v=progressive-1';document.body.append(frame);
     });
     loading.catch(error=>{console.warn(error);});return loading;
   }
   function state(s){let r=states.get(s);if(!r){r={damage:art?.damage.createEffects(),destruction:art?.showcase.createDestruction()};states.set(s,r);}if(art&&!r.damage){r.damage=art.damage.createEffects();r.destruction=art.showcase.createDestruction();}return r;}
   function drawDrone(ctx,d,view){
     if(!art){ensure();return false;}
-    const z=view.zoom??1,x=view.cx+(d.x-view.ship.x)*z,y=view.cy+(d.y-view.ship.y)*z;
-    ctx.save();ctx.translate(x,y);ctx.scale(z,z);ctx.rotate(d.heading);
+    const z=view.zoom??1,scale=d.definition.artwork.scale,x=view.cx+(d.x-view.ship.x)*z,y=view.cy+(d.y-view.ship.y)*z;
+    ctx.save();ctx.translate(x,y);ctx.scale(z*scale,z*scale);ctx.rotate(d.heading);
     const drawn=art.sprites.draw(ctx,'basic',{role:'repair',health:d.entity.hull,maxHealth:40,time:time(d.state),lights:true,thrust:d.entity.phase==='repairing'?0:.8,activity:d.entity.phase==='repairing'?1:0});
     ctx.restore();return drawn;
   }
   function hit(s,d,result){
     if(!art||d.system!==s.system)return;
-    const r=state(s),pose={tier:'basic',role:'repair',position:{x:d.x,y:d.y},heading:d.heading,scale:1,time:time(s),before:result.beforeStage,after:result.afterStage};
+    const r=state(s),pose={tier:'basic',role:'repair',position:{x:d.x,y:d.y},heading:d.heading,scale:d.definition.artwork.scale,time:time(s),before:result.beforeStage,after:result.afterStage};
     if(result.destroyed)r.destruction.emit(pose);else r.damage.emit(pose);
   }
   function advance(s,dt){if(!(dt>0)||window.nativeSimulation.blocked())return;const r=states.get(s);r?.damage?.update(time(s));r?.destruction?.advance(time(s));}
@@ -51,7 +53,7 @@
   function beam(s,d){
     const target=window.nativeShipRepairs.pose(s,d.entity.target);if(!target)return null;
     const nozzle=art?.sprites.nozzle('basic');if(!nozzle)return null;
-    const c=Math.cos(d.heading),sn=Math.sin(d.heading),from={x:d.x+nozzle.x*c-nozzle.y*sn,y:d.y+nozzle.x*sn+nozzle.y*c};
+    const scale=d.definition.artwork.scale,c=Math.cos(d.heading),sn=Math.sin(d.heading),from={x:d.x+(nozzle.x*c-nozzle.y*sn)*scale,y:d.y+(nozzle.x*sn+nozzle.y*c)*scale};
     return {from,to:window.nativeShipRepairs.workPoint(target,d.entity)};
   }
   function paint(s,ctx,view){
@@ -62,11 +64,11 @@
       window.nativeShipEffects.paintShip(ctx,d,view);
       if(d.entity.phase!=='repairing'||!art)continue;
       const b=beam(s,d);if(!b)continue;
-      const x=p=>view.cx+(p.x-view.ship.x)*z,y=p=>view.cy+(p.y-view.ship.y)*z,now=time(s),pulse=.7+.3*Math.sin(now*.073)**2;
-      ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='#4dffac';ctx.globalAlpha=pulse;ctx.shadowColor='#48ff9d';ctx.shadowBlur=6*z;ctx.lineWidth=1.2*z;
+      const x=p=>view.cx+(p.x-view.ship.x)*z,y=p=>view.cy+(p.y-view.ship.y)*z,now=time(s),pulse=.7+.3*Math.sin(now*.073)**2,effectZoom=z*d.definition.artwork.scale;
+      ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='#4dffac';ctx.globalAlpha=pulse;ctx.shadowColor='#48ff9d';ctx.shadowBlur=6*effectZoom;ctx.lineWidth=1.2*effectZoom;
       ctx.beginPath();ctx.moveTo(x(b.from),y(b.from));ctx.lineTo(x(b.to),y(b.to));ctx.stroke();
-      ctx.fillStyle='#f0fff5';ctx.beginPath();ctx.arc(x(b.to),y(b.to),2*z,0,Math.PI*2);ctx.fill();
-      for(let i=0;i<4;i++){const a=now*.003+i*1.7,age=(now*.002+i*.27)%1,len=age*11*z;ctx.globalAlpha=1-age;ctx.beginPath();ctx.moveTo(x(b.to)+Math.cos(a)*len,y(b.to)+Math.sin(a)*len);ctx.lineTo(x(b.to)+Math.cos(a)*(len+3*z),y(b.to)+Math.sin(a)*(len+3*z));ctx.stroke();}ctx.restore();
+      ctx.fillStyle='#f0fff5';ctx.beginPath();ctx.arc(x(b.to),y(b.to),2*effectZoom,0,Math.PI*2);ctx.fill();
+      for(let i=0;i<4;i++){const a=now*.003+i*1.7,age=(now*.002+i*.27)%1,len=age*11*effectZoom;ctx.globalAlpha=1-age;ctx.beginPath();ctx.moveTo(x(b.to)+Math.cos(a)*len,y(b.to)+Math.sin(a)*len);ctx.lineTo(x(b.to)+Math.cos(a)*(len+3*effectZoom),y(b.to)+Math.sin(a)*(len+3*effectZoom));ctx.stroke();}ctx.restore();
     }
     // Effects share simulation time/world coordinates, including camera rotation
     // and zoom. No completion, health or resource mutation occurs here.

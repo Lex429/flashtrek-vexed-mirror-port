@@ -1,58 +1,197 @@
-#setup-ui{position:absolute;inset:0;z-index:12;color:#f3dce2;background:radial-gradient(ellipse at 72% 40%,#40162599,transparent 65%),repeating-linear-gradient(0deg,#ff657604 0px,#ff657604 1px,transparent 1px,transparent 4px),linear-gradient(140deg,#170b13,#080e18);font-size:clamp(10px,1.25vw,15px);container-type:inline-size;display:flex;flex-direction:column;padding:3.2%;gap:3%;overflow:hidden}
-#setup-ui[hidden]{display:none}#setup-ui *{box-sizing:border-box}#setup-ui .setup-top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #c4475b66;padding-bottom:2%}#setup-ui .setup-kicker{font-size:1.2cqw;letter-spacing:.2em;color:#d78191;margin:0 0 .7cqw}#setup-ui h2{font-size:2.8cqw;margin:0;font-weight:600;letter-spacing:.04em}#setup-ui .setup-steps{display:flex;gap:2cqw;color:#a77d8b;font-size:1.2cqw}#setup-ui .setup-steps .active{color:#ffd2dc;text-shadow:0 0 14px #ff5978}
-#setup-ui .setup-body{display:grid;grid-template-columns:1.06fr 1fr;gap:3%;min-height:0;flex:1}#setup-ui .setup-factions{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);gap:1.2cqw;min-height:0}#setup-ui .faction-card{position:relative;display:flex;align-items:center;gap:.7cqw;padding:.9cqw;background:linear-gradient(120deg,#37131f77,#09131ccc);border:1px solid #b4485a55;border-radius:2px;text-align:left;color:#c8aeb9;font-size:1.5cqw;min-width:0;overflow:hidden;transition:background .15s,border-color .15s,box-shadow .15s}#setup-ui .faction-card:hover,#setup-ui .faction-card:focus-visible{background:#54203688;border-color:#ff8aab;outline-offset:2px}#setup-ui .faction-card[aria-pressed=true]{background:linear-gradient(110deg,#782d4388,#172533aa);border-color:#f891a4;box-shadow:inset 3px 0 #ff91a4,0 0 14px #e7496a22;color:#fff0f5}#setup-ui .faction-card img{width:5cqw;height:6cqw;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 5px #ff839f33)}#setup-ui .faction-card small{display:block;font-size:1.05cqw;line-height:1.4;margin-top:.35cqw;color:#b4909d}
-#setup-ui .setup-panel{position:relative;display:flex;flex-direction:column;gap:1.3cqw;background:linear-gradient(135deg,#36162277,#0b182588);border:1px solid #d05e7466;padding:2cqw;min-height:0;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}#setup-ui .faction-heading{display:flex;align-items:center;gap:1.5cqw;border-bottom:1px solid #f2789133;padding-bottom:1.3cqw}#setup-ui .faction-heading img{width:7cqw;height:8cqw;object-fit:contain}#setup-ui h3{font-size:2.2cqw;margin:0;color:#ffe3e9;font-weight:600}#setup-ui .faction-heading p{font-size:1.15cqw;color:#c08292;margin:.6cqw 0 0;letter-spacing:.08em}#setup-ui .setup-story{white-space:pre-line;overflow:visible;min-height:0;flex:1;font-size:1.35cqw;line-height:1.5;color:#c6b3c0;scrollbar-width:thin;scrollbar-color:#a24961 #10111b;margin:0;padding-right:1cqw}#setup-ui .setup-specs{display:grid;grid-template-columns:repeat(3,1fr);gap:.7cqw;margin:0}#setup-ui .setup-specs div{border-top:1px solid #db657959;background:#07172388;padding:.8cqw}#setup-ui dt{font-size:1cqw;color:#b78899;letter-spacing:.07em;text-transform:uppercase}#setup-ui dd{font-size:1.4cqw;margin:.5cqw 0 0;color:#ffe1e9;font-variant-numeric:tabular-nums}#setup-ui .setup-ship{font-size:1.35cqw;color:#dca3b4;padding:1cqw;background:#13223177;border-left:2px solid #fc8ca4}
-#setup-ui .setup-bottom{display:flex;justify-content:space-between;align-items:center;gap:2%;border-top:1px solid #c4475b55;padding-top:1.5%}#setup-ui .setup-bottom button{font-size:1.4cqw;border-radius:2px;padding:1.2cqw 2.3cqw;color:#ffdce6;background:#291b2a;border:1px solid #c7657e77;text-transform:uppercase;letter-spacing:.08em}#setup-ui .setup-bottom .setup-primary{background:linear-gradient(100deg,#8c344d,#50283f);border-color:#f399af;box-shadow:0 0 18px #e76d8a22}#setup-ui .setup-bottom .setup-primary:hover{background:#a14762}#setup-ui .setup-hint{font-size:1.1cqw;color:#a37b8d;margin:0}#setup-ui .setup-form{display:flex;flex-direction:column;justify-content:center;gap:2cqw}#setup-ui .setup-form label{display:block;font-size:1.25cqw;color:#d097a9;letter-spacing:.08em}#setup-ui input{display:block;width:100%;margin-top:.8cqw;padding:1.3cqw;font:inherit;font-size:1.65cqw;color:#ffedf2;background:#0a1723;border:1px solid #b35b7377;border-radius:2px;outline:none}#setup-ui input:focus{border-color:#ffa3bc;box-shadow:0 0 10px #f5769744}#setup-ui .setup-error{color:#ffa9b8;font-size:1.3cqw;margin:0}#setup-ui .setup-overview{font-size:1.35cqw;color:#ceb3c1;line-height:1.8;margin:0}#setup-ui .setup-review-specs{grid-template-columns:repeat(2,1fr)}
-#setup-ui .faction-card img,#setup-ui .faction-heading img{mix-blend-mode:screen}
-/* Interpolate one inherited color so newly rendered details share the fade. */
-@property --faction-color{syntax:'<color>';inherits:true;initial-value:#ef879e}
-#setup-ui{--faction-color:#ef879e;--theme-line:color-mix(in srgb,var(--faction-color) 45%,transparent);--theme-text:color-mix(in srgb,var(--faction-color) 42%,#edf0f5);--theme-muted:color-mix(in srgb,var(--faction-color) 30%,#a3a9b8);color:#e7eaf0;background:radial-gradient(ellipse at 72% 40%,color-mix(in srgb,var(--faction-color) 13%,transparent),transparent 65%),repeating-linear-gradient(0deg,#ffffff04 0px,#ffffff04 1px,transparent 1px,transparent 4px),linear-gradient(140deg,#10101a,#080e18);transition:--faction-color .48s ease}
-#setup-ui .setup-top,#setup-ui .setup-bottom,#setup-ui .faction-heading{border-color:var(--theme-line)}
-#setup-ui .setup-kicker,#setup-ui .faction-heading p,#setup-ui .setup-form label,#setup-ui dt,#setup-ui .setup-hint{color:var(--theme-muted)}
-#setup-ui h2,#setup-ui h3,#setup-ui dd{color:var(--theme-text)}
-#setup-ui .setup-steps{color:#959baa}#setup-ui .setup-steps .active{color:var(--theme-text);text-shadow:0 0 14px color-mix(in srgb,var(--faction-color) 55%,transparent)}
-#setup-ui .faction-card{color:#d0d5df;border-color:color-mix(in srgb,var(--faction-color) 25%,transparent);background:linear-gradient(120deg,color-mix(in srgb,var(--faction-color) 5%,#10121c),#09131ccc)}
-#setup-ui .faction-card small{color:#a5aaba}#setup-ui .faction-card img{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--faction-color) 22%,transparent))}
-#setup-ui .faction-card:hover,#setup-ui .faction-card:focus-visible{background:color-mix(in srgb,var(--faction-color) 11%,#111722);border-color:var(--faction-color);outline-color:var(--faction-color)}
-#setup-ui .faction-card[aria-pressed=true]{background:linear-gradient(110deg,color-mix(in srgb,var(--faction-color) 17%,#141421),#172533aa);border-color:var(--faction-color);box-shadow:inset 3px 0 var(--faction-color),0 0 14px color-mix(in srgb,var(--faction-color) 15%,transparent);color:var(--theme-text)}
-#setup-ui .setup-panel{border-color:var(--theme-line);background:linear-gradient(135deg,color-mix(in srgb,var(--faction-color) 7%,#11121d),#0b182588)}
-#setup-ui .setup-story,#setup-ui .setup-overview{color:#c5cbd7}#setup-ui .setup-story{scrollbar-color:color-mix(in srgb,var(--faction-color) 60%,#19212e) #10111b}
-#setup-ui .setup-specs div{border-color:var(--theme-line)}#setup-ui .setup-ship{color:var(--theme-text);border-color:var(--faction-color)}
-#setup-ui .setup-bottom button{color:var(--theme-text);background:#171e2a;border-color:var(--theme-line)}
-#setup-ui .setup-bottom .setup-primary{background:linear-gradient(100deg,color-mix(in srgb,var(--faction-color) 32%,#18202c),color-mix(in srgb,var(--faction-color) 17%,#18202c));border-color:var(--faction-color);box-shadow:0 0 18px color-mix(in srgb,var(--faction-color) 15%,transparent);color:#f7f8fb}
-#setup-ui .setup-bottom .setup-primary:hover{background:color-mix(in srgb,var(--faction-color) 40%,#18202c)}
-#setup-ui input{color:#edf1f8;border-color:var(--theme-line)}#setup-ui input:focus{border-color:var(--faction-color);box-shadow:0 0 10px color-mix(in srgb,var(--faction-color) 25%,transparent)}
-@media(prefers-reduced-motion:reduce){#setup-ui{transition:none}}
+/* Fit setup to the game window; artwork takes the remaining space. */
+@property --faction-color {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ef879e;
+}
 
-#setup-ui .setup-specs dd{display:flex;align-items:center;gap:.65cqw;min-height:3cqw}#setup-ui .setup-resource-icon{width:2.8cqw;height:2.8cqw;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 4px #ffffff22)}
+#game.setup-open #menu-art,
+#game.setup-open #menu-space { visibility: hidden; }
 
-#setup-ui .setup-ship-preview{margin:0;min-height:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7cqw;padding:1cqw;background:radial-gradient(ellipse,color-mix(in srgb,var(--faction-color) 9%,transparent),transparent 70%),repeating-linear-gradient(0deg,transparent 0,transparent 19px,#ffffff05 20px),repeating-linear-gradient(90deg,transparent 0,transparent 19px,#ffffff05 20px);border:1px solid color-mix(in srgb,var(--faction-color) 17%,transparent)}#setup-ui .setup-ship-preview img{display:block;width:15cqw;height:11cqw;object-fit:contain;filter:drop-shadow(0 0 7px color-mix(in srgb,var(--faction-color) 20%,transparent))}#setup-ui .setup-ship-preview figcaption{font-size:1.3cqw;color:var(--theme-text);text-align:center}#setup-ui .setup-review-specs{flex-shrink:0}
+#setup-ui {
+  --faction-color: #ef879e;
+  --theme-line: color-mix(in srgb, var(--faction-color) 30%, transparent);
+  --theme-text: color-mix(in srgb, var(--faction-color) 30%, #edf0f5);
+  --theme-muted: color-mix(in srgb, var(--faction-color) 20%, #a3a9b8);
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  top: calc(50% - 8px);
+  width: min(1320px, calc(100% - 32px));
+  height: min(860px, calc(100% - 64px));
+  transform: translate(-50%, -50%);
+  container-type: size;
+  container-name: setup;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5cqmin, 18px);
+  padding: clamp(16px, 2.2cqmin, 28px);
+  overflow: hidden;
+  color: #e7eaf0;
+  font-size: 14px;
+  line-height: 1.5;
+  background: radial-gradient(ellipse at 75% 30%, color-mix(in srgb, var(--faction-color) 10%, transparent), transparent 65%), linear-gradient(140deg, #11111b, #080e18);
+  border: 1px solid #465367;
+  border-radius: 8px;
+  box-shadow: 0 0 0 4px #131b26, 0 24px 80px #000d;
+  transition: --faction-color .48s ease;
+}
 
-/* Larger Earth emblem on Choose Your Faction. */
-#setup-ui .setup-ship-preview{background:radial-gradient(ellipse at center,#080d14,#010205 75%);border-color:#27313b;box-shadow:inset 0 0 18px #000b}
-#setup-ui .setup-ship-art{position:relative;width:15cqw;height:11cqw;flex-shrink:0}
-#setup-ui .setup-ship-art canvas,#setup-ui .setup-ship-art img{display:block;width:100%;height:100%;filter:none}
-#setup-ui .setup-ship-art [hidden]{display:none}
-#setup-ui .setup-ship-preview-compact{flex:0 0 auto;gap:.3cqw;padding:.6cqw}
-#setup-ui .setup-ship-preview-compact .setup-ship-art{width:12cqw;height:8.8cqw}
-#game[data-frame="108"] #setup-ui .faction-card[data-faction="2"] img{width:6.8cqw;height:6.8cqw}
-#game[data-frame="108"] #setup-ui[data-faction="2"] .faction-heading img{width:9.8cqw;height:10.5cqw;flex-shrink:0}
+#setup-ui[hidden] { display: none; }
+#setup-ui * { box-sizing: border-box; }
+#setup-ui .setup-top,
+#setup-ui .setup-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 16px;
+}
+#setup-ui .setup-top { padding-bottom: 16px; border-bottom: 1px solid var(--theme-line); }
+#setup-ui .setup-top > div { min-width: 0; }
+#setup-ui .setup-kicker { margin: 0 0 6px; color: var(--theme-muted); font-size: 11px; letter-spacing: .16em; }
+#setup-ui h2 { margin: 0; color: var(--theme-text); font-size: clamp(22px, 2.7cqw, 32px); font-weight: 600; line-height: 1.2; }
+#setup-ui .setup-steps { display: flex; flex-shrink: 0; gap: 18px; color: #8993a5; font-size: 11px; }
+#setup-ui .setup-steps .active { color: var(--theme-text); }
 
-/* Present the recovered 600x450 setup composition as a centered game panel. */
-#game.setup-open #menu-art,#game.setup-open #menu-space{visibility:hidden}
-#setup-ui{inset:auto;left:50%;top:50%;width:min(1220px,calc(100% - 48px));height:min(760px,calc(100% - 64px));transform:translate(-50%,-50%);border:1px solid #536477;box-shadow:0 0 0 4px #131b26,0 24px 80px #000d}
-#setup-ui .setup-panel{gap:1cqw;padding:1.5cqw}
-#setup-ui .faction-heading img{width:6cqw;height:6cqw;flex-shrink:0}
-#setup-ui .setup-story{overflow:visible;flex:0 0 auto;font-size:clamp(14px,1.35cqw,17px);line-height:1.45}
-#setup-ui .faction-card{font-size:clamp(14px,1.5cqw,18px);line-height:1.25}
-#setup-ui .faction-card span{min-width:0}
-#setup-ui .faction-card small{font-size:clamp(11px,1.05cqw,13px);line-height:1.3}
-#setup-ui .setup-ship-preview{background:radial-gradient(ellipse at center,color-mix(in srgb,var(--faction-color) 9%,transparent),transparent 72%);border:0;box-shadow:none}
-#setup-ui .setup-ship-preview-compact .setup-ship-art{width:13cqw;height:6.5cqw}
-#setup-ui .setup-ship-preview:not(.setup-ship-preview-compact){padding:.5cqw;gap:.3cqw}
-#setup-ui .setup-ship-preview:not(.setup-ship-preview-compact) .setup-ship-art{width:13cqw;height:7cqw}
-#setup-ui .setup-ship-preview figcaption{font-size:clamp(12px,1.3cqw,16px)}
-#setup-ui .setup-hint,#setup-ui .setup-steps,#setup-ui .setup-kicker{font-size:clamp(12px,1.1cqw,14px)}
-#setup-ui .setup-bottom button{font-size:clamp(13px,1.3cqw,16px)}
-@media(min-width:900px){#setup-ui .setup-review-specs{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:700px){#setup-ui{width:100%;height:calc(100% - 40px);padding:12px;gap:8px;overflow:auto}#setup-ui .setup-body{display:flex;flex-direction:column;overflow:auto}#setup-ui .setup-factions{min-height:250px}#setup-ui .setup-panel{min-height:260px}#setup-ui .setup-story{min-height:110px}}
+#setup-ui .setup-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(14px, 2cqw, 24px);
+  min-height: 0;
+  flex: 1;
+  grid-template-rows: minmax(0, 1fr);
+}
+#setup-ui .setup-factions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: clamp(8px, 1.5cqh, 12px); min-width: 0; }
+#setup-ui .faction-card { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 0; padding: clamp(8px, 1.5cqh, 12px); text-align: left; color: #d0d5df; background: linear-gradient(120deg, color-mix(in srgb, var(--faction-color) 5%, #10121c), #09131ccc); border: 1px solid var(--theme-line); border-radius: 5px; font-size: clamp(14px, 1.4cqw, 17px); line-height: 1.3; transition: background .15s, border-color .15s; }
+#setup-ui .faction-card span { min-width: 0; overflow-wrap: anywhere; }
+#setup-ui .faction-card small { display: block; margin-top: 5px; color: #a5aaba; font-size: 12px; font-weight: 400; line-height: 1.4; }
+#setup-ui .faction-card img { width: clamp(36px, 4.5cqw, 54px); height: clamp(32px, 8cqh, 58px); flex-shrink: 0; object-fit: contain; mix-blend-mode: screen; }
+#setup-ui .faction-card:hover,
+#setup-ui .faction-card:focus-visible { background: color-mix(in srgb, var(--faction-color) 11%, #111722); border-color: var(--faction-color); }
+#setup-ui .faction-card[aria-pressed=true] { background: linear-gradient(110deg, color-mix(in srgb, var(--faction-color) 17%, #141421), #172533aa); border-color: var(--faction-color); box-shadow: inset 3px 0 var(--faction-color); color: var(--theme-text); }
+
+#setup-ui .setup-panel { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: clamp(8px, 2cqh, 16px); min-width: 0; min-height: 0; padding: clamp(12px, 2.5cqh, 22px); border: 1px solid var(--theme-line); border-radius: 6px; background: linear-gradient(135deg, color-mix(in srgb, var(--faction-color) 6%, #11121d), #0b182588); }
+#setup-ui[data-step="command"] .setup-panel:not(.setup-form) { grid-template-rows: auto minmax(0, 1fr) auto; }
+#setup-ui .faction-heading { display: flex; align-items: center; gap: 16px; min-width: 0; padding-bottom: clamp(8px, 2cqh, 14px); border-bottom: 1px solid var(--theme-line); }
+#setup-ui .faction-heading img { width: clamp(36px, 6cqh, 48px); height: clamp(38px, 7cqh, 56px); object-fit: contain; flex-shrink: 0; mix-blend-mode: screen; }
+#setup-ui .faction-heading > div { min-width: 0; }
+#setup-ui h3 { margin: 0; color: var(--theme-text); font-size: clamp(20px, 2cqw, 25px); font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+#setup-ui .faction-heading p { margin: 5px 0 0; color: var(--theme-muted); font-size: 13px; line-height: 1.4; }
+#setup-ui .setup-story { margin: 0; color: #c5cbd7; font-size: clamp(12px, 2cqh, 14px); line-height: 1.5; white-space: pre-line; }
+
+#setup-ui .setup-ship-preview { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; min-width: 0; min-height: 0; margin: 0; padding: 0; }
+#setup-ui .setup-ship-art { position: relative; display: flex; align-items: center; justify-content: center; align-self: center; width: 100%; height: 100%; max-height: 230px; min-height: 0; }
+/* The image scales uniformly inside the available area, including tall hulls. */
+#setup-ui .setup-ship-art img,
+#setup-ui .setup-ship-art canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
+#setup-ui .setup-ship-art canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#setup-ui .setup-ship-art [hidden] { display: none; }
+#setup-ui .setup-ship-preview-compact .setup-ship-art { max-height: 160px; }
+#setup-ui .setup-ship-preview figcaption { color: var(--theme-text); font-size: 15px; line-height: 1.5; text-align: center; overflow-wrap: anywhere; }
+#setup-ui .setup-ship-preview figcaption span { display: block; margin-bottom: 3px; color: var(--theme-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; }
+#setup-ui .setup-ship-preview figcaption strong { font-weight: 500; }
+
+#setup-ui .setup-specs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+#setup-ui .setup-specs > div { min-width: 0; padding: 10px; background: #07132199; border-top: 1px solid var(--theme-line); border-radius: 0 0 4px 4px; }
+#setup-ui dt { color: var(--theme-muted); font-size: 11px; line-height: 1.5; letter-spacing: .04em; text-transform: uppercase; overflow-wrap: anywhere; }
+#setup-ui dd { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 28px; margin: 6px 0 0; color: var(--theme-text); font-size: 16px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+#setup-ui dd span { min-width: 0; overflow-wrap: anywhere; }
+#setup-ui .setup-resource-icon { width: 26px; height: 26px; flex-shrink: 0; object-fit: contain; }
+
+#setup-ui .setup-form { display: flex; flex-direction: column; justify-content: center; gap: clamp(12px, 3cqh, 24px); }
+#setup-ui .setup-form label { display: block; color: var(--theme-muted); font-size: 12px; letter-spacing: .08em; line-height: 1.5; }
+#setup-ui input { display: block; width: 100%; margin-top: 8px; padding: clamp(8px, 1.8cqh, 13px) 14px; border: 1px solid var(--theme-line); border-radius: 4px; outline: none; background: #0a1723; color: #edf1f8; font: 16px/1.5 system-ui, sans-serif; letter-spacing: normal; }
+#setup-ui input:focus { border-color: var(--faction-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--faction-color) 12%, transparent); }
+#setup-ui .setup-error { margin: 0; color: #ffa9b8; font-size: 13px; }
+#setup-ui .setup-error:empty { display: none; }
+#setup-ui .setup-bottom { padding-top: 16px; border-top: 1px solid var(--theme-line); }
+#setup-ui .setup-bottom button { flex-shrink: 0; padding: 10px 20px; border: 1px solid var(--theme-line); border-radius: 4px; background: #171e2a; color: var(--theme-text); font-size: 13px; line-height: 1.4; text-transform: uppercase; letter-spacing: .08em; }
+#setup-ui .setup-bottom .setup-primary { border-color: var(--faction-color); background: linear-gradient(100deg, color-mix(in srgb, var(--faction-color) 32%, #18202c), color-mix(in srgb, var(--faction-color) 17%, #18202c)); color: #f7f8fb; }
+#setup-ui .setup-bottom .setup-primary:hover { background: color-mix(in srgb, var(--faction-color) 40%, #18202c); }
+#setup-ui .setup-hint { margin: 0; color: var(--theme-muted); font-size: 12px; text-align: center; }
+
+/* Command centers on the illuminated hull; names and specifications stay quiet. */
+#setup-ui[data-step="command"] .setup-body { grid-template-columns: minmax(200px, .7fr) minmax(0, 2.3fr); }
+#setup-ui[data-step="command"] .setup-panel { background: none; border: 0; padding: 8px; gap: 10px; }
+#setup-ui[data-step="command"] .setup-form { gap: 18px; padding: 16px 12px 16px 0; }
+#setup-ui[data-step="command"] .setup-form label { font-size: 11px; }
+#setup-ui[data-step="command"] input { font-size: 15px; padding: 10px 12px; }
+#setup-ui[data-step="command"] .faction-heading { gap: 10px; padding-bottom: 8px; }
+#setup-ui[data-step="command"] .faction-heading img { width: 28px; height: 32px; }
+#setup-ui[data-step="command"] h3 { font-size: 18px; }
+#setup-ui[data-step="command"] .faction-heading p { font-size: 11px; margin-top: 2px; }
+#setup-ui[data-step="command"] .setup-ship-art { max-height: none; }
+#setup-ui[data-step="command"] .setup-ship-preview figcaption { font-size: 16px; }
+#setup-ui[data-step="command"] .setup-ship-preview figcaption span { display: inline; margin: 0 8px 0 0; font-size: 10px; }
+#setup-ui[data-step="command"] .setup-review-specs { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+#setup-ui[data-step="command"] .setup-review-specs > div { background: none; padding: 6px 4px; }
+#setup-ui[data-step="command"] .setup-review-specs dt { font-size: 10px; }
+#setup-ui[data-step="command"] .setup-review-specs dd { font-size: 13px; min-height: 18px; margin-top: 3px; }
+#setup-ui[data-step="command"] .setup-resource-icon { display: none; }
+
+/* Narrow windows use the full width for each part, with fixed grid tracks. */
+@container setup (max-width: 600px) {
+  #setup-ui .setup-top { align-items: flex-start; flex-direction: column; gap: 8px; padding-bottom: 10px; }
+  #setup-ui .setup-kicker, #setup-ui .setup-hint { display: none; }
+  #setup-ui .setup-body { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  #setup-ui[data-step="faction"] .setup-body { grid-template-rows: minmax(0, .85fr) minmax(0, 1.15fr); }
+  #setup-ui[data-step="command"] .setup-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  #setup-ui[data-step="command"] .setup-panel:not(.setup-form) { order: -1; padding: 0; }
+  #setup-ui[data-step="command"] .setup-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0; }
+  #setup-ui[data-step="command"] .setup-form label { font-size: 10px; letter-spacing: .03em; }
+  #setup-ui[data-step="command"] input { font-size: 13px; padding: 8px; margin-top: 6px; }
+  #setup-ui[data-step="command"] .setup-error { grid-column: 1 / -1; }
+  #setup-ui[data-step="command"] .setup-review-specs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 8px; }
+  #setup-ui .setup-form { gap: 12px; padding: 12px; }
+  #setup-ui input { padding: 8px 12px; margin-top: 6px; }
+  #setup-ui .faction-card { padding: 8px; gap: 8px; font-size: 13px; }
+  #setup-ui .faction-card img { width: 28px; height: 32px; }
+  #setup-ui .faction-card small { display: none; }
+  #setup-ui .faction-heading { gap: 12px; }
+  #setup-ui .faction-heading img { width: 32px; height: 38px; }
+  #setup-ui h3 { font-size: 18px; }
+  #setup-ui .faction-heading p { font-size: 12px; margin-top: 3px; }
+  #setup-ui .setup-story { font-size: 12px; line-height: 1.45; }
+  #setup-ui .setup-panel { gap: 8px; padding: 12px; }
+  #setup-ui[data-step="faction"] .setup-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-template-rows: auto auto minmax(0, 1fr); }
+  #setup-ui[data-step="faction"] .faction-heading,
+  #setup-ui[data-step="faction"] .setup-story { grid-column: 1 / -1; }
+  #setup-ui .setup-ship-preview figcaption { font-size: 13px; line-height: 1.3; }
+  #setup-ui .setup-ship-preview figcaption span { font-size: 10px; }
+  #setup-ui .setup-specs > div { padding: 6px; }
+  #setup-ui dt { font-size: 10px; }
+  #setup-ui dd { font-size: 14px; min-height: 22px; margin-top: 4px; }
+  #setup-ui .setup-resource-icon { display: none; }
+  #setup-ui[data-step="faction"] .setup-specs { grid-template-columns: minmax(0, 1fr); align-content: center; gap: 6px; }
+  #setup-ui[data-step="faction"] .setup-specs > div { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  #setup-ui[data-step="faction"] dd { margin: 0; }
+}
+/* Spend short-window space on the selection and its details. */
+@container setup (max-height: 460px) and (min-width: 601px) {
+  #setup-ui .setup-kicker, #setup-ui .faction-card small { display: none; }
+  #setup-ui .setup-top { padding-bottom: 10px; }
+  #setup-ui h2 { font-size: 22px; }
+  #setup-ui .setup-panel { padding: 12px; gap: 10px; }
+  #setup-ui .faction-heading { gap: 12px; padding-bottom: 8px; }
+  #setup-ui .faction-heading img { width: 32px; height: 38px; }
+  #setup-ui h3 { font-size: 18px; }
+  #setup-ui .faction-heading p { font-size: 12px; margin-top: 3px; }
+  #setup-ui .setup-story { font-size: 12px; line-height: 1.4; }
+  #setup-ui .setup-ship-preview figcaption { font-size: 13px; line-height: 1.3; }
+  #setup-ui .setup-ship-preview figcaption span { font-size: 10px; }
+  #setup-ui .setup-specs > div { padding: 6px; }
+  #setup-ui dt { font-size: 10px; }
+  #setup-ui dd { min-height: 22px; margin-top: 4px; font-size: 14px; gap: 4px; }
+  #setup-ui .setup-resource-icon { width: 20px; height: 20px; }
+  #setup-ui[data-step="faction"] .setup-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); grid-template-rows: auto auto minmax(0, 1fr); }
+  #setup-ui[data-step="faction"] .faction-heading,
+  #setup-ui[data-step="faction"] .setup-story { grid-column: 1 / -1; }
+  #setup-ui[data-step="faction"] .setup-specs { grid-template-columns: minmax(0, 1fr); align-content: center; gap: 6px; }
+  #setup-ui[data-step="faction"] .setup-specs > div { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  #setup-ui[data-step="faction"] dd { margin: 0; }
+  #setup-ui[data-step="faction"] .setup-resource-icon { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #setup-ui { transition: none; }
+}

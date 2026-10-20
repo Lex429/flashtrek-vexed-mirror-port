@@ -27,11 +27,13 @@
     'Resistance is futile. Begin at Vex with a Borg Cube and immense resources. Most other governments are hostile to the Collective.'
   ];
   let selection=2,step=1,names={captain:'Noname',ship:'Unnamed',government:'Unnamed'};
+  let disposePreview=()=>{};
   const start=()=>starts[selection-1],ship=()=>world.ships.find(entry=>entry.id===start().playership);
   const image=id=>'startup/factions/faction-'+id+'.png';
   const number=value=>Number(value).toLocaleString();
   function heading(){const faction=factions[selection-1];return `<div class="faction-heading"><img src="${image(selection)}" alt=""><div><h3>${faction.name}</h3><p>${faction.role}</p></div></div>`}
-  function preview(compact=false){return `<figure class="setup-ship-preview${compact?' setup-ship-preview-compact':''}"><div class="setup-ship-art"><img src="startup/ships/ship-${ship().id}.png" alt="${ship().name}"></div><figcaption>Starting ship · ${ship().name}</figcaption></figure>`}
+  function preview(compact=false){return `<figure class="setup-ship-preview${compact?' setup-ship-preview-compact':''}"><div class="setup-ship-art"><img src="startup/ships/ship-${ship().id}.png" alt="${ship().name}"><canvas role="img" hidden></canvas></div><figcaption><span>Starting ship</span><strong>${ship().name}</strong></figcaption></figure>`}
+  function animatePreview(){disposePreview=window.nativeSetupShipPreview.attach(ui.querySelector('.setup-ship-preview'),ship())}
   function stats(review=false){
     const values=[['Latinum',start().mylatinum],['Deuranium',start().mydeuranium],['Antimatter',start().myantimatter]];
     if(review)values.push(['Hull',ship().hull],['Shields',ship().shields],['Cargo',ship().cargo]);
@@ -39,14 +41,18 @@
   }
   function theme(){ui.style.setProperty('--faction-color',factions[selection-1].color);ui.dataset.faction=String(selection)}
   function details(){
+    disposePreview();
     theme();
     const panel=ui.querySelector('.setup-panel');
     panel.innerHTML=heading()+'<p class="setup-story"></p>'+preview(true)+stats();
     panel.querySelector('.setup-story').textContent=stories[selection-1];
     for(const card of ui.querySelectorAll('.faction-card'))card.setAttribute('aria-pressed',String(Number(card.dataset.faction)===selection));
+    animatePreview();
   }
   function render(){
+    disposePreview();
     theme();
+    ui.dataset.step=step===1?'faction':'command';
     ui.innerHTML=`<div class="setup-top"><div><p class="setup-kicker">COMMAND INITIALIZATION / NEW GAME</p><h2>${step===1?'Choose your faction':'Establish your command'}</h2></div><div class="setup-steps"><span class="${step===1?'active':''}">01 FACTION</span><span class="${step===2?'active':''}">02 COMMAND</span></div></div><div class="setup-body"></div><div class="setup-bottom"><button type="button" class="setup-back">${step===1?'Main menu':'Back'}</button><p class="setup-hint">${step===1?'Choose an allegiance. Shape your future.':'Your ship. Your crew. Your story.'}</p><button type="button" class="setup-primary">${step===1?'Continue →':'Launch →'}</button></div>`;
     const body=ui.querySelector('.setup-body');
     if(step===1){
@@ -57,6 +63,7 @@
       body.innerHTML='<form class="setup-panel setup-form"><label>CAPTAIN NAME<input name="captain" maxlength="40" required autocomplete="off"></label><label>SHIP NAME<input name="ship" maxlength="40" required autocomplete="off"></label><label>YOUR GOVERNMENT<input name="government" maxlength="40" required autocomplete="off"></label><p class="setup-error" role="alert"></p></form><article class="setup-panel">'+heading()+preview()+stats(true)+'</article>';
       for(const input of body.querySelectorAll('input')){input.value=names[input.name];input.oninput=()=>names[input.name]=input.value}
       body.querySelector('form').onsubmit=event=>{event.preventDefault();ui.querySelector('.setup-primary').click()};
+      animatePreview();
     }
     ui.querySelector('.setup-back').onclick=back;
     ui.querySelector('.setup-primary').onclick=()=>{
@@ -69,7 +76,7 @@
     };
   }
   function open(){if(document.body.classList.contains('playing'))return;selection=2;step=1;names={captain:'Noname',ship:'Unnamed',government:'Unnamed'};menu.inert=true;stage.classList.add('setup-open');ui.hidden=false;render();ui.querySelector('.faction-card[aria-pressed="true"]').focus()}
-  function close(focus=true){ui.hidden=true;stage.classList.remove('setup-open');menu.inert=false;if(focus)document.querySelector('[data-menu="new"]').focus()}
+  function close(focus=true){disposePreview();ui.hidden=true;stage.classList.remove('setup-open');menu.inert=false;if(focus)document.querySelector('[data-menu="new"]').focus()}
   function back(){if(ui.hidden)return;if(step===2){step=1;render();ui.querySelector(`.faction-card[data-faction="${selection}"]`).focus()}else close()}
   window.nativeSetup={open,back,get active(){return !ui.hidden}};
 })();

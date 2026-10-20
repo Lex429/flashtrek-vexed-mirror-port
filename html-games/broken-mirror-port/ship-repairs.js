@@ -3,6 +3,9 @@
 (() => {
   'use strict';
   const BASIC=9001,EPS=1e-7,HULL_PER_TON=5,RATE=1.5,MEDICAL_STOCK=200;
+  // Preserve the deployed showcase DOT/Olympic proportions: the carrier is
+  // 235 display units tall there and 75 world units tall in active gameplay.
+  const DOT_SCALE=75/235,DOT_SIZE=41.382*DOT_SCALE;
   const initialized=new WeakSet(),clock=s=>window.nativeSimulation.seconds(s);
   const qty=n=>Math.max(0,Number(n)||0),alive=e=>e&&e.hull>0&&e.phase!=='destroyed';
   const definition=(s,e,category)=>window.nativeShipDefinitions.forEntity(s,e,{category});
@@ -260,7 +263,7 @@
     if(result.destroyed){d.phase='destroyed';delete d.localLeg;}return result;
   }
   const renderer={draw:(...args)=>window.nativeRepairVisuals?.drawDrone(...args),hit:(...args)=>window.nativeRepairVisuals?.hit(...args)};
-  window.nativeShipDefinitions.register(BASIC,{name:'Basic Dot repair drone',slots:{weapon:0,repairDrone:0,ability:0},hull:40,shields:0,cargo:0,equipment:[],movement:{maxSpeed:85,acceleration:100,braking:120,turnRate:Infinity,directGoal:true,snap:true,arrivalRadius:.1,serviceApproach:true},dimensions:{width:41.382,height:41.382},
+  window.nativeShipDefinitions.register(BASIC,{name:'Basic Dot repair drone',slots:{weapon:0,repairDrone:0,ability:0},hull:40,shields:0,cargo:0,equipment:[],movement:{maxSpeed:85,acceleration:100,braking:120,turnRate:Infinity,directGoal:true,snap:true,arrivalRadius:.1,serviceApproach:true},artwork:{scale:DOT_SCALE},dimensions:{width:DOT_SIZE,height:DOT_SIZE},
     geometry:{hull:{width:.34,height:.34,minX:0,minY:0}},capabilities:{armed:false,canMine:false,canDock:false,canTrade:false,disableRatio:0},renderer});
   window.nativeShipSystems.register('repair-drone',{collect:drones,inspect:s=>[],hit,resolve:(s,id,system)=>drones(s,system).find(d=>d.id===id),visualImpact:(s,t,e)=>window.nativeShipEffects.visualImpact(s,t,e)});
   window.nativeShipRepairs=Object.freeze({initialize,advance,restock,call,claimed,validCall,releaseClaim,rendezvous,service,ref,key,resolve,pose,launch,missionFor,supplies,workPoint,drones,destroyed,

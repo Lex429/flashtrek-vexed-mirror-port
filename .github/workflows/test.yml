@@ -36,6 +36,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-presentation.py
+      - name: Setup showcase lighting, animation lifecycle and screen fit
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-setup-preview.py
       - name: Typed equipment, real hull purchases, six drone bays and mode-separated saves
         env:
           BROWSER_CHANNEL: ''
