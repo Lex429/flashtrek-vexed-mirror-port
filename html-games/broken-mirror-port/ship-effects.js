@@ -57,7 +57,7 @@
     if(!contact)return;
     const charge=Math.max(0,descriptor.entity.shields)/Math.max(1,descriptor.definition.shields);
     visual(state,descriptor).flash={born:now(state),x:contact.local.x,y:contact.local.y,dx:contact.dx,dy:contact.dy,
-      kind:event.kind||'beam',energy:event.energy??1+Math.min(.55,absorbed/Math.max(1,absorbed+descriptor.entity.shields)*.7),charge,color:'#50d5ff'};
+      kind:event.kind||'beam',weaponEventId:event.weaponEventId,energy:event.energy??1+Math.min(.55,absorbed/Math.max(1,absorbed+descriptor.entity.shields)*.7),charge,color:'#50d5ff'};
   }
   function visualImpact(state,descriptor,event={}){
     if(!descriptor?.entity||descriptor.entity.hull<=0||descriptor.entity.phase==='destroyed'||descriptor.system!==state.system)return;
@@ -164,7 +164,14 @@
   }
   function position(descriptor,view){const zoom=view.zoom??1;return {x:view.x??view.cx+(descriptor.x-view.ship.x)*zoom,y:view.y??view.cy+(descriptor.y-view.ship.y)*zoom};}
   function paintSurface(ctx,descriptor,view,{front=false}={}){
-    const value=visuals.get(descriptor.entity),impact=value?.flash,contact=value?.contact,time=now(descriptor.state),d=view.dimensions||descriptor.dimensions;
+    const value=visuals.get(descriptor.entity),contact=value?.contact,time=now(descriptor.state),d=view.dimensions||descriptor.dimensions;
+    let impact=value?.flash;
+    // The hot contact of a still-visible beam uses the same pure line query as
+    // the beam. The saved flash remains a historical effect after it fades out.
+    if(impact?.kind==='beam'&&impact.weaponEventId!=null){
+      const current=window.nativeCombatShots.beamContactFor?.(descriptor.state,impact.weaponEventId,descriptor.id);
+      if(current?.shielded)impact={...impact,x:current.local.x,y:current.local.y,dx:current.dx,dy:current.dy};
+    }
     const shield=impact&&time-impact.born<(impact.charge===0?430:620),touch=front&&contact&&time-contact.born<180;
     if((!shield&&!touch)||view.warpEffect)return;
     const p=position(descriptor,view);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(descriptor.heading+Math.PI/2);if(view.zoom!==undefined&&view.zoom!==1)ctx.scale(view.zoom,view.zoom);

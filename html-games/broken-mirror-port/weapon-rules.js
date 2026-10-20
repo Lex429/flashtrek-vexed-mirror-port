@@ -16,9 +16,9 @@
   // All shooters resolve the same model data. Arc is a half-angle in radians.
   function weaponSpec(weapon,kind,{damageMultiplier=1}={}){
     const turret=/turrent|turret/i.test(weapon.name||'');
-    return {damage:Math.max(0,Number(weapon.damage)||0)*damageMultiplier,
+    return {kind,damage:Math.max(0,Number(weapon.damage)||0)*damageMultiplier,
       range:kind==='beam'?520:kind==='torpedo'?650:430,
-      arc:(turret?180:kind==='beam'?110:50)*Math.PI/180,
+      arc:(turret||kind==='beam'?180:50)*Math.PI/180,
       speed:kind==='torpedo'?225:340,turn:kind==='torpedo'?.85:0,
       radius:kind==='torpedo'?3:1.4,recharge:Math.max(0,Number(weapon.recharge)||0)/13};
   }
@@ -46,9 +46,12 @@
     const previous={x:Number.isFinite(rock.previousX)?rock.previousX:rock.x,y:Number.isFinite(rock.previousY)?rock.previousY:rock.y};
     return circleSweep({x:from.x-previous.x,y:from.y-previous.y},{x:to.x-rock.x,y:to.y-rock.y},{x:0,y:0},rock.size*.43+padding);
   }
-  function canFire(ship,target,spec,aim,rocks,bystanders=[]){
+  function canFire(ship,target,spec,aim,rocks=[],bystanders=[]){
     const dx=aim.x-ship.x,dy=aim.y-ship.y;
     if(Math.hypot(dx,dy)>spec.range||Math.abs(wrap(Math.atan2(dy,dx)-ship.heading))>spec.arc)return false;
+    // A beam may be fired at an obstructed lock: the first physical surface
+    // receives it. Projectile launch/leading and avoidance retain their rules.
+    if(spec.kind==='beam')return true;
     if(obstacleHit(ship,aim,rocks))return false;
     return !bystanders.some(other=>other.id!==ship.id&&other.id!==target.id&&circleSweep(ship,aim,other,Math.max(10,other.radius||15))!=null);
   }
@@ -60,28 +63,41 @@
       projectile:true,alive:true,turn:spec.turn,radius:spec.radius,speed:spec.speed,launchedAt:clock,kind};
   }
   // Resolve the first physical contact, including objects that were clear at launch.
-  function firstContact(from,to,source,target,scene,radii,dimensions,padding=0){
+  function firstContact(from,to,source,target,scene,radii,dimensions,padding=0,{instant=false}={}){
     let best=null;
     const consider=(candidate,t)=>{
       if(t==null||best&&t>=best.t)return;
       const intersection={x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t};
       const contact=collisionContact(candidate,intersection,from,t);
+      if(instant&&t===0){
+        // Hull-clear ships may have overlapping shields. If the hardware is
+        // already inside a surface, contact is immediate at the muzzle; do not
+        // project it backward and draw a beam pointing away from its target.
+        const angle=candidate.rockId!=null?0:(candidate.heading||0)+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle);
+        const dx=intersection.x-candidate.x,dy=intersection.y-candidate.y;
+        contact.local={x:dx*c+dy*s,y:-dx*s+dy*c};contact.world={...intersection};contact.embedded=true;
+      }
       best={kind:'hit',t,target:candidate,point:contact.world,sweepPoint:intersection,from:{...from},contact};
     };
     const candidates=[...(scene.bystanders||[]),...(scene.destructibles||[])].filter(other=>other.id!==source?.id&&other.id!==target?.id&&other.targetable!==false);
     if(target&&target.targetable!==false)candidates.push({...target,dimensions,radii});
-    for(const candidate of candidates){
+    for(let candidate of candidates){
       if(candidate.rockId!=null)continue; // Asteroids use their physical rock outline below.
+      if(instant)candidate={...candidate,previousX:candidate.x,previousY:candidate.y};
       const d=candidate.dimensions,r=candidate.radii;
-      const t=r?targetSweep(from,to,candidate,d,r,padding):circleSweep(from,to,candidate,Math.max(1,candidate.radius||15)+padding);
+      const t=r?targetSweep(from,to,candidate,d,r,padding):circleSweep(from,to,candidate,Math.max(1,candidate.radius||15)*(instant ? .96 : 1)+padding);
       consider(candidate,t);
     }
-    for(const rock of scene.rocks||[]){
+    for(let rock of scene.rocks||[]){
       if(rock.targetable===false)continue;
+      if(instant)rock={...rock,previousX:rock.x,previousY:rock.y};
       consider({...rock,id:rock.id??'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid'},movingRockSweep(from,to,rock,padding));
     }
     // Permit a rock target supplied without a full scene (such as an isolated test).
-    if(target?.rockId!=null&&target.targetable!==false&&!(scene.rocks||[]).some(rock=>rock.slotId===target.rockId))consider(target,movingRockSweep(from,to,target,padding));
+    if(target?.rockId!=null&&target.targetable!==false&&!(scene.rocks||[]).some(rock=>rock.slotId===target.rockId)){
+      const rock=instant?{...target,previousX:target.x,previousY:target.y}:target;
+      consider(rock,movingRockSweep(from,to,rock,padding));
+    }
     return best;
   }
   // Collision owns the exact local surface. Damage and rendering consume this result.
@@ -126,14 +142,12 @@
     const aim=kind==='beam'?target:intercept(source,target,spec.speed);
     return canFire(source,target,spec,aim,blockers(scene,source,target));
   }
-  function startShot(weapon,kind,source,target,clock,muzzle){
-    const spec=weaponSpec(weapon,kind);
+  function startShot(weapon,kind,source,target,clock,muzzle,spec=weaponSpec(weapon,kind)){
     const event={kind,damage:spec.damage,spec,muzzle,sourceId:source.id,targetId:target.id,launchedAt:clock,alive:true};
     if(kind==='beam'){
       event.dueAt=clock+.07;
       event.from={x:source.x+Math.cos(source.heading)*muzzle,y:source.y+Math.sin(source.heading)*muzzle};
       const angle=Math.atan2(target.y-event.from.y,target.x-event.from.x);
-      event.beamHeadingOffset=wrap(angle-source.heading);
       event.beamEnd={x:event.from.x+Math.cos(angle)*spec.range,y:event.from.y+Math.sin(angle)*spec.range};
     }
     else Object.assign(event,launch(source,target,{...spec,muzzle},kind,clock));
@@ -143,16 +157,23 @@
     if(!event.alive||!Number.isFinite(dt)||dt<=0)return null;
     if(event.projectile)return stepProjectile(event,target,dt,[],radii,dimensions,scene,source);
     if(clock<event.dueAt)return null;
-    const muzzle=event.muzzle||0,from=emitter(source,event);
-    const angle=(source.heading||0)+(event.beamHeadingOffset??Math.atan2((event.beamEnd?.y??target.y)-from.y,(event.beamEnd?.x??target.x)-from.x)-(source.heading||0));
+    const result=beamTrace(event,source,target,scene,radii,dimensions);
+    event.from={...result.from};event.beamEnd={...result.point};
+    return result;
+  }
+  // Beam time is instantaneous at resolution. Unlike a flying projectile, a
+  // beam must not sweep an object's previous pose or rotate an old aim offset
+  // with its shooter. This query also supplies preview and lingering visuals.
+  function beamTrace(event,source,target,scene,radii=target?.radii,dimensions=target?.dimensions){
+    const from=emitter(source,event),aim=[target,event.targetSnapshot,event.beamEnd].find(point=>Number.isFinite(point?.x)&&Number.isFinite(point?.y));
+    const angle=aim?Math.atan2(aim.y-from.y,aim.x-from.x):event.sourceSnapshot?.heading??source.heading??0;
     const to={x:from.x+Math.cos(angle)*event.spec.range,y:from.y+Math.sin(angle)*event.spec.range};
-    event.from={...from};event.beamEnd=to;
-    return to?(firstContact(from,to,source,target,scene,radii,dimensions)||{kind:'miss',point:to}):{kind:'miss'};
+    return firstContact(from,to,source,target,scene,radii,dimensions,0,{instant:true})||{kind:'miss',point:to,from};
   }
   function emitter(source,event){
     const attachment=event.emitter;
     if(attachment){const angle=(source.heading||0)+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle);return {x:source.x+attachment.x*c-attachment.y*s,y:source.y+attachment.x*s+attachment.y*c};}
     return {x:source.x+Math.cos(source.heading||0)*(event.muzzle||0),y:source.y+Math.sin(source.heading||0)*(event.muzzle||0)};
   }
-  window.nativeWeaponRules={weaponSpec,intercept,circleSweep,targetSweep,obstacleHit,firstContact,collisionContact,canFire,launch,stepProjectile,firingSolution,startShot,stepShot,emitter,wrap};
+  window.nativeWeaponRules={weaponSpec,intercept,circleSweep,targetSweep,obstacleHit,firstContact,collisionContact,canFire,launch,stepProjectile,firingSolution,startShot,stepShot,beamTrace,emitter,wrap};
 })();

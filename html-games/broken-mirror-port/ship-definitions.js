@@ -77,7 +77,7 @@
       artwork:{source:role.artwork,frames:4,...custom.artwork},
       damageStages:custom.damageStages||[.75,.5,.25],
       geometry:{hull:{width:.34,height:.44,minX:8,minY:12},...custom.geometry},
-      emitters:custom.emitters||{beam:{x:0,y:-.36},projectile:{x:0,y:-.36}},
+      emitters:custom.emitters||{beam:{x:0,y:-.36},beamAft:{x:0,y:.36},projectile:{x:0,y:-.36}},
       equipment:custom.equipment||stats.defaultWeapons||[],
       statUpgrades:custom.statUpgrades||(type===10?[{levelField:'tugEngineLevel',stat:'speedOrOtherStationValue',base:35,perLevel:15,maxLevel:2}]:[]),
       capabilities:{armed:true,canMine:true,canDock:true,canTrade:true,medical:policyName==='medical',disableRatio:.25,defensiveWeapon:type===47?1:10,...custom.capabilities}};

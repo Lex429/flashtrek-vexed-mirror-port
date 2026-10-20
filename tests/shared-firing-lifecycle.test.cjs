@@ -71,7 +71,7 @@ test('registered controllers share weapon eligibility, charge-only pace and exac
   }
 });
 
-test('registered shooters and rotating targets retain emitter and authoritative shield contact attachment',async()=>{
+test('registered shooters retain their emitter while rotating targets meet the current near shield surface',async()=>{
   const discovery=await fixture();
   for(const role of discovery.roles){
     const f=await fixture(),sourceId=f.put(role,0),targetId=f.put(role==='player'?'civilian':'player',200),source=f.descriptor(sourceId).entity,target=f.descriptor(targetId).entity;
@@ -84,11 +84,14 @@ test('registered shooters and rotating targets retain emitter and authoritative 
     target.x+=16;target.y+=13;if(target===f.state)target.angle+=.7;else target.heading+=.7;
     const sourcePose=f.descriptor(sourceId),targetPose=f.descriptor(targetId),local=firing.event.emitter;
     const angle=sourcePose.heading+Math.PI/2,expectedFrom={x:sourcePose.x+local.x*Math.cos(angle)-local.y*Math.sin(angle),y:sourcePose.y+local.x*Math.sin(angle)+local.y*Math.cos(angle)};
-    const expectedTo=f.shots.worldPoint(targetPose,firing.event.contact.local),camera={x:31,y:54};
+    const direction={x:targetPose.x-expectedFrom.x,y:targetPose.y-expectedFrom.y},angleToTarget=Math.atan2(direction.y,direction.x),r=targetPose.radii;
+    const localAngle=angleToTarget-targetPose.heading-Math.PI/2;
+    const surfaceDistance=.96/Math.hypot(Math.cos(localAngle)/r.rx,Math.sin(localAngle)/r.ry);
+    const expectedTo={x:targetPose.x-Math.cos(angleToTarget)*surfaceDistance,y:targetPose.y-Math.sin(angleToTarget)*surfaceDistance},camera={x:31,y:54};
     f.shots.paint({},firing.shot,{state:f.state,ship:camera,cx:400,cy:250,zoom:1.7});
     const draw=f.draws.at(-1).geometry;
     close(draw.x1,400+(expectedFrom.x-camera.x)*1.7,'beam emitter world->camera');close(draw.y1,250+(expectedFrom.y-camera.y)*1.7,'beam emitter world->camera');
-    close(draw.x2,400+(expectedTo.x-camera.x)*1.7,'target local collision follows rotation');close(draw.y2,250+(expectedTo.y-camera.y)*1.7,'target local collision follows rotation');
+    close(draw.x2,400+(expectedTo.x-camera.x)*1.7,'beam meets current near shield x');close(draw.y2,250+(expectedTo.y-camera.y)*1.7,'beam meets current near shield y');
   }
 });
 

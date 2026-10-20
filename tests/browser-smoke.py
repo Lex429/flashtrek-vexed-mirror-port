@@ -82,11 +82,13 @@ try:
           const fired=nativeCombatShots.fire({state,shipHeight:40,owner:'browser-probe',getTarget:()=>target,
             dimensions:()=>({width:30,height:40}),shielded:()=>false,onHit(){intendedHits++;}});
           check(fired.ok,'Could not fire real beam: '+fired.error);
-          target.previousX=target.x;target.previousY=target.y=origin.y+400;
+          target.previousX=target.x;target.previousY=target.y;target.y=origin.y+100;
+          rock.x=(fired.event.from.x+target.x)/2;rock.y=(fired.event.from.y+target.y)/2;
           rocks.push(rock);
+          nativeShipSystems.invalidate(state,state.system);
           for(let i=0;i<8;i++){nativeSimulation.advance(state,1/60);nativeCombatShots.advance(state,1/60);}
-          check(state.destroyedAsteroids?.includes(rock.slotId),'Missed beam did not destroy the intervening asteroid');
-          check(intendedHits===0,'Missed beam damaged its original target');
+          check(state.destroyedAsteroids?.includes(rock.slotId),'Live-aimed beam did not destroy the intervening asteroid');
+          check(intendedHits===0,'Intercepted beam damaged its selected target');
           nativeCombatShots.cancel();nativeEnvironmentalImpacts.reset();
           state.destroyedAsteroids=[];
           const civilian={...civilianTemplate,id:9999,system:state.system,x:origin.x+45,y:origin.y,heading:0,phase:'cruise',hull:100,shields:100};
@@ -108,7 +110,7 @@ try:
           for(let i=0;i<65;i++){nativeSimulation.advance(state,1/60);nativeEnvironmentalImpacts.advance(state,1/60);}
           check(civilian.hull===100&&tug.hull===100,'Unshielded blast contact damaged hull');
           rocks.splice(rocks.indexOf(rock),1);
-          return {layers:window.__layers,beam:beam.name,missedBeamDestroyedAsteroid:true,
+          return {layers:window.__layers,beam:beam.name,interceptedBeamDestroyedAsteroid:true,
             blastPreservedAsteroid:true,shipHealthUnchanged:true,shipShieldFlashes:true,unshieldedHullUnchanged:true,
             pauseFreezesBlast:true,environmentalImpacts:snapshot.impacts.length};
         }""")

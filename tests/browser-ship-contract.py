@@ -163,7 +163,8 @@ try:
               tick(test,.04);clear();flashes.length=0;
               nativeShipEffects.paintSurface(ctx,test.describe(test.target),test.view(),{front:true});
               check(flashes.length===1,'Shield effect did not reach the actual renderer');
-              const expected=nativeCombatShots.worldPoint(test.describe(test.target),{x:snapshot.flash.x,y:snapshot.flash.y});
+              const tracking=nativeCombatShots.beamContactFor(test.state,fired.event.id,test.describe(test.target).id);
+              const expected=tracking?.shielded?tracking.world:nativeCombatShots.worldPoint(test.describe(test.target),{x:snapshot.flash.x,y:snapshot.flash.y});
               near(flashes[0].x,210+expected.x-test.camera.x,'Rendered shield patch x');near(flashes[0].y,250+expected.y-test.camera.y,'Rendered shield patch y');
               check(pixels(flashes[0].x,flashes[0].y,12)>0,'Shield patch produced no visible pixels');
             }else{

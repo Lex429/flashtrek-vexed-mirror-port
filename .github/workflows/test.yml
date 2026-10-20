@@ -32,6 +32,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-contract.py
+      - name: Rearward beam targeting, physical interception and rotating shield contacts
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-beam-targeting.py
       - name: Full fleet dimensions, four damage frames and player/NPC lighting parity
         env:
           BROWSER_CHANNEL: ''

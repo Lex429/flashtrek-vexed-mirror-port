@@ -64,7 +64,7 @@
     const target=resolve(state,collisionTarget.id,collisionTarget.system??source.system??state.system);
     if(!target)return {ok:false};
     const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,
-      kind:event.kind,source:source.id==='player'?'player':'ai',sourceId:source.id};
+      kind:event.kind,weaponEventId:event.id,source:source.id==='player'?'player':'ai',sourceId:source.id};
     const damageResult=kinds.get(target.category)?.hit(state,target,event.damage,impact)||{ok:false};
     invalidate(state,target.system);return damageResult;
   }

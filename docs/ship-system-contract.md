@@ -179,9 +179,27 @@ rebuild a delivery tug or start a conversation.
   `paintShip` `x`/`y` overrides are already screen coordinates for warp visuals.
   Its optional `dimensions` override is in world units.
 
-Active beams transform the same emitter-local offset with the shooter's current
-world pose. A resolved target contact remains attached through its recorded
-local surface point. A projectile owns its simulated world `x`/`y`; camera changes
+Active beams transform the selected emitter-local offset with the shooter's current
+world pose. Beam weapons have a full 360-degree arc for every controller. Native
+hulls expose forward `emitters.beam` and rear `emitters.beamAft` banks; firing selects
+the configured bank nearest the lock. Custom hulls may supply a single beam bank.
+`weapon-rules.beamTrace` aims from that bank at the target's current world position,
+limited by weapon range, and finds the first current physical shield, hull or rock.
+The 70 ms resolution delay and owned recharge deadlines remain unchanged. Beams
+use instantaneous poses; projectile sweeps retain previous positions and homing.
+
+Preview, hit resolution and the remaining beam visual use the same pure query.
+After interception the visual retains the lock's current firing line and
+re-intersects the first current shield/hull surface rather than steering toward
+an off-axis blocker's center or rotating a saved local contact behind its shield.
+A new obstruction may shorten the visual, without taking any additional damage.
+The hot shield flash reads that same contact while the beam is visible; its
+historical flash then decays normally. A destroyed target leaves a world contact,
+bounded by range. If hull-clear ships' shields overlap and a weapon mount is
+already inside the receiving surface, contact is immediate at that mount
+(`contact.embedded`); no backward beam is drawn. Painting never resolves a shot
+or changes its saved contact.
+A projectile owns its simulated world `x`/`y`; camera changes
 cannot move it in the world or recompute its flight from screen endpoints.
 
 ## Collision, damage and effects
@@ -292,7 +310,10 @@ clock, retaining their old values for explicit deadline conversion. Old slot
 cooldown keys migrate to instance deadlines relative to their original clock.
 `weaponCombat.version:2` stores serializable pending events; legacy dispute,
 retaliation and stray-shot queues migrate once into that common event list.
-Projectile positions and event snapshots survive JSON save/load. Runtime
+Projectile positions and event snapshots survive JSON save/load. Old version-2
+beam events remain readable: their saved `beamHeadingOffset` is ignored in favor
+of the authoritative live lock (or last known world aim when contact is lost).
+Resolved events remain resolved after reload and cannot apply damage twice. Runtime
 callbacks/artwork objects are caches, not saved gameplay state. System travel
 clears transient local combat/effects and preserves owned weapon recharge.
 Saved event owner IDs route results through target-adapter `onResolved` handlers,
@@ -336,6 +357,13 @@ private mechanics and exercise a newly registered target category.
 Run `python tests/browser-smoke.py` for ordinary gameplay/showcase smoke scenarios
 and `python tests/browser-ship-contract.py` for actual canvas beam attachment,
 impact alignment, registered custom shield geometry, pause and shared commands.
+`tests/beam-targeting.test.cjs` covers current-pose aim, full beam arcs,
+off-axis/moving interception, embedded close contacts, shield overflow,
+owned upgrades/recharge and exactly-once restoration. Run
+`python tests/browser-beam-targeting.py` for real Shift/Space and NPC retaliation,
+beam/shield pixels during rotation, physical blockers and pause/save/Continue
+midattack. It captures rearward fire and current shield contact on both the
+shared Canvas renderer and the actual native gameplay canvas.
 These checks start isolated local servers, use Playwright and write ignored
 reports/screenshots under `test-results/`. The smoke script also accepts an
 existing server URL. `BROWSER_CHANNEL` selects the contract script's browser;

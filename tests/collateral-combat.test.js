@@ -50,11 +50,11 @@ test('a fast projectile hits the first bystander before its intended target or a
   assert.equal(event.x, result.point.x);
 });
 
-test('a beam keeps its fired direction when the target dodges and damages an asteroid behind it', async () => {
+test('a tracking beam re-aims at a moving target and hits an asteroid on the current firing line', async () => {
   const { window, rules, shots } = await environment();
   const state = stateWith([]), source = { id: 'player', x: 0, y: 0, heading: 0 };
   const target = { id: 1, x: 100, y: 0, heading: 0 };
-  const rock = { slotId: 3, x: 200, y: 0, size: 20, maxHull: 10 };
+  const rock = { slotId: 3, x: 50, y: 40, size: 20, maxHull: 10 };
   window.nativeSolAsteroids.placements.push(rock);
   const event = rules.startShot({ damage: 12 }, 'beam', source, target, 0, 0);
   target.y = 80;

@@ -55,13 +55,13 @@
     return {...ship,heading:ship?.heading??ship?.angle??0};
   }
   function dimensions(target,adapter){
-    return adapter?.(target)||target?.dimensions||{width:Math.max(16,(target?.radius||15)*2),height:Math.max(24,(target?.radius||15)*2)};
+    return target?.dimensions||adapter?.(target)||{width:Math.max(16,(target?.radius||15)*2),height:Math.max(24,(target?.radius||15)*2)};
   }
   function radii(target,d,shielded){
     return window.nativeShipDefinitions?.surfaceRadii(d,shielded,target.definition)||(shielded?window.showcaseShieldRadii(d.width,d.height):{rx:Math.max(8,d.width*.34),ry:Math.max(12,d.height*.44)});
   }
   function fitTarget(target,entry){
-    const d=dimensions(target,entry?.dimensions),shielded=entry?.shielded?entry.shielded(target):Number(target.shields)>0;
+    const d=dimensions(target,entry?.dimensions),shielded=target.rockId!=null?false:target.shields!=null?Number(target.shields)>0:!!entry?.shielded?.(target);
     return {...target,dimensions:d,radii:target.rockId!=null?undefined:radii(target,d,shielded),surfaceShielded:shielded};
   }
   function arm(state,time,eligible=()=>true,{holder=state,defaults,selection}={}){
@@ -90,16 +90,24 @@
   function applyHit(state,result,event,source){
     if(window.nativeShipSystems)return window.nativeShipSystems.applyHit(state,result,event,source);
     const target=result.target;if(!target)return {ok:false};
-    const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,kind:event.kind,source:source.id==='player'?'player':'ai',sourceId:source.id};
+    const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,kind:event.kind,weaponEventId:event.id,source:source.id==='player'?'player':'ai',sourceId:source.id};
     if(target.rockId!=null)return window.nativeAsteroidCombat?.weaponHit(state,target.rockId,event.damage,impact)||{ok:false};
     if(target.id==='player')return window.nativeCombatShots.onPlayerHit?.(state,event.damage,impact)||{ok:false};
     if(String(target.id).startsWith('tug:'))return window.nativeSolEconomy?.hit(state,Number(String(target.id).slice(4)),event.damage,impact)||{ok:false};
     if(target.category==='civilian'||typeof target.id==='number')return window.nativeCivilianTraffic.hit(state,target.id,event.damage,impact);
     return target.onHit?.(event.damage,impact)||{ok:false};
   }
-  function emitterLocal(ship,kind,shipHeight){
-    const d=ship.dimensions||{width:shipHeight,height:shipHeight},point=ship.definition?.emitters?.[kind==='beam'?'beam':'projectile'];
-    return point?{x:point.x*d.width,y:point.y*d.height}:{x:0,y:-shipHeight*.36};
+  function emitterLocal(ship,kind,shipHeight,target){
+    const d=ship.dimensions||{width:shipHeight,height:shipHeight},emitters=ship.definition?.emitters;
+    const points=kind==='beam'?[emitters?.beam,emitters?.beamAft].filter(Boolean):[emitters?.projectile].filter(Boolean);
+    // Select the configured bank closest to the lock. Rear fire starts at aft
+    // hardware, while custom hulls can retain their own single emitter.
+    const choices=points.map(point=>({x:point.x*d.width,y:point.y*d.height}));
+    choices.sort((a,b)=>{
+      const distance=emitter=>{const world=rules.emitter(ship,{emitter});return Math.hypot(target.x-world.x,target.y-world.y);};
+      return distance(a)-distance(b);
+    });
+    return choices[0]||{x:0,y:-shipHeight*.36};
   }
   function fireFor(options){
     const {state,getTarget,owner,onHit,onResolved}=options;
@@ -114,11 +122,11 @@
     const scenery=scene(state,system),armed=arm(state,undefined,(spec,kind)=>rules.firingSolution(shooter,target,spec,kind,scenery),{holder,defaults,selection:options.weaponInstance?{instance:options.weaponInstance}:options.selection});
     if(!armed.ok)return armed;
     const combat=combatState(state),clock=now(state),height=options.shipHeight??shooter.dimensions?.height??0;
-    const event=rules.startShot(armed.weapon,armed.kind,shooter,target,clock,height*.36);
+    const event=rules.startShot(armed.weapon,armed.kind,shooter,target,clock,height*.36,armed.spec);
     Object.assign(event,{id:combat.nextEventId++,system,owner:owner||shooter.category||'ship',weaponId:armed.weapon.id,weaponInstanceId:armed.instance?.id,
-      weapon:{...armed.weapon},slot:armed.slot,sourceSnapshot:snapshot(shooter),targetSnapshot:snapshot(target),emitter:emitterLocal(shooter,armed.kind,height),resolved:false});
+      weapon:{...armed.weapon},slot:armed.slot,sourceSnapshot:snapshot(shooter),targetSnapshot:snapshot(target),emitter:emitterLocal(shooter,armed.kind,height,target),resolved:false});
     const muzzle=rules.emitter(shooter,event);
-    if(event.projectile){event.x=muzzle.x;event.y=muzzle.y;}else{event.from=muzzle;const angle=Math.atan2(target.y-muzzle.y,target.x-muzzle.x);event.beamHeadingOffset=rules.wrap(angle-shooter.heading);event.beamEnd={x:muzzle.x+Math.cos(angle)*event.spec.range,y:muzzle.y+Math.sin(angle)*event.spec.range};}
+    if(event.projectile){event.x=muzzle.x;event.y=muzzle.y;}else{event.from=muzzle;const angle=Math.atan2(target.y-muzzle.y,target.x-muzzle.x);event.beamEnd={x:muzzle.x+Math.cos(angle)*event.spec.range,y:muzzle.y+Math.sin(angle)*event.spec.range};}
     const entry={getSource:options.getSource,getTarget,dimensions:options.dimensions,shielded:options.shielded,onHit,onResolved};
     cache(state).set(event.id,entry);combat.events.push(event);
     const shot=visualFor(state,event,entry);return {ok:true,weapon:armed.weapon.name,kind:armed.kind,shot,event};
@@ -141,16 +149,28 @@
     shot.kind=event.kind;shot.system=event.system;shot.event=event;shot.emitter=event.emitter;
     shot.clock=()=>now(state);shot.startedAt=event.launchedAt;shot.getSource=()=>liveSource(state,event,entry);
     if(event.projectile)shot.projectile=event;
-    else shot.targetPoint=from=>{
-      if(event.contact){const target=resolve(state,event.hitTargetId,event.system)||event.hitTargetSnapshot;return target?worldPoint(target,event.contact.local):event.contact.world;}
-      if(event.resolved)return event.point||event.beamEnd;
-      // Preview through the same pure collision query; painting never resolves a hit.
-      const source=liveSource(state,event,entry),angle=(source.heading||0)+(event.beamHeadingOffset||0);
-      const to={x:from.x+Math.cos(angle)*event.spec.range,y:from.y+Math.sin(angle)*event.spec.range};
-      const target=fitTarget(liveTarget(state,event,entry)||{...event.targetSnapshot,targetable:false},entry);
-      return rules.firstContact(from,to,source,target,scene(state,event.system),target.radii,target.dimensions)?.point||to;
-    };
+    else shot.targetPoint=()=>beamContact(state,event,entry).point;
     entry.shot=shot;return shot;
+  }
+  function beamContact(state,event,entry){
+    const source=liveSource(state,event,entry);
+    // Keep the lock's current firing line even after an off-axis interception.
+    // Re-intersect every surface instead of steering to the blocker's center
+    // or rotating a saved local contact behind its shield.
+    const current=liveTarget(state,event,entry);
+    if(event.resolved&&(!current||!resolve(state,event.hitTargetId,event.system))){
+      const from=rules.emitter(source,event),end=event.point||event.beamEnd,dx=end.x-from.x,dy=end.y-from.y;
+      const scale=Math.min(1,event.spec.range/(Math.hypot(dx,dy)||1)),to={x:from.x+dx*scale,y:from.y+dy*scale};
+      return rules.firstContact(from,to,source,null,scene(state,event.system),undefined,undefined,0,{instant:true})||{kind:'miss',point:to,from};
+    }
+    const target=fitTarget(current||{...event.targetSnapshot,targetable:false},entry);
+    return rules.beamTrace(event,source,target,scene(state,event.system),target.radii,target.dimensions);
+  }
+  function beamContactFor(state,eventId,targetId){
+    const event=state.weaponCombat?.events?.find(event=>event.id===eventId);
+    if(!event||event.kind!=='beam'||!event.resolved||event.cancelled||now(state)>=event.launchedAt+duration('beam')/1000)return null;
+    const result=beamContact(state,event,cache(state).get(event.id));
+    return result.kind==='hit'&&String(result.target.id)===String(targetId)?result.contact:null;
   }
   function importEvent(state,legacy,{system=state.system,owner='civilian'}={}){
     if(!legacy||legacy.alive===false)return null;
@@ -160,7 +180,6 @@
     Object.assign(event,{id:combat.nextEventId++,system,owner,resolved:false,weapon:event.weapon||{...window.VexedMirrorWeapons?.find(item=>item.id===event.weaponId),damage:event.damage}});
     event.sourceSnapshot.id??=event.sourceId;event.targetSnapshot.id??=event.targetId;
     event.spec||=rules.weaponSpec(event.weapon,event.kind);
-    if(!event.projectile&&event.beamHeadingOffset==null&&event.from&&event.beamEnd)event.beamHeadingOffset=rules.wrap(Math.atan2(event.beamEnd.y-event.from.y,event.beamEnd.x-event.from.x)-(event.sourceSnapshot.heading||0));
     combat.events.push(event);return event;
   }
   function migrate(state){
@@ -242,5 +261,5 @@
     for(const event of combatState(view.state).events)if(event.system===view.state.system)paint(ctx,visualFor(view.state,event),view);
   }
   window.nativeCombatShots={arm,fire,fireFor,advance,cancel,isVisible,create,source,paint,paintAll,hitDelay,weaponVisual,reset,contact,worldPoint,ready,setVisualCatalog,applyHit,
-    scene,configureScene:provider=>{sceneProvider=provider;},importEvent,migrate,restore:migrate,snapshot,isReady:()=>styles.size>0};
+    scene,configureScene:provider=>{sceneProvider=provider;},importEvent,migrate,restore:migrate,snapshot,beamContactFor,isReady:()=>styles.size>0};
 })();
