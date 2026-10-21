@@ -82,7 +82,7 @@
       const index=indexes.get(point.oreType)||0,rock=group[index%group.length];
       indexes.set(point.oreType,index+1);
       point.slotId=slotId;point.id=rock.id;point.name=rock.name;point.oreLabel=rock.oreLabel;
-      point.file=rock.file;point.oreImage=rock.oreImage;point.size=25+random()*18+(point.region==='Asteroid Belt'?random()*5:0);
+      point.file=rock.file;point.oreImage=rock.oreImage;point.width=rock.width;point.height=rock.height;point.size=25+random()*18+(point.region==='Asteroid Belt'?random()*5:0);
       if(point.guaranteedOre)point.size=41;
       point.maxHull=Math.max(9,Math.round(point.size*.45));
       point.angle=random()*Math.PI*2;
@@ -95,7 +95,7 @@
       indexes.set(oreType,index+1);
       const slotId=points.length,size=demo?46:27+extraRandom()*21;
       points.push({slotId,x,y,region,oreType,guaranteedOre:demo,demo,name:rock.name,id:rock.id,oreLabel:rock.oreLabel,
-        file:rock.file,oreImage:rock.oreImage,size,maxHull:Math.max(9,Math.round(size*.45)),angle:extraRandom()*Math.PI*2});
+        file:rock.file,oreImage:rock.oreImage,width:rock.width,height:rock.height,size,maxHull:Math.max(9,Math.round(size*.45)),angle:extraRandom()*Math.PI*2});
     };
     addExtra(100,80,'Earth demonstration','trellium',true);
     for(let i=0;i<160;i++){
@@ -272,6 +272,11 @@
     return art;
   }
   function screenSize(rock,zoom){return rock.size*Math.min(zoom,2.2);}
+  function artworkDimensions(rock){
+    // The catalogue owns source-pixel geometry even before its image loads.
+    // Regional placements already retain these fields through their art spread.
+    return {width:Math.max(1,Number(rock.width)||512),height:Math.max(1,Number(rock.height)||512)};
+  }
   function hitTest({ship,cx,cy,zoom,x,y,mined=[],system=1}){
     if(!ship)return null;
     const point={x:ship.x+(x-cx)/zoom,y:ship.y+(y-cy)/zoom};
@@ -303,7 +308,7 @@
       ctx.drawImage(art,-size/2,-size/2,size,size);ctx.restore();
     }
   }
-  window.nativeSolAsteroids={paint,hitTest,frame,image,peekImage:file=>images.get(file)||null,forSystem,find,nearby,sweptNearby,queryBounds,invalidateIndex,prepareStep,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size,indexBuilds,broadphaseQueries,broadphaseVisits,summaryVisits};},get ready(){return ready;},get placements(){return placements;},abundance};
+  window.nativeSolAsteroids={paint,hitTest,frame,image,peekImage:file=>images.get(file)||null,artworkDimensions,forSystem,find,nearby,sweptNearby,queryBounds,invalidateIndex,prepareStep,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size,indexBuilds,broadphaseQueries,broadphaseVisits,summaryVisits};},get ready(){return ready;},get placements(){return placements;},abundance};
   ready=fetch(catalogUrl).then(response=>{if(!response.ok)throw new Error('Asteroid catalog unavailable');return response.json();})
     .then(populate).catch(error=>console.warn('Sol asteroid artwork unavailable',error));
 })();

@@ -32,7 +32,7 @@
         if(!imported){
           self.window=self;self.__shipArtWorker=true;
           self.document={createElement:()=>new OffscreenCanvas(1,1)};
-          importScripts('wreckage-effects.js?v=fleet-foundation-1','cthia-destruction.js?v=fleet-foundation-1','showcase-stage-fragments.js?v=fleet-foundation-1');imported=true;
+          importScripts('wreckage-effects.js?v=fleet-foundation-1','cthia-destruction.js?v=visual-random-1','showcase-stage-fragments.js?v=fleet-foundation-1');imported=true;
         }
         let data;
         if(request.operation==='wreck'){const owner=self.createShipDestruction();await owner.prepareAsync(frames,config);data=owner.serialized();for(const stage of data)for(const piece of stage.pieces)piece.material=self.wreckageEffects.get(piece.texture);}

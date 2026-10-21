@@ -88,22 +88,34 @@
     drawMiningFlare(ctx,0,0,size*1.2,'#b4eaff',Math.sin(Math.PI*progress)*.18);
     ctx.restore();
   }
-  function extractRockShard(im,cx,cy,radius){
+  function extractRockShard(dimensions,cx,cy,radius){
+    const {width,height}=dimensions;
     const sides=5+Math.floor(Math.random()*4),start=Math.random()*Math.PI*2,vertices=[];
-    for(let i=0;i<sides;i++){const a=start+i*Math.PI*2/sides,r=radius*(.66+Math.random()*.48);vertices.push({x:clamp(cx+Math.cos(a)*r,0,im.width),y:clamp(cy+Math.sin(a)*r,0,im.height)});}
-    const left=Math.max(0,Math.floor(Math.min(...vertices.map(p=>p.x)))),top=Math.max(0,Math.floor(Math.min(...vertices.map(p=>p.y)))),right=Math.min(im.width,Math.ceil(Math.max(...vertices.map(p=>p.x)))),bottom=Math.min(im.height,Math.ceil(Math.max(...vertices.map(p=>p.y))));
+    for(let i=0;i<sides;i++){const a=start+i*Math.PI*2/sides,r=radius*(.66+Math.random()*.48);vertices.push({x:clamp(cx+Math.cos(a)*r,0,width),y:clamp(cy+Math.sin(a)*r,0,height)});}
+    const left=Math.max(0,Math.floor(Math.min(...vertices.map(p=>p.x)))),top=Math.max(0,Math.floor(Math.min(...vertices.map(p=>p.y)))),right=Math.min(width,Math.ceil(Math.max(...vertices.map(p=>p.x)))),bottom=Math.min(height,Math.ceil(Math.max(...vertices.map(p=>p.y))));
     if(right-left<3||bottom-top<3)return null;
-    const texture=document.createElement('canvas');texture.width=right-left;texture.height=bottom-top;const g=texture.getContext('2d');
-    g.beginPath();vertices.forEach((p,i)=>i?g.lineTo(p.x-left,p.y-top):g.moveTo(p.x-left,p.y-top));g.closePath();g.clip();g.drawImage(im,-left,-top);
-    return{texture,x:cx/im.width-.5,y:cy/im.height-.5,w:texture.width/im.width,h:texture.height/im.height};
+    return{polygon:{vertices,left,top,width:right-left,height:bottom-top},x:cx/width-.5,y:cy/height-.5,w:(right-left)/width,h:(bottom-top)/height};
+  }
+  function shardTexture(piece,rock){
+    if(piece.texture)return piece.texture;
+    const im=window.nativeSolAsteroids.image(rock.file);if(!im?.complete||!im.naturalWidth)return null;
+    const {vertices,left,top,width,height}=piece.polygon,texture=document.createElement('canvas');texture.width=width;texture.height=height;
+    const g=texture.getContext('2d');g.beginPath();vertices.forEach((p,i)=>i?g.lineTo(p.x-left,p.y-top):g.moveTo(p.x-left,p.y-top));g.closePath();g.clip();g.drawImage(im,-left,-top);
+    piece.texture=texture;return texture;
   }
   function makeRockShards(rock,{chips=false}={}){
-    const im=chips?window.nativeSolAsteroids.peekImage?.(rock.file):window.nativeSolAsteroids.image(rock.file);if(!im?.complete||!im.naturalWidth)return[];
+    // Physical sampling uses definition data, never image readiness or camera
+    // visibility. Bare legacy fixture rocks use the historical square fallback.
+    const dimensions=window.nativeSolAsteroids.artworkDimensions?.(rock)||{width:Number(rock.width)||512,height:Number(rock.height)||512};
     const pieces=[];
     for(let i=0;i<(chips?3:22);i++){
-      const cx=im.width*(.15+Math.random()*.7),cy=im.height*(.15+Math.random()*.7),piece=extractRockShard(im,cx,cy,im.width*(.045+Math.random()*.075));if(!piece)continue;
+      const cx=dimensions.width*(.15+Math.random()*.7),cy=dimensions.height*(.15+Math.random()*.7),piece=extractRockShard(dimensions,cx,cy,dimensions.width*(.045+Math.random()*.075));if(!piece)continue;
       const angle=Math.atan2(piece.y,piece.x)+(Math.random()-.5)*.75;
-      pieces.push({...piece,angle,speed:chips?35+Math.random()*55:(80+Math.random()*190)*1.9,spin:(Math.random()-.5)*7,ttl:chips?1000+Math.random()*800:(1500+Math.random()*1300)*2.2});
+      const shard={...piece,angle,speed:chips?35+Math.random()*55:(80+Math.random()*190)*1.9,spin:(Math.random()-.5)*7,ttl:chips?1000+Math.random()*800:(1500+Math.random()*1300)*2.2};
+      shard.environmentPiece={system:rock.system??1,size:Math.max(2,Math.hypot(piece.w,piece.h)*rock.size*.4),
+        x:rock.x+piece.x*rock.size,y:rock.y+piece.y*rock.size,
+        vx:(rock.vx||0)+Math.cos(angle)*shard.speed,vy:(rock.vy||0)+Math.sin(angle)*shard.speed,spin:shard.spin,angle:rock.angle};
+      pieces.push(shard);
     }
     return pieces;
   }
@@ -249,9 +261,6 @@
     for(const burst of [...bursts]){
       for(const piece of burst.pieces){
         if(time-burst.born>piece.ttl)continue;
-        piece.environmentPiece||={system:burst.rock.system??1,size:Math.max(2,Math.hypot(piece.w,piece.h)*burst.rock.size*.4),
-          x:burst.rock.x+piece.x*burst.rock.size,y:burst.rock.y+piece.y*burst.rock.size,
-          vx:(burst.rock.vx||0)+Math.cos(piece.angle)*piece.speed,vy:(burst.rock.vy||0)+Math.sin(piece.angle)*piece.speed,spin:piece.spin,angle:burst.rock.angle};
         const p=piece.environmentPiece,oldX=p.x,oldY=p.y,elapsed=Math.min(dt,Math.max(0,(time-(piece.updatedAt??burst.born))/1000));
         p.x+=p.vx*elapsed;p.y+=p.vy*elapsed;p.angle+=p.spin*elapsed;piece.updatedAt=time;
         window.nativeEnvironmentalImpacts?.debris(state,p,oldX,oldY,{sourceKey:'asteroid:'+burst.rock.slotId,dt:elapsed});
@@ -280,8 +289,9 @@
         if(age>p.ttl)continue;
         const px=cx+(p.worldX??burst.rock.x+p.x*burst.rock.size)-ship.x,py=cy+(p.worldY??burst.rock.y+p.y*burst.rock.size)-ship.y;
         if(!visible(px,py,Math.hypot(p.w,p.h)*burst.rock.size/2))continue;
+        const texture=shardTexture(p,burst.rock);if(!texture)continue;
         ctx.save();ctx.globalAlpha=Math.min(1,(p.ttl-age)/500);ctx.translate(px,py);ctx.rotate(p.environmentPiece?.angle??burst.rock.angle+p.spin*t);
-        ctx.drawImage(p.texture,-p.w*burst.rock.size/2,-p.h*burst.rock.size/2,p.w*burst.rock.size,p.h*burst.rock.size);
+        ctx.drawImage(texture,-p.w*burst.rock.size/2,-p.h*burst.rock.size/2,p.w*burst.rock.size,p.h*burst.rock.size);
         ctx.restore();
       }
     }

@@ -48,8 +48,12 @@ try:
           const weapon=VexedMirrorWeapons.find(model=>model.damage>0&&nativeCombatShots.weaponVisual(model).kind==='beam');
           const torpedo=VexedMirrorWeapons.find(model=>model.damage>0&&nativeCombatShots.weaponVisual(model).kind==='torpedo');
           let time=performance.now();
-          const step=(seconds=1/60)=>{time+=seconds*1000;__controlsFrame(time);state=__controlsState;};
+          const step=(seconds=1/60)=>{time=Math.max(time,performance.now())+seconds*1000;__controlsFrame(time);state=__controlsState;};
           const frames=(seconds)=>{for(let i=0;i<Math.ceil(seconds*60);i++)step(1/60);};
+          // This fixture owns RAF. Slow native paints must not leave its next
+          // timestamp behind real UI gate events. Rebinding at an explicit
+          // fixture/reload boundary retains all previously accepted physics.
+          const rebind=()=>{time=performance.now();const debt=state.shipSimulation?.schedule?.pendingSeconds;nativeSimulationHost.reset(time);if(state.shipSimulation?.schedule?.pendingSeconds!==debt)throw Error('Fixture clock rebind changed saved debt');};
           const fire=nativeCombatShots.fire,accepted=[];
           nativeCombatShots.fire=options=>{const result=fire(options);if(result.ok)accepted.push({at:nativeSimulation.seconds(state),target:result.event.targetId,instance:result.event.weaponInstanceId,readyAt:state.shipEquipment.instances[result.event.weaponInstanceId].readyAt,event:result.event.id});return result;};
           function fixture({distance=220,two=false,weapons=[weapon.id]}={}) {
@@ -65,10 +69,10 @@ try:
             state.civilianTraffic.ships=[target];
             if(two)state.civilianTraffic.ships.push({...clone(target),id:98502,name:'Attacker',x:origin.x+Math.min(distance,190),y:origin.y-90,retaliationTargetId:'player',retaliationUntil:nativeSimulation.seconds(state)+60});
             nativeSolEconomy.clearTarget();nativeCivilianTraffic.clearTarget();nativeAsteroidCombat.deselect();
-            nativeCivilianTraffic.select(target.id);nativeWeaponLoadout.ensure(state);nativeShipSystems.invalidate(state);accepted.length=0;step();
+            nativeCivilianTraffic.select(target.id);nativeWeaponLoadout.ensure(state);nativeShipSystems.invalidate(state);accepted.length=0;rebind();step();
             return {target,origin};
           }
-          window.__controls={get state(){return state;},fixture,step,frames,accepted,weapon,torpedo,clone};
+          window.__controls={get state(){return state;},fixture,step,frames,rebind,accepted,weapon,torpedo,clone};
         }""")
         page.evaluate('__controls.fixture()')
         page.keyboard.down('Space')
@@ -142,8 +146,18 @@ try:
                 elif gate == 'changed-target':
                     page.evaluate('nativeCivilianTraffic.select(98502)')
                 elif gate == 'warp':
-                    trip = page.evaluate("nativeNavigation.call('course',2)")
+                    # A slower CI browser can owe physical work after painting.
+                    # Let the real service drain it; never clear saved debt or
+                    # bypass the ordinary calendar/warp transition guard.
+                    page.evaluate("window.__controlsWarpAttempts=0;window.__controlsWarpInitialDebt=__controls.state.shipSimulation.schedule.pendingSeconds")
+                    page.wait_for_function("""() => {
+                      window.__controlsWarpAttempts++;
+                      const trip=window.__controlsWarpTrip=nativeNavigation.call('course',2);
+                      return trip.ok||trip.error!=='Simulation is catching up. Wait for flight to recover before warping.';
+                    }""", polling=25, timeout=30000)
+                    trip = page.evaluate("__controlsWarpTrip")
                     assert trip['ok'], trip
+                    result['warpBacklog'] = page.evaluate("({attempts:__controlsWarpAttempts,initialDebtSeconds:__controlsWarpInitialDebt})")
                     assert page.evaluate('vexedWarp.active')
                     page.evaluate('__controls.step();vexedWarp.reset()')
                 page.evaluate('__controls.frames(1.4)')
@@ -207,7 +221,7 @@ try:
               const saved=nativeSaveStorage.write(state);return {saved,instance:item.instance.id,readyAt:item.instance.readyAt,events:state.weaponCombat.events.length};
             }""")
             assert saved['saved']['ok'] and saved['events'] == 1, saved
-            page.evaluate("resumeNativeGame('normal');__controls.step()")
+            page.evaluate("resumeNativeGame('normal');__controls.rebind();__controls.step()")
             restored = page.evaluate("""instance=>({readyAt:__controls.state.shipEquipment.instances[instance].readyAt,cargo:__controls.state.minerals.titanium})""", saved['instance'])
             assert restored['readyAt'] == saved['readyAt'] and restored['cargo'] == 17, (saved, restored)
             count = page.evaluate('__controls.accepted.length')

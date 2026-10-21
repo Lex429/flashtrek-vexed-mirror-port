@@ -60,6 +60,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-spatial-performance.py
+      - name: Cold physical debris, original topology and camera-independent contacts
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-debris-geometry.py
       - name: Fixed display-independent physics, interpolation and 5000-record verified reload
         env:
           BROWSER_CHANNEL: ''

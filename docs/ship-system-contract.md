@@ -352,12 +352,34 @@ actual absorbed/hull amounts, before/after stages and disabled/destroyed flags.
 explosion. Controller adapters then apply cargo, reputation, phase or rebuild
 consequences. `ship-effects.visualImpact` creates shield/hull art without changing
 health, retaliation or resources. Environmental explosions and debris retain that
-visual-only ship policy while they can destroy asteroids.
+visual-only ship policy while asteroid damage stops at the environmental floor.
 
-Artwork preparation may happen asynchronously. Wreck emission happens in hit or
-simulation advance, including when artwork finishes loading later. Drawing a
-wreck never emits its debris. Mining completion and ore awards likewise happen
-in simulation, never in a paint function.
+Artwork preparation may happen asynchronously. Native hull definitions carry
+immutable `debrisGeometry` from `ship-debris-geometry.js`. This metadata records
+the original aligned art's fragment/wreck topology, source pixel counts and
+existing physical parameters. Damage events emit physical pieces immediately,
+including before any images have loaded. Poses, contacts and environmental
+effects advance through the existing simulation owners. Visible painting binds
+only original prepared texture surfaces by stable piece index; late readiness,
+cache eviction and expired earlier pieces cannot replace geometry, reset motion,
+emit another piece or replay a contact. Offscreen native debris needs no artwork
+request. Mining completion and ore awards likewise happen in simulation.
+
+`tools/build-debris-geometry.py` extracts this source metadata through the existing
+preparation owner without regenerating artwork. Its `--check` mode validates
+geometry and material conservation; source signatures normalize text line endings
+and hash original image bytes. Changing an aligned frame or fracture profile
+requires rebuilding it. A custom artwork definition supplies matching
+`debrisGeometry`; unsupported legacy custom profiles retain their older deferred
+compatibility path and do not establish camera-independent cold collision timing.
+This runtime definition asset does not change the saved schema.
+
+Asteroid physical shard sampling uses the catalog's original image dimensions
+even while images are cold. Painting clips the original image to the already
+chosen polygon; it cannot choose velocities or admit a physical shard. Decorative
+mining pieces, stars, hull sparks and wreck trails use private visual random
+streams. Camera-dependent preparation or painting cannot advance gameplay's
+random stream.
 
 The live path publishes base artwork before optional fragment/wreck preparation
 finishes. Pixel loops and striped native transfers share one cooperative queue
@@ -385,7 +407,8 @@ Synchronous entry points remain for showcase and exact pixel regressions;
 specialized egg/creature preparation retains its own mask work and live readiness.
 Explicit full preparation still waits for fragment and wreck readiness.
 Preparation completion cannot mutate health or replay explosion
-consequences. Deferred visual emission drains only during unpaused simulation.
+consequences. Legacy deferred emission drains only during unpaused simulation;
+native physical debris does not wait for optional preparation.
 The damage-art owner bounds retained prepared classes and reports its byte
 estimate; active effects and external live artwork references have separate
 lifetimes. See the performance report for measured cold-path limits.

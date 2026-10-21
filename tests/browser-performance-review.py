@@ -24,7 +24,7 @@ spec=importlib.util.spec_from_file_location('review_stability',ROOT/'tests/brows
 stability=importlib.util.module_from_spec(spec);spec.loader.exec_module(stability)
 
 INSTRUMENT=r"""() => {
-  const p=window.__renderReview={canvasAllocations:0,offscreenAllocations:0,effectDraws:0,paints:0,phases:[],images:[],collectCold:false,inputs:[],cold:null};
+  const p=window.__renderReview={canvasAllocations:0,offscreenAllocations:0,effectDraws:0,paints:0,physicalDebrisAdmissions:0,environmentalDebrisCalls:0,physicalDebrisSeen:new WeakSet(),phases:[],images:[],collectCold:false,inputs:[],cold:null};
   const element=Document.prototype.createElement;
   Document.prototype.createElement=function(name,...args){if(String(name).toLowerCase()==='canvas')p.canvasAllocations++;return element.call(this,name,...args);};
   if(window.OffscreenCanvas){const Native=window.OffscreenCanvas;window.OffscreenCanvas=new Proxy(Native,{construct(target,args){p.offscreenAllocations++;return Reflect.construct(target,args);}});}
@@ -54,6 +54,14 @@ INSTALL=r"""() => {
     return result;}};
   const fire=nativeCombatShots.fireFor;
   window.nativeCombatShots={...nativeCombatShots,fireFor:function(...args){const result=fire(...args);if(result?.ok)p.acceptedShots=(p.acceptedShots||0)+1;return result;}};
+  const environmental=nativeEnvironmentalImpacts,debris=environmental.debris;
+  window.__reviewResetDebris=()=>{p.physicalDebrisSeen=new WeakSet();p.physicalDebrisAdmissions=0;p.environmentalDebrisCalls=0;};
+  window.__reviewResetDebris();
+  window.nativeEnvironmentalImpacts={...environmental,debris:function(state,piece,oldX,oldY,options){
+    if(window.__stability?.record){p.environmentalDebrisCalls++;
+      if(piece&&typeof piece==='object'&&!p.physicalDebrisSeen.has(piece)){p.physicalDebrisSeen.add(piece);p.physicalDebrisAdmissions++;}}
+    return debris.call(environmental,state,piece,oldX,oldY,options);
+  }};
   window.__reviewLife=()=>{const s=nativeNpcDev.getState(),ships=s.civilianTraffic.ships,at=nativeSimulation.seconds(s),metrics=nativeNpcLives.metrics?.(s)||{},jobs={};
     for(const ship of ships){const phase=ship.task?.phase||ship.phase;jobs[phase]=(jobs[phase]||0)+1;}
     return {activeJobs:ships.filter(ship=>ship.task?.status==='active'&&!['idle','selecting','payment-idle'].includes(ship.task.phase)).length,
@@ -62,6 +70,7 @@ INSTALL=r"""() => {
       overdueSavedActions:ships.filter(ship=>Number.isFinite(ship.nextActionAt)&&ship.nextActionAt<=at).length,
       scheduledEventsTotal:metrics.totalEvents||0,pendingEvents:metrics.pendingEvents||0,eventBacklog:metrics.backlog||0,jobs};};
   window.__reviewCounters=()=>({canvasAllocations:p.canvasAllocations,offscreenAllocations:p.offscreenAllocations,effectDraws:p.effectDraws,paints:p.paints,acceptedShots:p.acceptedShots||0,
+    physicalDebrisAdmissions:p.physicalDebrisAdmissions,environmentalDebrisCalls:p.environmentalDebrisCalls,
     simulationSeconds:nativeSimulation.seconds(nativeNpcDev.getState()),pendingWork:window.nativeSimulationFrame?.pendingWork?.(nativeNpcDev.getState())||{steps:0,tasks:0,cpuMs:0,counters:{}},debris:nativeAsteroidCombat.metrics(),shipParticles:nativeShipEffects.snapshot().particles,asteroids:nativeSolAsteroids.metrics?.(),
     life:__reviewLife(),sprite:nativeShipSpriteCache.snapshot(),effects:nativeShipEffects.metrics(),loader:vexedFlightAssets.cacheSnapshot?.(),queue:window.nativeDamageArtPreparation?.snapshot?.()});
 }"""
@@ -158,7 +167,7 @@ COLD_SETUP=r"""({type,stage}) => {
     hull:definition.hull*[1,.7,.4,.1][stage],shields:definition.shields,phase:'docked',scriptedDemo:'cold-review',timer:100000,speed:0,vx:0,vy:0});
   nativeShipSystems.invalidate(s);nativeShipEffects.reset();vexedFlightAssets.resetCaches?.();nativeShipSpriteCache.reset();
   const p=__renderReview;p.phases=[];p.images=[];p.collectCold=true;p.cold={entity:ship,type,stage,started:performance.now()};
-  __stability.frames=[];__stability.longTasks=[];__stability.record=true;
+  __reviewResetDebris();__stability.frames=[];__stability.longTasks=[];__stability.record=true;
   return {id:ship.id,type,stage,started:p.cold.started};
 }"""
 
@@ -249,7 +258,8 @@ def main():
         'scenarios':{},'cold':[],'incomplete':True,'passed':False,'captures':[],'captureErrors':[],'warnings':[], 'notes':['Full saved production fleet remains active. Crowd combat uses the existing12-provoked-NPC/high-player-health stress fixture. Inputs repeat by authoritative simulation time. No other benchmark/test workers should run concurrently; OS activity is uncontrolled.',
         'Canvas counts include main-document HTML and OffscreenCanvas construction, not browser internals or worker-private surfaces. Phase durations are wall times and can overlap; decode() timing is not total browser decoder CPU.',
         'Warmup loads artwork with simulation time frozen; animated phase caches start cold. spriteRebuilds is the complete animated-effect count; profile effectDraws can omit artwork loaded before instrumentation.',
-        'After each measured window, recording stops and the isolated simulation is blocked in the same evaluation. Captures and save probes cannot advance gameplay; sampled debt/counters remain the measured values. Completed rows checkpoint before captures and after probes. Screenshot failures are explicit warnings/mediaReady:false, not missing timing windows or concealed page errors.']}
+        'After each measured window, recording stops and the isolated simulation is blocked in the same evaluation. Captures and save probes cannot advance gameplay; sampled debt/counters remain the measured values. Completed rows checkpoint before captures and after probes. Screenshot failures are explicit warnings/mediaReady:false, not missing timing windows or concealed page errors.',
+        'physicalDebrisAdmissions counts unique piece objects first passed to nativeEnvironmentalImpacts.debris while recording, using a fresh per-window WeakSet; environmentalDebrisCalls counts all calls to that shared physical entry during recording, including calls that may return early. These are actual observed objects/calls, not decorative particle counts, exact contact tests or forced/equalized workloads. No gameplay random stream is overridden by these counters.']}
     if args.capacity_matrix:
         report['fixtureSettings'].update(capacityMatrix=True,stationaryObserver=args.stationary_observer)
         report['notes'].append('Matrix-only RAF/paint wrappers count unique submitted artwork and visible rotated hull bounds per frame. Initial original-size hull artwork fits inside the actual game canvas; subsequent contacts and scattering are not reset. These wrappers and canvas-derived placement are absent from default core timing runs; the harness hash changes without changing that default execution path.')
@@ -399,7 +409,7 @@ def main():
                         if mode!='devMap':page.locator('#space').focus()
                         if mode in ['flight','crowdedFlight'] and not args.stationary_observer:page.evaluate(SCRIPTED_INPUT)
                         if mode=='miningDebris':page.evaluate(DEBRIS_INPUT)
-                        page.evaluate('__resetFixtureRandom()')
+                        page.evaluate('()=>{__resetFixtureRandom();__reviewResetDebris();}')
                         before=page.evaluate('__reviewCounters()')
                         if args.capacity_matrix:page.evaluate('()=>{__renderReview.capacity.frames=[];}')
                         page.evaluate('()=>{__stability.frames=[];__stability.longTasks=[];__stability.record=true;__renderReview.inputs=[];__renderReview.measureStarted=performance.now();window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};window.nativeSimulationHost?.checkpoint();}')
@@ -411,7 +421,7 @@ def main():
                             assert len(capacity_frames)==len(frames),'Matrix paint counters lost alignment with delivered frames'
                             for frame,capacity_frame in zip(frames,capacity_frames):frame['capacity']=capacity_frame
                             sample['capacity']={'fixture':capacity_fixture,'perFrame':{key:{**stat([frame[key] for frame in capacity_frames]),'min':min((frame[key] for frame in capacity_frames),default=0)} for key in ['uniquePaintedActors','visibleHullBoundsActors','configuredPaintedActors','configuredVisibleHullBoundsActors']},'configuredShips':args.visible_ships if mode=='crowdedFlight' else None}
-                        counters={key:sample['after'][key]-before[key] for key in ['canvasAllocations','offscreenAllocations','effectDraws','paints','acceptedShots']}
+                        counters={key:sample['after'][key]-before[key] for key in ['canvasAllocations','offscreenAllocations','effectDraws','paints','acceptedShots','physicalDebrisAdmissions','environmentalDebrisCalls']}
                         counters['sprite']={key:value-before['sprite']['counters'].get(key,0) for key,value in sample['after']['sprite']['counters'].items()}
                         counters.update(frame_work(frames,before,sample['after']))
                         counters['simulationProgressSeconds']=sample['after']['simulationSeconds']-before['simulationSeconds']

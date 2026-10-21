@@ -1,7 +1,14 @@
 /* Stars pass from the bow to the stern in fixed, parallel depth layers. */
 (() => {
   'use strict';
-  function create(width = 600, height = 450, random = Math.random) {
+  let fieldSerial=0;
+  function visualRandom(){
+    // Resizing, heading and delivered paints determine star respawns. Their
+    // random stream must never advance the authoritative gameplay generator.
+    let seed=(0x57415250+Math.imul(++fieldSerial,0x9e3779b9))>>>0;
+    return ()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  }
+  function create(width = 600, height = 450, random = visualRandom()) {
     const margin = 100;
     const layers = [
       {count:150, speed:18, length:.7, width:.45, alpha:.24},

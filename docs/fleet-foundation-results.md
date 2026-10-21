@@ -2,9 +2,10 @@
 
 This review starts from `d68a0f0476b188cb0d62c9cc23447787224d3022`, with the
 already present planet-lighting patch preserved in both comparison checkouts.
-It does not reuse older performance numbers as a new baseline. Final verification
-and fresh matched performance results are pending. The numeric performance tables
-below are explicitly historical results from the intermediate `57c873f` revision.
+It does not reuse older performance numbers as a new baseline. The current
+implementation passed all required local correctness checks; fresh matched
+performance results are pending. The numeric performance tables below are
+explicitly historical results from the intermediate `57c873f` revision.
 
 ## Checkout and device
 
@@ -23,16 +24,24 @@ The earlier tested implementation revision was
 `fix/fleet-performance-foundation`. Its
 [Linux CI run 39536720133](https://github.com/Lex429/flashtrek-vexed-mirror-port/actions/runs/39536720133)
 passed every step. That CI result remains valid for that historical commit.
-The current worktree additionally contains an uncommitted host active-gate fix
-and is frozen for a new verification pass. Its final code commit, push and CI
-result are pending; they must not be identified as `57c873f` results.
+The predecessor implementation, including the host active-gate fix, is
+[`03703a4b3b4849b3d7cb83e2da27d1ea38e7093e`](https://github.com/Lex429/flashtrek-vexed-mirror-port/commit/03703a4b3b4849b3d7cb83e2da27d1ea38e7093e),
+pushed to the same feature branch. Its
+[Linux CI run 39544683919](https://github.com/Lex429/flashtrek-vexed-mirror-port/actions/runs/39544683919)
+failed in the Linux warp browser fixture during simulation catch-up. Its fixture
+protocol was corrected without removing or relaxing the production debt guard.
+That predecessor passed its local 493 Node, eight site and 31 browser checks,
+but its remote CI must not be reported as successful.
+The current frozen source adds the fixes below and has completed a new full
+local pass. Its new source commit, push and CI run are pending; all fresh matched
+performance stages will follow. The historical `57c873f` tables remain separate.
 
 The 03:00 UTC preservation recheck found the Performance-Fix nine-path work
 unchanged and the original checkout's HEAD unchanged. Five paths in the original
 79-path snapshot now contain newer external menu work: `index.html`,
 `menu-emblem-orbits.js`, `menu-emblem.js`, `tests/browser-menu-emblem.py` and
-`tests/menu-emblem-orbits.test.cjs`. Those concurrent changes remain in place in
-the original checkout. The snapshot records their earlier bytes; preservation
+`tests/menu-emblem-orbits.test.cjs`. Those concurrent changes remain unchanged by
+this work and in place in the original checkout. The snapshot records their earlier bytes; preservation
 does not imply that every original path stayed byte-identical. The latest fetch
 still reports remote `main` at `d68a0f0`.
 
@@ -141,6 +150,23 @@ painted blends and leaves all owned repair state unchanged.
 Optional fragment/wreck work uses the existing preparation queue and bounded
 readback worker, with original deterministic generators. Current appearances
 remain prioritized. Native snapshot/upload costs are measured separately.
+Physical debris now uses immutable topology available at the damage event,
+independently of camera visibility or pixel readiness. The generated 948,439-byte
+metadata asset covers all 66 original hulls, 668 stage fragments and 3,432 wreck
+pieces. It records signatures for 287 original source files, with text line
+endings normalized. The existing original-artwork preparation algorithms produce
+these normalized measurements; no bitmap artwork was regenerated. Shared
+collision owners immediately integrate the physical pieces. Visible painting
+requests and binds surfaces only, preserving piece identities, trajectories and
+expiry without replaying damage or explosions. Asteroid physical shards likewise
+use catalog dimensions before their pixels load. Save schemas are unchanged.
+
+Decorative mining motion, hull sparks, wreck trails and menu/warp stars now use
+private visual random streams. Culling, async preparation, camera movement and
+different paint frequencies cannot consume the gameplay random stream through
+those paths or shift a later theft/population choice. Explicit injected warp
+random streams retain their original sampling and distributions.
+
 Repair craft use definition-owned bay/work attachments and shared physical
 following. Navigation preserves turn rates through braking/holds and maintains
 passing/yield commitments. Large saves gain lossless versioned packing while
@@ -157,7 +183,14 @@ profiling workers. Each representative mode uses three fresh 20-second contexts,
 the same saved fixture, three-second frozen warm-up, equipment, viewport and
 inputs. Random seed **4292026** is reset at fixture start and measurement start.
 Mining destruction inputs are scheduled by simulation time and their IDs are
-recorded. The population matrix rekeys cloned equipment to independent owners
+recorded. A fresh per-window WeakSet counts unique physical debris objects passed
+to the shared environmental-debris entry; a second counter counts its calls,
+including any early returns. These lightweight counters do not sample stacks,
+copy piece snapshots or alter random streams. Read them beside exact collision
+tests and seeded inputs: the baseline can omit physical pieces when their pixels
+are cold, while the corrected owner emits the original topology immediately.
+More actual debris must not be reported as an equal workload.
+The population matrix rekeys cloned equipment to independent owners
 and retains the original production fleet. Idle distant-record cases isolate
 index scaling; they do not claim 5,000 simultaneously active combatants.
 
@@ -387,10 +420,17 @@ node --test tests/fleet-scalability.test.cjs tests/scheduled-pose-cache.test.cjs
 
 ## Correctness verification
 
-The current frozen post-gate worktree has passed **493 Node tests** and all
-**eight local-site Python tests**. Its **31 required browser suites are still in
-progress**: sixteen had completed at this update. Overall current verification
-is pending, and the code commit will follow the completed checks.
+The current frozen source passed **506 Node tests with no skips**, all
+**eight local-site Python tests** and all **32 required browser suites** on
+Edge 155.0.4283.62. This includes all 66 hulls' debris coverage and the prior
+lighting, loading, coasting, fractional settlement and drone-capacity regressions
+from `665e553`. These are completed correctness checks; the new source commit,
+remote CI and every fresh matched performance stage remain pending.
+
+The predecessor `03703a4b3b4849b3d7cb83e2da27d1ea38e7093e` passed its local
+493 Node/eight site/31 browser checks, but CI run 39544683919 failed as described
+above. The new full pass uses the corrected fixture protocol and the current
+source, rather than substituting that predecessor's results.
 
 The earlier `57c873f` runtime passed 490 Node tests, eight local-site Python
 tests and all 31 required browser suites on Edge 155.0.4283.62. Those historical
@@ -400,14 +440,14 @@ regressions. Browser coverage includes the existing lighting, cold-loading,
 coasting, fractional settlement and hull-change drone-capacity checks, plus
 fixed scheduling/debt recovery, large verified reload and visible working-set
 coverage. Node/browser runtime source hashes are retained for comparison with
-the eventual final commit and fresh performance reports.
+the tested commit and fresh performance reports.
 
 | Current final deliverable | Status |
 | --- | --- |
-| Post-gate code commit and push | Pending completed verification |
-| CI for that commit | Pending commit and run |
-| Node/local-site checks | 493 / 8 passed |
-| Required browser checks | Pending all 31 suites |
+| Current source commit and push | Pending after completed local verification/build check |
+| CI for that commit | Pending new commit/run; predecessor 39544683919 failed |
+| Node/local-site checks | 506 with no skips / 8 passed |
+| Required browser checks | All 32 passed |
 | Fresh matched performance tables | Pending new baseline and after measurements |
 
 Browser fixtures needed corrections without changing production behavior.
@@ -423,6 +463,14 @@ alignment assertion uses the actual shared interpolated pose with its existing
 
 These results establish correctness, not smooth gameplay or a physical display
 refresh rate. Measured performance and remaining targets are reported separately.
+Physical 120-Hz delivery has not been verified. Comparable performance on the
+installed RTX 5070 or other browser/device combinations has not been measured.
+Synthetic 120/144-Hz host checks establish
+schedule correctness only. Dedicated expansion-performance workloads for dense
+large stations and systems with five or more planets have not been completed;
+the synthetic large-station geometry regression is not a substitute. Fresh
+core/capacity, cold-loading, trace and prolonged-play measurements are still
+running sequentially and cannot yet be reported as completed comparisons.
 
 ## Reproduction
 

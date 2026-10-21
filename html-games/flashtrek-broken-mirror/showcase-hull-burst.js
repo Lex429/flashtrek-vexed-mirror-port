@@ -1,13 +1,15 @@
 /* The damage showcase's hull-hit burst, shared with live combat. */
 (() => {
   'use strict';
+  let visualSeed=0x48554c4c;
+  const random=()=>{visualSeed=(Math.imul(visualSeed,1664525)+1013904223)>>>0;return visualSeed/4294967296;};
   function burst(particles,point,time,units,zoom,strength=1,sparksOnly=false,delay=0) {
-    const unit=units*.8*zoom,nCore=sparksOnly?0:4+Math.floor(Math.random()*5*strength),nSparks=sparksOnly?6+Math.floor(Math.random()*10*strength):10+Math.floor(Math.random()*14*strength);
+    const unit=units*.8*zoom,nCore=sparksOnly?0:4+Math.floor(random()*5*strength),nSparks=sparksOnly?6+Math.floor(random()*10*strength):10+Math.floor(random()*14*strength);
     for(let i=0;i<nCore+nSparks;i++){
-      const core=i<nCore,a=Math.random()*Math.PI*2,sp=(core?20+Math.random()*55:sparksOnly?70+Math.random()*180:90+Math.random()*220)*strength*unit,jitter=(core?4:3)*unit;
-      particles.push({x:point.x+(Math.random()*2-1)*jitter,y:point.y+(Math.random()*2-1)*jitter,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
-        size:(core?3+Math.floor(Math.random()*4):sparksOnly?2+Math.floor(Math.random()*3):2+Math.floor(Math.random()*4))*unit,
-        born:time+delay,ttl:core?140+Math.random()*120:sparksOnly?140+Math.random()*220:120+Math.random()*220,core});
+      const core=i<nCore,a=random()*Math.PI*2,sp=(core?20+random()*55:sparksOnly?70+random()*180:90+random()*220)*strength*unit,jitter=(core?4:3)*unit;
+      particles.push({x:point.x+(random()*2-1)*jitter,y:point.y+(random()*2-1)*jitter,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+        size:(core?3+Math.floor(random()*4):sparksOnly?2+Math.floor(random()*3):2+Math.floor(random()*4))*unit,
+        born:time+delay,ttl:core?140+random()*120:sparksOnly?140+random()*220:120+random()*220,core});
     }
     if(particles.length>12000)particles.splice(0,particles.length-12000);
   }

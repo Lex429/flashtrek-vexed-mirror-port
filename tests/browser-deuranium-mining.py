@@ -13,6 +13,56 @@ OUT=ROOT/'test-results'/'deuranium-mining'
 OUT.mkdir(parents=True,exist_ok=True)
 class Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self,*args):pass
+
+RANDOM_ISOLATION=r'''()=>{
+  const check=(v,m)=>{if(!v)throw Error(m);},clone=v=>JSON.parse(JSON.stringify(v)),base=clone(__deuraniumState),
+    rock=nativeSolAsteroids.forSystem(43).find(r=>r.oreType==='deuranium'),originalAngle=rock.angle,
+    random=Math.random,impacts=nativeEnvironmentalImpacts,results=[],evidence=Object.assign(document.createElement('canvas'),{width:800,height:600,id:'mining-rng-evidence'});
+  const hash=text=>{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619)>>>0;return h.toString(16);};
+  check(!nativeSimulation.blocked(),'The isolated replay requires an unblocked manual simulation');
+  // The ordinary artwork assertions above already warmed all four real damage
+  // images. This comparison isolates painting from the shared physical owner;
+  // separate cold-debris regressions cover image-independent physical admission.
+  for(const damage of [0,.35,.6,.8]){const image=nativeSolAsteroids.image(nativeSolAsteroids.frame(rock,damage*rock.maxHull));check(image.complete&&image.naturalWidth,'Replay artwork is not ready');}
+  try{
+    for(const camera of ['none','visible','moving']){
+      let seed=4292026,calls=0;Math.random=()=>{calls++;seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+      const s=clone(base),physical=[],canvas=Object.assign(document.createElement('canvas'),{width:800,height:600}),g=canvas.getContext('2d');
+      Object.assign(s,{system:43,x:rock.x-350,y:rock.y,angle:Math.PI/2,speed:0,vx:0,vy:0,phase:'flight',landed:false,miningOperation:null,
+        shipSimulation:{version:1,seconds:0},asteroidDamage:{},asteroidOreDrops:{},minedAsteroids:[],
+        destroyedAsteroids:nativeSolAsteroids.forSystem(43).filter(other=>other.slotId!==rock.slotId).map(other=>other.slotId),
+        populationClock:0,planetPopulationCounts:{1:1000000000,2:2000000000},solPopulations:{3:1000000000,4:100000000}});
+      s.civilianTraffic.ships=[];s.solEconomy.freighters=[];delete s.localCruise;delete s.arrivalApproach;delete s.motionKick;delete s.motionSpin;
+      nativeAsteroidCombat.clear();impacts.reset();nativeShipSystems.invalidate(s);
+      window.nativeEnvironmentalImpacts={...impacts,debris(state,p,oldX,oldY,options){
+        const result=impacts.debris(state,p,oldX,oldY,options);physical.push({x:p.x,y:p.y,vx:p.vx,vy:p.vy,spin:p.spin,oldX,oldY});return result;}};
+      nativeAsteroidCombat.select(rock);check(nativeAsteroidCombat.mine(s,{x:s.x,y:s.y}).ok,'Actual mining owner rejected the replay');
+      for(let step=0;step<36;step++){
+        rock.angle=originalAngle+step*.017;
+        nativeSimulation.advance(s,.25);nativeAsteroidCombat.advance(s,.25);impacts.advance(s,.25);
+        if(camera==='none')continue;
+        const offset=camera==='moving'&&step%4!==0?5000:0;
+        g.clearRect(0,0,800,600);g.save();g.translate(400,300);g.rotate(step*.013);g.translate(-400,-300);
+        nativeAsteroidCombat.paint(g,{state:s,ship:{x:rock.x+offset,y:rock.y},cx:400,cy:300,zoom:1,w:800,h:600});g.restore();
+        if(camera==='visible'&&step===11)evidence.getContext('2d').drawImage(canvas,0,0);
+      }
+      nativePopulation.advanceSeconds(s,3);
+      const future=Array.from({length:8},()=>Math.random()),outcome={damage:s.asteroidDamage,ore:s.asteroidOreDrops,mined:s.minedAsteroids,
+        hull:s.hull,shields:s.shields,minerals:s.minerals,latinum:s.latinum,population:s.planetPopulationCounts,settlements:s.solPopulations,physical,future,calls};
+      check(physical.length>0&&s.minedAsteroids.includes(rock.slotId)&&s.asteroidOreDrops[rock.slotId]===15,'Replay lost physical chips or mining entitlement');
+      if(results.length)check(JSON.stringify(outcome)===JSON.stringify(results[0].outcome),'Camera/rotation painting changed actual mining, physical debris, population or future gameplay RNG');
+      results.push({camera,outcome});canvas.width=canvas.height=0;
+    }
+  }finally{Math.random=random;window.nativeEnvironmentalImpacts=impacts;rock.angle=originalAngle;nativeAsteroidCombat.clear();impacts.reset();}
+  const image=evidence.getContext('2d').getImageData(0,0,800,600).data;
+  let support=0;for(let i=3;i<image.length;i+=4)if(image[i]>30)support++;
+  check(support>100,'The replay must capture real visible mining artwork');
+  evidence.style.cssText='position:absolute;left:0;top:0;z-index:2147483647';document.body.append(evidence);
+  return {cameraSchedules:results.map(row=>row.camera),sameAuthoritativeOutcomes:true,physicalSamples:results[0].outcome.physical.length,
+    minedOreMask:15,gameplayRandomCalls:results[0].outcome.calls,outcomeHash:hash(JSON.stringify(results[0].outcome)),visiblePaintedPixels:support,
+    scope:'Synchronous isolated actual mining/debris/population replay with equal ready artwork; no frame-rate claim or gameplay RNG isolation shortcut'};
+}'''
+
 server=None
 if len(sys.argv)>1:base=sys.argv[1].rstrip('/')
 else:
@@ -126,6 +176,8 @@ try:
           return {id:medic.id,minedId,ownedMinedSupplies:4,continuedPast60:true,workingDrones:6,rescuedHull:target.hull,supplyRemaining:medic.repairDeuranium,inspectorMatches:true};
         }''')
         page.locator('#medical-supply-rescue').screenshot(path=str(OUT/'medical-mining-to-rescue.png'))
+        report['cameraRandomIsolation']=page.evaluate(RANDOM_ISOLATION)
+        page.locator('#mining-rng-evidence').screenshot(path=str(OUT/'camera-independent-mining.png'))
         report['browserErrors']=errors;report['failedResponses']=failed
         assert not errors,errors
         assert not failed,failed

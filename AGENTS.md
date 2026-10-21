@@ -92,6 +92,17 @@ the same interfaces and must retain ordering barriers and fallback behavior.
 Run optional-worker, cache, visibility and real pixel regressions. Do not weaken
 existing Canvas alignment or colour gates to accommodate another backend.
 
+Physical ship fragments use definition-owned `debrisGeometry`, built from the
+original aligned artwork by `python tools/build-debris-geometry.py`. The generated
+`ship-debris-geometry.js` is source metadata, never regenerated bitmap artwork.
+Run its `--check` build after changing artwork, alignment or fracture profiles;
+the Node source-signature/coverage checks and `browser-debris-geometry.py` are
+required. Damage events emit the canonical physical pieces immediately. Visible
+painting may request/bind their original textures, never emit pieces or replay
+contacts. Asteroid shards similarly use catalog dimensions before images load.
+Keep decorative random streams private: camera, menu, warp and optional texture
+readiness must not consume gameplay randomness or change physical consequences.
+
 `save-storage.js` retains durable transaction ownership. `save-codec.js` uses a
 versioned lossless representation for large fleets; old JSON slots remain
 readable. Never cache a stale serialized snapshot or postpone a durable purchase,

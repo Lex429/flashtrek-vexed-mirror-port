@@ -211,6 +211,29 @@ damage plate first and preserves valid same-hull artwork while loading.
 `ship-effects.prepare` is the explicit full-readiness operation. It resolves only
 after all four appearances, fragments and wreck materials are ready.
 
+Physical topology is ready independently of those materials. Native definitions
+read immutable normalized fragment/wreck metadata from `ship-debris-geometry.js`,
+generated through the original preparation algorithms. Damage events create the
+physical pieces immediately; the shared physics/contact owners advance them
+before any images are ready. Visible painting requests original materials and
+binds only their surfaces to stable piece indices. It cannot change a physical
+piece, replay an explosion or recover expired pieces. Offscreen physical pieces
+do not request optional textures. Asteroid physical polygons likewise use catalog
+dimensions independently of image readiness.
+
+After changing a ship image, alignment or fracture profile, run
+`python tools/build-debris-geometry.py` and its `--check` mode. Commit the metadata
+with the source change. The cheap Node regression verifies coverage, normalized
+source hashes and material conservation; `browser-debris-geometry.py` checks the
+original prepared geometry, cold physical contacts and late material binding.
+Custom artwork must supply matching definition-owned topology. Legacy unsupported
+custom profiles retain their deferred fallback; they have no cold camera-parity
+guarantee. The asset adds no per-ship registry or bitmap copy.
+
+Decorative mining motion, menu/warp stars, hull sparks and wreck trails use
+private visual random streams. Culling or preparing their pixels must not consume
+the random stream used for theft, population or other gameplay choices.
+
 Base appearances and optional destruction data have different lifetimes. The
 optional class LRU remains twelve entries/64 MiB. Its eviction must not blank a
 visible ship. `flight-assets.peekShip` synchronously selects an already processed

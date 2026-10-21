@@ -2,8 +2,10 @@
 const menuSpace=(()=>{
  const canvas=document.getElementById('menu-space'),ctx=canvas.getContext('2d',{alpha:true});
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ let visualSeed=0x4d454e55;
+ const random=()=>{visualSeed=(Math.imul(visualSeed,1664525)+1013904223)>>>0;return visualSeed/4294967296;};
  let raf=0,last=0,time=0,frames=0,px=0,py=0,aimX=0,aimY=0;
- const stars=Array.from({length:185},(_,i)=>({x:(Math.random()-.5)*6,y:(Math.random()-.5)*4.5,z:.6+Math.random()*3.4,size:i%13===0?1.25:.4+Math.random()*.45,speed:i%3===0?.045:.022,color:i%9===0?'#b4d7fa':i%17===0?'#eed8d4':'#d6dceb'}));
+ const stars=Array.from({length:185},(_,i)=>({x:(random()-.5)*6,y:(random()-.5)*4.5,z:.6+random()*3.4,size:i%13===0?1.25:.4+random()*.45,speed:i%3===0?.045:.022,color:i%9===0?'#b4d7fa':i%17===0?'#eed8d4':'#d6dceb'}));
  // Paint behind the opening screen so its fade never exposes the native grid.
  function visible(){return !menuArt.hidden&&!document.hidden;}
  function cloud(x,y,rx,ry,color){
@@ -22,7 +24,7 @@ const menuSpace=(()=>{
   for(const star of stars){
    star.z-=dt*star.speed;
    let x=w/2+star.x/star.z*260+px*8/star.z,y=h/2+star.y/star.z*260+py*6/star.z;
-   if(star.z<.5||x<-12||x>w+12||y<-12||y>h+12){star.z=3.5+Math.random()*.5;star.x=(Math.random()-.5)*6;star.y=(Math.random()-.5)*4.5;x=w/2+star.x/star.z*260;y=h/2+star.y/star.z*260;}
+   if(star.z<.5||x<-12||x>w+12||y<-12||y>h+12){star.z=3.5+random()*.5;star.x=(random()-.5)*6;star.y=(random()-.5)*4.5;x=w/2+star.x/star.z*260;y=h/2+star.y/star.z*260;}
    const radius=Math.max(.28,star.size/star.z*.85);
    ctx.globalAlpha=Math.min(.8,.16+(.95/star.z));ctx.fillStyle=star.color;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
    if(star.size>1&&star.z<1.6){ctx.globalAlpha=.08;ctx.beginPath();ctx.arc(x,y,radius*3,0,Math.PI*2);ctx.fill();}

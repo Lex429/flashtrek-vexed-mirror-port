@@ -45,10 +45,19 @@
     g.globalCompositeOperation='destination-in';g.shadowBlur=0;g.drawImage(data.pieces[row],0,0);
     return canvas;
   }
-  function create(image,rock,now){
+  function visualRandom(rock,born){
+    // Lazy visible artwork must not consume the gameplay random stream. Keep
+    // each operation's cut-piece variation stable across cameras/damage plates.
+    const key=`${rock.system??1}:${rock.slotId??rock.id??rock.file}:${Number.isFinite(born)?born:0}`;
+    let seed=2166136261;
+    for(let i=0;i<key.length;i++)seed=Math.imul(seed^key.charCodeAt(i),16777619)>>>0;
+    return()=>{seed=(seed+0x6d2b79f5)>>>0;let value=seed;value=Math.imul(value^(value>>>15),value|1);value^=value+Math.imul(value^(value>>>7),value|61);return((value^(value>>>14))>>>0)/4294967296;};
+  }
+  function create(image,rock,now,born){
     const data=artwork(image),preview=Math.min(235,Math.max(data.w,data.h)),unit=rock.size/preview,a=rock.angle,normal={x:-.1*Math.cos(a)-Math.sin(a),y:-.1*Math.sin(a)+Math.cos(a)},tangent={x:Math.cos(a)-.1*Math.sin(a),y:Math.sin(a)+.1*Math.cos(a)};
     data.samples||=data.pieces.map(partSamples);
-    const parts=data.pieces.map((piece,index)=>{const side=index-1.5,speed=(18+Math.abs(side)*8+Math.random()*8)*unit,lateral=(Math.random()-.5)*9*unit;return{x:0,y:0,vx:normal.x*side*speed+tangent.x*lateral,vy:normal.y*side*speed+tangent.y*lateral,rotation:0,spin:(Math.random()-.5)*.2,samples:data.samples[index]};});
+    const random=visualRandom(rock,born);
+    const parts=data.pieces.map((piece,index)=>{const side=index-1.5,speed=(18+Math.abs(side)*8+random()*8)*unit,lateral=(random()-.5)*9*unit;return{x:0,y:0,vx:normal.x*side*speed+tangent.x*lateral,vy:normal.y*side*speed+tangent.y*lateral,rotation:0,spin:(random()-.5)*.2,samples:data.samples[index]};});
     const trail=document.createElement('canvas');trail.width=data.w;trail.height=data.h;
     const arcs=document.createElement('canvas');arcs.width=data.w;arcs.height=data.h;
     const seams=data.seams||=(Array.from({length:3},(_,pass)=>[pass,pass+1].map(row=>({row,image:seamTexture(data,pass,row,preview)}))));
@@ -68,7 +77,7 @@
     const damage=rock.oreType==='deuranium'?Math.max(Number(m.state?.asteroidDamage?.[rock.slotId])||0,rock.maxHull*.75*clamp(age/6000,0,1)):0;
     const im=window.nativeSolAsteroids.image(damage?window.nativeSolAsteroids.frame(rock,damage):rock.file);
     if(!im.complete||!im.naturalWidth)return;
-    if(!m.effect||m.effect.data.image!==im)m.effect=create(im,rock,now);
+    if(!m.effect||m.effect.data.image!==im)m.effect=create(im,rock,now,m.born);
     const effect=m.effect,{data,parts,unit,preview}=effect,size=rock.size,heatAge=age-3950,pressure=clamp(heatAge/3600,0,1),ease=pressure*pressure*(3-2*pressure),shieldScale=1.05-.43*ease;
     const dt=clamp((now-effect.clock)/1000,0,.06);effect.clock=now;
     for(let row=0;row<4;row++){

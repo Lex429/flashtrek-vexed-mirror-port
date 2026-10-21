@@ -2,6 +2,10 @@
    one section, so the initial wreckage reconstructs the visible ship exactly. */
 window.createShipDestruction = () => {
   'use strict';
+  // Only cosmetic particles use this stream. Physical fragment trajectories
+  // remain determined by the shared prepared hull pieces below.
+  let visualSeed=0x43544849;
+  const random=()=>{visualSeed=(Math.imul(visualSeed,1664525)+1013904223)>>>0;return visualSeed/4294967296;};
   const sites=[['bow',181,100],['left arm',78,209],['right arm',285,209],
     ['left crossbar',60,313],['right crossbar',305,313],['core housing',181,361],
     ['lower left hull',100,431],['lower right hull',262,431],['stern',181,461],
@@ -105,15 +109,15 @@ window.createShipDestruction = () => {
         vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,size:(piece.core?30:18)*zoom,
         born:born+delay,ttl:480,realistic:'blast',phase:i*1.7});
       for(let j=0;j<(data.sail?8:22);j++){
-        const angle=Math.random()*Math.PI*2,v=(50+Math.random()*135)*zoom;
-        state.particles.push({...p,vx:Math.cos(angle)*v,vy:Math.sin(angle)*v,size:(.6+Math.random())*zoom,
-          born:born+delay+Math.random()*70,ttl:500+Math.random()*950,realistic:'spark'});
+        const angle=random()*Math.PI*2,v=(50+random()*135)*zoom;
+        state.particles.push({...p,vx:Math.cos(angle)*v,vy:Math.sin(angle)*v,size:(.6+random())*zoom,
+          born:born+delay+random()*70,ttl:500+random()*950,realistic:'spark'});
       }
       for(let j=0;j<(data.sail?4:7);j++){
-        const angle=Math.random()*Math.PI*2,v=(8+Math.random()*20)*zoom;
-        state.particles.push({x:p.x+(Math.random()-.5)*piece.w*layout.w,y:p.y+(Math.random()-.5)*piece.h*layout.h,
-          vx:Math.cos(angle)*v,vy:Math.sin(angle)*v,size:(7+Math.random()*13)*zoom,
-          born:born+delay+j*23,ttl:800+Math.random()*1200,realistic:j<3?'fire':'smoke',phase:Math.random()*6});
+        const angle=random()*Math.PI*2,v=(8+random()*20)*zoom;
+        state.particles.push({x:p.x+(random()-.5)*piece.w*layout.w,y:p.y+(random()-.5)*piece.h*layout.h,
+          vx:Math.cos(angle)*v,vy:Math.sin(angle)*v,size:(7+random()*13)*zoom,
+          born:born+delay+j*23,ttl:800+random()*1200,realistic:j<3?'fire':'smoke',phase:random()*6});
       }
     }
     const core=world(data.core);
@@ -172,7 +176,7 @@ window.createShipDestruction = () => {
       p.trailAt=state.time+90;
       const lx=p.edgeX,ly=p.edgeY,cos=Math.cos(p.angle),sin=Math.sin(p.angle),x=p.x+lx*cos-ly*sin,y=p.y+lx*sin+ly*cos;
       state.particles.push({x,y,vx:-p.vx*.16,vy:-p.vy*.16,size:3.5*p.zoom,born:state.time,ttl:950,phase:p.angle,realistic:'smoke'});
-      if(age<1300)state.particles.push({x,y,vx:p.vx*.25+(Math.random()-.5)*28,vy:p.vy*.25+(Math.random()-.5)*28,size:.65*p.zoom,born:state.time,ttl:430,realistic:'spark'});
+      if(age<1300)state.particles.push({x,y,vx:p.vx*.25+(random()-.5)*28,vy:p.vy*.25+(random()-.5)*28,size:.65*p.zoom,born:state.time,ttl:430,realistic:'spark'});
     }
   }
   const audit=()=>stages.map(s=>({sourcePixels:s.sourcePixels,cutPixels:s.cutPixels,pieces:s.pieces.length,structural:s.structural,edgePixels:s.pieces.reduce((n,p)=>n+(p.edgePixels||0),0)}));

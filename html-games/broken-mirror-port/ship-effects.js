@@ -3,7 +3,7 @@
   'use strict';
   const prepared=new Map(),pending=new Map(),loading=new Map(),stagePending=new Map(),background=new Map(),visuals=new Map(),bursts=[],fragments=[],wrecks=[],deferredStages=[];
   const limits={entries:12,bytes:64*1024*1024,pending:8,deferredStages:48,backgroundDelayMs:120};
-  const counters={loads:0,stageLoads:0,backgroundStages:0,foregroundStages:0,evictions:0,failures:0,optionalWallMs:0};
+  const counters={loads:0,stageLoads:0,backgroundStages:0,foregroundStages:0,evictions:0,failures:0,optionalWallMs:0,stageGeometryEmissions:0,wreckGeometryEmissions:0,materialBindings:0};
   let backgroundScheduled=false,backgroundActive=false;
   const now=state=>window.nativeSimulation?.now(state)??performance.now();
   const key=type=>`${Number(type)}:shared`;
@@ -132,39 +132,83 @@
     return {ok:true,shields:descriptor.entity.shields,hull:descriptor.entity.hull,contact};
   }
   function emitWreck(wreck){
-    const preparedData=wreck.artwork||prepared.get(wreck.assetKey),destruction=preparedData?.destruction;
-    if(wreck.prepared||!destruction)return;
+    const preparedData=effectArtwork(wreck),topology=wreck.geometry?.wrecks?.[wreck.stage],destruction=topology?window.cthiaDestruction:preparedData?.destruction;
+    if(wreck.prepared)return;
+    if(wreck.geometry&&!topology){wreck.prepared=true;return true;}
+    if(!destruction)return;
     const {descriptor}=wreck,d=descriptor.dimensions;
     const elapsed=wreck.time;wreck.time=0;
-    destruction.emit(wreck,{x:wreck.x,y:wreck.y,w:d.width,h:d.height},piece=>worldPoint(descriptor,{x:piece.x*d.width,y:piece.y*d.height}),wreck.stage,1);
+    destruction.emit(wreck,{x:wreck.x,y:wreck.y,w:d.width,h:d.height},piece=>worldPoint(descriptor,{x:piece.x*d.width,y:piece.y*d.height}),wreck.stage,1,null,topology||null);
     wreck.time=elapsed;wreck.artwork=preparedData;
-    for(const piece of wreck.debris){piece.system=wreck.system;piece.sourceKey=wreck.sourceKey;
+    for(let index=0;index<wreck.debris.length;index++){const piece=wreck.debris[index];piece.system=wreck.system;piece.sourceKey=wreck.sourceKey;piece.geometryPart=index;
       if(elapsed>0)piece.pendingSweep={x:piece.x,y:piece.y};
       piece.x+=piece.vx*elapsed/1000;piece.y+=piece.vy*elapsed/1000;piece.angle+=piece.spin*elapsed/1000;}
     for(const particle of wreck.particles){const age=Math.max(0,elapsed-particle.born)/1000;particle.x+=(particle.vx||0)*age;particle.y+=(particle.vy||0)*age;}
-    wreck.prepared=true;
+    wreck.prepared=true;if(topology)counters.wreckGeometryEmissions++;
+    bindWreckArtwork(wreck);
     return true;
+  }
+  function effectArtwork(event){
+    const cached=prepared.get(event.assetKey||key(event.descriptor.shipType,event.descriptor.category));
+    if(!event.artwork?.optionalReady&&cached?.optionalReady)event.artwork=cached;
+    return event.artwork;
+  }
+  function bindWreckArtwork(wreck){
+    const artwork=effectArtwork(wreck);if(!artwork?.destruction||wreck.boundArtwork===artwork)return;
+    const pieces=artwork.destruction.serialized?.()[wreck.stage]?.pieces;if(!pieces)return;
+    for(let index=0;index<wreck.debris.length;index++){
+      const piece=wreck.debris[index],source=pieces[piece.geometryPart??index];if(!source)continue;
+      // Never replace authoritative geometry, velocity, age or collision state
+      // when a native surface becomes available.
+      for(const field of ['texture','lit','edge','hot','side'])if(source[field])piece[field]=source[field];
+      counters.materialBindings++;
+    }
+    wreck.boundArtwork=artwork;
+  }
+  function bindFragmentArtwork(piece){
+    if(piece.texture||!piece.artworkSource)return;
+    const source=piece.artworkSource;bindEventFragments(source,effectArtwork(source));
+    if(!piece.texture&&piece.artworkSource)requestVisibleArtwork(source);
+  }
+  function bindEventFragments(event,artwork){
+    const pieces=event.materialPieces;if(!pieces)return;
+    const expired=now(event.state)-event.time>=4200;let waiting=0;
+    for(const piece of pieces){
+      const texture=artwork?.fragments?.[piece.geometryStage]?.[piece.geometryPart]?.texture;
+      if(texture||expired){if(texture&&!expired){piece.texture=texture;counters.materialBindings++;}delete piece.artworkSource;}
+      else pieces[waiting++]=piece;
+    }
+    pieces.length=waiting;
+    // Live chips retain only their required native surfaces, not all four
+    // hull plates and every wreck material after optional-cache eviction.
+    if(!waiting){event.materialPieces=null;event.artwork=null;}
+  }
+  function requestVisibleArtwork(event){
+    if(!event.artworkRequested&&(!window.nativeSimulationFrame||window.nativeSimulationFrame.take(event.state,'damageArtAdmissions',1)))requestArtwork(event);
   }
   function requestArtwork(event){
     if(event.artwork?.optionalReady||event.artworkRequested)return;
     event.artworkRequested=true;
-    prepare(event.descriptor.shipType,event.descriptor.category,{stage:window.nativeShipDefinitions.stage(event.descriptor)}).then(artwork=>{event.artwork=artwork;}).finally(()=>{event.artworkRequested=false;});
+    prepare(event.descriptor.shipType,event.descriptor.category,{stage:window.nativeShipDefinitions.stage(event.descriptor)}).then(artwork=>{if(artwork){event.artwork=artwork;if(event.geometry&&event.materialPieces)bindEventFragments(event,artwork);}}).finally(()=>{event.artworkRequested=false;});
   }
   function retryArtwork(state,dt,time){
     if(pending.size>=limits.pending)return;
-    const available=event=>event.state===state&&!event.artwork?.optionalReady&&!event.artworkRequested;
+    const available=event=>!event.geometry&&event.state===state&&!event.artwork?.optionalReady&&!event.artworkRequested;
     const event=wrecks.find(event=>available(event)&&event.time+dt*1000<17000)||deferredStages.find(event=>available(event)&&time-event.time<4200);
     if(event&&(!window.nativeSimulationFrame||window.nativeSimulationFrame.take(state,'damageArtAdmissions',1)))requestArtwork(event);
   }
   function emitStage(event){
-    const {state,descriptor,artwork,before,after,time}=event;if(!artwork?.fragments)return false;
+    const {state,descriptor,before,after,time}=event,artwork=effectArtwork(event),topology=event.geometry?.fragments,material=topology||artwork?.fragments;if(!material)return false;
     const d=descriptor.dimensions,first=fragments.length;
-    window.showcaseStageFragments.emit({debris:fragments,fragments:artwork.fragments,before,after,
+    window.showcaseStageFragments.emit({debris:fragments,fragments:material,before,after,
       layout:{x:descriptor.x,y:descriptor.y,w:d.width,h:d.height},world:piece=>worldPoint(descriptor,{x:piece.x*d.width,y:piece.y*d.height}),
       angle:descriptor.heading+Math.PI/2,time,zoom:1,burst:(point,strength,sparksOnly)=>burst(state,descriptor,point,strength,sparksOnly)});
     const elapsed=Math.max(0,now(state)-time)/1000;
+    let stage=before+1,part=0;if(topology)event.materialPieces=[];
     for(let i=first;i<fragments.length;i++){const piece=fragments[i];Object.assign(piece,{state,system:descriptor.system,sourceKey:descriptor.category==='player'?'ship:player':`ship:${descriptor.category}:${descriptor.entity.id}`,updatedAt:now(state)});
+      if(topology){while(stage<=after&&part>=topology[stage].length){stage++;part=0;}piece.geometryStage=stage;piece.geometryPart=part++;piece.texture=artwork?.fragments?.[stage]?.[piece.geometryPart]?.texture;if(!piece.texture){piece.artworkSource=event;event.materialPieces.push(piece);}}
       if(elapsed){piece.pendingSweep={x:piece.x,y:piece.y};window.showcaseStageFragments.update(piece,elapsed);}}
+    if(topology)counters.stageGeometryEmissions++;
     return true;
   }
   function hit(state,descriptor,result,event={}){
@@ -177,18 +221,18 @@
         burst(state,descriptor,result.contacts.hull.world);
         const ready=data(descriptor);
         if(!result.destroyed&&result.afterStage>result.beforeStage){
-          const event={state,descriptor:{...descriptor,dimensions:{...descriptor.dimensions}},artwork:ready,before:result.beforeStage,after:result.afterStage,time:now(state)};
+          const event={state,descriptor:{...descriptor,dimensions:{...descriptor.dimensions}},geometry:descriptor.definition.debrisGeometry,artwork:ready,before:result.beforeStage,after:result.afterStage,time:now(state)};
           if(!emitStage(event)){deferredStages.push(event);if(deferredStages.length>limits.deferredStages)deferredStages.shift();
             requestArtwork(event);}
         }
       }
     }
     if(result.destroyed){
-      prepare(descriptor.shipType,descriptor.category,{stage:result.beforeStage});
+      if(!descriptor.definition.debrisGeometry)prepare(descriptor.shipType,descriptor.category,{stage:result.beforeStage});
       const sourceKey=descriptor.category==='player'?'ship:player':`ship:${descriptor.category}:${descriptor.entity.id}`;
       const wreck={state,descriptor,assetKey:key(descriptor.shipType,descriptor.category),system:descriptor.system,x:descriptor.x,y:descriptor.y,
-        angle:descriptor.heading+Math.PI/2,stage:result.beforeStage,time:0,debris:[],particles:[],prepared:false,sourceKey,artwork:data(descriptor)};
-      requestArtwork(wreck);
+        angle:descriptor.heading+Math.PI/2,stage:result.beforeStage,time:0,debris:[],particles:[],prepared:false,sourceKey,geometry:descriptor.definition.debrisGeometry,artwork:data(descriptor)};
+      if(!wreck.geometry)requestArtwork(wreck);
       wrecks.push(wreck);if(wrecks.length>36)wrecks.shift();emitWreck(wreck);
       window.nativeEnvironmentalImpacts?.explode(state,{...descriptor.entity,x:descriptor.x,y:descriptor.y,system:descriptor.system,size:Math.max(descriptor.dimensions.width,descriptor.dimensions.height)},{sourceKey});
     }
@@ -211,7 +255,7 @@
       for(const piece of wreck.debris){const oldX=piece.pendingSweep?.x??piece.x,oldY=piece.pendingSweep?.y??piece.y;delete piece.pendingSweep;piece.x+=piece.vx*elapsed;piece.y+=piece.vy*elapsed;piece.angle+=piece.spin*elapsed;
         if(wreck.system===state.system)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:wreck.sourceKey,dt:elapsed});}
       for(const particle of wreck.particles)if(wreck.time>=particle.born){particle.x+=(particle.vx||0)*elapsed;particle.y+=(particle.vy||0)*elapsed;}
-      (wreck.artwork||prepared.get(wreck.assetKey))?.destruction?.updateTrails(wreck);
+      ((wreck.artwork||prepared.get(wreck.assetKey))?.destruction||(wreck.geometry?window.cthiaDestruction:null))?.updateTrails(wreck);
       wreck.debris=wreck.debris.filter(piece=>wreck.time-piece.born<piece.ttl);wreck.particles=wreck.particles.filter(particle=>wreck.time-particle.born<particle.ttl);
       if(wreck.time>17000)wrecks.splice(i,1);
     }
@@ -281,12 +325,13 @@
     const time=now(state),visible=point=>point.state===state&&point.system===state.system;
     const zoom=view.zoom??1,onScreen=(point,radius)=>!window.nativeEffectVisibility||window.nativeEffectVisibility.circle(view.cx+(point.x-view.ship.x)*zoom,view.cy+(point.y-view.ship.y)*zoom,radius*zoom,view);
     ctx.save();if(zoom===1)ctx.translate(view.cx-view.ship.x,view.cy-view.ship.y);else{ctx.translate(view.cx,view.cy);ctx.scale(zoom,zoom);ctx.translate(-view.ship.x,-view.ship.y);}
-    for(const piece of fragments)if(visible(piece)&&onScreen(piece,Math.hypot(piece.w,piece.h)/2+52))window.showcaseStageFragments?.draw(ctx,piece,time);
+    for(const piece of fragments)if(visible(piece)&&onScreen(piece,Math.hypot(piece.w,piece.h)/2+52)){bindFragmentArtwork(piece);if(piece.texture)window.showcaseStageFragments?.draw(ctx,piece,time);}
     for(const wreck of wrecks){
-      if(!visible(wreck)||!wreck.prepared)continue;const destruction=(wreck.artwork||prepared.get(wreck.assetKey))?.destruction;if(!destruction)continue;
+      if(!visible(wreck)||!wreck.prepared)continue;let destruction=(wreck.artwork||prepared.get(wreck.assetKey))?.destruction||(wreck.geometry?window.cthiaDestruction:null);if(!destruction)continue;
       for(const piece of wreck.debris){if(!onScreen(piece,Math.hypot(piece.w,piece.h)/2+52))continue;ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);
-        if(piece.structural)destruction.drawStructuralWreck(ctx,piece,wreck.time);
-        else{destruction.drawWreckSurface(ctx,piece,wreck.time);destruction.drawWreckGlow(ctx,piece,wreck.time);}ctx.restore();}
+        bindWreckArtwork(wreck);if(!piece.texture)requestVisibleArtwork(wreck);
+        if(piece.texture){if(piece.structural)destruction.drawStructuralWreck(ctx,piece,wreck.time);
+        else{destruction.drawWreckSurface(ctx,piece,wreck.time);destruction.drawWreckGlow(ctx,piece,wreck.time);}}ctx.restore();}
       for(const particle of wreck.particles)if(onScreen(particle,particle.size*4+12))destruction.drawParticle(ctx,particle,wreck.time);
     }
     for(const particle of bursts)if(visible(particle)&&onScreen(particle,(particle.size||0)+2)&&(!view.entity||particle.entity===view.entity))window.showcaseHullBurst?.draw(ctx,particle,time);
@@ -294,12 +339,14 @@
   }
   function snapshot(descriptor){const value=descriptor?visuals.get(descriptor.entity):null;return {flash:value?.flash?{...value.flash}:null,contact:value?.contact?{...value.contact}:null,particles:bursts.filter(p=>!descriptor||p.entity===descriptor.entity).length};}
   function reset(){visuals.clear();bursts.length=0;fragments.length=0;wrecks.length=0;deferredStages.length=0;}
-  function metrics(){const values=new Set([...prepared.values(),...wrecks.map(wreck=>wreck.artwork).filter(Boolean),...deferredStages.map(event=>event.artwork).filter(Boolean)]);
+  function metrics(){const values=new Set([...prepared.values(),...wrecks.map(wreck=>wreck.artwork).filter(Boolean),...deferredStages.map(event=>event.artwork).filter(Boolean),...fragments.map(piece=>piece.artworkSource?.artwork).filter(Boolean)]);
     let bytes=0;for(const value of values)bytes+=assetBytes(value);
+    const countedTextures=new Set();for(const value of values)for(const stage of value.fragments||[])for(const piece of stage)if(piece.texture)countedTextures.add(piece.texture);
+    let liveFragmentBytes=0;for(const piece of fragments)if(piece.texture&&!countedTextures.has(piece.texture)){countedTextures.add(piece.texture);liveFragmentBytes+=piece.texture.width*piece.texture.height*4+(window.wreckageEffects?.memoryBytes(piece.texture)||0);}bytes+=liveFragmentBytes;
     const profiles=Array.from(window.starterShips?.values?.()||[]).map(profile=>profile.effects?.preparationMetrics?.()).filter(Boolean);
     return {...counters,entries:prepared.size,pending:new Set([...pending.keys(),...loading.keys(),...background.keys()]).size,foregroundPending:loading.size,
-      backgroundPending:background.size,backgroundActive,bytes,cacheBytes:[...prepared.values()].reduce((n,value)=>n+assetBytes(value),0),
-      optionalReady:[...prepared.values()].filter(value=>value.optionalReady).length,deferredStages:deferredStages.length,wrecks:wrecks.length,limits:{...limits},
+      backgroundPending:background.size,backgroundActive,bytes,liveFragmentBytes,cacheBytes:[...prepared.values()].reduce((n,value)=>n+assetBytes(value),0),
+      optionalReady:[...prepared.values()].filter(value=>value.optionalReady).length,deferredStages:deferredStages.length,physicalFragments:fragments.length,wrecks:wrecks.length,wreckPieces:wrecks.reduce((n,wreck)=>n+wreck.debris.length,0),limits:{...limits},
       profileLamps:{registeredProfiles:profiles.length,frames:profiles.reduce((n,p)=>n+p.frames,0),maxFramesPerProfile:4,bytes:profiles.reduce((n,p)=>n+p.bytes,0)},
       preparation:window.nativeDamageArtPreparation?.snapshot?.()||null};}
   const ready=(type,category='player')=>Boolean(prepared.get(key(type,category))?.assets.some(Boolean));
