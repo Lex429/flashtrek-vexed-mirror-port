@@ -313,8 +313,9 @@ def main():
                 assert goal>=len(ships),'Population cases must preserve the original saved fleet'
                 for index in range(goal-len(ships)):
                     ship=json.loads(json.dumps(templates[index%len(templates)]));ship_id=next_id+index
+                    spawn_x=1e7+index*200;spawn_y=1e7
                     ship.update(id=ship_id,name=f'Scale fixture {ship_id}',system=initial['system'] if args.distant_system=='current' else ship['system'],
-                        x=1e7+index*200,y=1e7,heading=0,speed=0,vx=0,vy=0,phase='docked',task=None,journey=None,nextActionAt=1e9)
+                        x=spawn_x,y=spawn_y,previousX=spawn_x,previousY=spawn_y,heading=0,speed=0,vx=0,vy=0,phase='docked',task=None,journey=None,nextActionAt=1e9)
                     for key in ['localLeg','dockingMove','motionKick','motionSpin','disputeId','retaliationId','combatAI','combatInterruption','scriptedDemo']:ship.pop(key,None)
                     if args.active_distant:
                         # These are independent fixture owners, not copies of a

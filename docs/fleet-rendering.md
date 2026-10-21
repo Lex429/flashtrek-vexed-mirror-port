@@ -161,6 +161,28 @@ windows also advanced less simulation time and accepted fewer shots, so their
 RAF results cannot establish a speed improvement. The ignored diagnostic
 records the injected source hashes and actual context attributes.
 
+A narrower working-glow/phase-only CPU-hint candidate also failed the unchanged
+colour, alpha and alignment gates; brightness and other contexts stayed native.
+It stopped before phase-history or player/NPC checks. A separate complete-lit-hull
+candidate retained the existing lighting budget and was bit-exact across eight
+mixed comparison grids and 42 role cases, but its fixed12 renderer pair was
+neutral (11.51 versus 11.59 callbacks per second, with a higher mean drawing
+timer). It was not adopted. These results and their scope are documented in
+[the foundation results](fleet-foundation-results.md#renderer-experiments-and-quality-limits);
+they establish no gameplay refresh-rate or hardware ceiling claim.
+
+A final 24-case control presented unchanged native composites directly from a
+WebGL DOM canvas, removing the GPU-to-2D presentation copy. Both transparent
+compositor captures used 1800-by-1400 pixels at DPR 1. The native capture control
+passed (maximum premultiplied colour difference 0.9882, identical alpha and
+support). Direct WebGL still failed the unchanged colour/alpha limits: maximum
+differences were 3/3, with matching support bounds and a 0.001984-pixel centroid
+shift. No browser or GL errors occurred. Its 24 textures and mip levels occupied
+11,563,072 bytes within the 32 MiB cap and were disposed after the check. This
+rejects the sampler as a production replacement; it is not timing evidence.
+One DOM ship layer would also require shared ordering integration for interleaved
+back shields, hulls and front shields. No direct-DOM backend was shipped.
+
 An early isolated stress prototype compared 12/25/50/100 mixed intact/damaged
 ships at 1.7 display scale, before the final per-instance/phase-cache changes.
 The command was

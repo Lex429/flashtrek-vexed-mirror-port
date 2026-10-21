@@ -26,7 +26,9 @@ test('local queries and direct inspection reuse existing membership at 1000 and 
    assert.equal(systems.inspect(state,2).id,2);
   }
   const after=frames.snapshot(state).counters;
-  assert.ok(after.spatialShipGridCells>before.spatialShipGridCells,'small local windows retain grid lookup at 1000/5000 records');
+  const selectedWork=counters=>(counters.spatialShipGridCells||0)+(counters.spatialShipCoarseGridCells||0)+(counters.spatialShipEntryQueries||0);
+  assert.ok(selectedWork(after)>selectedWork(before),'local windows use the shared fine, coarse or small-system direct lookup');
+  assert.ok((after.spatialShipEntryBounds||0)-(before.spatialShipEntryBounds||0)<=100,'local bounds checks do not scan distant population records');
   assert.equal(after.shipSpatialBuilds,before.shipSpatialBuilds,'a physics step does not rebuild the ship grid');
   assert.equal(after.shipDescriptorBuilds,before.shipDescriptorBuilds,'unchanged local ships do not rebuild descriptions');
   assert.ok((after.shipPoseChecks||0)-(before.shipPoseChecks||0)<=100,'steady work follows three local actors, not galaxy population');

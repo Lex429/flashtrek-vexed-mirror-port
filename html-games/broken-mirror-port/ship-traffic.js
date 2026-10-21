@@ -5,7 +5,8 @@
   const runtimes=new WeakMap(),key=s=>s.category+':'+s.id;
   const motion=()=>window.nativeShipMotion,time=s=>window.nativeSimulation.seconds(s);
   const eligible=e=>e&&e.hull>0&&!e.journey&&!['destroyed','warp','arriving'].includes(e.phase);
-  function runtime(state){let rt=runtimes.get(state);if(!rt){rt={plannedAt:-Infinity,offscreenAt:time(state),lastPoses:new Map(),contacts:new Map(),history:[],plans:0,checks:0,describedAt:-1,descriptions:new Map()};runtimes.set(state,rt);}return rt;}
+  function runtime(state){let rt=runtimes.get(state);if(!rt){rt={plannedAt:-Infinity,offscreenAt:time(state),lastPoses:new Map(),physicalActors:new Map(),contacts:new Map(),history:[],plans:0,checks:0,describedAt:-1,descriptions:new Map()};runtimes.set(state,rt);}return rt;}
+  const sameBody=(previous,current)=>!!previous&&previous.entity===current.entity&&previous.category===current.category&&previous.system===current.system;
   function descriptor(state,entity,category,at,base){
     const rt=runtime(state);if(rt.describedAt!==at){rt.describedAt=at;rt.descriptions.clear();}
     base||=rt.descriptions.get(entity);
@@ -16,25 +17,46 @@
       previousX:pose.previousX??pose.x,previousY:pose.previousY??pose.y,hull:entity.hull,shields:entity.shields,
       radii:window.nativeShipDefinitions.surfaceRadii(base.dimensions,entity.shields>0,base.definition),angularVelocity:motion().spinSample(pose.motionSpin,at).velocity,at};
   }
-  function fleet(state,at){
+  function fleet(state,at,{perception=true}={}){
     const actors=[],found=new Map();
     if(eligible(state)&&!state.landed&&!window.vexedWarp?.active)actors.push({...window.nativeShipDefinitions.describe(state,state,{category:'player'}),at});
     for(const ship of window.nativeSolEconomy?.mobile?.(state)||state.solEconomy?.freighters||[])if(eligible(ship)&&(ship.lifeLeg||ship.motionKick||ship.motionSpin||ship.speed>0)){const current=window.nativeShipSystems.resolve(state,'tug:'+ship.id,1);if(current)actors.push({...current,at});}
     for(const ship of window.nativeNpcLives?.mobile?.(state)||state.civilianTraffic?.ships||[])if(eligible(ship)&&(ship.localLeg||ship.motionKick||ship.motionSpin||ship.speed>0)){const current=window.nativeShipSystems.resolve(state,ship.id,ship.system);if(current)actors.push({...current,at});}
     for(const ship of window.nativeShipRepairs?.drones(state)||[])if(eligible(ship.entity))actors.push(descriptor(state,ship.entity,'repair-drone',at,ship));
+    for(const ship of actors)found.set(key(ship),ship);
+    // Avoidance needs future neighbors; physical contacts start with actual
+    // movers and discover blockers only along their authoritative swept hulls.
+    if(!perception)return Array.from(found.values());
     const regions=new Map();
-    for(const ship of actors){found.set(key(ship),ship);const reach=Math.max(200,Math.hypot(ship.vx,ship.vy)*6+motion().shipRadius(ship)+80),region=ship.system+':'+Math.floor(ship.x/4096)+':'+Math.floor(ship.y/4096);
+    for(const ship of actors){const reach=Math.max(200,Math.hypot(ship.vx,ship.vy)*6+motion().shipRadius(ship)+80),region=ship.system+':'+Math.floor(ship.x/4096)+':'+Math.floor(ship.y/4096);
       const box={system:ship.system,minX:Math.min(ship.previousX,ship.x)-reach,minY:Math.min(ship.previousY,ship.y)-reach,maxX:Math.max(ship.previousX,ship.x)+reach,maxY:Math.max(ship.previousY,ship.y)+reach};
       const existing=regions.get(region);if(existing){existing.minX=Math.min(existing.minX,box.minX);existing.minY=Math.min(existing.minY,box.minY);existing.maxX=Math.max(existing.maxX,box.maxX);existing.maxY=Math.max(existing.maxY,box.maxY);}else regions.set(region,box);
     }
     for(const box of regions.values())for(const near of window.nativeShipSystems.query(state,{...box,predictSeconds:6,categories:['player','tug','civilian','repair-drone']}).bystanders)if(eligible(near.entity)&&!found.has(key(near)))found.set(key(near),{...near,at});
     return Array.from(found.values());
   }
-  function grid(ships,cell=768){
-    const buckets=new Map();let radius=0,speed=0,travel=0;
-    const cellKey=(system,x,y)=>system+':'+x+':'+y;
-    for(const s of ships){const k=cellKey(s.system,Math.floor(s.x/cell),Math.floor(s.y/cell));if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push(s);radius=Math.max(radius,motion().shipRadius(s));speed=Math.max(speed,Math.hypot(s.vx,s.vy));travel=Math.max(travel,Math.hypot(s.x-(s.previousX??s.x),s.y-(s.previousY??s.y)));}
-    return {radius,speed,travel,near(s,reach){const result=[];for(let x=Math.floor((s.x-reach)/cell);x<=Math.floor((s.x+reach)/cell);x++)for(let y=Math.floor((s.y-reach)/cell);y<=Math.floor((s.y+reach)/cell);y++)for(const other of buckets.get(cellKey(s.system,x,y))||[])if(other!==s&&Math.hypot(s.x-other.x,s.y-other.y)<=reach)result.push(other);return result;}};
+  function grid(ships,state,prefix,cell=768){
+    const systems=new Map(),cellKey=(x,y)=>x+':'+y;
+    for(const ship of ships){
+      let local=systems.get(ship.system);if(!local)systems.set(ship.system,local={radius:0,speed:0,travel:0,buckets:new Map(),actors:[],sorted:false});
+      const x=Math.floor(ship.x/cell),y=Math.floor(ship.y/cell),entry={ship,x,y,order:local.actors.length},key=cellKey(x,y);
+      local.actors.push(entry);let bucket=local.buckets.get(key);if(!bucket)local.buckets.set(key,bucket=[]);bucket.push(entry);
+      local.radius=Math.max(local.radius,motion().shipRadius(ship));local.speed=Math.max(local.speed,Math.hypot(ship.vx,ship.vy));local.travel=Math.max(local.travel,Math.hypot(ship.x-(ship.previousX??ship.x),ship.y-(ship.previousY??ship.y)));
+    }
+    return {forSystem:system=>systems.get(system),near(ship,reach){
+      const local=systems.get(ship.system),result=[];if(!local)return result;
+      const minX=Math.floor((ship.x-reach)/cell),maxX=Math.floor((ship.x+reach)/cell),minY=Math.floor((ship.y-reach)/cell),maxY=Math.floor((ship.y+reach)/cell),cells=(maxX-minX+1)*(maxY-minY+1),direct=cells>local.actors.length*2;
+      if(direct){
+        // Match the existing cell traversal, including bucket insertion order.
+        // Initial cell coordinates also preserve this snapshot after contacts.
+        if(!local.sorted){local.actors.sort((a,b)=>a.x-b.x||a.y-b.y||a.order-b.order);local.sorted=true;}
+        for(const entry of local.actors)if(entry.x>=minX&&entry.x<=maxX&&entry.y>=minY&&entry.y<=maxY){const other=entry.ship;if(other!==ship&&Math.hypot(ship.x-other.x,ship.y-other.y)<=reach)result.push(other);}
+      }else for(let x=minX;x<=maxX;x++)for(let y=minY;y<=maxY;y++){
+        const bucket=local.buckets.get(cellKey(x,y));if(bucket)for(const entry of bucket){const other=entry.ship;if(other!==ship&&Math.hypot(ship.x-other.x,ship.y-other.y)<=reach)result.push(other);}
+      }
+      window.nativeSimulationFrame?.count(state,prefix+'GridCellsVisited',direct?0:cells);window.nativeSimulationFrame?.count(state,prefix+'DirectActorVisits',direct?local.actors.length:0);window.nativeSimulationFrame?.count(state,prefix+'Returned',result.length);
+      return result;
+    }};
   }
   function replaceLeg(state,ship,leg){
     if(ship.category==='civilian')return window.nativeNpcLives?.reroute(state,ship.entity,leg);
@@ -45,12 +67,12 @@
   function advance(state,dt){
     if(!state||!(dt>0)||window.nativeSimulation.blocked())return;
     const rt=runtime(state),at=time(state);if(at-rt.plannedAt<.2-1e-8)return;rt.plannedAt=at;
-    const ships=fleet(state,at),space=grid(ships);
+    const ships=fleet(state,at),space=grid(ships,state,'trafficAvoidance');
     // Read a single simultaneous snapshot: enumeration order cannot change who yields.
     for(const ship of ships){
       const e=ship.entity,leg=e.localLeg||e.lifeLeg;
       if(ship.category==='player'||!leg||leg.startedAt+leg.duration<=at||e.disputeId||e.retaliationId||e.scriptedDemo||e.phase==='disabled')continue;
-      const profile=ship.definition.movement,neighbors=space.near(ship,Math.max(200,(Math.hypot(ship.vx,ship.vy)+space.speed)*6+space.radius+motion().shipRadius(ship)+80));
+      const profile=ship.definition.movement,local=space.forSystem(ship.system),neighbors=space.near(ship,Math.max(200,(Math.hypot(ship.vx,ship.vy)+local.speed)*6+local.radius+motion().shipRadius(ship)+80));
       rt.checks+=neighbors.length;
       const advice=motion().trafficAdvice(ship,neighbors,profile);
       if(!advice){if(e.trafficControl&&at>=e.trafficControl.until)delete e.trafficControl;continue;}
@@ -120,13 +142,27 @@
     }
     let ships=active;
     if(offscreen){
-      const current=new Set(active.map(key)),distant=fleet(state,at).filter(s=>!current.has(key(s)));
-      for(const s of distant){const prev=rt.lastPoses.get(key(s));s.previousX=prev?.system===s.system?prev.x:s.x;s.previousY=prev?.system===s.system?prev.y:s.y;s.contactDt=at-rt.offscreenAt;}
+      const current=new Set(active.map(key)),actors=fleet(state,at,{perception:false}),nextActors=new Map(actors.map(s=>[key(s),s]));
+      // Finishing a real job may remove its leg before this poll. Retain that
+      // body's final displacement once, without retaining discovered blockers
+      // or stationary forecast neighbors as future physical work.
+      for(const [id,previous] of rt.physicalActors)if(!nextActors.has(id)&&!current.has(id)&&eligible(previous.entity)){
+        const target=window.nativeShipSystems.resolve(state,previous.id,previous.system);
+        if(target&&sameBody(previous,target)){actors.push({...target,at});window.nativeSimulationFrame?.count(state,'shipContactStoppedSweeps');}
+      }
+      rt.physicalActors=nextActors;
+      const distant=actors.filter(s=>!current.has(key(s)));
+      for(const s of distant){
+        const previous=rt.lastPoses.get(key(s)),known=sameBody(previous,s),leg=s.entity.localLeg||s.entity.lifeLeg;
+        if(known){s.previousX=previous.x;s.previousY=previous.y;}
+        else if(leg){const pose={...s.entity};motion().sampleLeg(pose,leg,Math.max(rt.offscreenAt,leg.startedAt));s.previousX=pose.x;s.previousY=pose.y;}
+        s.contactDt=at-(known?previous.at:rt.offscreenAt);
+      }
       rt.offscreenAt=at;ships=[...active,...distant];
     }
     for(const s of ships){
       const previous=rt.lastPoses.get(key(s));
-      if(s.system===state.system&&previous?.system===s.system){s.previousX=previous.x;s.previousY=previous.y;}
+      if(s.system===state.system&&sameBody(previous,s)){s.previousX=previous.x;s.previousY=previous.y;}
       const elapsed=s.contactDt||dt,travel=Math.hypot(s.x-s.previousX,s.y-s.previousY);
       if(travel>Math.max(500,Math.hypot(s.vx,s.vy)*elapsed*3+50)){s.previousX=s.x;s.previousY=s.y;}
       if(s.category!=='player'&&s.category!=='repair-drone'&&!s.entity.localLeg&&!s.entity.lifeLeg&&(s.entity.motionKick||s.entity.motionSpin)&&!['fighting','ore-theft'].includes(s.entity.phase)){
@@ -138,18 +174,21 @@
     // Free movers keep physical contacts outside the observer's detailed area.
     // Admit their stationary neighbors and connected contact chains through the
     // same conservative grid; an idle hull is still a physical blocker.
+    window.nativeSimulationFrame?.count(state,'shipContactActorSeeds',ships.length);
     const neighbors=new Set(ships.map(key));
     for(const s of ships){const padding=motion().shipRadius(s)+2,box={minX:Math.min(s.x,s.previousX)-padding,minY:Math.min(s.y,s.previousY)-padding,maxX:Math.max(s.x,s.previousX)+padding,maxY:Math.max(s.y,s.previousY)+padding};
       if(s.system===state.system&&box.minX>=player.x-radius&&box.maxX<=player.x+radius&&box.minY>=player.y-radius&&box.maxY<=player.y+radius)continue;
       const nearby=window.nativeShipSystems.query(state,{system:s.system,...box,categories:['player','tug','civilian','repair-drone']}).bystanders;
       window.nativeSimulationFrame?.count(state,'shipContactNeighborhoods');window.nativeSimulationFrame?.count(state,'shipContactCandidates',nearby.length);
-      for(const target of nearby)if(eligible(target.entity)&&!neighbors.has(key(target))){neighbors.add(key(target));const next=target.entity.localLeg||target.entity.lifeLeg?descriptor(state,target.entity,target.category,at,target):{...target},previous=rt.lastPoses.get(key(next));if(previous?.system===next.system){next.previousX=previous.x;next.previousY=previous.y;}ships.push(next);}
+      for(const target of nearby)if(eligible(target.entity)&&!neighbors.has(key(target))){neighbors.add(key(target));const next=target.entity.localLeg||target.entity.lifeLeg?descriptor(state,target.entity,target.category,at,target):{...target},previous=rt.lastPoses.get(key(next));if(sameBody(previous,next)){next.previousX=previous.x;next.previousY=previous.y;}ships.push(next);}
     }
-    const space=grid(ships),seen=new Set();
+    const space=grid(ships,state,'shipContact'),seen=new Set();
     for(const a of ships){
-      const elapsed=a.contactDt||dt,reach=motion().shipRadius(a)+space.radius+Math.hypot(a.x-a.previousX,a.y-a.previousY)+space.travel+2;
-      for(const b of space.near(a,reach)){
+      const elapsed=a.contactDt||dt,local=space.forSystem(a.system),reach=motion().shipRadius(a)+local.radius+Math.hypot(a.x-a.previousX,a.y-a.previousY)+local.travel+2;
+      const nearby=space.near(a,reach);window.nativeSimulationFrame?.count(state,'shipContactPairCandidates',nearby.length);
+      for(const b of nearby){
         const pair=[key(a),key(b)].sort().join('|');if(seen.has(pair))continue;seen.add(pair);
+        window.nativeSimulationFrame?.count(state,'shipContactPairTests');
         const result=motion().shipPairContact(a,b,elapsed);if(!result)continue;
         push(state,a,result.a);push(state,b,result.b);
         Object.assign(a,result.a);Object.assign(b,result.b);
@@ -163,7 +202,8 @@
         rt.contacts.set(pair,at);
       }
     }
-    for(const s of ships)rt.lastPoses.set(key(s),{x:s.x,y:s.y,system:s.system});
+    for(const s of ships)rt.lastPoses.set(key(s),{x:s.x,y:s.y,system:s.system,entity:s.entity,category:s.category,at});
+    if(offscreen)for(const [id,previous] of rt.lastPoses)if(!eligible(previous.entity)||at-previous.at>1)rt.lastPoses.delete(id);
     for(const [k,t] of rt.contacts)if(at-t>1)rt.contacts.delete(k);
   }
   window.nativeShipTraffic=Object.freeze({advance,collide,steer,snapshot(state){const rt=runtime(state);return {plans:rt.plans,neighborChecks:rt.checks,contacts:rt.history.map(e=>({...e}))};}});

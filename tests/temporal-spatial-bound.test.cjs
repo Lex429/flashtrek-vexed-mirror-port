@@ -14,14 +14,17 @@ async function setup(){
  query();return {...f,ship,query};
 }
 
-test('future route endpoints do not cause repeated distant pose samples while broadphase candidates remain reported',async()=>{
- const {window:w,state:s,ship,query}=await setup(),beforeChecks=count(w,s,'shipPoseChecks'),beforeCandidates=count(w,s,'spatialShipCandidates'),beforeRejects=count(w,s,'spatialShipTemporalRejects');
- const retained=w.nativeShipSystems.resolve(s,ship.id),saved=JSON.stringify(ship);
+test('future endpoints stay out of local candidates while bounded expiry maintains authoritative route poses',async()=>{
+ const {window:w,state:s,ship,query}=await setup(),beforeChecks=count(w,s,'shipPoseChecks'),beforeCandidates=count(w,s,'spatialShipCandidates'),beforeRejects=count(w,s,'spatialShipTemporalRejects'),beforeExpiry=count(w,s,'spatialShipHorizonRefreshes');
+ const retained=w.nativeShipSystems.resolve(s,ship.id),saved=JSON.stringify(ship),deadline=ship.nextActionAt;
  for(let index=0;index<120;index++){w.nativeSimulationFrame.step(s);w.nativeSimulation.advance(s,1/60);assert.equal(query().length,0);}
- assert.equal(count(w,s,'shipPoseChecks'),beforeChecks+1,'only the explicit retained snapshot resolved a pose');
- assert.equal(count(w,s,'spatialShipTemporalRejects'),beforeRejects+120);assert.equal(count(w,s,'spatialShipCandidates'),beforeCandidates*121,'full-route broadphase visits, including the category-filtered player, are still counted');
+ const expiry=count(w,s,'spatialShipHorizonRefreshes')-beforeExpiry;assert.equal(expiry,10,'two simulation seconds service ten 0.2-second envelopes');
+ assert.equal(count(w,s,'shipPoseChecks'),beforeChecks+1+expiry,'only the explicit lookup and due expiry maintenance sample the distant pose');
+ assert.equal(count(w,s,'spatialShipTemporalRejects'),beforeRejects,'the distant complete route never reaches temporal rejection');
+ assert.ok(count(w,s,'spatialShipCandidates')-beforeCandidates<=120,'local broadphase work may include the player but not the irrelevant future route');
  assert.equal(JSON.stringify(ship),saved,'a query cannot move or reschedule the authoritative actor');assert.equal(retained.x,1e7);
- const current=w.nativeShipSystems.resolve(s,ship.id);assert.ok(current.x<retained.x);assert.notEqual(current,retained);assert.equal(retained.x,1e7);
+ const expected={...ship};w.nativeShipMotion.sampleLeg(expected,ship.localLeg,w.nativeSimulation.seconds(s));
+ const current=w.nativeShipSystems.resolve(s,ship.id);close(current.x,expected.x);close(current.y,expected.y);assert.ok(current.x<retained.x);assert.notEqual(current,retained);assert.equal(retained.x,1e7);assert.equal(ship.nextActionAt,deadline);
  w.nativeSimulationFrame.end(s);
 });
 
@@ -58,7 +61,7 @@ test('same-clock geometry, damage and nested hardware mutations refresh before t
  assert.equal(w.nativeShipSystems.resolve(s,ship.id).dimensions.width,80);w.nativeSimulationFrame.end(s);
 });
 
-test('kicks, spins, unsupported saved commands and unnotified raw changes retain the full pose path',async()=>{
+test('kicks, spins and unsupported commands retain full bounds while relevant queries refresh raw pose changes',async()=>{
  const {window:w,state:s,ship,query}=await setup();
  for(const mutate of [
   ()=>{ship.motionKick={version:1,mode:'scheduled',at:0,x:0,y:0,vx:10,vy:0,duration:3};},
@@ -68,8 +71,14 @@ test('kicks, spins, unsupported saved commands and unnotified raw changes retain
   mutate();w.nativeShipSystems.refreshShip(s,ship,'civilian');const before=count(w,s,'shipPoseChecks'),checks=count(w,s,'spatialShipTemporalChecks');w.nativeSimulation.advance(s,.01);query();
   assert.equal(count(w,s,'shipPoseChecks'),before+1);assert.equal(count(w,s,'spatialShipTemporalChecks'),checks);
  }
- ship.localLeg={...ship.localLeg,version:2};w.nativeShipSystems.refreshShip(s,ship,'civilian');ship.x+=1;
- const before=count(w,s,'shipPoseChecks');query();assert.equal(count(w,s,'shipPoseChecks'),before+1,'raw changed fields must be reconciled instead of rejected');w.nativeSimulationFrame.end(s);
+ ship.localLeg={...ship.localLeg,version:2};w.nativeShipSystems.refreshShip(s,ship,'civilian');
+ const old=w.nativeShipSystems.resolve(s,ship.id),oldX=old.x;ship.x+=1;const saved=JSON.stringify(ship),at=w.nativeSimulation.seconds(s),expected={...ship},previous={...ship};
+ w.nativeShipMotion.sampleLeg(expected,ship.localLeg,at);w.nativeShipMotion.sampleLeg(previous,ship.localLeg,at-1/60);
+ const area={minX:expected.x-1,minY:expected.y-1,maxX:expected.x+1,maxY:expected.y+1},before=count(w,s,'shipPoseChecks'),current=query(area)[0];
+ assert.equal(count(w,s,'shipPoseChecks'),before+1,'a relevant query reconciles the raw changed fields');
+ assert.ok(current);assert.notEqual(current,old);close(current.x,expected.x);close(current.y,expected.y);close(current.previousX,previous.x);close(current.previousY,previous.y);
+ assert.equal(old.x,oldX,'the retained pose remains immutable');assert.equal(JSON.stringify(ship),saved,'sampling the committed leg cannot rewrite its live entity');
+ assert.equal(query(area)[0],current,'the reconciled same-clock descriptor is reusable');w.nativeSimulationFrame.end(s);
 });
 
 test('a fast scheduled blocker entering after beam launch takes exactly one physical hit',async()=>{

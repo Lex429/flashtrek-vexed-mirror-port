@@ -1,7 +1,7 @@
 /* Common world-target interface. Controllers register consequences, not physics. */
 (() => {
   'use strict';
-  const kinds=new Map(),rockGeometry=new WeakMap(),collections=new WeakMap(),persistent=new WeakMap(),cellSize=256;let registryRevision=0;
+  const kinds=new Map(),rockGeometry=new WeakMap(),collections=new WeakMap(),persistent=new WeakMap(),cellSize=256,coarseCellSize=4096,routeForecastSeconds=6,routeIndexSeconds=.2;let registryRevision=0;
   const clock=state=>window.nativeSimulation?.seconds?.(state)||(Number(state?.shipSimulation?.seconds)||0);
   const cacheRevisions=new WeakMap();
   function caches(state){
@@ -105,7 +105,7 @@
     let systems=persistent.get(state);if(!systems)persistent.set(state,systems=new Map());
     let record=systems.get(system);if(record?.building)return record;
     const revision=membership(state,system);if(record&&!record.dirty&&record.revision===revision)return record;
-    record={system,revision,building:true,ships:[],slots:new Map(),space:{grid:new Map(),entries:new Map(),overflow:new Set(),maxVelocity:0}};systems.set(system,record);
+    record={state,system,revision,building:true,ships:[],slots:new Map(),space:createSpace(state)};systems.set(system,record);
     for(const [category,adapter] of kinds)if(category!=='asteroid')for(const supplied of adapter.collect(state,system)||[]){
       const target=describeActor(state,supplied.entity,category,supplied.id,supplied)||supplied;if(living(target))insertTarget(record,{...target,category:target.category||category});
     }
@@ -114,13 +114,20 @@
   function insertTarget(record,target,reuseRoute=false){
     const identity=target.entity||target;let slots=record.slots.get(identity);if(!slots)record.slots.set(identity,slots=new Map());const old=slots.get(target.category);
     if(old===undefined){slots.set(target.category,record.ships.length);record.ships.push(target);}else record.ships[old]=target;
-    let entry=record.space.entries.get(idKey(target.id));if(reuseRoute&&entry){entry.target=target;velocityBand(record.space,entry,Math.max(Math.abs(target.vx||0),Math.abs(target.vy||0)));}else{updateSpatial(record.space,target);entry=record.space.entries.get(idKey(target.id));entry.hardware=hardwareValues(target.entity,target.definition);entry.routeMotion=routeMotion(target);}
+    let entry=record.space.entries.get(idKey(target.id));
+    if(reuseRoute&&entry){
+      entry.target=target;velocityBand(record.space,entry,indexVelocity(target,entry.routeMotion));
+      if(entry.expiryAt!==undefined&&entry.expiryAt<=clock(record.state)+1e-9)updateSpatial(record.space,target,entry.routeMotion,clock(record.state));
+    }else{
+      const motion=routeMotion(target);updateSpatial(record.space,target,motion,clock(record.state));entry=record.space.entries.get(idKey(target.id));entry.hardware=hardwareValues(target.entity,target.definition);entry.routeMotion=motion;
+    }
     entry.fields=rememberPose(target.entity);entry.at=Number(target.state?.shipSimulation?.seconds)||0;entry.definitionRevision=window.nativeShipDefinitions?.revision?.()||0;
   }
   function removeTarget(record,entry){
+    removeExpiry(record.space,entry);
     const target=entry.target,identity=target.entity||target,index=record.slots.get(identity)?.get(target.category);if(index!==undefined){record.ships.splice(index,1);const slots=record.slots.get(identity);slots.delete(target.category);if(!slots.size)record.slots.delete(identity);for(let i=index;i<record.ships.length;i++)record.slots.get(record.ships[i].entity||record.ships[i]).set(record.ships[i].category,i);}
     velocityBand(record.space,entry,0);
-    for(const key of entry.cells){const bucket=record.space.grid.get(key);bucket?.delete(idKey(target.id));if(!bucket?.size)record.space.grid.delete(key);}record.space.entries.delete(idKey(target.id));record.space.overflow.delete(idKey(target.id));
+    const id=idKey(target.id);removeMembership(record.space,entry,id);removeMembership(record.space,entry,id,true);record.space.entries.delete(id);
   }
   function touch(state,record,entry,reusableHint,changedHint){
     window.nativeSimulationFrame?.count(state,'shipPoseChecks');
@@ -178,14 +185,14 @@
     return target;
   }
   // Route owners call this only after sampling an unchanged committed leg.
-  // Its full swept route remains indexed; an unobserved pose needs no new
-  // equipment/geometry description until a bounded query actually reads it.
+  // Its conservative route envelope remains indexed until simulation-time
+  // expiry; unobserved poses reuse equipment/geometry until a query or expiry.
   function sampledShip(state,entity,category,system=category==='tug'?1:entity.system??state.system,before){
     const record=persistent.get(state)?.get(system);if(!record||record.building)return;
     const index=record.slots.get(entity)?.get(category),entry=index===undefined?null:record.space.entries.get(idKey(record.ships[index].id)),leg=entity.localLeg||entity.lifeLeg;
     if(!entry||record.dirty||!leg||!reusableRoute(entry,entity))return refreshShip(state,entity,category,system);
     const target=entry.target,at=clock(state),heading=entity.heading??entity.angle??0;
-    velocityBand(record.space,entry,Math.max(Math.abs(entity.vx||0),Math.abs(entity.vy||0)));
+    velocityBand(record.space,entry,indexVelocity(entry.target,entry.routeMotion,entity));
     window.nativeSimulationFrame?.count(state,'shipPoseNotifications');
     if(entry.at===at&&target.x===entity.x&&target.y===entity.y&&target.heading===heading&&target.speed===entity.speed&&target.vx===(entity.vx||0)&&target.vy===(entity.vy||0)){
       entry.fields=rememberPose(entity);window.nativeSimulationFrame?.count(state,'shipPoseAcknowledgements');return target;
@@ -215,17 +222,73 @@
     return {minX:Math.min(x0,target.x,x1)-radius,minY:Math.min(y0,target.y,y1)-radius,maxX:Math.max(x0,target.x,x1)+radius,maxY:Math.max(y0,target.y,y1)+radius};
   }
   const intersects=(a,b)=>a.minX<=b.maxX&&a.maxX>=b.minX&&a.minY<=b.maxY&&a.maxY>=b.minY;
-  function cells(box){const minX=Math.floor(box.minX/cellSize),maxX=Math.floor(box.maxX/cellSize),minY=Math.floor(box.minY/cellSize),maxY=Math.floor(box.maxY/cellSize);return {minX,maxX,minY,maxY,count:(maxX-minX+1)*(maxY-minY+1)};}
-  function updateSpatial(space,target){
-    const id=idKey(target.id),old=space.entries.get(id);
-    const box=indexBounds(target),range=cells(box);
-    const band=velocityBand(space,old,Math.max(Math.abs(target.vx||0),Math.abs(target.vy||0)));
-    if(old&&range.minX===old.range.minX&&range.maxX===old.range.maxX&&range.minY===old.range.minY&&range.maxY===old.range.maxY){old.target=target;old.box=box;return;}
-    if(old){for(const key of old.cells){const bucket=space.grid.get(key);bucket?.delete(id);if(!bucket?.size)space.grid.delete(key);}space.overflow.delete(id);}
-    const entry={target,box,range,cells:[],velocityBand:band};space.entries.set(id,entry);
-    if(range.count>4096)space.overflow.add(id);
+  function createSpace(state){return {state,grid:new Map(),coarseGrid:new Map(),entries:new Map(),overflow:new Set(),coarseOverflow:new Set(),fineMemberships:0,coarseMemberships:0,entrySequence:0,bucketSequence:0,maxVelocity:0};}
+  function cells(box,size=cellSize){const minX=Math.floor(box.minX/size),maxX=Math.floor(box.maxX/size),minY=Math.floor(box.minY/size),maxY=Math.floor(box.maxY/size);return {minX,maxX,minY,maxY,count:(maxX-minX+1)*(maxY-minY+1)};}
+  const sameRange=(a,b)=>a&&a.minX===b.minX&&a.maxX===b.maxX&&a.minY===b.minY&&a.maxY===b.maxY;
+  function removeMembership(space,entry,id,coarse=false){
+    const grid=coarse?space.coarseGrid:space.grid,overflow=coarse?space.coarseOverflow:space.overflow,field=coarse?'coarseCells':'cells',count=coarse?'coarseMemberships':'fineMemberships',previous=entry[field]||[];
+    for(const key of previous){const bucket=grid.get(key);bucket?.delete(id);if(!bucket?.size)grid.delete(key);}overflow.delete(id);space[count]-=previous.length;entry[field]=[];
+    if(space.state){const prefix=coarse?'spatialShipCoarseGrid':'spatialShipGrid';window.nativeSimulationFrame?.count(space.state,prefix+'EntryWrites');window.nativeSimulationFrame?.count(space.state,prefix+'CellWrites',previous.length);}
+  }
+  function updateMembership(space,entry,id,range,coarse=false){
+    const rangeField=coarse?'coarseRange':'range';if(sameRange(entry[rangeField],range))return;
+    removeMembership(space,entry,id,coarse);
+    const grid=coarse?space.coarseGrid:space.grid,overflow=coarse?space.coarseOverflow:space.overflow,field=coarse?'coarseCells':'cells',count=coarse?'coarseMemberships':'fineMemberships';entry[rangeField]=range;
+    if(!coarse)entry.gridOrder=space.bucketSequence++;
+    if(range.count>4096)overflow.add(id);
     else for(let x=range.minX;x<=range.maxX;x++)for(let y=range.minY;y<=range.maxY;y++){
-      const key=x+':'+y;let bucket=space.grid.get(key);if(!bucket)space.grid.set(key,bucket=new Set());bucket.add(id);entry.cells.push(key);
+      const key=x+':'+y;let bucket=grid.get(key);if(!bucket)grid.set(key,bucket=new Set());bucket.add(id);entry[field].push(key);
+    }
+    space[count]+=entry[field].length;
+    if(space.state)window.nativeSimulationFrame?.count(space.state,(coarse?'spatialShipCoarseGrid':'spatialShipGrid')+'CellWrites',entry[field].length);
+  }
+  function swapExpiry(heap,a,b){const previous=heap[a];heap[a]=heap[b];heap[b]=previous;heap[a].expiryIndex=a;heap[b].expiryIndex=b;}
+  function fixExpiry(space,index){
+    const heap=space.expiries;
+    while(index>0){const parent=(index-1)>>1;if(heap[parent].expiryAt<=heap[index].expiryAt)break;swapExpiry(heap,parent,index);index=parent;}
+    for(;;){let child=index*2+1;if(child>=heap.length)break;if(child+1<heap.length&&heap[child+1].expiryAt<heap[child].expiryAt)child++;if(heap[index].expiryAt<=heap[child].expiryAt)break;swapExpiry(heap,index,child);index=child;}
+  }
+  function removeExpiry(space,entry){
+    if(entry?.expiryIndex===undefined)return;
+    const heap=space.expiries,index=entry.expiryIndex,last=heap.pop();delete entry.expiryIndex;delete entry.expiryAt;
+    if(index<heap.length){heap[index]=last;last.expiryIndex=index;fixExpiry(space,index);}
+  }
+  function scheduleExpiry(space,entry,at){
+    const heap=space.expiries||=[];entry.expiryAt=at;
+    if(entry.expiryIndex===undefined){entry.expiryIndex=heap.length;heap.push(entry);}fixExpiry(space,entry.expiryIndex);
+  }
+  function boundedRoute(target,motion){
+    const entity=target.entity;
+    return motion&&['civilian','tug'].includes(target.category)&&typeof target.definition?.dimensions!=='function'&&motion.leg===target.sampledLeg&&Number.isFinite(target.sampledAt)&&
+      !entity.motionKick&&!entity.motionSpin&&!entity.journey&&!entity.disputeId&&!entity.retaliationId&&!entity.projectileEvade;
+  }
+  function routeBounds(target,motion){
+    const box=bounds(target),padding=motion.padding+motion.speed*(routeIndexSeconds+(window.nativeSimulationFrame?.fixedStep||1/60))+1e-6;
+    return {minX:box.minX-padding,minY:box.minY-padding,maxX:box.maxX+padding,maxY:box.maxY+padding};
+  }
+  function indexVelocity(target,motion,entity=target.entity){
+    return Math.max(Math.abs(target.vx||0),Math.abs(target.vy||0),Math.abs(entity?.vx||0),Math.abs(entity?.vy||0),motion?.speed||0);
+  }
+  function updateSpatial(space,target,motion,at=0){
+    const id=idKey(target.id),old=space.entries.get(id);
+    const bounded=boundedRoute(target,motion),box=bounded?routeBounds(target,motion):indexBounds(target),range=cells(box),coarseRange=cells(box,coarseCellSize);
+    const band=velocityBand(space,old,indexVelocity(target,motion));
+    const entry=old||{cells:[],coarseCells:[],order:space.entrySequence++};entry.target=target;entry.box=box;entry.velocityBand=band;
+    if(bounded){scheduleExpiry(space,entry,at+routeIndexSeconds);space.envelopeClock=Math.max(space.envelopeClock??at,at);}else removeExpiry(space,entry);
+    if(space.state)window.nativeSimulationFrame?.count(space.state,'spatialShipGridBoundsUpdates');
+    space.entries.set(id,entry);updateMembership(space,entry,id,range);updateMembership(space,entry,id,coarseRange,true);
+  }
+  function refreshExpired(state,record){
+    const space=record.space,at=clock(state);
+    if(at<Math.max(space.indexClock??at,space.envelopeClock??at)-1e-9){
+      space.envelopeClock=at;
+      for(const entry of space.entries.values())if(entry.expiryAt!==undefined)scheduleExpiry(space,entry,at);
+    }
+    space.indexClock=at;
+    while(space.expiries?.length&&space.expiries[0].expiryAt<=at+1e-9){
+      const entry=space.expiries[0];removeExpiry(space,entry);
+      const target=touch(state,record,entry);
+      if(target){const current=space.entries.get(idKey(target.id));updateSpatial(space,target,current.routeMotion,at);window.nativeSimulationFrame?.count(state,'spatialShipHorizonRefreshes');}
     }
   }
   function velocityBand(space,entry,velocity){
@@ -242,9 +305,9 @@
   const routeNumbers=['startedAt','duration','distance','heading','headingStart','turnSeconds','initialSpeed','peakSpeed','acceleration','braking','accelSeconds','cruiseSeconds','brakeSeconds','accelDistance'];
   const pointDistance=(a,b)=>a&&b&&Number.isFinite(a.x)&&Number.isFinite(a.y)&&Number.isFinite(b.x)&&Number.isFinite(b.y)?Math.hypot(a.x-b.x,a.y-b.y):Infinity;
   const closeRoute=(a,b)=>Math.abs(a-b)<=1e-7*Math.max(1,Math.abs(a),Math.abs(b));
-  // Keep the complete route in the spatial owner. This extra bound only proves
-  // that an unchanged, supported route cannot reach a query at the requested
-  // time. Invalid/legacy commands without sufficient metadata use normal touch.
+  // Validate shared route speed/padding before using a finite grid envelope or
+  // rejecting a temporally distant candidate. Unsupported commands retain
+  // complete-route bounds and normal authoritative sampling.
   function routeMotion(target){
     const leg=target.entity?.localLeg||target.entity?.lifeLeg;if(!leg)return null;
     function inspect(part){
@@ -275,28 +338,64 @@
     if(outside)window.nativeSimulationFrame?.count(state,'spatialShipTemporalRejects');return outside;
   }
   function spatial(record){
-    if(!record.space){record.space={grid:new Map(),entries:new Map(),overflow:new Set(),maxVelocity:0};for(const target of record.scene.bystanders)updateSpatial(record.space,target);}
+    if(!record.space){record.space=createSpace(record.state||record.scene.state);for(const target of record.scene.bystanders)updateSpatial(record.space,target);}
     return record.space;
+  }
+  function gridCost(grid,range,memberships,overflow){
+    let cost=range.count+overflow.size;
+    if(range.count<=16){for(let x=range.minX;x<=range.maxX;x++)for(let y=range.minY;y<=range.maxY;y++)cost+=grid.get(x+':'+y)?.size||0;}
+    else cost+=range.count*memberships/Math.max(1,grid.size);
+    return cost;
+  }
+  function unobservedFineChange(space,entry,range){
+    // A retained raw alias can move within its previous fine bucket before an
+    // explicit notification. Preserve the old fine lookup's lazy observation;
+    // a stale box cannot prove that such a candidate is still outside the ray.
+    return (space.overflow.has(idKey(entry.target.id))||intersects(range,entry.range))&&
+      (!['player','civilian','tug'].includes(entry.target.category)||typeof entry.target.definition?.dimensions==='function'||changed(entry));
   }
   function query(state,{system=state.system,minX,minY,maxX,maxY,swept=true,predictSeconds=0,categories}={}){
     const record=shipRecord(state,system),space=record.space;
     const box={minX,minY,maxX,maxY};
     if(![minX,minY,maxX,maxY].every(Number.isFinite))return scene(state,{system});
+    refreshExpired(state,record);
     predictSeconds=Number.isFinite(Number(predictSeconds))?Math.max(0,Number(predictSeconds)):0;
-    const reach=space.maxVelocity*predictSeconds,searchBox={minX:minX-reach,minY:minY-reach,maxX:maxX+reach,maxY:maxY+reach},range=cells(searchBox),ids=new Set();
-    // A large mostly empty window should not visit thousands of empty cells
-    // when this system has only a few physical entries. Dense/local queries
-    // retain the grid; both paths use identical conservative swept bounds.
-    if(range.count>space.entries.size*2){
-      for(const [id,entry] of space.entries)if(intersects(searchBox,entry.box))ids.add(id);
+    const reach=space.maxVelocity*predictSeconds,searchBox={minX:minX-reach,minY:minY-reach,maxX:maxX+reach,maxY:maxY+reach},range=cells(searchBox),coarseRange=cells(searchBox,coarseCellSize),ids=new Set();
+    const legacyDirect=predictSeconds>routeForecastSeconds||range.count>space.entries.size*2;
+    const fineCost=gridCost(space.grid,range,space.fineMemberships,space.overflow),coarseCost=gridCost(space.coarseGrid,coarseRange,space.coarseMemberships,space.coarseOverflow);
+    window.nativeSimulationFrame?.count(state,'spatialShipCostProbeCells',(range.count<=16?range.count:0)+(coarseRange.count<=16?coarseRange.count:0));
+    const path=predictSeconds>routeForecastSeconds||space.entries.size<=Math.min(fineCost,coarseCost)?'direct':coarseCost<fineCost?'coarse':'fine';
+    // Both grids reference these same canonical entries. Occupancy estimates
+    // bound empty-cell work; exact conservative boxes reject bucket neighbors
+    // before pose/equipment checks. Long forecasts retain their full fallback.
+    if(path==='direct'){
+      for(const [id,entry] of space.entries){
+        let candidate=entry.box;
+        if(predictSeconds>routeForecastSeconds&&entry.routeMotion){const full=indexBounds(entry.target),padding=entry.routeMotion.speed*predictSeconds;candidate={minX:full.minX-padding,minY:full.minY-padding,maxX:full.maxX+padding,maxY:full.maxY+padding};}
+        if(intersects(searchBox,candidate)||!legacyDirect&&unobservedFineChange(space,entry,range))ids.add(id);
+      }
+      if(predictSeconds>routeForecastSeconds)window.nativeSimulationFrame?.count(state,'spatialShipLongForecastQueries');
       window.nativeSimulationFrame?.count(state,'spatialShipEntryBounds',space.entries.size);window.nativeSimulationFrame?.count(state,'spatialShipEntryQueries');
     }else{
-      for(const id of space.overflow)ids.add(id);
-      for(let x=range.minX;x<=range.maxX;x++)for(let y=range.minY;y<=range.maxY;y++)for(const id of space.grid.get(x+':'+y)||[])ids.add(id);
-      window.nativeSimulationFrame?.count(state,'spatialShipGridCells',range.count);
+      const coarse=path==='coarse',grid=coarse?space.coarseGrid:space.grid,overflow=coarse?space.coarseOverflow:space.overflow,selected=coarse?coarseRange:range;
+      for(const id of overflow)ids.add(id);
+      for(let x=selected.minX;x<=selected.maxX;x++)for(let y=selected.minY;y<=selected.maxY;y++)for(const id of grid.get(x+':'+y)||[])ids.add(id);
+      window.nativeSimulationFrame?.count(state,coarse?'spatialShipCoarseGridCells':'spatialShipGridCells',selected.count);
+      if(coarse)window.nativeSimulationFrame?.count(state,'spatialShipCoarseGridQueries');
     }
+    const candidates=[];let boxRejects=0;
+    for(const id of ids){const entry=space.entries.get(id);if(!entry)continue;if(path!=='direct'&&!intersects(searchBox,entry.box)&&!( !legacyDirect&&unobservedFineChange(space,entry,range))){boxRejects++;continue;}candidates.push(entry);}
+    if(path!=='direct')window.nativeSimulationFrame?.count(state,'spatialShipEntryBounds',ids.size);
+    if(boxRejects)window.nativeSimulationFrame?.count(state,'spatialShipBoundsRejects',boxRejects);
+    // Query-path selection must not reorder interception/traffic ties. Retain
+    // the former direct insertion order or fine overflow/cell/bucket traversal.
+    if(legacyDirect)candidates.sort((a,b)=>a.order-b.order);
+    else if(path!=='fine')candidates.sort((a,b)=>{
+      const ao=space.overflow.has(idKey(a.target.id)),bo=space.overflow.has(idKey(b.target.id));if(ao!==bo)return ao?-1:1;
+      return ao?a.gridOrder-b.gridOrder:Math.max(range.minX,a.range.minX)-Math.max(range.minX,b.range.minX)||Math.max(range.minY,a.range.minY)-Math.max(range.minY,b.range.minY)||a.gridOrder-b.gridOrder;
+    });
     const allowed=categories?new Set(Array.isArray(categories)?categories:[categories]):null,bystanders=[];
-    for(const id of ids){const entry=space.entries.get(id);if(!entry||allowed&&!allowed.has(entry.target.category))continue;const reusable=reusableRoute(entry,entry.target.entity),poseChanged=changed(entry);if(temporallyDistant(state,entry,box,swept,predictSeconds,reusable,poseChanged))continue;const target=touch(state,record,entry,reusable,poseChanged);if(target&&living(target)&&intersects(box,bounds(target,swept,predictSeconds)))bystanders.push(target);}
+    for(const entry of candidates){if(allowed&&!allowed.has(entry.target.category))continue;const reusable=reusableRoute(entry,entry.target.entity),poseChanged=changed(entry);if(temporallyDistant(state,entry,box,swept,predictSeconds,reusable,poseChanged))continue;const target=touch(state,record,entry,reusable,poseChanged);if(target&&living(target)&&intersects(box,bounds(target,swept,predictSeconds)))bystanders.push(target);}
     const asteroids=window.nativeSolAsteroids,nearRocks=allowed&&!allowed.has('asteroid')?[]:asteroids?.queryBounds?asteroids.queryBounds(system,box,{swept,predictSeconds}):asteroids?.forSystem?.(system)||(system===1?asteroids?.placements:[])||[];
     const rocks=[];for(const rock of nearRocks)if(!rockGone(state,rock.slotId)){
       const target=rockTarget(state,rock,system);if(intersects(box,bounds(target,swept,predictSeconds)))rocks.push(target);

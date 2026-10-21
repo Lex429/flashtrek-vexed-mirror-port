@@ -15,7 +15,7 @@ test('large empty queries reject stored conservative bounds before description w
  frames.begin(s);frames.step(s);systems.query(s,{minX:-1,minY:-1,maxX:1,maxY:1});const before=frames.snapshot(s).counters;
  for(let index=0;index<20;index++)assert.equal(systems.query(s,{minX:10000,minY:10000,maxX:20000,maxY:20000}).bystanders.length,0);
  const after=frames.snapshot(s).counters;assert.equal(after.shipDescriptorBuilds,before.shipDescriptorBuilds);assert.equal(after.spatialShipGridCells,before.spatialShipGridCells);
- assert.equal(after.spatialShipEntryQueries,20);assert.ok(after.spatialShipEntryBounds<=60,'only the three existing physical bounds are examined per large empty query');frames.end(s);
+ assert.equal(after.spatialShipEntryQueries-(before.spatialShipEntryQueries||0),20);assert.ok(after.spatialShipEntryBounds-(before.spatialShipEntryBounds||0)<=60,'only the three existing physical bounds are examined per large empty query');frames.end(s);
 });
 test('unobserved scheduled poses retain conservative route membership and become current on every bounded read',async()=>{
  const f=await setup(),{window:w,state:s,ship}=f,systems=w.nativeShipSystems,frames=w.nativeSimulationFrame;

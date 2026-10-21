@@ -109,8 +109,8 @@ contacts run each physics step. Distant poses are sampled without preparing art.
 Registered per-system geometry and spatial membership persist across physics
 steps. An individual movement/contact/fitting change replaces that actor's
 immutable descriptor; explicit unknown membership changes reconcile the owner.
-Scheduled legs use conservative complete-route bounds, then local queries sample
-their current authoritative poses. A retained traffic snapshot never changes
+Scheduled legs use conservative expiring route envelopes with complete-route
+fallbacks, then local queries sample their current authoritative poses. A retained traffic snapshot never changes
 under another owner's refresh. Swept bounding circles reject distant pairs first.
 Sweeps use previous authoritative poses and ignore system changes/teleports.
 Ship-pair narrow phase uses 32 supporting axes plus both ships' orientation axes
@@ -329,6 +329,38 @@ collision remains in the shared weapon/motion owners. `collisionScene(state, {sy
 query-only view whose `querySwept(from, to, padding, {instant, horizon})` prepares
 only candidates, while `scene` remains the full collection API. It must not be
 used as an empty full scene by a consumer that does not call `querySwept`.
+
+Validated civilian/tug routes use the same registry entries and grid with a
+rotation-safe envelope covering the current sweep and 0.2 seconds of
+simulation-time validity, with verified route padding and one fixed-step margin.
+Prediction expands the query using a velocity band that includes each validated
+route's speed bound, including while its last stored velocity is still zero.
+One indexed expiry-heap slot per entry
+keeps scheduling bounded. Queries refresh every due envelope before lookup;
+forward/backward clock changes, including direct resolution or scene preparation
+between queries, and explicit pose, damage, fitting, definition or
+membership changes cannot leave expired geometry in service. Unsupported routes,
+impulses and custom geometry keep conservative complete-route bounds; forecasts
+beyond six seconds use complete-route bounds plus verified speed padding.
+Descriptors retained by another owner remain immutable. Aggregate grid bounds,
+entry and cell-write counters distinguish lookup savings from index maintenance.
+Run the eight regressions
+with `node --test tests/scheduled-spatial-horizon.test.cjs`, alongside the existing
+scheduled-pose, shared-spatial, swept-collision and traffic suites.
+
+The same canonical entries have aligned 256-unit and 4,096-unit cell memberships.
+Query selection estimates occupied-cell work and chooses the fine grid, coarse
+grid or a direct check for genuinely small systems. Both memberships and their
+overflow sets update together on pose, bounds, expiry and membership changes;
+they are acceleration structures, not additional actors or retained snapshots.
+Queries preserve the prior direct/fine traversal order for interception and
+traffic ties. Stored bounds reject unchanged bucket neighbors before describing
+them; nearby raw pose changes still pass through authoritative freshness checks.
+Long forecasts retain the conservative complete-route fallback. Count
+`spatialShipCostProbeCells` separately from selected-path cell visits: estimating
+small occupied windows also reads buckets. Coarse entry/cell writes and bounds
+checks remain visible in the shared counters. Run
+`tests/coarse-spatial-query.test.cjs` with the route, beam and collision suites.
 
 Counters distinguish full `sceneCollections`, `asteroidGeometryBuilds` when size
 data is first needed, `asteroidDescriptors` for changed rock pose descriptions,

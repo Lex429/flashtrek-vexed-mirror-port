@@ -95,8 +95,10 @@ def main():
     parser.add_argument('--seconds',type=float,default=8)
     parser.add_argument('--seed',type=int,default=4292026)
     parser.add_argument('--held-fire',action='store_true',help='Add sustained real player fire to measure hit checkpoints')
+    parser.add_argument('--mixed-capacity',action='store_true',help='Separate heavy diagnostic:12 intact original-size mixed hulls, shared capacity fixture, stationary observer; crowdedFlight only')
     parser.add_argument('--headed',action='store_true',help='Visible maximized Edge at1200x650/DPR1, matching the fixed-viewport headed review; heavy diagnostic only')
     args=parser.parse_args();OUTPUT.mkdir(parents=True,exist_ok=True)
+    if args.mixed_capacity and args.scenario!='crowdedFlight':parser.error('--mixed-capacity requires --scenario crowdedFlight')
     source=args.source_root.resolve();saved=args.fixture.read_text(encoding='utf-8')
     source_hashes={str(path.relative_to(source)).replace('\\','/'):hashlib.sha256(path.read_bytes()).hexdigest()
         for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for path in sorted([*(source/folder).glob('*.js'),*(source/folder).glob('*.html')])}
@@ -159,10 +161,13 @@ def main():
             # be outermost so it sees the actual draw callback rather than the
             # anonymous callback forwarded by the save-cost companion. Its
             # detailed frame records are the sole source of simulation work.
-            page.add_init_script('('+combat.INSTRUMENT+')();('+review.stability.INSTRUMENT+')();('+review.INSTRUMENT+')()')
+            instrument='('+combat.INSTRUMENT+')();('+review.stability.INSTRUMENT+')();('+review.INSTRUMENT+')()'
+            if args.mixed_capacity:instrument+=';('+review.CAPACITY_INSTRUMENT+')()'
+            page.add_init_script(instrument)
             page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
             page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
             page.evaluate(review.INSTALL);page.evaluate(review.stability.INSTALL)
+            if args.mixed_capacity:page.evaluate(review.CAPACITY_INSTALL)
             page.wait_for_function('()=>nativeNpcDev.getState() && nativeSolAsteroids.placements.length',timeout=120000)
             # Save owner wrapper only; combat.INSTALL also starts a new game, so
             # extract the instrumentation before its controller-start statement.
@@ -173,15 +178,17 @@ def main():
             page.evaluate('()=>{for(const timer of window.__stabilityTimers||[])clearInterval(timer);window.__stabilityTimers=[];}')
             page.evaluate('(mode)=>{window.__reviewMode=mode;}',args.scenario)
             if args.scenario=='crowdedFlight':page.evaluate('()=>{const s=nativeNpcDev.getState(),origin=vexedSolFlight.shipPosition(s);nativeShipMotion.stop(s);s.civilianTraffic.ships.filter(e=>e.hull>0).slice(0,12).forEach((ship,index)=>{nativeNpcLives.interrupt(s,ship,"rendering stress fixture");ship.scriptedDemo="benchmark";const angle=index*Math.PI/6,radius=180+(index%3)*35;Object.assign(ship,{system:s.system,x:origin.x+Math.cos(angle)*radius,y:origin.y+Math.sin(angle)*radius,phase:"docked",timer:1e6,heading:angle+Math.PI,speed:0});nativeNpcLives.refreshLocation(s,ship);});nativeShipSystems.invalidate(s);}')
+            capacity_fixture=page.evaluate(review.CAPACITY_SETUP,{'count':12,'mixed':True}) if args.mixed_capacity else None
             page.wait_for_timeout(3000)
             page.wait_for_function('()=>!nativeShipEffects.metrics().pending && !vexedFlightAssets.cacheSnapshot().ships.pending && !(nativeShipEffects.metrics().preparation?.pending)',timeout=120000)
             if args.scenario!='devMap' or args.held_fire:page.locator('#space').focus()
-            if args.scenario in ['flight','crowdedFlight']:page.evaluate(review.SCRIPTED_INPUT)
+            if args.scenario in ['flight','crowdedFlight'] and not args.mixed_capacity:page.evaluate(review.SCRIPTED_INPUT)
             if args.scenario=='miningDebris':page.evaluate(review.DEBRIS_INPUT)
             page.evaluate('__resetFixtureRandom()')
             if args.held_fire:
                 page.evaluate('()=>{const s=nativeNpcDev.getState(),p=vexedSolFlight.shipPosition(s),ship=s.civilianTraffic.ships.filter(e=>e.system===s.system&&e.hull>0&&Math.hypot(e.x-p.x,e.y-p.y)<500).sort((a,b)=>b.hull-a.hull)[0];if(!ship)throw Error("No valid sustained-fire target");nativeCivilianTraffic.select(ship.id);}')
             page.evaluate(DIAGNOSTICS)
+            capacity_before=page.evaluate('()=>{__renderReview.capacity.frames.length=0;return {cache:nativeShipSpriteCache.snapshot(),effects:nativeShipEffects.metrics(),assets:vexedFlightAssets.cacheSnapshot()};}') if args.mixed_capacity else None
             page.evaluate('(metadata)=>{const p=__diagnosticCosts;p.builderAvailability=metadata;for(const [name,item] of Object.entries(metadata))p[name]=item.available?0:null;}',builder_metadata)
             if args.headed:
                 conditions['beforeMeasurement']=page.evaluate(headed.PAGE_METADATA)
@@ -195,6 +202,10 @@ def main():
             if args.held_fire:page.keyboard.down('Space')
             page.wait_for_timeout(args.seconds*1000)
             after=page.evaluate('()=>{performance.mark("vexed-measure-end");window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();__diagnosticCosts.record=false;__combatPerf.record=false;__stability.record=false;return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),costs:__diagnosticCosts,counters:__reviewCounters(),frames:__stability.frames,saves:__combatPerf.saves,playerHits:__combatPerf.hits.length,inputs:__renderReview.inputs};}')
+            capacity_after=page.evaluate('()=>({frames:__renderReview.capacity.frames,cache:nativeShipSpriteCache.snapshot(),effects:nativeShipEffects.metrics(),assets:vexedFlightAssets.cacheSnapshot()})') if args.mixed_capacity else None
+            if args.mixed_capacity:
+                assert len(capacity_after['frames'])==len(after['frames']),'Mixed-capacity trace lost its per-display census'
+                for frame,capacity in zip(after['frames'],capacity_after['frames']):frame['capacity']=capacity
             after.update(review.frame_work(after['frames'],before['counters'],after['counters']))
             work=after['simulationWork']
             after['builderCounts']={name:{'available':item['available'],'value':after['costs'][name] if item['available'] else None,'owner':item['owner']}
@@ -233,6 +244,12 @@ def main():
             names={name:{**row,'threads':sorted(row['threads'])} for name,row in names.items()}
             report={'label':args.label,'sourceRoot':str(source),'sourceHashes':source_hashes,'sourceInjections':source_injections,'harnessSha256':harness_hashes['browser-performance-trace.py'],'harnessHashes':harness_hashes,'browser':browser.version,'graphics':gpu,'fixtureSha256':hashlib.sha256(args.fixture.read_bytes()).hexdigest(),'requestedSeconds':args.seconds,'scenario':args.scenario,'before':before,'after':after,'performanceBefore':metrics_before,'performanceAfter':metrics_after,'traceEventNames':names,'errors':errors,'notes':['Heavy trace/source counters/CPU profiler/save timings are diagnostic only. Inclusive event durations overlap: never sum parent and child events or all threads as frame time. Compositor/presentation events include browser work outside game JS.','Flight inputs and crowded-flight placement match browser-performance-review.py; other fixtures use its shared stability setup. Source hashes describe original served files before diagnostic-only source injection; sourceInjections records builder markers, availability and normalized/injected hashes.','weaponCandidates counts exact collision tests for beams plus flying projectiles on both revisions. Baseline beam/projectile splits are unavailable (null); current simulationWork preserves separate categories.','sceneRequests counts exported API requests, including cache hits; internal closure calls are not wrapped. builderCounts instead counts executed cache-miss scene/collection/grid builders on each revision. Persistent current shipRecord constructs its collection and spatial grid together. Unmatched builder markers retain null/unavailable; absence of an unsupported clean simulationWork counter must not be interpreted as zero.']}
             report.update(headless=not args.headed,viewport=viewport,dpr=1,randomSeed=args.seed)
+            if args.mixed_capacity:
+                layout=capacity_fixture['layout']
+                report['mixedCapacity']={'configuredShips':12,'intactMixedHulls':True,'stationaryObserver':True,
+                    'fixture':capacity_fixture,'initialLayoutSha256':hashlib.sha256(json.dumps(layout,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+                    'before':capacity_before,'after':capacity_after,
+                    'note':'Heavy real-gameplay cache/GC/presentation diagnostic using the same original-size shared capacity layout. Physical contacts and jobs run normally; configured ships may disperse. This is not a clean FPS sample or a constant visible-fleet claim.'}
             if args.headed:
                 finish_headed_conditions(conditions,owner,headed)
                 report['headedConditions']=conditions
