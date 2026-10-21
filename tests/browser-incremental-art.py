@@ -164,7 +164,7 @@ def main():
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
             page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
-            page.evaluate('()=>{startNativeDevGame();nativeNpcDev.showMap();window.nativeSimulation={...nativeSimulation,blocked:()=>true};}')
+            page.evaluate('()=>{startNativeDevGame();nativeNpcDev.showMap();window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
             page.wait_for_function('()=>!nativeShipEffects.metrics().pending && !nativeDamageArtPreparation.snapshot().pending', timeout=120000)
             page.add_script_tag(path=str(ROOT/'tests/fixtures/reference-painted-art-665e553.js'))
             result = page.evaluate(CHECK)

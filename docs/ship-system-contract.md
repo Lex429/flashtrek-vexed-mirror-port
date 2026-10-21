@@ -17,8 +17,8 @@ The live game and damage showcase share their weapon and shield shaders in
 | Ship statistics, equipment, dimensions, role capabilities, emitters, collision geometry | `ship-definitions.js`, using the existing `world-data.js`, flight reference and artwork profiles | Select a registered definition/profile |
 | World targets, category adapters and collision dispatch | `ship-systems.js` | Register business consequences and which entities currently exist |
 | Acceleration, turning, braking, speed constraints, goal arrival, path following and inertial steering | `ship-motion.js` | Choose commands and a named movement profile |
-| Saved simulation time and pause gate | `simulation-clock.js` | Supply frame elapsed seconds through `native-game.js` |
-| Fixed physics scheduling, bounded catch-up debt and pure render interpolation | `simulation-frame.js` | Begin/end display frames, supply elapsed active time and integrate every admitted 1/60-second step |
+| Saved simulation time and pause gate | `simulation-clock.js` | Use shared seconds/deadlines and report actual gate changes |
+| Live wall-time admission, fixed physics scheduling, bounded catch-up debt and pure render interpolation | `simulation-frame.js`; `native-game.js` holds `nativeSimulationHost` | Checkpoint RAF/gate edges, then drain admitted 1/60-second steps through the common integrator |
 | Tactical detail eligibility | `ship-detail.js` | Ask the common predicate before steering, firing or collecting combat scenes |
 | Owned weapon identities, fitting, locker transfers, recharge deadlines and legacy equipment migration | `weapon-loadout.js` | Request an equipment operation |
 | Model/upgrade weapon specifications, eligibility, ballistic simulation, interception and swept collisions | `weapon-rules.js` | Choose a weapon/target, or request fire |
@@ -48,16 +48,39 @@ and frame. Do not additionally call the adapter's legacy `advance`/`paint` passe
 
 ## Ship traffic and contact
 
-The host supplies elapsed active time to `simulation-frame.run`. Physics advances
-at 60 fixed steps per simulation second independently of display refresh. A host
-task admits at most eight steps and stops catch-up after its work budget; the
-unpaid amount remains in versioned saved
-`shipSimulation.schedule.pendingSeconds`. Overload is observable rather than
-discarded. Display callbacks alone accept elapsed time. The owner's bounded
-between-display service calls the same integrator with zero new elapsed time;
-it yields between tasks and cannot draw or request held fire. Diagnostic carry
-is distinct from each task's scheduler admission budget. Pause, hidden-tab and inventory gates preserve existing debt without
-accepting suspended time. Calendar skips retain their existing committed owner.
+`nativeSimulationFrame.createHostTime` supplies one live wall-time admission owner,
+exposed as `nativeSimulationHost`. `checkpoint(timestamp?)` records elapsed active
+time at RAF and actual pause, inventory, visibility and travel gate edges. It
+remembers the preceding gate state: entering an inactive interval retains its
+active tail, and leaving excludes the inactive interval, including one entirely
+between two RAFs. Stale RAF timestamps cannot move the boundary backward.
+These event checkpoints admit time without running physical integration.
+
+The same checkpoint timestamp also samples optional `displayActive` and retains
+its preceding gate state. Its runtime-only `displayPendingSeconds` is consumed
+once per RAF by `consumeDisplay()`. The physical gate excludes warp; the display
+gate preserves warp presentation while excluding pause, inventory and hidden
+intervals, including complete gate intervals between RAFs. Display accumulation
+is not saved simulation time and cannot advance jobs, recharge or transactions.
+
+The host handles `native-pausechange`, `native-inventorychange`,
+`visibilitychange` and generic `native-flightgatechange`; optional event
+`detail.at` uses the same monotonic time origin as RAF/performance time. A live
+diagnostic that replaces or restores `nativeSimulation.blocked` must call
+`nativeSimulationHost?.checkpoint()` immediately at that edge. `reset` only
+rebinds an explicitly activated state or fixture time and clears transient
+display accumulation; it never clears saved physical
+`shipSimulation.schedule.pendingSeconds`.
+
+RAF and the bounded between-display service call
+`simulation-frame.run(state, 0, ...)` to drain admitted debt. Physics advances at
+60 fixed steps per simulation second independently of display refresh. Each task
+integrates at most eight steps and stops catch-up after its work budget; unpaid
+time remains in the versioned saved schedule. Background tasks add no wall time,
+yield between tasks and cannot draw or request held fire. Diagnostic carry is
+distinct from each task's scheduler admission budget. Pause, hidden-tab and
+inventory gates preserve existing debt without accepting suspended time.
+Overload remains observable. Calendar skips retain their committed owner.
 Travel/calendar transitions reject unpaid whole physics steps with explicit
 catch-up feedback, allowing the existing schedule to settle them before the
 transition is retried. They cannot move pre-departure collision debt into a new
@@ -219,7 +242,8 @@ rebuild a delivery tug or start a conversation.
   `{x:0,y:-.36}`. Emitters and local impact positions are not camera coordinates.
 * Simulation steps and recharge deadlines use seconds. Shader and fragment
   `born` values use simulation milliseconds from `nativeSimulation.now(state)`.
-  Browser wall time measures incoming frame duration only.
+  Browser wall time enters through the shared host's RAF/gate checkpoints;
+  simulation deadlines never use it directly.
 * Hidden tabs, pause and inventory opening stop the shared simulation clock.
   A fixed simulation timestamp also freezes shield flashes, hull particles,
   weapon animation and destruction. Rendering does not age or prune attacks.

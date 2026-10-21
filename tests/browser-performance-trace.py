@@ -2,6 +2,8 @@
 
 CDP tracing and source-level candidate counters are deliberately excluded from
 clean frame-delivery runs. Raw traces/profiles stay under ignored test-results.
+Optional --headed matches the visible review's fixed1200x650/DPR1 protocol;
+the default remains the separate headless1280x850 diagnostic.
 """
 import argparse
 import functools
@@ -66,6 +68,24 @@ def inject_ship_builders(original):
     return patched,metadata
 
 
+def finish_headed_conditions(conditions,owner,headed):
+    """Use the clean headed companion's event/window metadata, outside tracing."""
+    if conditions.get('captured'):return
+    conditions['captured']=True
+    for page in owner.created:
+        try:
+            if not page._page.is_closed():page.capture()
+        except Exception as error:
+            conditions.setdefault('captureErrors',[]).append(str(error))
+    conditions['pages']=owner.pages
+    conditions['viewportExceedsOuterWindow']=[row['page'] for row in owner.pages if row.get('window') and
+        (row['window']['innerWidth']>row['window']['outerWidth'] or row['window']['innerHeight']>row['window']['outerHeight'])]
+    conditions['measuredFocusOrVisibilityInterruptions']=[{'page':row['page'],'mode':row.get('mode'),'event':event}
+        for row in owner.pages for event in row.get('events',[])
+        if event['measured'] and (not event['focused'] or event['visible']!='visible')]
+    conditions['windowsDisplayModesAfter']=headed.display_modes()
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source-root',type=Path,default=ROOT)
@@ -75,12 +95,25 @@ def main():
     parser.add_argument('--seconds',type=float,default=8)
     parser.add_argument('--seed',type=int,default=4292026)
     parser.add_argument('--held-fire',action='store_true',help='Add sustained real player fire to measure hit checkpoints')
+    parser.add_argument('--headed',action='store_true',help='Visible maximized Edge at1200x650/DPR1, matching the fixed-viewport headed review; heavy diagnostic only')
     args=parser.parse_args();OUTPUT.mkdir(parents=True,exist_ok=True)
     source=args.source_root.resolve();saved=args.fixture.read_text(encoding='utf-8')
     source_hashes={str(path.relative_to(source)).replace('\\','/'):hashlib.sha256(path.read_bytes()).hexdigest()
-        for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for path in sorted((source/folder).glob('*.js'))}
+        for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for path in sorted([*(source/folder).glob('*.js'),*(source/folder).glob('*.html')])}
     harness_hashes={name:hashlib.sha256((ROOT/'tests'/name).read_bytes()).hexdigest()
         for name in ['browser-performance-trace.py','browser-performance-review.py','browser-stability.py','browser-combat-performance.py']}
+    headed=owner=conditions=None
+    viewport={'width':1200,'height':650} if args.headed else {'width':1280,'height':850}
+    if args.headed:
+        headed=module('headed_trace_conditions','browser-performance-headed.py')
+        harness_hashes['browser-performance-headed.py']=hashlib.sha256((ROOT/'tests/browser-performance-headed.py').read_bytes()).hexdigest()
+        owner=argparse.Namespace(fullscreen=False,position=None,pages=[],created=[])
+        conditions={'protocol':'headed-fixed-viewport-heavy-trace','headless':False,'fullscreenRequested':False,
+            'requestedViewport':viewport,'requestedDpr':1,'windowsDisplayModesBefore':headed.display_modes(),
+            'notes':['The fixed viewport, maximized temporary window and event metadata reuse browser-performance-headed.py.',
+                'CDP trace/CPU sampling/source counters are heavy diagnostics; do not pool their frame intervals with clean review windows.',
+                'Configured monitor refresh and RAF callbacks do not establish physical scanout. Analyze compositor/presentation events by process/thread and the measured marks.',
+                'No OS registry, refresh, power, GPU or global browser setting is changed.']}
     builder_path='html-games/broken-mirror-port/ship-systems.js'
     builder_original=(source/builder_path).read_text(encoding='utf-8')
     builder_source,builder_metadata=inject_ship_builders(builder_original)
@@ -115,9 +148,11 @@ def main():
     try:
         with sync_playwright() as playwright:
             channel=os.environ.get('BROWSER_CHANNEL','msedge')
-            browser=playwright.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
+            browser=playwright.chromium.launch(headless=not args.headed,**({'channel':channel} if channel else {}))
+            if args.headed:browser=headed.BrowserProxy(browser,owner)
             cdp=browser.new_browser_cdp_session();gpu=cdp.send('SystemInfo.getInfo')
-            page=browser.new_page(viewport={'width':1280,'height':850})
+            if args.headed:conditions.update(browserVersion=browser.version,graphics=gpu,sourceRoot=str(source),scenario=args.scenario)
+            page=browser.new_page(viewport=viewport,device_scale_factor=1) if args.headed else browser.new_page(viewport=viewport)
             page.on('pageerror',lambda error:errors.append(str(error)))
             page.add_init_script('(()=>{let seed;window.__resetFixtureRandom=()=>{seed='+str(args.seed)+'>>>0;window.__fixtureRandomCalls=0;};__resetFixtureRandom();Math.random=()=>{window.__fixtureRandomCalls++;seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};})()')
             # Both diagnostic RAF wrappers inspect callback.name. Stability must
@@ -132,7 +167,7 @@ def main():
             # Save owner wrapper only; combat.INSTALL also starts a new game, so
             # extract the instrumentation before its controller-start statement.
             page.evaluate(combat.INSTALL.replace('  startNativeDevGame();',''))
-            page.evaluate('()=>{window.__traceBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};}')
+            page.evaluate('()=>{window.__traceBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
             page.evaluate('__resetFixtureRandom()')
             page.evaluate(review.stability.SETUP,{'saved':saved,'mode':'flight' if args.scenario=='crowdedFlight' else args.scenario})
             page.evaluate('()=>{for(const timer of window.__stabilityTimers||[])clearInterval(timer);window.__stabilityTimers=[];}')
@@ -148,15 +183,18 @@ def main():
                 page.evaluate('()=>{const s=nativeNpcDev.getState(),p=vexedSolFlight.shipPosition(s),ship=s.civilianTraffic.ships.filter(e=>e.system===s.system&&e.hull>0&&Math.hypot(e.x-p.x,e.y-p.y)<500).sort((a,b)=>b.hull-a.hull)[0];if(!ship)throw Error("No valid sustained-fire target");nativeCivilianTraffic.select(ship.id);}')
             page.evaluate(DIAGNOSTICS)
             page.evaluate('(metadata)=>{const p=__diagnosticCosts;p.builderAvailability=metadata;for(const [name,item] of Object.entries(metadata))p[name]=item.available?0:null;}',builder_metadata)
-            page_cdp=page.context.new_cdp_session(page);page_cdp.send('Profiler.enable');page_cdp.send('Profiler.setSamplingInterval',{'interval':1000});page_cdp.send('Performance.enable')
+            if args.headed:
+                conditions['beforeMeasurement']=page.evaluate(headed.PAGE_METADATA)
+                conditions['measuredStartVisibleAndFocused']=conditions['beforeMeasurement']['visibility']=='visible' and conditions['beforeMeasurement']['focused']
+            page_cdp=page.context.new_cdp_session(page._page if args.headed else page);page_cdp.send('Profiler.enable');page_cdp.send('Profiler.setSamplingInterval',{'interval':1000});page_cdp.send('Performance.enable')
             metrics_before=page_cdp.send('Performance.getMetrics')
             completion=[];cdp.on('Tracing.tracingComplete',lambda event:completion.append(event))
             cdp.send('Tracing.start',{'transferMode':'ReturnAsStream','traceConfig':{'recordMode':'recordContinuously','includedCategories':['devtools.timeline','v8','blink','blink.user_timing','cc','gpu','viz','benchmark','latencyInfo','disabled-by-default-devtools.timeline','disabled-by-default-devtools.timeline.frame','disabled-by-default-v8.gc']}})
             page_cdp.send('Profiler.start')
-            before=page.evaluate('()=>{__diagnosticCosts.record=true;__combatPerf.record=true;__stability.frames=[];__stability.record=true;__renderReview.inputs=[];performance.mark("vexed-measure-start");window.nativeSimulation={...nativeSimulation,blocked:window.__traceBlocked};return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),counters:__reviewCounters()};}')
+            before=page.evaluate('()=>{__diagnosticCosts.record=true;__combatPerf.record=true;__stability.frames=[];__stability.record=true;__renderReview.inputs=[];performance.mark("vexed-measure-start");window.nativeSimulation={...nativeSimulation,blocked:window.__traceBlocked};window.nativeSimulationHost?.checkpoint();return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),counters:__reviewCounters()};}')
             if args.held_fire:page.keyboard.down('Space')
             page.wait_for_timeout(args.seconds*1000)
-            after=page.evaluate('()=>{performance.mark("vexed-measure-end");window.nativeSimulation={...nativeSimulation,blocked:()=>true};__diagnosticCosts.record=false;__combatPerf.record=false;__stability.record=false;return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),costs:__diagnosticCosts,counters:__reviewCounters(),frames:__stability.frames,saves:__combatPerf.saves,playerHits:__combatPerf.hits.length,inputs:__renderReview.inputs};}')
+            after=page.evaluate('()=>{performance.mark("vexed-measure-end");window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();__diagnosticCosts.record=false;__combatPerf.record=false;__stability.record=false;return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),costs:__diagnosticCosts,counters:__reviewCounters(),frames:__stability.frames,saves:__combatPerf.saves,playerHits:__combatPerf.hits.length,inputs:__renderReview.inputs};}')
             after.update(review.frame_work(after['frames'],before['counters'],after['counters']))
             work=after['simulationWork']
             after['builderCounts']={name:{'available':item['available'],'value':after['costs'][name] if item['available'] else None,'owner':item['owner']}
@@ -194,9 +232,21 @@ def main():
                 name=event.get('name','');row=names.setdefault(name,{'count':0,'inclusiveMs':0,'maxMs':0,'threads':set()});row['count']+=1;duration=event.get('dur',0)/1000;row['inclusiveMs']+=duration;row['maxMs']=max(row['maxMs'],duration);row['threads'].add((event['pid'],event['tid']))
             names={name:{**row,'threads':sorted(row['threads'])} for name,row in names.items()}
             report={'label':args.label,'sourceRoot':str(source),'sourceHashes':source_hashes,'sourceInjections':source_injections,'harnessSha256':harness_hashes['browser-performance-trace.py'],'harnessHashes':harness_hashes,'browser':browser.version,'graphics':gpu,'fixtureSha256':hashlib.sha256(args.fixture.read_bytes()).hexdigest(),'requestedSeconds':args.seconds,'scenario':args.scenario,'before':before,'after':after,'performanceBefore':metrics_before,'performanceAfter':metrics_after,'traceEventNames':names,'errors':errors,'notes':['Heavy trace/source counters/CPU profiler/save timings are diagnostic only. Inclusive event durations overlap: never sum parent and child events or all threads as frame time. Compositor/presentation events include browser work outside game JS.','Flight inputs and crowded-flight placement match browser-performance-review.py; other fixtures use its shared stability setup. Source hashes describe original served files before diagnostic-only source injection; sourceInjections records builder markers, availability and normalized/injected hashes.','weaponCandidates counts exact collision tests for beams plus flying projectiles on both revisions. Baseline beam/projectile splits are unavailable (null); current simulationWork preserves separate categories.','sceneRequests counts exported API requests, including cache hits; internal closure calls are not wrapped. builderCounts instead counts executed cache-miss scene/collection/grid builders on each revision. Persistent current shipRecord constructs its collection and spatial grid together. Unmatched builder markers retain null/unavailable; absence of an unsupported clean simulationWork counter must not be interpreted as zero.']}
+            report.update(headless=not args.headed,viewport=viewport,dpr=1,randomSeed=args.seed)
+            if args.headed:
+                finish_headed_conditions(conditions,owner,headed)
+                report['headedConditions']=conditions
+                report['notes'].append('Visible fixed-viewport trace matches1200x650/DPR1 headed geometry. Heavy trace counts are not clean FPS or a physical presentation guarantee; review focus/window conditions and measured per-thread presentation events.')
             (OUTPUT/f'{args.label}-{args.scenario}-diagnostic.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
             page.screenshot(path=str(OUTPUT/f'{args.label}-{args.scenario}-diagnostic.png'));browser.close();assert not errors,errors
             print(json.dumps({'label':args.label,'scenario':args.scenario,'costs':after['costs'],'saves':len(after['saves']),'traceEvents':len(events)}),flush=True)
-    finally:server.shutdown()
+    except BaseException as error:
+        if conditions is not None:conditions['failure']=repr(error)
+        raise
+    finally:
+        if conditions is not None:
+            finish_headed_conditions(conditions,owner,headed)
+            (OUTPUT/f'{args.label}-{args.scenario}-trace-headed-conditions.json').write_text(json.dumps(conditions,indent=2),encoding='utf-8')
+        server.shutdown()
 
 if __name__=='__main__':main()

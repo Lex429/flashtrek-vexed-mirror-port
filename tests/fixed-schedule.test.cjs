@@ -11,6 +11,36 @@ function fixture(){
   return {context,frame:context.nativeSimulationFrame,time:context.nativeSimulation,state:{},pause:value=>blocked=value,cost:ms=>work+=ms};
 }
 const close=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-9,`${actual} != ${expected}`);
+test('host gate edges retain active tails without integrating or admitting suspended time between displays',()=>{
+  const f=fixture();let at=0,state=f.state,travel=false;
+  const host=f.frame.createHostTime({getState:()=>state,now:()=>at,active:()=>!f.time.blocked()&&!travel});host.reset();
+  at=3100;f.pause(true);close(host.checkpoint(),3.1);close(f.frame.schedule(state).pendingSeconds,3.1);close(f.time.seconds(state),0);
+  at=9100;host.checkpoint();at=12100;f.pause(false);close(host.checkpoint(),0);
+  at=12200;close(host.checkpoint(),.1);close(f.frame.schedule(state).pendingSeconds,3.2);
+  at=12300;f.pause(true);host.checkpoint();at=15300;f.pause(false);host.checkpoint();at=15400;host.checkpoint();close(f.frame.schedule(state).pendingSeconds,3.4);
+  close(host.checkpoint(15000),0);at=15500;host.checkpoint();close(f.frame.schedule(state).pendingSeconds,3.5);
+  travel=true;host.checkpoint();at=20000;host.checkpoint();travel=false;host.checkpoint();at=20100;host.checkpoint();close(f.frame.schedule(state).pendingSeconds,3.6);
+  const old=state;state=JSON.parse(JSON.stringify(state));at=25000;host.reset();at=25100;host.checkpoint();close(f.frame.schedule(old).pendingSeconds,3.6);close(f.frame.schedule(state).pendingSeconds,3.7);
+  let steps=0;while(!f.frame.transitionReady(state))f.frame.run(state,0,()=>steps++);assert.equal(steps,222);close(f.time.seconds(state),3.7);
+});
+
+test('host state replacement and explicit blocked notifications never transfer elapsed time across saved worlds',()=>{
+  const f=fixture();let at=100,state=f.state;
+  const host=f.frame.createHostTime({getState:()=>state,now:()=>at});host.reset();
+  at=150;host.checkpoint();f.pause(true);host.checkpoint();at=10000;host.checkpoint();
+  const old=state;state={shipSimulation:{version:1,seconds:20,schedule:{version:1,pendingSeconds:.735}}};host.checkpoint();
+  f.pause(false);host.checkpoint();at=10100;host.checkpoint();close(f.frame.schedule(old).pendingSeconds,.05);close(f.frame.schedule(state).pendingSeconds,.835);close(f.time.seconds(state),20);
+});
+
+test('the same host timestamp excludes paused display intervals while preserving warp effects and saved physical debt',()=>{
+  const f=fixture();let at=0,travel=false;
+  const host=f.frame.createHostTime({getState:()=>f.state,now:()=>at,active:()=>!f.time.blocked()&&!travel});host.reset();
+  at=1000;f.pause(true);host.checkpoint();at=10000;f.pause(false);host.checkpoint();at=10200;host.checkpoint();
+  close(host.consumeDisplay(),1.2);close(host.consumeDisplay(),0);close(f.frame.schedule(f.state).pendingSeconds,1.2);
+  travel=true;host.checkpoint();at=15200;host.checkpoint();travel=false;host.checkpoint();at=15300;host.checkpoint();
+  close(host.snapshot().displayPendingSeconds,5.1);close(host.consumeDisplay(),5.1);close(f.frame.schedule(f.state).pendingSeconds,1.3);
+  at=15400;host.checkpoint();host.reset();close(host.consumeDisplay(),0);close(f.frame.schedule(f.state).pendingSeconds,1.4);
+});
 test('60, 120 and 144 display callbacks integrate the same sixty fixed physical steps',()=>{
   for(const hz of [60,120,144]){
     const f=fixture(),steps=[];

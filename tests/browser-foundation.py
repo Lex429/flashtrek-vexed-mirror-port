@@ -14,6 +14,61 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 OUTPUT=ROOT/'test-results/foundation-gameplay'
 
+GATE_SCENARIO=r"""() => {
+ const check=(v,m)=>{if(!v)throw Error(m)},copy=v=>JSON.parse(JSON.stringify(v)),originalNow=Object.getOwnPropertyDescriptor(performance,'now');
+ const realNow=performance.now.bind(performance);let stamp=realNow(),expected=0,active=true;const visualSeconds=[],originalUpdate=vexedSpace.update;
+ vexedSpace.update=function(dt,...args){visualSeconds.push(dt);return originalUpdate.call(this,dt,...args);};
+ const original=copy(nativeNpcDev.getState()),fixture=copy(original);Object.assign(fixture,{system:47,x:1e6,y:1e6,landed:false});
+ fixture.civilianTraffic.ships=[];fixture.civilianTraffic.disputes=[];fixture.civilianTraffic.retaliations=[];fixture.solEconomy.freighters=[];
+ fixture.shipSimulation.schedule={version:1,pendingSeconds:0};fixture.solFreightHold={5:.125};
+ const key=code=>dispatchEvent(new KeyboardEvent('keydown',{code,key:code==='Escape'?'Escape':code,bubbles:true}));
+ const wait=ms=>{stamp+=ms;if(active)expected+=ms/1000;};
+ Object.defineProperty(performance,'now',{configurable:true,value:()=>stamp});
+ try{
+  check(nativeSaveStorage.write(fixture).ok,'Gate fixture write failed');resumeNativeGame('dev');
+  let s=nativeNpcDev.getState(),start=nativeSimulation.seconds(s);nativeSimulationHost.reset(stamp);
+  const weapon=Object.values(s.shipEquipment.instances).find(e=>e.category==='weapon'),id=weapon.id;weapon.readyAt=start+17.125;
+  const cargo=JSON.stringify(s.solFreightHold),money=s.latinum,owned=JSON.stringify(s.shipEquipment);
+  const total=()=>nativeSimulation.seconds(s)+s.shipSimulation.schedule.pendingSeconds-start;
+  const assertTotal=label=>check(Math.abs(total()-expected)<1e-7,label+' '+JSON.stringify({actual:total(),expected}));
+  wait(3100);key('Escape');active=false;check(nativePause.active,'Actual Escape did not pause');assertTotal('Pre-pause stall lost');
+  check(nativeSimulation.seconds(s)===start,'Pause opening synchronously integrated owed physics');
+  wait(6000);document.querySelector('#pause-menu [data-save]').click();const pausedSave=nativeSaveStorage.read('dev');
+  check(Math.abs(pausedSave.shipSimulation.schedule.pendingSeconds-3.1)<1e-8,'Durable paused save missed admitted tail');
+  check(pausedSave.shipEquipment.instances[id].readyAt===weapon.readyAt,'Paused write changed owned deadline');
+  wait(7000);document.querySelector('#pause-menu [data-resume]').click();active=true;assertTotal('Pause close counted suspended interval');
+  wait(100);__nativeFrame(stamp);assertTotal('First resumed frame lost or duplicated time');check(Math.abs(visualSeconds.at(-1)-3.2)<1e-7,'Display replayed the between-frame paused interval');
+  wait(200);const beforeInventory=nativeSimulation.seconds(s);key('KeyI');active=false;check(nativeShipInventory.active,'Actual I did not open inventory');
+  check(nativeSimulation.seconds(s)===beforeInventory,'Inventory opening integrated physics');assertTotal('Pre-inventory active tail lost');
+  wait(11000);key('KeyI');active=true;check(!nativeShipInventory.active,'Actual I did not close inventory');
+  wait(100);__nativeFrame(stamp);assertTotal('Between-frame inventory interval was admitted');
+  wait(300);Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));active=false;assertTotal('Pre-hide active tail lost');
+  wait(12000);delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));active=true;
+  wait(100);__nativeFrame(stamp-5000);check(total()<=expected+1e-7,'Stale RAF charged time twice');__nativeFrame(stamp);assertTotal('Hidden interval or stale RAF was counted');
+  const simulation=nativeSimulation;wait(400);window.nativeSimulation={...simulation,blocked:()=>true};dispatchEvent(new CustomEvent('native-flightgatechange',{detail:{at:stamp}}));active=false;
+  wait(18000);window.nativeSimulation=simulation;dispatchEvent(new CustomEvent('native-flightgatechange',{detail:{at:stamp}}));active=true;
+  wait(100);__nativeFrame(stamp);assertTotal('Explicit diagnostic gate edge lost time');
+  check(Math.abs(visualSeconds.reduce((a,b)=>a+b,0)-expected)<1e-7,'Display clock admitted suspended inventory/hidden intervals');
+  check(JSON.stringify(s.solFreightHold)===cargo&&s.latinum===money&&JSON.stringify(s.shipEquipment)===owned,'Gates changed cargo, money or equipment');
+  const accepted=expected;wait(20000);check(nativeSaveStorage.write(pausedSave).ok,'Reload fixture write failed');resumeNativeGame('dev');s=nativeNpcDev.getState();
+  check(Math.abs(s.shipSimulation.schedule.pendingSeconds-3.1)<1e-8,'State replacement transferred old active time');
+  check(s.shipEquipment.instances[id].readyAt===pausedSave.shipEquipment.instances[id].readyAt,'Reload lost owned deadline');
+  start=nativeSimulation.seconds(s);expected=3.1;wait(100);__nativeFrame(stamp);assertTotal('Reload duplicated or discarded saved debt');
+  let drains=0;while(!nativeSimulationFrame.transitionReady(s)){__nativeFrame(stamp);check(++drains<1000,'Saved debt could not drain before travel');}
+  wait(100);const trip=nativeNavigation.call('course',2);check(trip.ok&&vexedWarp.active,'Ordinary bounded departure failed '+JSON.stringify(trip));active=false;
+  assertTotal('Departure lost its active pre-warp tail');const duringTravel=nativeSimulation.seconds(s);
+  const spaceUpdate=vexedSpace.update;let warpDisplaySeconds=0;vexedSpace.update=function(dt,...args){warpDisplaySeconds+=dt;return spaceUpdate.call(this,dt,...args);};
+  try{wait(15000);__nativeFrame(stamp);}finally{vexedSpace.update=spaceUpdate;}
+  check(warpDisplaySeconds>14,'Physical warp gate froze the existing background display/effect clock');
+  check(nativeSimulation.seconds(s)===duringTravel,'Warp presentation admitted physical flight time');
+  vexedWarp.reset();active=true;assertTotal('Public warp reset admitted its suspended interval');const resetHost=nativeSimulationHost.snapshot();
+  wait(100);__nativeFrame(stamp);check(Math.abs(total()-expected)<1e-7,'First post-reset frame lost or replayed time '+JSON.stringify({actual:total(),expected,resetHost,host:nativeSimulationHost.snapshot(),warp:vexedWarp.active,paused:nativePause.active,inventory:nativeShipInventory.active,hidden:document.hidden}));
+  check(nativeSaveStorage.write(original).ok,'Original isolated fixture restore failed');resumeNativeGame('dev');
+  return {acceptedSeconds:accepted,excludedPauseSeconds:13,excludedInventorySeconds:11,excludedHiddenSeconds:12,excludedExplicitGateSeconds:18,
+    pausedSavedDebt:pausedSave.shipSimulation.schedule.pendingSeconds,reloadedTotalSeconds:3.2,excludedWarpSeconds:15,warpDisplaySeconds,publicWarpResetPreserved:true,noGateIntegration:true,staleRafClamped:true,ownedDeadlinePreserved:true};
+ }finally{vexedSpace.update=originalUpdate;delete document.hidden;if(originalNow)Object.defineProperty(performance,'now',originalNow);else delete performance.now;}
+}"""
+
 SERVICE_SCENARIO=r"""async () => {
  const check=(ok,message)=>{if(!ok)throw Error(message)},clone=value=>JSON.parse(JSON.stringify(value)),simulation=nativeSimulation,frameOwner=nativeSimulationFrame;
  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -42,7 +97,7 @@ SERVICE_SCENARIO=r"""async () => {
  window.nativeSimulationFrame={...frameOwner,run(state,elapsed,integrate,options){return frameOwner.run(state,elapsed,integrate,{...options,maxSteps:1});}};
  const ownedId=shot.event.weaponInstanceId,readyAt=s.shipEquipment.instances[ownedId].readyAt;
  nativeCivilianTraffic.select(target.id);document.dispatchEvent(new KeyboardEvent('keydown',{code:'Space',bubbles:true}));
- let stamp=performance.now();window.nativeSimulation={...simulation,blocked:()=>true};__nativeFrame(stamp);window.nativeSimulation=simulation;
+ let stamp=performance.now();window.nativeSimulation={...simulation,blocked:()=>true};__nativeFrame(stamp);window.nativeSimulation=simulation;nativeSimulationHost.reset(stamp);
  stamp+=3100;__nativeFrame(stamp);
  const afterDisplay=simulation.seconds(s),debtAfterDisplay=s.shipSimulation.schedule.pendingSeconds,paintsAfterDisplay=paints,eventSequence=s.weaponCombat.nextEventId;
  check(debtAfterDisplay>2.9,'Injected stall was synchronously drained');
@@ -106,7 +161,7 @@ SCENARIO=r"""async () => {
    window.nativeSimulation={...original,blocked:()=>true};check(nativeSaveStorage.write(clone(source)).ok,'Fixture write failed');resumeNativeGame('dev');
    await vexedFlightAssets.loadShip(source.shipType,source.hull);
    const s=nativeNpcDev.getState();let stamp=performance.now();__nativeFrame(stamp);
-   const start=nativeSimulation.seconds(s);painted.length=0;window.nativeSimulation=original;
+   const start=nativeSimulation.seconds(s);painted.length=0;window.nativeSimulation=original;nativeSimulationHost.reset(stamp);
    dispatch('keydown','KeyW');dispatch('keydown','KeyD');
    let steps=0;
    for(let index=0;index<hz*2;index++){
@@ -179,12 +234,13 @@ def main():
         with sync_playwright() as p:
             channel=os.environ.get('BROWSER_CHANNEL','msedge');browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
             page=browser.new_page(viewport={'width':1280,'height':850});page.on('pageerror',lambda error:errors.append(str(error)))
-            page.add_init_script("{const raf=requestAnimationFrame.bind(window);window.requestAnimationFrame=callback=>callback.name==='draw'?(window.__nativeFrame=callback,0):raf(callback);}")
+            page.add_init_script("{const raf=requestAnimationFrame.bind(window);window.requestAnimationFrame=callback=>callback.name==='draw'&&(!window.__nativeFrame||window.__nativeFrame===callback)?(window.__nativeFrame=callback,0):raf(callback);}")
             page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
             page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
             page.evaluate('startNativeDevGame()');page.wait_for_function('()=>nativeSolAsteroids.placements.length && nativeCivilianTraffic.effectsReady()',timeout=120000)
+            gates=page.evaluate(GATE_SCENARIO)
             service=page.evaluate(SERVICE_SCENARIO)
-            result=page.evaluate(SCENARIO);result['backgroundService']=service;assert not errors,errors
+            result=page.evaluate(SCENARIO);result['backgroundService']=service;result['activeTimeGates']=gates;assert not errors,errors
             page.screenshot(path=str(OUTPUT/'fixed-schedule-large-save-flight.png'))
             report={'passed':True,'browser':browser.version,'errors':errors,**result};(OUTPUT/'report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
             print(json.dumps(report));browser.close()

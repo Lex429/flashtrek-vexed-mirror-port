@@ -2,8 +2,9 @@
 
 This review starts from `d68a0f0476b188cb0d62c9cc23447787224d3022`, with the
 already present planet-lighting patch preserved in both comparison checkouts.
-It does not reuse older performance numbers as a new baseline. The final tested
-revision and results are recorded below after verification.
+It does not reuse older performance numbers as a new baseline. Final verification
+and fresh matched performance results are pending. The numeric performance tables
+below are explicitly historical results from the intermediate `57c873f` revision.
 
 ## Checkout and device
 
@@ -16,6 +17,15 @@ and its 79 dirty/untracked paths were preserved. The separate
 also preserved; the relevant planet-lighting patch was copied into both new
 worktrees. Byte snapshots, patches and served-source hashes remain in ignored
 `test-results/foundation/`.
+
+The earlier tested implementation revision was
+`57c873f2dd76efbb013eedf6bf39f567b381d41c`, pushed to
+`fix/fleet-performance-foundation`. Its
+[Linux CI run 39536720133](https://github.com/Lex429/flashtrek-vexed-mirror-port/actions/runs/39536720133)
+passed every step. That CI result remains valid for that historical commit.
+The current worktree additionally contains an uncommitted host active-gate fix
+and is frozen for a new verification pass. Its final code commit, push and CI
+result are pending; they must not be identified as `57c873f` results.
 
 The 03:00 UTC preservation recheck found the Performance-Fix nine-path work
 unchanged and the original checkout's HEAD unchanged. Five paths in the original
@@ -61,7 +71,7 @@ owner. Distant jobs remain event-driven; the Dev map intentionally lists the
 galaxy. Many genuinely interacting neighbors or long crossing routes still cost
 work and remain visible in the counters.
 
-A long-run correctness pass exposed a CPU regression in those local reads.
+A pre-`57c873f` long-run correctness pass exposed a CPU regression in those local reads.
 The diagnostic replays the identical saved 600-to-660-second world in both
 versions. Reusing route geometry and exact previous poses reduced full physical
 descriptions from 204,391 to 6,012, motion reclassification from 184,658 to 2,830,
@@ -80,9 +90,26 @@ not clean frame-delivery measurements.
 
 Physics now runs at a fixed 60 Hz independently of display callbacks. Catch-up
 has a main-thread budget and retains all unpaid active time in the saved clock.
-Display callbacks alone accept elapsed time; bounded tasks can drain that debt
-while the browser waits to present a frame. They use the same authoritative
-integrator and yield between tasks. They cannot request held fire or render.
+One host time owner checkpoints display callbacks and explicit active-gate
+transitions. The current correction retains elapsed active time immediately
+before pause, inventory or tab hiding, including the tail after the last display
+callback. On resumption it excludes the suspended tail before the next callback;
+paused or hidden wall time cannot become new simulation debt. These intervals
+are classified using the preceding gate state, rather than whichever state
+happens to be visible when the next frame arrives. Pause/inventory checkpoints
+admit that debt without running physics in the UI event.
+
+Physical debt and display animation elapsed time have separate accumulators
+within that host owner. Warp preparation/start/finish/cancel checkpoint the same
+boundary, so warp display animations can progress without admitting ordinary
+physical flight time. State replacement resets the runtime host boundary without
+clearing already saved physical debt.
+Only unpaid physical time is saved; display animation accumulation remains
+runtime-only. Bounded tasks can drain physical debt while the browser waits to
+present a frame. Display and background drains supply zero additional elapsed
+time to the same authoritative integrator and yield between tasks; the host
+owner has already admitted the elapsed interval. Background tasks cannot request
+held fire or render.
 Display frames without a physical step retain the completed scene read models;
 physical steps, clock changes and explicit mutation notifications refresh them.
 Category/definition registration has its own constant-time revision check.
@@ -144,15 +171,45 @@ Between-display simulation CPU is reported separately from display callback
 simulation/drawing. Window totals subtract pre-window carried work and include
 unpresented tail work, so catch-up steps and collision counters are counted once.
 
-## Final six-mode measurements
+The historical `57c873f` core pair used the same earlier harness on both revisions.
+Historical headed and fullscreen pairs also completed with matching harnesses
+within each pair. A later fleet-matrix attempt stopped after the measured window when
+the baseline 5,000-record same-system screenshot exceeded its 30-second timeout.
+Its 22 partial artifacts remain under ignored
+`test-results/foundation/matrix-before-capture-checkpoint-fix/` and are superseded;
+they are not a completed paired scalability result.
 
-The completed core comparison is `foundation-before-verified` versus
+The profiling harness atomically stops recording and blocks only its isolated
+fixture's simulation after each window, persists result rows before capture,
+and checks that post-window probes preserve the saved clock and physics debt.
+Capture failures become explicit warnings. A focused two-second 5,000-record
+check produced its PNG and report, preserved clock 2.6364 through capture/probes,
+and reported the expected baseline storage-quota failure honestly. This validates
+the checkpoint path, not performance. A historical two-second headed trace-wrapper
+check also completed with 71 frames, 129
+physics steps and 2.15 simulation seconds. It establishes functional capture,
+not an FPS result or a physical display-rate claim.
+
+A subsequent active-gate cutoff regression superseded those timings. The
+`57c873f`-era reports, completed baseline fleet cases and checks are archived under
+ignored `test-results/foundation/pre-active-gate-fix/`. The profiling harness now
+explicitly notifies the host checkpoint owner whenever a fixture replaces its
+raw blocked gate, and source provenance includes the served HTML as well as
+JavaScript. Because that harness contract changed, every baseline/after core,
+headed, fullscreen and fleet pair will be measured again with the same new
+harness. Old completed cases cannot be resumed across that hash change. The
+archive is diagnostic history, not the current final performance report.
+
+## Historical intermediate six-mode measurements (`57c873f`)
+
+**These are archived intermediate measurements, not current final numbers.**
+The historical core comparison was `foundation-before-verified` versus
 `foundation-after-final`, using the fixture, selected Intel GPU and headless
 protocol above. Each row pools three sequential 20-second windows. FPS is total
 recorded callbacks divided by total measured time; percentiles pool the recorded
-frame intervals. The final report and pooled calculation remain in ignored
-`test-results/performance-review/` and
-`test-results/foundation/matched-summary.json`. Runtime source hashes in those
+frame intervals. Those reports and the pooled calculation are archived in ignored
+`test-results/foundation/pre-active-gate-fix/performance-review/` and
+`test-results/foundation/pre-active-gate-fix/matched-summary.json`. Runtime source hashes in those
 reports identify the measured checkout. External OS activity was uncontrolled.
 
 | Mode | FPS before / after | P95 ms before / after | P99 ms before / after | Worst ms before / after | Frames >50 ms before / after |
@@ -164,15 +221,15 @@ reports identify the measured checkout. External OS activity was uncontrolled.
 | Warp visuals | 22.44 / 39.16 | 106.7 / 50.0 | 126.0 / 66.7 | 176.6 / 100.1 | 439 / 108 |
 | Dev map | 56.04 / 59.86 | 18.5 / 16.9 | 18.9 / 17.1 | 35.8 / 33.9 | 0 / 0 |
 
-The stable 60-FPS gameplay target remains **missed** on this reference setup.
-Ordinary flight still has 33.5-ms P95 intervals and a 116.6-ms worst frame;
-crowded gameplay remains around 16–17 FPS, with a 316.7-ms combat spike. Crowded
+The intermediate implementation **missed** the stable 60-FPS gameplay target
+on this reference setup. It recorded 33.5-ms ordinary-flight P95 intervals and
+a 116.6-ms worst frame; crowded gameplay was around 16–17 FPS, with a 316.7-ms combat spike. Crowded
 flight delivers more frames but also records more absolute >50-ms frames.
 The Dev map's roughly 60 callbacks per second establishes neither a hardware
 ceiling nor physical display delivery. There is no verified 120-Hz performance
-claim.
+claim. Current post-gate performance remains unmeasured pending the fresh pairs.
 
-All 162 civilian hulls remained alive in every window. Combat accepted
+In these historical windows, all 162 civilian hulls remained alive. Combat accepted
 98/96/94 shots before and 95/95/95 after; the end-of-window active combatants were
 6/8/6 before and 8/8/8 after. These gameplay workload differences limit
 attributing the entire FPS change to algorithm speed. Other core modes accepted
@@ -187,11 +244,67 @@ not establish the largest transient backlog within each window. Submitted
 artwork and callback intervals also do not measure browser raster/compositor or
 physical presentation cost; the separate final traces remain pending.
 
-The larger paired fleet/visible-count matrix, headed/fullscreen performance windows, larger
-Dev-map measurements, cold first-appearance/full-readiness performance results,
-browser traces and prolonged-play measurements are **pending**. Existing cold,
-rendering and gameplay correctness suites passed, but earlier diagnostic runs
-are not substituted for those unfinished final performance comparisons.
+The following historical `57c873f` work totals pool the same three windows, approximately sixty
+active simulation seconds per mode. Display simulation, between-display
+simulation and drawing CPU use disjoint JavaScript timers. Drawing totals are
+reconstructed from the reported per-window mean and frame count; they exclude
+browser rasterization/compositing. Nested sprite/lighting timings must not be
+added to these totals.
+
+| Mode | Physics steps before / after | Display simulation CPU ms before / after | Background simulation CPU ms before / after | Drawing CPU ms before / after |
+| --- | ---: | ---: | ---: | ---: |
+| Ordinary flight | 5,165 / 3,601 | 8,881.7 / 6,457.5 | 0 / 14.3 | 12,025.7 / 10,998.7 |
+| Crowded flight | 3,794 / 3,599 | 5,921.4 / 4,836.9 | 0 / 396.7 | 7,496.9 / 6,118.0 |
+| Crowded combat | 3,933 / 3,599 | 18,883.7 / 7,252.7 | 0 / 3,428.1 | 9,376.0 / 8,202.9 |
+| Mining/debris | 4,271 / 3,597 | 9,527.5 / 5,520.8 | 0 / 333.9 | 9,250.4 / 6,808.8 |
+| Warp visuals | 4,713 / 3,601 | 8,094.6 / 5,903.5 | 0 / 79.2 | 10,731.5 / 9,498.3 |
+| Dev map | 6,722 / 3,600 | 12,332.4 / 9,923.9 | 0 / 3.7 | 7,266.2 / 6,466.7 |
+
+| Mode | Instrumented canvas allocations before / after | Lamp glow rebuilds before / after |
+| --- | ---: | ---: |
+| Ordinary flight | 34 / 138 | 4,966 / 3,104 |
+| Crowded flight | 0 / 256 | 17,048 / 16,489 |
+| Crowded combat | 1,067 / 2,633 | 13,726 / 12,431 |
+| Mining/debris | 195 / 588 | 13,092 / 9,848 |
+| Warp visuals | 142 / 615 | 6,954 / 4,265 |
+| Dev map | 0 / 0 | 0 / 0 |
+
+Canvas allocations increased in every flight mode. These absolute counts include
+lazy cache bootstrap and the extra rendering callbacks delivered after the
+change; they do not establish lower allocation per second or zero churn.
+Instrumented main-document canvas constructors do not cover every worker,
+browser or native allocation. Named cache evictions were zero in these core
+windows, which does not establish behavior for larger working sets.
+The available combat `sceneCollections` count increased from 159 to 312: there
+is no universal scene-rebuild reduction claim. Baseline clean counters do not
+cover every actual scene/index builder. Complete builder coverage remains
+unavailable pending the separate heavy traces; absent counters are not zero.
+
+Historical `57c873f` untimed post-window probes of the ordinary 172-record save measured median
+serialization/storage/verification costs of 6.8/2.7/0.3 ms before and
+4.6/1.4/0.3 ms after, with median inclusive totals of 10.3 and 6.5 ms.
+The corresponding combat medians were 6.8/3.5/0.3 ms before and 2.8/1.2/0.2 ms
+after; inclusive totals were 11.7 and 4.4 ms. Component medians must not be
+added to infer an inclusive total. Saving remains synchronous. The retained
+5,000-record functional reload diagnostic recorded 237.8 ms serialization,
+10.9 ms storage and 0.6 ms verification, with a 249.9-ms inclusive total.
+That diagnostic preserved both mode slots and retained state, but is neither a
+clean FPS measurement nor a matched large-save comparison. Large durable
+transactions remain a demonstrated source of main-thread stalls.
+
+Exact counter coverage and per-window values are in the local
+[work-count JSON](../test-results/foundation/pre-active-gate-fix/core-work-counts.json) and
+[work-count summary](../test-results/foundation/pre-active-gate-fix/core-work-counts.md); the historical large
+reload diagnostic is retained with the local
+[archived checks](../test-results/foundation/pre-active-gate-fix/checks/).
+These generated artifacts are ignored and untracked, so these paths are not
+files delivered in the source repository.
+
+All fresh matched performance outputs are **pending**: six core modes,
+headed/fullscreen pairs, the fleet/visible-count matrix, larger Dev maps, cold
+first-appearance/full-readiness results, full browser traces and prolonged play.
+Historical correctness and diagnostic runs are not substituted for current
+verification or those unfinished final performance comparisons.
 
 ## Local-owner workloads and remaining limits
 
@@ -274,14 +387,28 @@ node --test tests/fleet-scalability.test.cjs tests/scheduled-pose-cache.test.cjs
 
 ## Correctness verification
 
-The frozen runtime passed **490 Node tests**, all **eight local-site Python
-tests** and all **31 required browser suites** on Edge 155.0.4283.62. The Node
-run includes the full thirty-minute economic and physical production-policy
-regressions. The browser run includes the existing lighting, cold-loading,
+The current frozen post-gate worktree has passed **493 Node tests** and all
+**eight local-site Python tests**. Its **31 required browser suites are still in
+progress**: sixteen had completed at this update. Overall current verification
+is pending, and the code commit will follow the completed checks.
+
+The earlier `57c873f` runtime passed 490 Node tests, eight local-site Python
+tests and all 31 required browser suites on Edge 155.0.4283.62. Those historical
+checks remain in the archive and do not complete current post-gate verification.
+The Node run includes the full thirty-minute economic and physical production-policy
+regressions. Browser coverage includes the existing lighting, cold-loading,
 coasting, fractional settlement and hull-change drone-capacity checks, plus
 fixed scheduling/debt recovery, large verified reload and visible working-set
 coverage. Node/browser runtime source hashes are retained for comparison with
-the final commit and performance reports.
+the eventual final commit and fresh performance reports.
+
+| Current final deliverable | Status |
+| --- | --- |
+| Post-gate code commit and push | Pending completed verification |
+| CI for that commit | Pending commit and run |
+| Node/local-site checks | 493 / 8 passed |
+| Required browser checks | Pending all 31 suites |
+| Fresh matched performance tables | Pending new baseline and after measurements |
 
 Browser fixtures needed corrections without changing production behavior.
 The initial flight smoke check waits for actual keyboard-driven movement and

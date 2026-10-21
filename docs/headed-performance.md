@@ -71,6 +71,31 @@ trace/presentation analysis is needed for stronger delivery claims. Establish
 stable 60-FPS reference gameplay before claiming higher rates. Never promise a
 universal refresh target from this diagnostic.
 
+For a matching heavy presentation diagnostic, `browser-performance-trace.py
+--headed` uses the same maximized temporary window, fixed 1200 × 650 CSS viewport,
+DPR 1, display metadata and focus/visibility event capture. Without `--headed`,
+the trace keeps its existing headless 1280 × 850 protocol. Trace inputs, fixture
+restoration, candidate-builder instrumentation, CPU sampling and process/thread
+events remain owned by the existing trace harness; no additional source
+injection is introduced by the headed flag.
+
+```powershell
+python tests/browser-performance-trace.py --headed --source-root C:/Users/alphi/Vexed-Mirror-Foundation-Baseline --label headed-trace-before --fixture test-results/performance-review/initial-save.json --scenario flight --seed 4292026 --seconds 8
+python tests/browser-performance-trace.py --headed --label headed-trace-after --fixture test-results/performance-review/initial-save.json --scenario flight --seed 4292026 --seconds 8
+```
+
+Run these sequentially, then repeat both with `--scenario crowdedFlight` and
+`--scenario crowdedCombat`. Keep the desktop visible, focused and unobstructed;
+do not overlap tracing with clean measurements. The diagnostic report embeds
+GPU/window/display conditions, and `*-trace-headed-conditions.json` also retains
+conditions or failure information. A window-fit flag, an unfocused/hidden start
+or a measured focus/visibility interruption prevents treating the trace as a
+fully visible comparable observation. Heavy tracing changes delivery: compare
+game logic, raster, compositing, GPU service and presentation events within the
+marked interval on their actual threads, without adding overlapping parent and
+child durations. These traces are separate from clean FPS windows and do not
+prove physical display delivery by themselves.
+
 Functional harness checks on the reference desktop verified the fitting fixed
 viewport and actual native fullscreen at 1280 × 800 CSS, DPR 2, with a
 2560 × 1600 game canvas and a CDP full-screen outer-window state. Windows reports

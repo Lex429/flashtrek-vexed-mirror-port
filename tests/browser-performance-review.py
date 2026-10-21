@@ -16,7 +16,7 @@ import subprocess
 import threading
 import time
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Error as PlaywrightError
 
 ROOT=Path(__file__).resolve().parents[1]
 OUTPUT=ROOT/'test-results/performance-review'
@@ -245,14 +245,32 @@ def main():
         'fixtureSettings':{'population':args.population,'visibleShips':args.visible_ships,'mixedShips':args.mixed_ships,'distantSystem':args.distant_system,'activeDistant':args.active_distant,'dpr':args.dpr},
         'platform':platform.platform(),'secondsPerWindow':args.seconds,'runs':args.runs,'warmupSeconds':3,
         'sourceHashes':{str(p.relative_to(source)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest()
-            for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for p in sorted((source/folder).glob('*.js'))},
-        'scenarios':{},'cold':[], 'notes':['Full saved production fleet remains active. Crowd combat uses the existing12-provoked-NPC/high-player-health stress fixture. Inputs repeat by authoritative simulation time. No other benchmark/test workers should run concurrently; OS activity is uncontrolled.',
+            for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for p in sorted([*(source/folder).glob('*.js'),*(source/folder).glob('*.html')])},
+        'scenarios':{},'cold':[],'incomplete':True,'passed':False,'captures':[],'captureErrors':[],'warnings':[], 'notes':['Full saved production fleet remains active. Crowd combat uses the existing12-provoked-NPC/high-player-health stress fixture. Inputs repeat by authoritative simulation time. No other benchmark/test workers should run concurrently; OS activity is uncontrolled.',
         'Canvas counts include main-document HTML and OffscreenCanvas construction, not browser internals or worker-private surfaces. Phase durations are wall times and can overlap; decode() timing is not total browser decoder CPU.',
-        'Warmup loads artwork with simulation time frozen; animated phase caches start cold. spriteRebuilds is the complete animated-effect count; profile effectDraws can omit artwork loaded before instrumentation.']}
+        'Warmup loads artwork with simulation time frozen; animated phase caches start cold. spriteRebuilds is the complete animated-effect count; profile effectDraws can omit artwork loaded before instrumentation.',
+        'After each measured window, recording stops and the isolated simulation is blocked in the same evaluation. Captures and save probes cannot advance gameplay; sampled debt/counters remain the measured values. Completed rows checkpoint before captures and after probes. Screenshot failures are explicit warnings/mediaReady:false, not missing timing windows or concealed page errors.']}
     if args.capacity_matrix:
         report['fixtureSettings'].update(capacityMatrix=True,stationaryObserver=args.stationary_observer)
         report['notes'].append('Matrix-only RAF/paint wrappers count unique submitted artwork and visible rotated hull bounds per frame. Initial original-size hull artwork fits inside the actual game canvas; subsequent contacts and scattering are not reset. These wrappers and canvas-derived placement are absent from default core timing runs; the harness hash changes without changing that default execution path.')
     if args.stationary_observer:report['notes'].append('The observer receives no scripted flight input. Physics, collisions and inherited momentum remain authoritative; this does not anchor the observer or freeze nearby ships.')
+    def checkpoint(phase,**progress):
+        report['progress']={'phase':phase,**progress}
+        report.update(javascriptErrors=list(errors),failedRequests=list(failed),
+            mediaReady=not report['incomplete'] and bool(report['captures']) and all(item['status']=='ready' for item in report['captures']))
+        path=OUTPUT/f'{args.label}.json';temporary=path.with_suffix('.json.tmp')
+        temporary.write_text(json.dumps(report,indent=2),encoding='utf-8');os.replace(temporary,path)
+    def capture(page,path,**context):
+        item={'path':str(path.relative_to(ROOT)),'status':'pending',**context};report['captures'].append(item)
+        checkpoint('before-capture',**context)
+        try:page.screenshot(path=str(path))
+        except PlaywrightError as error:
+            item.update(status='failed',error=str(error),errorType=type(error).__name__)
+            report['captureErrors'].append(dict(item));report['warnings'].append('Screenshot unavailable: '+item['path'])
+            print(json.dumps({'captureError':dict(item),'timingRowsPreserved':True}),flush=True)
+        else:item['status']='ready'
+        checkpoint('after-capture',**context)
+    checkpoint('initializing')
     try:
         with sync_playwright() as playwright:
             channel=os.environ.get('BROWSER_CHANNEL','msedge');browser=playwright.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
@@ -334,19 +352,20 @@ def main():
                 for ship_type in map(int,args.cold_types.split(',')):
                     for stage in [0,2]:
                         page=page_open(warm=False)
-                        page.evaluate('()=>{window.__reviewBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};}')
+                        page.evaluate('()=>{window.__reviewBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
                         population=setup(page,'flight')
                         page.evaluate(COLD_SETUP,{'type':ship_type,'stage':stage})
-                        page.evaluate('()=>{window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};}')
+                        page.evaluate('()=>{window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};window.nativeSimulationHost?.checkpoint();}')
                         try:page.wait_for_function('()=>__renderReview.cold.firstCorrectStageMs!==undefined',timeout=30000)
                         except Exception:
                             debug=page.evaluate('()=>({cold:{type:__renderReview.cold.type,stage:__renderReview.cold.stage,started:__renderReview.cold.started,firstVisibleMs:__renderReview.cold.firstVisibleMs,observed:__renderReview.cold.observed,position:{x:__renderReview.cold.entity.x,y:__renderReview.cold.entity.y},player:vexedSolFlight.shipPosition(nativeNpcDev.getState())},paints:__renderReview.paints,phases:__renderReview.phases,effects:nativeShipEffects.metrics(),errors:window.__reviewErrors})')
                             (OUTPUT/f'{args.label}-cold-failure.json').write_text(json.dumps(debug,indent=2),encoding='utf-8');raise
                         page.wait_for_timeout(2500)
-                        row=page.evaluate('()=>{__stability.record=false;__renderReview.collectCold=false;const p=__renderReview;return {type:p.cold.type,stage:p.cold.stage,measurementMs:performance.now()-p.cold.started,firstVisibleMs:p.cold.firstVisibleMs,firstCorrectStageMs:p.cold.firstCorrectStageMs,phases:p.phases,images:p.images,frames:__stability.frames,longTasks:__stability.longTasks,counters:__reviewCounters()};}')
+                        row=page.evaluate('()=>{__stability.record=false;window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();__renderReview.collectCold=false;const p=__renderReview;return {type:p.cold.type,stage:p.cold.stage,measurementMs:performance.now()-p.cold.started,firstVisibleMs:p.cold.firstVisibleMs,firstCorrectStageMs:p.cold.firstCorrectStageMs,phases:p.phases,images:p.images,frames:__stability.frames,longTasks:__stability.longTasks,counters:__reviewCounters()};}')
                         frames=row.pop('frames');row['frameStatistics']=summarize(frames,row['measurementMs']/1000)
                         report['cold'].append(row);(OUTPUT/f'{args.label}-cold-{ship_type}-{stage}-frames.json').write_text(json.dumps(frames),encoding='utf-8')
-                        page.screenshot(path=str(OUTPUT/f'{args.label}-cold-{ship_type}-{stage}.png'));page.close()
+                        checkpoint('cold-window-recorded',type=ship_type,stage=stage)
+                        capture(page,OUTPUT/f'{args.label}-cold-{ship_type}-{stage}.png',kind='cold',type=ship_type,stage=stage);page.close()
                         print(json.dumps({'cold':ship_type,'stage':stage,'visibleMs':row['firstVisibleMs'],'correctStageMs':row['firstCorrectStageMs'],'p95':row['frameStatistics']['intervalMs']['p95']}),flush=True)
             if not args.cold_only:
                 for mode in args.scenarios.split(','):
@@ -363,7 +382,7 @@ def main():
                         'description':descriptions[mode]}
                     for run in range(args.runs):
                         page=page_open()
-                        page.evaluate('()=>{window.__reviewBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};}')
+                        page.evaluate('()=>{window.__reviewBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
                         population=setup(page,'flight' if mode=='crowdedFlight' else mode)
                         page.evaluate('(mode)=>{window.__reviewMode=mode;}',mode)
                         capacity_fixture=None
@@ -383,9 +402,9 @@ def main():
                         page.evaluate('__resetFixtureRandom()')
                         before=page.evaluate('__reviewCounters()')
                         if args.capacity_matrix:page.evaluate('()=>{__renderReview.capacity.frames=[];}')
-                        page.evaluate('()=>{__stability.frames=[];__stability.longTasks=[];__stability.record=true;__renderReview.inputs=[];__renderReview.measureStarted=performance.now();window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};}')
+                        page.evaluate('()=>{__stability.frames=[];__stability.longTasks=[];__stability.record=true;__renderReview.inputs=[];__renderReview.measureStarted=performance.now();window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};window.nativeSimulationHost?.checkpoint();}')
                         start=time.perf_counter();page.wait_for_timeout(args.seconds*1000);seconds=time.perf_counter()-start
-                        sample=page.evaluate('()=>{__stability.record=false;const s=nativeNpcDev.getState();return {measurementMs:performance.now()-__renderReview.measureStarted,frames:__stability.frames,longTasks:__stability.longTasks,after:__reviewCounters(),inputs:__renderReview.inputs,state:{simulationSeconds:nativeSimulation.seconds(s),population:s.civilianTraffic.ships.length+s.solEconomy.freighters.length+1,activeCombatants:s.civilianTraffic.ships.filter(e=>e.hull>0&&(e.disputeId||e.retaliationId)).length,survivingShips:s.civilianTraffic.ships.filter(e=>e.hull>0).length,player:{x:s.x,y:s.y,angle:s.angle,speed:s.speed,hull:s.hull},physicsDebtSeconds:s.shipSimulation?.schedule?.pendingSeconds??null,randomCalls:__fixtureRandomCalls,debrisInputs:__renderReview.debrisInputs||[],medical:s.civilianTraffic.ships.filter(e=>e.shipType===58).map(e=>({id:e.id,system:e.system,phase:e.phase,job:e.task?.phase,kind:e.task?.kind,journey:!!e.journey,supplies:e.repairDeuranium})),metrics:nativeSimulationMetrics.snapshot(),liveShots:s.weaponCombat?.events?.filter(e=>e.alive&&!e.resolved).length||0}};}')
+                        sample=page.evaluate('()=>{__stability.record=false;window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();const s=nativeNpcDev.getState();return {measurementMs:performance.now()-__renderReview.measureStarted,frames:__stability.frames,longTasks:__stability.longTasks,after:__reviewCounters(),inputs:__renderReview.inputs,state:{simulationSeconds:nativeSimulation.seconds(s),population:s.civilianTraffic.ships.length+s.solEconomy.freighters.length+1,activeCombatants:s.civilianTraffic.ships.filter(e=>e.hull>0&&(e.disputeId||e.retaliationId)).length,survivingShips:s.civilianTraffic.ships.filter(e=>e.hull>0).length,player:{x:s.x,y:s.y,angle:s.angle,speed:s.speed,hull:s.hull},physicsDebtSeconds:s.shipSimulation?.schedule?.pendingSeconds??null,randomCalls:__fixtureRandomCalls,debrisInputs:__renderReview.debrisInputs||[],medical:s.civilianTraffic.ships.filter(e=>e.shipType===58).map(e=>({id:e.id,system:e.system,phase:e.phase,job:e.task?.phase,kind:e.task?.kind,journey:!!e.journey,supplies:e.repairDeuranium})),metrics:nativeSimulationMetrics.snapshot(),liveShots:s.weaponCombat?.events?.filter(e=>e.alive&&!e.resolved).length||0}};}')
                         frames=sample.pop('frames');seconds=sample['measurementMs']/1000;assert sample['state']['population']==report['population']
                         if args.capacity_matrix:
                             capacity_frames=page.evaluate('__renderReview.capacity.frames')
@@ -402,14 +421,25 @@ def main():
                             for key in ['broadphaseQueries','broadphaseVisits','summaryVisits'] if key in (sample['after'].get('asteroids') or {})}
                         row={'run':run+1,**summarize(frames,seconds),'counters':counters,'before':before,**sample};report['scenarios'][mode].append(row)
                         (OUTPUT/f'{args.label}-{mode}-{run+1}-frames.json').write_text(json.dumps(frames),encoding='utf-8')
-                        if run==0:page.screenshot(path=str(OUTPUT/f'{args.label}-{mode}.png'))
-                        if args.save_probe and run==0:report.setdefault('saveProbes',{})[mode]=page.evaluate(SAVE_PROBE)
+                        checkpoint('warm-window-recorded',scenario=mode,run=run+1)
+                        if run==0:capture(page,OUTPUT/f'{args.label}-{mode}.png',kind='warm',scenario=mode,run=run+1)
+                        if args.save_probe and run==0:
+                            report.setdefault('saveProbes',{})[mode]=page.evaluate(SAVE_PROBE)
+                            checkpoint('save-probe-recorded',scenario=mode,run=run+1)
+                        row['postWindow']=page.evaluate('()=>{const s=nativeNpcDev.getState();return {simulationSeconds:nativeSimulation.seconds(s),physicsDebtSeconds:s.shipSimulation?.schedule?.pendingSeconds??null,blocked:nativeSimulation.blocked(),recording:__stability.record};}')
+                        assert row['postWindow']['blocked'] and not row['postWindow']['recording'],'Post-window simulation was not blocked'
+                        assert row['postWindow']['simulationSeconds']==row['state']['simulationSeconds'],'Captures/probes advanced isolated gameplay after recording ended'
+                        assert row['postWindow']['physicsDebtSeconds']==row['state']['physicsDebtSeconds'],'Captures/probes changed measured simulation debt'
+                        checkpoint('post-window-complete',scenario=mode,run=run+1)
                         print(json.dumps({'mode':mode,'run':run+1,'fps':row['averageFps'],'p95':row['intervalMs']['p95'],'over50':row['frameSpikesOver50ms'],'counters':counters}),flush=True)
                         page.close()
             browser.close()
-        report.update(passed=not errors and not failed,javascriptErrors=errors,failedRequests=failed)
-        (OUTPUT/f'{args.label}.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+        report.update(passed=not errors and not failed,incomplete=False)
+        checkpoint('complete')
         assert not errors,errors;assert not failed,failed
+    except BaseException as error:
+        report.update(passed=False,failure=repr(error));checkpoint('failed',previousProgress=report.get('progress'))
+        raise
     finally:server.shutdown()
 
 if __name__=='__main__':main()

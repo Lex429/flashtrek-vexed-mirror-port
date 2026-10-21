@@ -108,7 +108,7 @@ try:
           const ids=eq.slots.repairDrone.slice(),count=Object.keys(eq.instances).length;
           eq.instances[ids[5]].hull=17;eq.instances[ids[5]].readyAt=123;
           if(!a.changeHull(s,7).ok)throw Error('Cannot select small hull');nativeSaveStorage.write(s);resumeNativeGame('dev');
-          window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.requestAnimationFrame=fn=>fn.name==='draw'?0:__reviewRaf(fn);return {ids,count};
+          window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();window.requestAnimationFrame=fn=>fn.name==='draw'?0:__reviewRaf(fn);return {ids,count};
         }''')
         page.locator('#inventoryBtn').click()
         page.wait_for_selector('#ship-inventory canvas.ready', timeout=30000)
@@ -121,7 +121,7 @@ try:
         page.wait_for_function('()=>nativeNpcDev.getState()')
         freeze()
         assert page.evaluate('nativeNpcDev.getState().repairBay.capacity') == 1
-        page.evaluate('''()=>{const s=nativeNpcDev.getState();if(!nativeShipEquipment.changeHull(s,58).ok)throw Error('Cannot return to Olympic');nativeSaveStorage.write(s);resumeNativeGame('dev');window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.requestAnimationFrame=fn=>fn.name==='draw'?0:__reviewRaf(fn);}''')
+        page.evaluate('''()=>{const s=nativeNpcDev.getState();if(!nativeShipEquipment.changeHull(s,58).ok)throw Error('Cannot return to Olympic');nativeSaveStorage.write(s);resumeNativeGame('dev');window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();window.requestAnimationFrame=fn=>fn.name==='draw'?0:__reviewRaf(fn);}''')
         page.locator('#inventoryBtn').click()
         page.wait_for_selector('#ship-inventory canvas.ready', timeout=30000)
         assert page.locator('[data-equipment-kind="repairDrone"][data-equipment-place="slot"]').count() == 6

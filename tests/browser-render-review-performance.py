@@ -144,10 +144,10 @@ def main():
                 for ship_type in map(int,args.cold_types.split(',')):
                     for stage in [0,2]:
                         page=page_open(warm=False)
-                        page.evaluate('()=>{window.__reviewBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};}')
+                        page.evaluate('()=>{window.__reviewBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
                         population=page.evaluate(stability.SETUP,{'saved':saved,'mode':'flight'});assert population['population']==report['population']
                         page.evaluate(COLD_SETUP,{'type':ship_type,'stage':stage})
-                        page.evaluate('()=>{window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};}')
+                        page.evaluate('()=>{window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};window.nativeSimulationHost?.checkpoint();}')
                         try:page.wait_for_function('()=>__renderReview.cold.firstCorrectStageMs!==undefined',timeout=30000)
                         except Exception:
                             debug=page.evaluate('()=>({cold:{type:__renderReview.cold.type,stage:__renderReview.cold.stage,started:__renderReview.cold.started,firstVisibleMs:__renderReview.cold.firstVisibleMs,observed:__renderReview.cold.observed,position:{x:__renderReview.cold.entity.x,y:__renderReview.cold.entity.y},player:vexedSolFlight.shipPosition(nativeNpcDev.getState())},paints:__renderReview.paints,phases:__renderReview.phases,effects:nativeShipEffects.metrics(),errors:window.__reviewErrors})')
@@ -166,14 +166,14 @@ def main():
                         'description':'Production172-ship save;12 existing ships placed around the player with ordinary statistics, retaining all other lives. No provocation for crowded flight; existing high-player-health stress setup for combat.' if mode!='flight' else 'Production172-ship save with ordinary flight inputs.'}
                     for run in range(args.runs):
                         page=page_open()
-                        page.evaluate('()=>{window.__reviewBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};}')
+                        page.evaluate('()=>{window.__reviewBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
                         population=page.evaluate(stability.SETUP,{'saved':mode_saved,'mode':'flight' if mode=='crowdedFlight' else mode});assert population['population']==report['population']
                         page.evaluate('(mode)=>{window.__reviewMode=mode;}',mode)
                         if mode=='crowdedFlight':page.evaluate('()=>{const s=nativeNpcDev.getState(),origin=vexedSolFlight.shipPosition(s);nativeShipMotion.stop(s);s.civilianTraffic.ships.filter(e=>e.hull>0).slice(0,12).forEach((ship,index)=>{nativeNpcLives.interrupt(s,ship,"rendering stress fixture");ship.scriptedDemo="benchmark";const angle=index*Math.PI/6,radius=180+(index%3)*35;Object.assign(ship,{system:s.system,x:origin.x+Math.cos(angle)*radius,y:origin.y+Math.sin(angle)*radius,phase:"docked",timer:1e6,heading:angle+Math.PI,speed:0});nativeNpcLives.refreshLocation(s,ship);});nativeShipSystems.invalidate(s);}')
                         page.wait_for_timeout(3000)
                         page.wait_for_function('()=>!nativeShipEffects.metrics().pending && !vexedFlightAssets.cacheSnapshot().ships.pending && !(nativeShipEffects.metrics().preparation?.pending)',timeout=120000)
                         page.locator('#space').focus();page.evaluate(SCRIPTED_INPUT)
-                        before=page.evaluate('__reviewCounters()');page.evaluate('()=>{__stability.frames=[];__stability.longTasks=[];__stability.record=true;__renderReview.inputs=[];__renderReview.measureStarted=performance.now();window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};}')
+                        before=page.evaluate('__reviewCounters()');page.evaluate('()=>{__stability.frames=[];__stability.longTasks=[];__stability.record=true;__renderReview.inputs=[];__renderReview.measureStarted=performance.now();window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};window.nativeSimulationHost?.checkpoint();}')
                         start=time.perf_counter();page.wait_for_timeout(args.seconds*1000);seconds=time.perf_counter()-start
                         sample=page.evaluate('()=>{__stability.record=false;const s=nativeNpcDev.getState();return {measurementMs:performance.now()-__renderReview.measureStarted,frames:__stability.frames,longTasks:__stability.longTasks,after:__reviewCounters(),inputs:__renderReview.inputs,state:{simulationSeconds:nativeSimulation.seconds(s),population:s.civilianTraffic.ships.length+s.solEconomy.freighters.length+1,player:{x:s.x,y:s.y,angle:s.angle,speed:s.speed,hull:s.hull},metrics:nativeSimulationMetrics.snapshot(),liveShots:s.weaponCombat?.events?.filter(e=>e.alive&&!e.resolved).length||0}};}')
                         frames=sample.pop('frames');seconds=sample['measurementMs']/1000;assert sample['state']['population']==report['population']

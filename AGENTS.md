@@ -48,12 +48,24 @@ Completed-step read models remain valid through inspection/rendering until the
 next integration step, clock change or explicit mutation. Never drop
 authoritative simulation time to hide a scheduling backlog.
 
-`simulation-frame.run` owns the fixed 60-Hz physics accumulator. Display callbacks
-may integrate zero or several fixed steps; elapsed active time left by its bounded
-work budget stays in saved `shipSimulation.schedule.pendingSeconds`. Never reset
-that debt to improve FPS. Display callbacks accept elapsed time; the same owner
-may service that already accepted debt in bounded MessageChannel tasks between
-draws. Background tasks never accept additional time, request held fire or paint.
+`nativeSimulationFrame.createHostTime` owns live wall-time admission through the single
+`nativeSimulationHost` instance. Its `checkpoint(timestamp?)` runs at RAF and the
+actual pause, inventory, visibility and travel gate edges; stale RAF timestamps
+cannot move its boundary backward. Gate checkpoints retain the preceding active
+tail and exclude inactive intervals even when both edges occur between RAFs.
+The same timestamp also feeds optional `displayActive` into transient
+`displayPendingSeconds`, consumed once per RAF by `consumeDisplay()`. Physical
+time excludes warp; display time retains warp visuals while excluding exact
+pause/inventory/hidden intervals. Only physical debt is saved.
+Notify generic flight gates with `native-flightgatechange`; a diagnostic that
+directly replaces/restores `nativeSimulation.blocked` must checkpoint at that
+exact edge. `reset` is for explicit state activation or fixture time rebinding,
+clearing transient display accumulation without removing saved physical debt.
+Events admit time without integrating physics.
+RAF and bounded MessageChannel service tasks drain the same fixed 60-Hz
+`simulation-frame.run(state, 0, ...)` integrator. Unpaid active time stays in saved
+`shipSimulation.schedule.pendingSeconds`. Never reset that debt to improve FPS.
+Background tasks never accept additional time, request held fire or paint.
 Keep task admission budgets separate from accumulated diagnostic counters.
 `renderPose` is a pure interpolated copy for drawing;
 queries, contacts, damage and deadlines use authoritative poses. Run

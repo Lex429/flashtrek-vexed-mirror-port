@@ -35,6 +35,7 @@ try:
           s.localPrestige[11]=s.localPrestige[8]=s.localPrestige[1]=100;
           if(!nativeSaveStorage.write(s).ok)throw Error('fixture save failed');resumeNativeGame('normal');
           window.nativeSimulation={...nativeSimulation,blocked:()=>true};
+          window.nativeSimulationHost?.checkpoint();
         }""")
         def purchase(ship_id):
             page.locator('#tradeBtn').click()
@@ -118,7 +119,7 @@ try:
         assert not page.locator('[data-menu="continue-dev"]').is_disabled()
         page.evaluate("()=>{const ensure=nativeShipEquipment.ensure;window.nativeShipEquipment={...nativeShipEquipment,ensure(s,h=s,d){if(s?.captain&&h===s)window.__equipmentState=s;return ensure(s,h,d);}};}")
         page.locator('[data-menu="continue"]').click()
-        page.evaluate('window.nativeSimulation={...nativeSimulation,blocked:()=>true}')
+        page.evaluate('()=>{window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
         restored=page.evaluate('__equipmentState.shipEquipment')
         assert restored==saved
         # Upgrade purchase reads the fitted engine, rather than a stale legacy hull field.

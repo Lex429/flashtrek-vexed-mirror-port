@@ -13,6 +13,23 @@
     if(!Number.isFinite(value.pendingSeconds)||value.pendingSeconds<0)value.pendingSeconds=0;
     return value;
   }
+  // One host boundary admits wall time; integration may happen in later bounded
+  // tasks. Remember the preceding gate state so opening a menu cannot discard
+  // its active tail, nor can closing it admit the suspended interval.
+  function createHostTime({getState,active=()=>!window.nativeSimulation.blocked(),displayActive=()=>!window.nativeSimulation.blocked(),now=clock}={}){
+    if(typeof getState!=='function')throw TypeError('Host time needs its authoritative state');
+    let state=null,at=null,running=false,displayRunning=false,displayPending=0;
+    function reset(time=now()){state=getState();at=Number.isFinite(time)?time:now();running=!!state&&active(state);displayRunning=!!displayActive(state);displayPending=0;}
+    function checkpoint(time=now()){
+      if(!Number.isFinite(time))return 0;
+      const next=getState();if(next!==state||at===null){reset(time);return 0;}
+      const interval=Math.max(0,time-at)/1000,elapsed=running?interval:0;at=Math.max(at,time);
+      if(elapsed&&state)schedule(state).pendingSeconds+=elapsed;
+      if(displayRunning)displayPending+=interval;
+      running=!!state&&active(state);displayRunning=!!displayActive(state);return elapsed;
+    }
+    return Object.freeze({checkpoint,reset,consumeDisplay(){const elapsed=displayPending;displayPending=0;return elapsed;},snapshot:()=>({at,active:running,displayActive:displayRunning,displayPendingSeconds:displayPending,unacceptedSeconds:running?Math.max(0,now()-at)/1000:0})});
+  }
   function run(state,elapsed,integrate,{maxSteps=8,budgetMs=6,now=clock}={}){
     if(!state||window.nativeSimulation.blocked())return {steps:0,debtSeconds:state?.shipSimulation?.schedule?.pendingSeconds||0};
     const value=schedule(state),started=now();
@@ -90,7 +107,7 @@
     }else recent.set(state,snapshot(state));
     completedCaches.set(state,{at:Number(state.shipSimulation?.seconds)||0,caches:frame.caches});active.delete(state);
   }
-  // Display callbacks alone accept wall time. While presentation waits on the
+  // Display and gate checkpoints accept wall time. While presentation waits on the
   // browser/GPU, separate short tasks service already accepted physics debt.
   // Every task uses the same integrator and yields before another is posted.
   function createService({getState,allowed=()=>true,advance,now=clock,postTask}={}){
@@ -113,5 +130,5 @@
     }
     return Object.freeze({request,cancel(){generation++;queued=null;},peek(state=getState()){return {...pendingWork(state),queued:!!queued&&queued.state===state};},dispose(){generation++;disposed=true;queued=null;channel?.port1.close();channel?.port2.close();}});
   }
-  window.nativeSimulationFrame=Object.freeze({begin,current,cache,take,count,step,end,snapshot,run,schedule,fixedStep,alpha,transitionReady,trackPose,renderPose,pendingWork,createService});
+  window.nativeSimulationFrame=Object.freeze({begin,current,cache,take,count,step,end,snapshot,run,schedule,fixedStep,alpha,transitionReady,trackPose,renderPose,pendingWork,createService,createHostTime});
 })();

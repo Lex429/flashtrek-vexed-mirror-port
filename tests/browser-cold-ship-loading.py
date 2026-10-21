@@ -196,6 +196,7 @@ try:
           // carries this visual fixture out of view. Painting continues on pause.
           window.__coldWarmSimulation=window.nativeSimulation;
           window.nativeSimulation={...window.nativeSimulation,blocked:()=>true};
+          window.nativeSimulationHost?.checkpoint();
         }""")
         try:
             page.wait_for_function('()=>__coldShip.stages.slice(__coldShip.damageStart).includes(2)', timeout=10000)
@@ -213,7 +214,7 @@ try:
         assert sorted(requested) == [0, 1, 2, 3], requested
         assert sorted(row['stage'] for row in result['preparations']) == [0, 1, 2, 3], result['preparations']
         assert {1, 2, 3}.issubset(result['observedStages']), result
-        page.evaluate('()=>{window.nativeSimulation=window.__coldWarmSimulation;delete window.__coldWarmSimulation;}')
+        page.evaluate('()=>{window.nativeSimulation=window.__coldWarmSimulation;window.nativeSimulationHost?.checkpoint();delete window.__coldWarmSimulation;}')
         page.close()
         player_result = check_player_loading(browser)
         assert not errors, errors

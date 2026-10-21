@@ -67,8 +67,8 @@ try:
           const nativeFrame=()=>{
             // Each new real-input scene needs a distinct host frame. Keep
             // authoritative poses/time frozen while advancing the input owner.
-            const simulation=window.nativeSimulation;window.nativeSimulation={...simulation,blocked:()=>true};
-            try{window.__beamNativeFrame(performance.now());}finally{window.nativeSimulation=simulation;}
+            const simulation=window.nativeSimulation;window.nativeSimulation={...simulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();
+            try{window.__beamNativeFrame(performance.now());}finally{window.nativeSimulation=simulation;window.nativeSimulationHost?.checkpoint();}
           };
           window.__beam={clone,base,weapon,fixture,tick,fire,nativeFrame};
         }""")
@@ -394,6 +394,7 @@ try:
               // Paint one actual native gameplay frame at its frozen simulation
               // time, retaining the HUD and the already resolved single hit.
               window.nativeSimulation={...nativeSimulation,blocked:()=>true};
+              window.nativeSimulationHost?.checkpoint();
               if(!window.__nativeFrame)throw Error('Native gameplay frame was not captured');
               const ctx=document.querySelector('#space').getContext('2d'),beams=[],flashes=[];
               const weapon=paintShowcaseWeaponShot;window.paintShowcaseWeaponShot=(context,shot,geometry,age)=>{if(context===ctx){const point=new DOMPoint(geometry.x2,geometry.y2).matrixTransform(context.getTransform());beams.push({x2:point.x,y2:point.y});}return weapon(context,shot,geometry,age);};

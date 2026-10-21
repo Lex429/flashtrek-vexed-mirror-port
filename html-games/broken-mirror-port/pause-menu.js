@@ -16,10 +16,11 @@
   function sync(){for(const button of overlay.querySelectorAll('[data-display]'))button.setAttribute('aria-pressed',String(button.dataset.display===window.nativeView.selection));}
   function show(screen='home'){
     if(overlay.hidden){
-      returnFocus=document.activeElement;bridge?.prepare();overlay.hidden=false;document.body.classList.add('paused');bridge?.clearInput();
+      returnFocus=document.activeElement;overlay.hidden=false;
+      dispatchEvent(new CustomEvent('native-pausechange',{detail:{paused:true,at:performance.now()}}));
+      bridge?.prepare();document.body.classList.add('paused');bridge?.clearInput();
       disabled=Array.from(document.querySelectorAll('.game-actions button,#save'),button=>({button,disabled:button.disabled}));for(const {button} of disabled)button.disabled=true;
       inertChildren=Array.from(stage.children).filter(child=>child!==overlay).map(child=>({child,inert:child.inert}));for(const {child} of inertChildren)child.inert=true;
-      dispatchEvent(new CustomEvent('native-pausechange',{detail:{paused:true}}));
     }
     home.hidden=screen==='options';options.hidden=screen!=='options';feedback('');sync();
     const active=!!bridge?.active();overlay.querySelector('[data-save]').hidden=!active;
@@ -28,10 +29,9 @@
   }
   function close(){
     if(overlay.hidden)return;
-    overlay.hidden=true;document.body.classList.remove('paused');bridge?.clearInput();
+    overlay.hidden=true;dispatchEvent(new CustomEvent('native-pausechange',{detail:{paused:false,at:performance.now()}}));document.body.classList.remove('paused');bridge?.clearInput();
     for(const {button,disabled:wasDisabled} of disabled)button.disabled=wasDisabled;disabled=[];
     for(const {child,inert} of inertChildren)child.inert=inert;inertChildren=[];
-    dispatchEvent(new CustomEvent('native-pausechange',{detail:{paused:false}}));
     if(returnFocus?.isConnected&&!returnFocus.closest('[hidden]'))returnFocus.focus({preventScroll:true});else document.getElementById('space').focus({preventScroll:true});
   }
   overlay.querySelector('[data-resume]').onclick=close;overlay.querySelector('[data-options]').onclick=()=>show('options');overlay.querySelector('[data-back]').onclick=()=>show('home');

@@ -20,7 +20,7 @@ nearby tactical controllers; they are not ordinary economic traffic.
 | Asteroid depletion and one ore entitlement per asteroid | `asteroid-combat.js` |
 | Simulation clock, pause/hidden/inventory gate | `simulation-clock.js` |
 | Shared world-position eligibility for detailed tactical work | `ship-detail.js` |
-| Work budgets across an animation frame's simulation substeps | `simulation-frame.js` |
+| Live host time admission, fixed physics debt and bounded task budgets | `simulation-frame.js`, with the single `nativeSimulationHost` in `native-game.js` |
 | Calendar skip conversion and owner updates | `world-time.js` |
 | Category enumeration without collision/art activation | `ship-systems.js` `inspectAll` |
 | Marker projection, selection, search, zoom, tracking and inspector UI | `dev-galaxy-view.js` |
@@ -386,6 +386,16 @@ travel state. Its warp/report/arrival presentation does not advance the live wor
 a second time. Restoring its saved pending receipt does not replay the skip.
 Pause, an open inventory and hidden tabs retain the existing freeze policy;
 there is no wall-clock offline earnings or hidden-tab catch-up.
+
+The shared host's `createHostTime` / live `nativeSimulationHost` checkpoints RAF
+and actual pause, inventory, visibility and travel gate edges. It preserves
+active tails and excludes inactive intervals between two RAFs without doing
+physical integration in events. Generic gates notify `native-flightgatechange`;
+live diagnostics replacing/restoring a raw blocked predicate must checkpoint at
+that exact edge. Stale RAF timestamps cannot rewind the boundary. RAF and bounded
+background tasks drain the same fixed `run(state, 0, ...)`; background work adds
+no wall time. Saved pending physics debt survives gates and restoration; host
+reset is reserved for explicit state/fixture rebinding, never clearing that debt.
 
 ## Detail levels and scheduling limits
 

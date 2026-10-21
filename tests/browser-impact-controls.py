@@ -69,7 +69,15 @@ try:
               Object.assign(tug,{x:0,y:0,previousX:0,previousY:0,heading:0,speed:0,vx:0,vy:0,phase:'waiting',hull:1000,shields:1000,lifeEventAt:1e8,dimensions:{width:24,height:120},tons:4});
               s.solEconomy.freighters=[tug];
             }
-            nativeSaveStorage.write(s);resumeNativeGame();__impactTick(1);return nativeNpcDev.getState();
+            nativeSaveStorage.write(s);resumeNativeGame();
+            // Each restored world begins a new synthetic host clock. Keep its
+            // saved physical debt; elapsed timestamps from the previous test
+            // world are not active flight time in this newly loaded fixture.
+            const restored=nativeNpcDev.getState(),pending=restored.shipSimulation.schedule.pendingSeconds,previousHost=nativeSimulationHost.snapshot();
+            nativeSimulationHost.reset(__impactStamp);
+            check(restored.shipSimulation.schedule.pendingSeconds===pending,'Fixture host reset discarded saved physical debt');
+            window.__impactActivation={stamp:__impactStamp,previousHostAt:previousHost.at,host:nativeSimulationHost.snapshot()};
+            __impactTick(1);__impactActivation.debt=nativeNpcDev.getState().shipSimulation.schedule.pendingSeconds;return nativeNpcDev.getState();
           };
           window.__impactSnapshot=()=>{const s=nativeNpcDev.getState();return copy({x:s.x,y:s.y,angle:s.angle,speed:s.speed,vx:s.vx,vy:s.vy,kick:s.motionKick,spin:s.motionSpin,clock:nativeSimulation.seconds(s)});};
           __impactActivate();
@@ -132,7 +140,7 @@ try:
             impact = page.evaluate('''(speed)=>{
               const s=nativeNpcDev.getState(),t=s.solEconomy.freighters[0];let steps=0;
               while(!t.motionSpin&&steps++<600)__impactTick(1);
-              __impactCheck(Math.abs(t.motionSpin?.velocity||0)>.01,'Actual keyboard-frame ram did not twist tug');
+              __impactCheck(Math.abs(t.motionSpin?.velocity||0)>.01,'Actual keyboard-frame ram did not twist tug '+JSON.stringify({activation:__impactActivation,steps,player:__impactSnapshot(),tug:{x:t.x,y:t.y,vx:t.vx,vy:t.vy,spin:t.motionSpin},debt:s.shipSimulation.schedule.pendingSeconds,traffic:nativeShipTraffic.snapshot(s)}));
               return {speed,heading:t.heading,angularVelocity:t.motionSpin.velocity,vx:t.vx,vy:t.vy,cargo:t.tons,hull:t.hull,shields:t.shields};
             }''', speed)
             assert impact['cargo'] == 4 and impact['hull'] == 1000 and impact['shields'] == 1000

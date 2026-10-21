@@ -26,6 +26,7 @@ INSTALL = r"""async saved => {
  if(saved){nativeSaveStorage.write(JSON.parse(saved));resumeNativeGame();}else startNativeDevGame();
  window.__originalBlocked=nativeSimulation.blocked;
  window.nativeSimulation={...nativeSimulation,blocked:()=>true};
+ window.nativeSimulationHost?.checkpoint();
  await Promise.all([0,1,3,4].map(id=>vexedFlightAssets.loadLocalBody(id)));
  const render=vexedSpace.render;
  window.__eclipseFrames=[];
@@ -178,6 +179,7 @@ def main():
                 page.evaluate('''() => {
                   nativeNpcDev.getState().angle=0;window.__eclipseFrames=[];window.__recordEclipse=true;
                   window.nativeSimulation={...nativeSimulation,blocked:window.__originalBlocked};
+                  window.nativeSimulationHost?.checkpoint();
                 }''')
                 page.locator('#space').focus()
                 page.keyboard.down('w')

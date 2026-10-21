@@ -103,7 +103,7 @@
     root.querySelector('[data-buy-equipment]').onclick=()=>{const result=bridge.buyEquipment(root.querySelector('[data-equipment-shop]').value);equipmentNote=result?.ok?'Purchased equipment added to locker.':result?.error||'Purchase failed.';render();};
     preview(state,ship);
   }
-  function open(){if(!bridge?.getState?.()||!root.hidden)return;previousFocus=document.activeElement;selectedWeapon=null;equipmentSelection=null;equipmentNote='';inventoryPage=0;view='loadout';rightPage='inventory';deliveryNote='';root.hidden=false;render();root.querySelector('.inventory-close')?.focus({preventScroll:true});}
-  function close(){if(root.hidden)return;root.hidden=true;generation++;if(frame)cancelAnimationFrame(frame);frame=0;root.innerHTML='';selectedWeapon=null;previousFocus?.focus?.({preventScroll:true});}
+  function open(){if(!bridge?.getState?.()||!root.hidden)return;previousFocus=document.activeElement;selectedWeapon=null;equipmentSelection=null;equipmentNote='';inventoryPage=0;view='loadout';rightPage='inventory';deliveryNote='';root.hidden=false;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:true,at:performance.now()}}));render();root.querySelector('.inventory-close')?.focus({preventScroll:true});}
+  function close(){if(root.hidden)return;root.hidden=true;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:false,at:performance.now()}}));generation++;if(frame)cancelAnimationFrame(frame);frame=0;root.innerHTML='';selectedWeapon=null;previousFocus?.focus?.({preventScroll:true});}
   window.nativeShipInventory={attach(value){bridge=value;},open,close,refresh:render,get active(){return !root.hidden}};
 })();

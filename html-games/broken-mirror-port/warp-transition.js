@@ -61,7 +61,9 @@
   }
   function setText(selector,value){overlay.querySelector(selector).textContent=String(value);}
   function setPhase(value){
+    const edge=(phase==='idle')!==(value==='idle'),at=performance.now();
     phase=value;phaseTime=0;overlay.dataset.phase=value;
+    if(edge)dispatchEvent(new CustomEvent('native-flightgatechange',{detail:{at}}));
     if(value==='cruise')hum(soundEnabled);
     if(value==='arrival')hum(false);
 
@@ -72,8 +74,10 @@
     document.body.classList.add('warping');stage.setAttribute('aria-busy','true');
   }
   function clean(){
+    const edge=phase!=='idle',at=performance.now();
     ++generation;cancelAnimationFrame(raf);raf=0;
     overlay.hidden=true;panel.hidden=true;errorPanel.hidden=true;phase='idle';overlay.dataset.phase='idle';
+    if(edge)dispatchEvent(new CustomEvent('native-flightgatechange',{detail:{at}}));
     document.body.classList.remove('warping');stage.removeAttribute('aria-busy');
     for(const {button,disabled} of disabledControls)button.disabled=disabled;disabledControls=[];
     hum(false);enterSound.pause();dropSound.pause();session=null;

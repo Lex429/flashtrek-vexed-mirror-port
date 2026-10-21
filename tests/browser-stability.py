@@ -213,7 +213,7 @@ FUNCTIONAL = r"""async () => {
   check(entity.hull===0&&explosions===1,'Destruction while preparing did not resolve exactly once');
   release();await promise;
   const metrics=nativeShipEffects.metrics();check(metrics.preparation.failed===0,'Optional preparation task failed');
-  const simulation=window.nativeSimulation;window.nativeSimulation={...simulation,blocked:()=>true};
+  const simulation=window.nativeSimulation;window.nativeSimulation={...simulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();
   const pending=nativeShipEffects.metrics().deferredStages;nativeShipEffects.advance(state,.1);
   check(nativeShipEffects.metrics().deferredStages===pending,'Pause advanced pending visual simulation');
   window.nativeSimulation=simulation;state.shipSimulation.seconds+=.1;

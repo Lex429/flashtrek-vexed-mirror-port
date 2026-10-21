@@ -71,11 +71,11 @@ try:
         x=box['x']+point['x']/point['w']*box['width'];y=box['y']+point['y']/point['h']*box['height']
         page.mouse.click(x,y);page.locator('#asteroid-mine-action').click()
         page.wait_for_function('()=>__deuraniumState.asteroidDamage?.[__deuraniumRock.slotId]>=__deuraniumRock.maxHull*.5',timeout=15000)
-        page.evaluate('window.__originalBlocked=nativeSimulation.blocked; window.nativeSimulation={...nativeSimulation,blocked:()=>true}; window.__damagePaused=__deuraniumState.asteroidDamage[__deuraniumRock.slotId]')
+        page.evaluate('window.__originalBlocked=nativeSimulation.blocked; window.nativeSimulation={...nativeSimulation,blocked:()=>true}; window.nativeSimulationHost?.checkpoint(); window.__damagePaused=__deuraniumState.asteroidDamage[__deuraniumRock.slotId]')
         page.wait_for_timeout(300)
         assert page.evaluate('__deuraniumState.asteroidDamage[__deuraniumRock.slotId]===__damagePaused')
         page.screenshot(path=str(OUT/'actual-player-mining.png'))
-        page.evaluate('()=>{nativeSaveStorage.write(__deuraniumState);const initialize=nativeShipRepairs.initialize;window.nativeShipRepairs={...nativeShipRepairs,initialize:s=>{window.__deuraniumState=s;return initialize(s);}};resumeNativeGame();window.nativeShipRepairs={...nativeShipRepairs,initialize};window.nativeSimulation={...nativeSimulation,blocked:__originalBlocked};}')
+        page.evaluate('()=>{nativeSaveStorage.write(__deuraniumState);const initialize=nativeShipRepairs.initialize;window.nativeShipRepairs={...nativeShipRepairs,initialize:s=>{window.__deuraniumState=s;return initialize(s);}};resumeNativeGame();window.nativeShipRepairs={...nativeShipRepairs,initialize};window.nativeSimulation={...nativeSimulation,blocked:__originalBlocked};window.nativeSimulationHost?.checkpoint();}')
         page.wait_for_function('()=>__deuraniumState.minedAsteroids?.includes(__deuraniumRock.slotId)',timeout=15000)
         page.mouse.click(x,y)
         page.wait_for_function('()=>__deuraniumState.asteroidOreDrops[__deuraniumRock.slotId]===0')

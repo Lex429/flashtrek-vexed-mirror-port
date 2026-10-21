@@ -13,7 +13,7 @@ SCENARIO=r"""() => {
  const check=(value,message)=>{if(!value)throw Error(message)},s=nativeNpcDev.getState(),systems=nativeShipSystems,frames=nativeSimulationFrame;
  const ship=s.civilianTraffic.ships.find(e=>e.system===s.system&&e.hull>0&&!['warp','arriving','destroyed'].includes(e.phase));
  check(ship,'No ordinary local civilian');
- const runtime=nativeSimulation,stamp=performance.now();window.nativeSimulation={...runtime,blocked:()=>true};window.__nativeFrame(stamp);
+ const runtime=nativeSimulation,stamp=performance.now();window.nativeSimulation={...runtime,blocked:()=>true};nativeSimulationHost.checkpoint(stamp);window.__nativeFrame(stamp);
  frames.begin(s);frames.step(s);const initial=systems.scene(s),rocks=initial.rocks.slice(),before=frames.snapshot(s).counters;
  const location={x:ship.x,y:ship.y,heading:ship.heading,vx:ship.vx,vy:ship.vy,speed:ship.speed};
  for(let i=0;i<30;i++){
@@ -29,20 +29,20 @@ SCENARIO=r"""() => {
  // Exercise the real draw/advanceSimulation path, including actual contacts
  // and jobs, with a735ms active frame. No elapsed simulation time may disappear.
  const boundary=performance.now();window.__nativeFrame(boundary);const start=nativeSimulation.seconds(s),initialDebt=s.shipSimulation.schedule?.pendingSeconds||0;
- window.nativeSimulation=runtime;window.__nativeFrame(boundary+735);
+ window.nativeSimulation=runtime;nativeSimulationHost.checkpoint(boundary);window.__nativeFrame(boundary+735);
  const elapsed=nativeSimulation.seconds(s)-start,physical=frames.snapshot(s);
  const debt=s.shipSimulation.schedule.pendingSeconds;
  check(Math.abs(elapsed+debt-initialDebt-.735)<1e-8,'Slow active frame discarded elapsed time '+elapsed+' debt '+debt);
  check(physical.steps>0&&physical.steps<=8,'Slow frame did not bound physical catch-up '+physical.steps);
  check(debt>.5,'Injected stall did not expose its unpaid physics debt');
- window.nativeSimulation={...runtime,blocked:()=>true};window.__nativeFrame(boundary+1500);
+ window.nativeSimulation={...runtime,blocked:()=>true};nativeSimulationHost.checkpoint(boundary+735);window.__nativeFrame(boundary+1500);
  check(Math.abs(nativeSimulation.seconds(s)-start-elapsed)<1e-8&&s.shipSimulation.schedule.pendingSeconds===debt,'Pause advanced simulation or discarded debt');
  const conserved=state=>JSON.stringify({jobs:state.civilianTraffic.ships.map(e=>({id:e.id,task:e.task,cargo:e.cargo,credits:e.credits,equipment:e.shipEquipment})),
    reservations:state.civilianTraffic.life.reservations,player:state.shipEquipment,cargo:state.solFreightHold,contracts:state.localContracts,
    clock:state.shipSimulation,events:state.weaponCombat?.events,transactions:state.civilianTraffic.life.transactions});
  const expected=conserved(s);check(nativeSaveStorage.write(s).ok,'Verified save failed');window.resumeNativeGame('dev');
  const restored=nativeNpcDev.getState();check(conserved(restored)===expected,'Reload changed jobs, cargo, equipment, recharge or transactions');
- window.nativeSimulation=runtime;
+ window.nativeSimulation=runtime;nativeSimulationHost.checkpoint(boundary+1500);
  for(let i=0;i<120&&restored.shipSimulation.schedule.pendingSeconds>=frames.fixedStep;i++)window.__nativeFrame(boundary+1500);
  check(restored.shipSimulation.schedule.pendingSeconds<frames.fixedStep,'Catch-up failed to recover');
  check(Math.abs(nativeSimulation.seconds(restored)-start+restored.shipSimulation.schedule.pendingSeconds-initialDebt-.735)<1e-8,'Recovery skipped or replayed active time');
