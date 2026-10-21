@@ -99,10 +99,14 @@
       pieces=pieces.slice(-96);particles=particles.slice(-320);events=events.slice(-32);
     }
     function update(time){pieces=pieces.filter(p=>time-p.born<p.ttl);particles=particles.filter(p=>time-p.born<p.ttl);events=events.filter(p=>time-p.born<p.ttl);}
-    function draw(ctx,time){
+    function draw(ctx,time,{visible=()=>true}={}){
       ctx.save();ctx.globalCompositeOperation='source-over';
-      for(const p of pieces){const age=(time-p.born)/1000,q=age*1000/p.ttl;if(q<0||q>=1)continue;ctx.save();ctx.translate(p.x+p.vx*age,p.y+p.vy*age);ctx.rotate(p.angle+p.spin*age);ctx.globalAlpha=q<.5?1:(1-q)*2;if(!window.wreckageEffects?.draw(ctx,p.texture,p.w,p.h,age*1000))ctx.drawImage(p.texture,-p.w/2,-p.h/2,p.w,p.h);ctx.restore();}
-      for(const p of particles){const age=(time-p.born)/1000,q=age*1000/p.ttl;if(q<0||q>=1)continue;const x=p.x+(p.vx||0)*age,y=p.y+(p.vy||0)*age;ctx.save();
+      // Wreck fire/smoke can extend 52 units beyond a rotating piece. Keep
+      // those lobes even when the bare fragment center lies outside the view.
+      for(const p of pieces){const age=(time-p.born)/1000,q=age*1000/p.ttl;if(q<0||q>=1)continue;const x=p.x+p.vx*age,y=p.y+p.vy*age;if(!visible(x,y,Math.hypot(p.w,p.h)/2+52))continue;ctx.save();ctx.translate(x,y);ctx.rotate(p.angle+p.spin*age);ctx.globalAlpha=q<.5?1:(1-q)*2;if(!window.wreckageEffects?.draw(ctx,p.texture,p.w,p.h,age*1000))ctx.drawImage(p.texture,-p.w/2,-p.h/2,p.w,p.h);ctx.restore();}
+      for(const p of particles){const age=(time-p.born)/1000,q=age*1000/p.ttl;if(q<0||q>=1)continue;const x=p.x+(p.vx||0)*age,y=p.y+(p.vy||0)*age;
+        const radius=p.kind==='smoke'?p.size*(1+q*2):p.kind==='flash'?p.size*(1+q)*Math.SQRT2:Math.hypot(p.vx||0,p.vy||0)*.025+p.size/2+1;
+        if(!visible(x,y,radius))continue;ctx.save();
         if(p.kind==='smoke'){ctx.globalAlpha=(1-q)*.19;ctx.fillStyle='#78848d';ctx.beginPath();ctx.ellipse(x,y,p.size*(1+q*2),p.size*(.65+q*1.5),q,0,Math.PI*2);ctx.fill();}
         else{ctx.globalCompositeOperation='lighter';ctx.globalAlpha=1-q;if(p.kind==='flash'){const r=p.size*(1+q),g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'#fffdeb');g.addColorStop(.2,'#ffe5a9');g.addColorStop(.55,'#ff913855');g.addColorStop(1,'#ff913800');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}
           else{ctx.lineWidth=p.size;ctx.strokeStyle=q<.2?'#fff7d2':q<.6?'#ffc062':'#d86630';ctx.beginPath();ctx.moveTo(x-p.vx*.025,y-p.vy*.025);ctx.lineTo(x,y);ctx.stroke();}}

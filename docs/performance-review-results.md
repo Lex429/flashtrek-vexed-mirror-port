@@ -1,5 +1,9 @@
 # Remaining performance review, 20 October 2026
 
+The subsequent [fleet foundation review](fleet-foundation-results.md) starts
+from `d68a0f0` with preserved newer work and fresh measurements. Numbers below
+remain the historical `665e553` comparison and are not its current baseline.
+
 Baseline: `665e553ee37cad55a4d0e80461b5fdcb55a02e9e`, the fetched remote
 `main` at the start of this review. Work is isolated in
 `C:\Users\alphi\Vexed-Mirror-Performance-Fix`, branch

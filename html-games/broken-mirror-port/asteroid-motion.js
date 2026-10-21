@@ -105,19 +105,39 @@
   function collide(state,dt){
     if(!state||!(dt>0)||window.nativeSimulation.blocked())return;
     ensure(state);const at=time(state),system=state.system;
-    // Use the existing registered fleet; never construct a parallel population.
-    const ships=window.nativeShipSystems.collectShips(state,system);
+    // Local contacts and genuine moving actors use the same indexed registry.
+    // A distant stationary fleet need not be described each physics step;
+    // displaced rocks still query those hulls along their complete swept path.
+    const systems=window.nativeShipSystems,player=system===1?window.vexedSolFlight?.shipPosition(state)||state:state,radius=window.nativeShipDetail?.radius(state)||6500;
+    const candidates=new Map(),add=(ship,elapsed=dt)=>{if(ship&&!candidates.has(ship.category+':'+ship.id))candidates.set(ship.category+':'+ship.id,{...ship,contactDt:elapsed});};
+    // Choose the smaller conservative enumeration. A normal small system can
+    // inspect eighteen hulls more cheaply than querying two hundred drifting
+    // rocks; a large distant fleet uses the inverse spatial search instead.
+    const enumerate=systems.countShips(state,system)<=Math.max(32,active.size);
+    if(enumerate)for(const ship of systems.collectShips(state,system))add(ship);
+    else{
+      for(const ship of systems.query(state,{system,minX:player.x-radius,minY:player.y-radius,maxX:player.x+radius,maxY:player.y+radius,categories:['player','civilian','tug','repair-drone']}).bystanders)add(ship);
+      for(const ship of window.nativeNpcLives?.mobile?.(state,system)||[])add(systems.resolve(state,ship.id,system));
+      if(system===1)for(const ship of window.nativeSolEconomy?.mobile?.(state)||[])add(systems.resolve(state,'tug:'+ship.id,1));
+    }
+    for(const ship of window.nativeShipRepairs?.drones?.(state)||[])add(ship);
+    for(const {rock} of active.values())if(!gone(state,rock.slotId)){
+      if(enumerate&&(rock.system??system)===system)continue;
+      const body=physical(rock,dt),r=rock.size*.43;
+      for(const ship of systems.query(state,{system:rock.system??system,minX:Math.min(body.previousX,rock.x)-r,minY:Math.min(body.previousY,rock.y)-r,maxX:Math.max(body.previousX,rock.x)+r,maxY:Math.max(body.previousY,rock.y)+r,categories:['player','civilian','tug','repair-drone']}).bystanders)add(ship);
+    }
+    const ships=Array.from(candidates.values());
     for(const original of ships){
       if(!original.entity||original.hull<=0||original.entity.journey||['destroyed','disabled','warp','arriving'].includes(original.entity.phase))continue;
       let ship=original;
-      const radii=ship.hullRadii||ship.radii,travel=Math.hypot(ship.x-ship.previousX,ship.y-ship.previousY);
+      const radii=ship.hullRadii||ship.radii,travel=Math.hypot(ship.x-ship.previousX,ship.y-ship.previousY),contactDt=ship.contactDt||dt;
       // Teleports/system arrivals do not become a sweep through an entire belt.
-      if(travel>Math.max(500,Math.hypot(ship.vx,ship.vy)*dt*3+50))ship={...ship,previousX:ship.x,previousY:ship.y};
-      const nearby=rockCandidates(system,{x:ship.previousX,y:ship.previousY},ship,Math.max(radii.rx,radii.ry));
-      const candidates=nearby.filter(rock=>!gone(state,rock.slotId)).map(rock=>{countCandidates(state,1);return {rock,contact:window.nativeShipMotion.asteroidContact(ship,physical(rock,dt),dt)};}).filter(e=>e.contact).sort((a,b)=>a.contact.t-b.contact.t);
+      if(travel>Math.max(500,Math.hypot(ship.vx,ship.vy)*contactDt*3+50))ship={...ship,previousX:ship.x,previousY:ship.y};
+      const nearby=rockCandidates(ship.system,{x:ship.previousX,y:ship.previousY},ship,Math.max(radii.rx,radii.ry));
+      const candidates=nearby.filter(rock=>!gone(state,rock.slotId)).map(rock=>{countCandidates(state,1);return {rock,contact:window.nativeShipMotion.asteroidContact(ship,physical(rock,contactDt),contactDt)};}).filter(e=>e.contact).sort((a,b)=>a.contact.t-b.contact.t);
       for(const {rock} of candidates){
         if(gone(state,rock.slotId))continue;
-        countCandidates(state,1);const result=window.nativeShipMotion.asteroidContact(ship,physical(rock,dt),dt);if(!result)continue;
+        countCandidates(state,1);const result=window.nativeShipMotion.asteroidContact(ship,physical(rock,contactDt),contactDt);if(!result)continue;
         store(state,rock,result.rock);
         pushShip(state,ship,result.ship);
         const key=ship.category+':'+ship.id+':'+rock.slotId,last=contacts.get(key)??-Infinity;

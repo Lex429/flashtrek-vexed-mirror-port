@@ -52,14 +52,26 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-incremental-art.py
+      - name: Bounded optional artwork worker, original pixel algorithms and explicit readiness
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-optional-art-worker.py
       - name: Shared spatial scenes, complete catch-up and durable reload
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-spatial-performance.py
+      - name: Fixed display-independent physics, interpolation and 5000-record verified reload
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-foundation.py
       - name: Current ship appearance first, damage promotion and loading fallback
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-cold-ship-loading.py
+      - name: Visible mixed-hull working set survives optional artwork eviction
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-ship-working-set.py
       - name: Fractional Olympic settlement and retained hull-change drone capacity
         env:
           BROWSER_CHANNEL: ''
@@ -68,6 +80,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ship-presentation.py
+      - name: Conservative ship padding, whole-fleet native pixels and camera edges
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-ship-padding.py
       - name: Setup showcase lighting, animation lifecycle and screen fit
         env:
           BROWSER_CHANNEL: ''
@@ -124,6 +140,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-render-paths.py --visual-only --label ci
+      - name: Planet limbs, smooth eclipses and stable system illumination
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-planet-lighting.py --label ci
       - name: Cold damage artwork, pause and map preparation boundaries
         env:
           BROWSER_CHANNEL: ''

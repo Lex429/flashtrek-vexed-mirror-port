@@ -4,16 +4,18 @@ const path=require('node:path');
 const test=require('node:test');
 const vm=require('node:vm');
 
-function fixture(){
-  const effects=[],canvases=[];
+function fixture({legacyPhaseCap=false}={}){
+  const effects=[],canvases=[],drawCalls=[],clipRects=[];let time=0;
   const context=()=>({getTransform:()=>({a:1,b:0,c:0,d:1}),save(){},restore(){},translate(){},scale(){},
-    setTransform(){},clearRect(){},drawImage(){},fillRect(){},createLinearGradient:()=>({addColorStop(){}})});
+    setTransform(){},clearRect(){},drawImage(...args){drawCalls.push({context:this,args});},beginPath(){},rect(...args){clipRects.push({context:this,args});},clip(){},fillRect(){},createLinearGradient:()=>({addColorStop(){}})});
   const document={createElement:()=>{const canvas={width:0,height:0,getContext:context};canvases.push(canvas);return canvas;}};
   const window={};
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/ship-sprite-cache.js'),'utf8'),
-    {window,document,performance:{now:()=>0}});
+  let source=fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/ship-sprite-cache.js'),'utf8');
+  if(legacyPhaseCap){const current='maxPhasePixels=maxLampPixels';assert.equal(source.split(current).length,2);source=source.replace(current,'maxPhasePixels=1_000_000');}
+  vm.runInNewContext(source,
+    {window,document,performance:{now:()=>time}});
   const asset={art:{width:315,height:512},width:315,height:512,damageStage:0,profile:{effects:{draw:(...args)=>effects.push(args)}}};
-  return {cache:window.nativeShipSpriteCache,ctx:context(),asset,effects,canvases};
+  return {cache:window.nativeShipSpriteCache,ctx:context(),asset,effects,canvases,drawCalls,clipRects,time:value=>{time=value;}};
 }
 
 test('lighting and warp use bounded screen-sized rasters and freeze at simulation time',()=>{
@@ -96,6 +98,51 @@ test('shared player and NPC artwork retains independent animation cadence',()=>{
   assert.equal(canvases.length,4);
 });
 
+test('same-class fleet headings retain independent light and composition surfaces while sharing animation',()=>{
+  const {cache,ctx,asset,effects,canvases}=fixture(),owners=Array.from({length:12},()=>({}));
+  const draw=(owner,index,time)=>{const angle=index*.35;ctx.getTransform=()=>({a:Math.cos(angle),b:Math.sin(angle),c:-Math.sin(angle),d:Math.cos(angle)});
+    cache.draw(ctx,asset,68,110,time,{owner,effectRate:20,localLight:{direction:angle,color:0xffdb9e,bright:.22}});};
+  for(let frame=0;frame<120;frame++)for(let i=0;i<owners.length;i++)draw(owners[i],i,frame*1000/120+.01);
+  const before=cache.snapshot(),allocated=canvases.length;
+  assert.equal(effects.length,20,'all twelve crews share the same twenty animated frames');
+  assert.equal(before.sprites.entries,1);assert.equal(before.compositions.entries,12);
+  assert.equal(before.counters.lightingMisses,12,'stationary headings do not overwrite another ship lighting mask');
+  assert.equal(before.counters.spriteCompositions,240,'per-ship surfaces compose only when their twenty-Hz effects change');
+  for(let frame=1;frame<=120;frame++)draw(owners[3],3+frame*.01,119*1000/120+.01);
+  assert.equal(canvases.length,allocated,'turning a crew reuses its own retained mask and composition');
+  assert.equal(effects.length,20,'turning never invalidates shared frozen effects');
+});
+
+test('one hundred visible small craft fit independent headings without an artificial sixty-four-entry churn',()=>{
+  const {cache,ctx,asset,effects}=fixture(),owners=Array.from({length:100},()=>({}));
+  for(let frame=0;frame<3;frame++)for(let i=0;i<owners.length;i++)cache.draw(ctx,asset,10,17,1000,
+    {owner:owners[i],effectRate:20,localLight:{direction:i*.06,color:0xffdb9e,bright:.22}});
+  const result=cache.snapshot();assert.equal(result.lighting.entries,100);assert.equal(result.compositions.entries,100);
+  assert.equal(result.counters.lightingMisses,100);assert.equal(result.counters.spriteCompositions,100);assert.equal(effects.length,1);
+  assert.equal(result.counters.evictions,0);assert.ok(result.bytes<=result.limits.bytes);
+});
+
+test('profile-owned conservative support trims exterior presentation while retaining native compositions and fallback',()=>{
+  const {cache,ctx,asset,drawCalls,clipRects}=fixture();let boundsCalls=0;
+  asset.profile.effects.rasterBounds=(_stage,{width,height})=>{boundsCalls++;return {minX:-10,minY:0,maxX:width,maxY:height+5};};
+  const appearance={effectRate:20,owner:{},trimPadding:true};
+  cache.draw(ctx,asset,100,150,1000,appearance);const cropped=cache.snapshot(),first=drawCalls.filter(call=>call.context===ctx).at(-1).args;
+  cache.draw(ctx,asset,100,150,1000,{...appearance,fullSurface:true});const full=drawCalls.filter(call=>call.context===ctx).at(-1).args;
+  assert.equal(boundsCalls,1,'unchanged support is retained with shared animation data');
+  assert.equal(first[0],full[0],'before and after use the identical retained native composition');
+  assert.deepEqual(first,full,'the native source rectangle, image extent and transform stay identical');
+  const clipped=clipRects.find(call=>call.context===ctx).args;
+  assert.ok(clipped[2]<full[3]&&clipped[3]<full[4],'only exterior transparent presentation work is clipped');
+  assert.ok(clipped[0]<-50&&clipped[1]<-75,'the full aligned hull and declared outward effects remain inside the presentation');
+  assert.ok(cropped.counters.paddingPixelsSkipped>0);assert.ok(cropped.counters.presentationQuadPixels<full[0].width*full[0].height/4);
+  assert.equal(cache.snapshot().counters.spriteRebuilds,1,'full-surface comparison shares unchanged animated effects');
+  assert.ok(cache.snapshot().bytes<=cache.snapshot().limits.bytes);
+  asset.art={};asset.profile.effects.rasterBounds=()=>({minX:NaN,minY:0,maxX:1,maxY:1});
+  cache.draw(ctx,asset,100,150,1000,appearance);const failed=drawCalls.filter(call=>call.context===ctx).at(-1).args;
+  assert.equal(failed[0].width,full[0].width);assert.equal(failed[0].height,full[0].height);
+  assert.equal(cache.snapshot().counters.boundsFallbacks,1,'malformed effect support preserves the existing full render surface');
+});
+
 test('sprite, shade and lamp cache memory is bounded and observable under churn',()=>{
   const {cache,ctx,asset}=fixture();
   for(let i=0;i<500;i++){
@@ -110,21 +157,85 @@ test('sprite, shade and lamp cache memory is bounded and observable under churn'
   cache.reset();assert.equal(cache.snapshot().bytes,0);assert.equal(cache.snapshot().entries,0);
 });
 
-test('all original lamp pulse phases update one retained glow without enlarging the cache',()=>{
+test('recurring original lamp pulse phases reuse exact filtered pixels within the same cache budget',()=>{
   const {cache,ctx,canvases}=fixture(),textures={lit:{width:19,height:23},dim:{}},point={left:2,top:3};
+  cache.drawLamp(ctx,textures,point,0,{lightGain:2.8,lightBloom:2.5});
   for(let phase=0;phase<=16;phase++)assert.equal(cache.drawLamp(ctx,textures,point,phase/16,{lightGain:2.8,lightBloom:2.5}),true);
+  for(let phase=0;phase<=16;phase++)cache.drawLamp(ctx,textures,point,phase/16,{lightGain:2.8,lightBloom:2.5});
   const snapshot=cache.snapshot();
-  assert.equal(snapshot.lamps.entries,1,'a changing pulse reuses its retained lamp');
-  assert.equal(snapshot.lamps.brightnessEntries,1);assert.equal(snapshot.counters.lampBrightMisses,1);assert.equal(snapshot.counters.lampHits,16);
-  assert.equal(snapshot.counters.lampGlowRebuilds,17,'all original quantized phases still get their exact blur');
-  assert.equal(canvases.length,2,'brightness and maximum-pad glow surfaces survive every phase');
+  assert.equal(snapshot.lamps.entries,1,'the live lamp keeps its reusable working surface');
+  assert.equal(snapshot.lamps.phaseEntries,17,'the original exact phases retain bounded optional copies');
+  assert.equal(snapshot.lamps.brightnessEntries,1);assert.equal(snapshot.counters.lampBrightMisses,1);assert.equal(snapshot.counters.lampHits,34);
+  assert.equal(snapshot.counters.lampGlowRebuilds,34,'each phase must return after another radius before optional admission');
+  assert.equal(canvases.length,19,'all phase copies share one live lamp and retain its filtered source neighbourhood');
+  assert.ok(canvases.slice(2).some(canvas=>canvas.width<canvases[1].width),'phase snapshots still crop unused transparent padding');
+  for(let phase=0;phase<=16;phase++)cache.drawLamp(ctx,textures,point,phase/16,{lightGain:2.8,lightBloom:2.5});
+  assert.equal(cache.snapshot().counters.lampGlowRebuilds,34,'a repeated cycle does not invoke native blur again');
+  assert.equal(cache.snapshot().counters.lampPhaseHits,snapshot.counters.lampPhaseHits+17);
+  assert.equal(canvases.length,19,'a repeated pulse cycle allocates no additional surfaces');
   cache.drawLamp(ctx,textures,point,1,{lightGain:2.8,lightBloom:2.5});
-  assert.equal(cache.snapshot().counters.lampGlowRebuilds,17,'an unchanged paused phase does not rerasterize');
+  assert.equal(cache.snapshot().counters.lampGlowRebuilds,34,'an unchanged paused phase does not rerasterize');
   cache.drawLamp(ctx,textures,point,.5,{lightGain:1,lightBloom:2.5});
   assert.equal(cache.snapshot().lamps.brightnessEntries,2,'a different gain has independent bright pixels');
   cache.drawLamp(ctx,textures,point,.5,{lightGain:2.8,lightBloom:1});
   assert.equal(cache.snapshot().lamps.brightnessEntries,2,'different glow blooms share unchanged bright pixels');
   assert.equal(cache.snapshot().lamps.entries,3);assert.equal(cache.snapshot().counters.lampBrightHits,1);
+});
+
+test('oversized active mixed lamp phases stop allocating instead of evicting one another on every miss',()=>{
+  const {cache,ctx,canvases,time}=fixture(),lamps=Array.from({length:24},()=>({lit:{width:70,height:50},dim:{}}));
+  const point={left:0,top:0},options={lightGain:2.8,lightBloom:2.5,rasterScale:2};let clock=0;
+  const cycle=()=>{for(let phase=0;phase<=16;phase++){time(clock+=50);for(const textures of lamps)cache.drawLamp(ctx,textures,point,phase/16,options);}};
+  cycle();cycle();const warm=cache.snapshot(),allocated=canvases.length;
+  for(let i=0;i<12;i++)cycle();
+  const busy=cache.snapshot();assert.equal(canvases.length,allocated,'an oversized recurring working set stops allocating after admission');
+  assert.equal(busy.counters.lampPhaseEvictions,0,'active phases cannot evict one another');
+  assert.equal(busy.counters.lampEvictions,0,'optional phases never displace these live working lamp surfaces');
+  assert.ok(busy.counters.lampPhaseAdmissionsSkipped>0,'capacity pressure uses the live fallback');
+  assert.ok(busy.counters.lampPhaseHits>warm.counters.lampPhaseHits,'retained hot phases remain useful');
+  assert.ok(busy.counters.lampGlowRebuilds>warm.counters.lampGlowRebuilds,'uncached changing phases still paint their actual native blur');
+  assert.ok(busy.bytes<=busy.limits.bytes);assert.ok(busy.lamps.phasePixels<=busy.limits.lampPhasePixels);
+  const newcomer={lit:{width:70,height:50},dim:{}};time(clock+7000);
+  cache.drawLamp(ctx,newcomer,point,0,options);cache.drawLamp(ctx,newcomer,point,.5,options);cache.drawLamp(ctx,newcomer,point,0,options);
+  const replaced=cache.snapshot();assert.ok(replaced.counters.lampPhaseEvictions>0,'an unused phase can yield capacity after the idle interval');
+  assert.ok(replaced.counters.canvasReuses>busy.counters.canvasReuses,'matching reclaimed surfaces are reused');
+});
+
+test('actual three-second Earth pulse periods retain useful phases without steady-view allocation cycles',()=>{
+  const {cache,ctx,canvases,time}=fixture(),lamps=Array.from({length:24},()=>({lit:{width:70,height:50},dim:{}}));
+  let clock=0;const cycle=()=>{for(let frame=0;frame<60;frame++){time(clock+=50);for(let i=0;i<lamps.length;i++){
+    const pulse=.18+.82*(.5+.5*Math.sin(clock/1000*2.1+i*.11));cache.drawLamp(ctx,lamps[i],{left:0,top:0},pulse,{lightGain:2.8,lightBloom:2.5,rasterScale:2});
+  }}};
+  cycle();cycle();cycle();const warm=cache.snapshot(),allocated=canvases.length;
+  for(let i=0;i<6;i++)cycle();const steady=cache.snapshot();
+  assert.equal(canvases.length,allocated,'a full visible working set does not restart native canvas allocation every pulse period');
+  assert.equal(steady.counters.lampPhaseEvictions,warm.counters.lampPhaseEvictions);
+  assert.equal(steady.counters.lampEvictions,0);assert.ok(steady.counters.lampPhaseRestores>warm.counters.lampPhaseRestores);
+  assert.ok(steady.counters.lampPhaseAdmissionsSkipped>0);assert.ok(steady.bytes<=steady.limits.bytes);
+});
+
+test('recurring fleet phases use spare lamp pixels before repeating native blur without increasing total retention',t=>{
+  const run=legacyPhaseCap=>{
+    const {cache,ctx,time,canvases}=fixture({legacyPhaseCap}),lamps=Array.from({length:96},()=>({lit:{width:16,height:8},dim:{}}));
+    let clock=0;
+    const cycle=()=>{for(let phase=0;phase<=16;phase++){
+      time(clock+=175);for(const texture of lamps)cache.drawLamp(ctx,texture,{left:0,top:0},phase/16,{lightGain:2.8,lightBloom:2.5,rasterScale:2});
+    }};
+    cycle();cycle();const warm=cache.snapshot(),allocated=canvases.length;
+    for(let i=0;i<6;i++)cycle();const steady=cache.snapshot();
+    assert.equal(canvases.length,allocated,'a steady three-second pulse cycle allocates no more native canvases');
+    assert.equal(steady.counters.lampPhaseEvictions,warm.counters.lampPhaseEvictions,'active phases do not evict one another');
+    assert.equal(steady.counters.lampEvictions,0,'optional copies cannot displace live working surfaces');
+    assert.ok(steady.lamps.pixels<=steady.limits.lampPixels);assert.ok(steady.bytes<=steady.limits.bytes);
+    return {steady,glows:steady.counters.lampGlowRebuilds-warm.counters.lampGlowRebuilds};
+  };
+  const limited=run(true),shared=run(false);
+  assert.ok(shared.steady.lamps.phasePixels>1_000_000,'the pressure fixture actually uses previously unavailable spare pixels');
+  assert.ok(shared.glows<limited.glows,'retaining additional recurring phases avoids measured native blur rebuilds');
+  assert.equal(shared.steady.limits.bytes,limited.steady.limits.bytes,'the aggregate memory cap is unchanged');
+  assert.equal(shared.steady.limits.lampPixels,4_000_000);
+  t.diagnostic(JSON.stringify({formerSubcapNativeBlurs:limited.glows,sharedBudgetNativeBlurs:shared.glows,
+    formerPhasePixels:limited.steady.lamps.phasePixels,sharedPhasePixels:shared.steady.lamps.phasePixels,totalLampPixels:shared.steady.lamps.pixels}));
 });
 
 test('evicted lamp surfaces are reused only at matching dimensions and stay within the same byte limit',()=>{
@@ -134,6 +245,19 @@ test('evicted lamp surfaces are reused only at matching dimensions and stay with
   assert.ok(snapshot.counters.canvasAllocations<1500,'surface churn is lower than the number of new lamps');
   assert.ok(snapshot.bytes<=snapshot.limits.bytes);assert.equal(snapshot.lamps.brightnessEntries,snapshot.lamps.entries);
   cache.reset();assert.equal(cache.snapshot().lamps.brightnessEntries,0);
+});
+
+test('lamp phase admission and reuse preserve the native presentation source without repeating blur',()=>{
+  const {cache,ctx,drawCalls}=fixture(),textures={lit:{width:19,height:23},dim:{}},point={left:0,top:0};
+  const draw=phase=>cache.drawLamp(ctx,textures,point,phase/16,{lightGain:2.8,lightBloom:2.5,rasterScale:2});
+  draw(0);const original=drawCalls.filter(call=>call.context===ctx).at(-1).args;
+  draw(8);draw(0);draw(8);const before=cache.snapshot();draw(0);
+  const after=cache.snapshot(),paints=drawCalls.filter(call=>call.context===ctx);
+  for(let i=2;i<paints.length;i+=3)assert.equal(paints[i].args[0],original[0],
+    'first use and cached phases paint from the same full source surface');
+  assert.deepEqual(paints.at(-1).args,original,'restored phase retains the identical source subset and destination');
+  assert.equal(after.counters.lampPhaseRestores,before.counters.lampPhaseRestores+1);
+  assert.equal(after.counters.lampGlowRebuilds,before.counters.lampGlowRebuilds,'restoring a cached phase never repeats native blur');
 });
 
 test('continuous raster changes update exact blur content while equal dimensions retain their surfaces',()=>{

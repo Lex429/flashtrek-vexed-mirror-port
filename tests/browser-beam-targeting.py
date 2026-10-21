@@ -137,13 +137,14 @@ try:
               };
               h.surface=(test,shot,target=test.victim())=>{
                 const geometry=h.geometry(test,shot),view=h.view(test);
+                target=nativeSimulationFrame.renderPose(test.state,target);
                 const point={x:test.origin.x+(geometry.x2-view.cx)/view.zoom,y:test.origin.y+(geometry.y2-view.cy)/view.zoom};
                 const from={x:test.origin.x+(geometry.x1-view.cx)/view.zoom,y:test.origin.y+(geometry.y1-view.cy)/view.zoom};
                 const angle=target.heading+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle),dx=point.x-target.x,dy=point.y-target.y;
                 const radii=nativeShipDefinitions.surfaceRadii(target.dimensions,target.shields>0,target.definition);
                 h.near(Math.hypot((dx*c+dy*s)/radii.rx,(-dx*s+dy*c)/radii.ry),.96,'Beam endpoint is not on the current shared surface');
                 h.check(dx*(from.x-target.x)+dy*(from.y-target.y)>0,'Beam endpoint rotated onto the far side');
-                const aim=test.victim(),targetDirection={x:aim.x-from.x,y:aim.y-from.y},length=Math.hypot(targetDirection.x,targetDirection.y);
+                const aim=nativeSimulationFrame.renderPose(test.state,test.victim()),targetDirection={x:aim.x-from.x,y:aim.y-from.y},length=Math.hypot(targetDirection.x,targetDirection.y);
                 h.near((point.x-from.x)*targetDirection.y/length-(point.y-from.y)*targetDirection.x/length,0,'Beam left its firing line');
                 h.ctx.clearRect(0,0,canvas.width,canvas.height);h.flashes.length=0;
                 nativeShipEffects.paintSurface(h.ctx,target,view,{front:true});
@@ -210,6 +211,26 @@ try:
                 motion.push({mode,previewPixels:true,resolvedPixels:true,currentPoseHit:true});
               }
               results.motion=motion;
+              {
+                // The actual ship and weapon painters must share their poses
+                // between physical ticks, including a rotating shield contact.
+                const test=fixture(),fired=checkedFire(test);await h.art(test);tick(test,.08);tick(test,.02);
+                const frames=nativeSimulationFrame,beforeSource=test.source(),beforeTarget=test.victim();
+                frames.begin(test.state);frames.step(test.state);
+                test.state.x+=8;test.state.y-=5;test.state.angle+=.18;
+                test.target.x+=12;test.target.y+=7;test.target.heading+=.4;
+                nativeShipSystems.refreshShip(test.state,test.state,'player');nativeShipSystems.refreshShip(test.state,test.target,'civilian');
+                frames.trackPose(test.state,test.state,beforeSource,test.source());frames.trackPose(test.state,test.target,beforeTarget,test.victim());
+                frames.schedule(test.state).pendingSeconds=frames.fixedStep/2;
+                const view=h.view(test),renderTarget=frames.renderPose(test.state,test.victim()),draw=vexedFlightAssets.drawShip,submitted=[];
+                vexedFlightAssets.drawShip=function(ctx,asset,x,y,...args){if(ctx===h.ctx)submitted.push({x,y});return draw.call(this,ctx,asset,x,y,...args);};
+                try{nativeShipEffects.paintShip(h.ctx,test.victim(),view);}finally{vexedFlightAssets.drawShip=draw;}
+                check(submitted.length===1,'Interpolated ship did not reach actual artwork renderer');
+                near(submitted[0].x,view.cx+(renderTarget.x-test.origin.x)*view.zoom,'Ship paint kept an authoritative x');
+                near(submitted[0].y,view.cy+(renderTarget.y-test.origin.y)*view.zoom,'Ship paint kept an authoritative y');
+                h.surface(test,fired.shot);check(h.counts.get(test.state)===1,'Interpolated visual contact damaged again');
+                frames.end(test.state);results.interpolatedContact={actualShipPixels:true,nearShieldSurface:true,damageApplications:1};
+              }
               const shields=[];
               for(const shield of ['active','collapse','absent']){
                 const test=fixture({shield});test.initialShields=test.target.shields;await h.art(test);const fired=checkedFire(test);

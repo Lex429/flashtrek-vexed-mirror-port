@@ -48,6 +48,44 @@ Completed-step read models remain valid through inspection/rendering until the
 next integration step, clock change or explicit mutation. Never drop
 authoritative simulation time to hide a scheduling backlog.
 
+`simulation-frame.run` owns the fixed 60-Hz physics accumulator. Display callbacks
+may integrate zero or several fixed steps; elapsed active time left by its bounded
+work budget stays in saved `shipSimulation.schedule.pendingSeconds`. Never reset
+that debt to improve FPS. Display callbacks accept elapsed time; the same owner
+may service that already accepted debt in bounded MessageChannel tasks between
+draws. Background tasks never accept additional time, request held fire or paint.
+Keep task admission budgets separate from accumulated diagnostic counters.
+`renderPose` is a pure interpolated copy for drawing;
+queries, contacts, damage and deadlines use authoritative poses. Run
+`fixed-schedule.test.cjs` and `browser-foundation.py`, including stall recovery,
+pause, saved debt and 60/120/144-Hz synthetic host inputs. Synthetic timestamps do
+not prove physical monitor delivery at those rates. Unchanged-clock displays
+retain completed shared read models; `zero-step-retained-scene.test.cjs` covers
+mutation and definition/category invalidation without a census per display.
+
+The existing NPC-life owner maintains runtime-only ID/system/mobile/transit
+membership indexes over the saved fleet arrays. Notify it when changing a
+retained raw array alias or changing task, journey or mobility classification.
+Local controllers use these indexes and the shared target spatial owner, rather
+than reconstructing the galaxy. Explicit `refreshShip` must observe same-clock
+equipment edits as well as pose changes. Retained descriptors are immutable.
+Run `fleet-scalability.test.cjs` and `scheduled-pose-cache.test.cjs`; use `browser-fleet-scalability.py` separately for
+sequential timing, never as a concurrent CI timing gate.
+
+The shared renderer and its bounded cache/preparation budgets are documented in
+`docs/fleet-rendering.md`. Cull before loading and composition, including beam
+segments crossing the viewport. Offscreen physical consequences remain active.
+Canvas is the production backend; the explicit WebGL2 comparison backend uses
+the same interfaces and must retain ordering barriers and fallback behavior.
+Run optional-worker, cache, visibility and real pixel regressions. Do not weaken
+existing Canvas alignment or colour gates to accommodate another backend.
+
+`save-storage.js` retains durable transaction ownership. `save-codec.js` uses a
+versioned lossless representation for large fleets; old JSON slots remain
+readable. Never cache a stale serialized snapshot or postpone a durable purchase,
+delivery or travel commit. Profile serialization, storage and verification
+separately. Run `large-save-codec.test.cjs` and the 5,000-record gameplay reload.
+
 Civilian tactical intent can be reused for at most 1/30 simulation second per
 crew; damage, changed targets, fitted capabilities and expired threats refresh it.
 Integrate movement, nearby traffic avoidance, contacts and firing eligibility on
@@ -75,6 +113,11 @@ crowded-flight, combat and cold-appearance workloads.
 
 `port-docking.js` owns civilian berth/queue/holding occupancy and hull clearance.
 NPC tasks must request a berth and physically reach it before handling cargo.
+The same port owner maintains runtime reservation/point/queue indexes. Published
+assignment/deletion updates those views; retained raw aliases require
+`nativePortDocking.invalidate`. Reuse shared hull queries for candidate clearance;
+keep clearing berths, FIFO tickets and cross-port exclusions. Run
+`port-docking-scalability.test.cjs` alongside the existing docking/economy suites.
 Never restore ID-modulo parking coordinates or default normal Sol freight to Earth.
 `npc-lives.exchange` is the shared atomic player/NPC freight settlement boundary;
 player quotes come from `sol-economy.quote` and use marginal lot pricing. Preserve

@@ -172,7 +172,8 @@ def main():
               t.until(()=>t.ship().system===2,'Arrival while observer elsewhere',1200,.5);
               t.check(ship.task.phase==='approaching','Arrival skipped actual destination approach');
               const arrival=t.sample();t.checkMap();
-              nativeNpcDev.visit(2);t.check(ship.task.id===taskId,'Inspecting arrival reset its task');const arrivalPaint=t.drawLocal();
+              const localVisit=nativeNpcDev.visit(2);t.check(localVisit.ok&&s.system===ship.system,'Local arrival visit did not follow the freighter into its authoritative system');
+              t.check(ship.task.id===taskId,'Inspecting arrival reset its task');const arrivalPaint=t.drawLocal();
               t.until(()=>ship.task.id===taskId&&ship.task.phase==='unloading','Docking',1200,.25);
               const docked=t.sample();t.check(!!ship.cargo,'Cargo unloaded before handling completed');
               t.until(()=>ship.task.id===taskId&&ship.task.status==='completed','Delivery completion',20,.25);

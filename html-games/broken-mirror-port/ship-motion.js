@@ -134,15 +134,18 @@
     if(Math.hypot(velocity.x,velocity.y,position.x,position.y)<1e-8)return;
     entity.motionKick=leg?{version:1,mode:'scheduled',at,duration:Math.max(.05,Math.min(3,leg.startedAt+leg.duration-at)),
       x:previous.x+position.x,y:previous.y+position.y,vx:previous.vx+velocity.x,vy:previous.vy+velocity.y}:
-      {version:1,mode:'free',vx:previous.vx+velocity.x,vy:previous.vy+velocity.y};
+      {version:1,mode:'free',vx:previous.vx+velocity.x,vy:previous.vy+velocity.y,...(entity.motionKick?.inherited?{inherited:true}:{})};
   }
   function translationStep(entity,command={},profile={},dt){
-    if(entity?.motionKick&&validPoint(entity)&&entity.speed===0&&dt>0&&Number.isFinite(dt)&&(!command.goal||validPoint(command.goal))){delete entity.motionKick;entity.vx=0;entity.vy=0;}
+    if(entity?.motionKick&&!entity.motionKick.inherited&&validPoint(entity)&&entity.speed===0&&dt>0&&Number.isFinite(dt)&&(!command.goal||validPoint(command.goal))){delete entity.motionKick;entity.vx=0;entity.vy=0;}
     if(!entity?.motionKick||!validPoint(entity)||!(dt>0)||!Number.isFinite(dt)||command.goal&&!validPoint(command.goal))return integrate(entity,command,profile,dt);
-    const sampled=kickSample(entity.motionKick,finite(entity.motionTime,finite(entity.motionKick.at))),kick={version:1,mode:'free',vx:sampled.vx,vy:sampled.vy};
+    const sampled=kickSample(entity.motionKick,finite(entity.motionTime,finite(entity.motionKick.at))),kick={version:1,mode:'free',vx:sampled.vx,vy:sampled.vy,...(entity.motionKick.inherited?{inherited:true}:{})};
     const oldX=entity.x,oldY=entity.y;
     prepare(entity);entity.vx-=kick.vx;entity.vy-=kick.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
-    const result=integrate(entity,command,profile,dt),rate=command.brake?4:command.hold||command.goal?3:command.turn||command.throttle?2:0,decay=Math.exp(-rate*dt),travel=rate?(1-decay)/rate:dt;
+    // A launched craft carries its carrier's real momentum. Thrust changes its
+    // relative velocity; it must not silently erase the inherited inertial frame.
+    // Explicit braking still counters it through the ordinary shared response.
+    const result=integrate(entity,command,profile,dt),rate=command.brake&&(!kick.inherited||command.brakeInherited)?4:kick.inherited?0:command.hold||command.goal?3:command.turn||command.throttle?2:0,decay=Math.exp(-rate*dt),travel=rate?(1-decay)/rate:dt;
     entity.x+=kick.vx*travel;entity.y+=kick.vy*travel;kick.vx*=decay;kick.vy*=decay;
     entity.vx+=kick.vx;entity.vy+=kick.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
     entity.motionKick=Math.hypot(kick.vx,kick.vy)>.001?kick:undefined;
@@ -189,6 +192,26 @@
     for(let i=index+1;i<path.length;i++)remaining+=Math.hypot(path[i].x-path[i-1].x,path[i].y-path[i-1].y);
     return {...result,arrived:final&&result.arrived,index,progress:clamp(1-remaining/Math.max(1,total),0,1)};
   }
+  // Moving attachment goals need their owner's velocity as well as position.
+  // Replanning a stop at every old goal makes a pursuer brake indefinitely
+  // behind a drifting hull. This is only a command; ordinary integration still
+  // enforces the fitted craft's speed, acceleration, turn rate and contacts.
+  function followCommand(entity,point,velocity={x:0,y:0},gain=8){
+    const vx=finite(velocity.x)+(point.x-entity.x)*gain,vy=finite(velocity.y)+(point.y-entity.y)*gain;
+    return {heading:Math.atan2(vy,vx),speed:Math.hypot(vx,vy)};
+  }
+  function attachmentGoal(ship,target,goal){
+    const angle=target.heading+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle),local=p=>({x:(p.x-target.x)*c+(p.y-target.y)*s,y:-(p.x-target.x)*s+(p.y-target.y)*c});
+    const from=local(ship),to=local(goal),radii=target.hullRadii||target.radii,padding=shipRadius(ship)+.25,rx=radii.rx+padding,ry=radii.ry+padding;
+    const x=from.x/rx,y=from.y/ry,dx=(to.x-from.x)/rx,dy=(to.y-from.y)/ry,length=dx*dx+dy*dy,t=length?clamp(-(x*dx+y*dy)/length,0,1):0;
+    if(Math.hypot(x+dx*t,y+dy*t)>=1-1e-6)return goal;
+    // A short circumscribed arc clears the same hull geometry, rather than
+    // repeatedly braking toward a service point on the opposite side.
+    const outerX=radii.rx+padding+3,outerY=radii.ry+padding+3,start=Math.atan2(from.y/outerY,from.x/outerX),end=Math.atan2(to.y/outerY,to.x/outerX),delta=wrap(end-start);
+    const outside=Math.hypot(from.x/outerX,from.y/outerY)>=.98,next=start+(outside?Math.sign(delta)*Math.min(.4,Math.abs(delta)):0),scale=1/Math.cos(.2);
+    const px=Math.cos(next)*outerX*scale,py=Math.sin(next)*outerY*scale;
+    return {x:target.x+px*c-py*s,y:target.y+px*s+py*c};
+  }
   // A scheduled straight movement command. Sampling the same command for nearby
   // and distant ships gives promotion/demotion an identical world pose. All
   // acceleration and braking geometry remains here, outside job controllers.
@@ -208,34 +231,46 @@
     const cruiseSeconds=Math.max(0,(distance-accelDistance-brakeDistance)/peakSpeed);
     const heading=distance?Math.atan2(dy,dx):finite(entity.heading,finite(entity.angle));
     const turnRate=Math.max(.001,finite(profile.turnRate,1000000));
-    return {version:2,valid:true,start,goal:{x:goal.x,y:goal.y},startedAt:finite(startedAt),distance,heading,headingStart,turnSeconds:Math.abs(wrap(heading-headingStart))/turnRate,
-      initialSpeed,peakSpeed,acceleration,braking,accelSeconds,cruiseSeconds,brakeSeconds,accelDistance,duration:accelSeconds+cruiseSeconds+brakeSeconds};
+    const turnSeconds=Math.abs(wrap(heading-headingStart))/turnRate,travelSeconds=accelSeconds+cruiseSeconds+brakeSeconds;
+    return {version:2,valid:true,start,goal:{x:goal.x,y:goal.y},startedAt:finite(startedAt),distance,heading,headingStart,turnSeconds,turnRate,travelSeconds,
+      initialSpeed,peakSpeed,acceleration,braking,accelSeconds,cruiseSeconds,brakeSeconds,accelDistance,duration:Math.max(travelSeconds,turnSeconds)};
   }
-  function sampleLegBase(entity,leg,now){
+  function legHeading(leg,elapsed,start=leg.headingStart){
+    const delta=wrap(finite(leg.heading,start)-finite(start));
+    if(Math.abs(delta)<1e-12||!(elapsed>0))return wrap(finite(start));
+    const rate=leg.turnRate??(leg.turnSeconds>0?Math.abs(wrap(leg.heading-leg.headingStart))/leg.turnSeconds:Infinity);
+    return wrap(finite(start)+Math.sign(delta)*Math.min(Math.abs(delta),Math.max(0,elapsed)*rate));
+  }
+  function sampleLegBase(entity,leg,now,continuousStart){
     if(!validPoint(entity)||!leg||leg.valid===false||!validPoint(leg.start)||!validPoint(leg.goal)||!Number.isFinite(now))return {arrived:false,invalid:true,progress:0};
     if(leg.version===3){
       if(!Array.isArray(leg.segments)||!leg.segments.length)return {arrived:false,invalid:true,progress:0};
       const segment=leg.segments.find(part=>now<part.startedAt+part.duration)||leg.segments.at(-1);
-      const result=sampleLegBase(entity,segment,now);
+      // Old composite routes could finish a braking leg before it had turned,
+      // then start the next leg from the impossible snapped orientation. Read
+      // those saves continuously without changing their committed deadlines.
+      let start;
+      if(!leg.turnVersion){start=leg.segments[0].headingStart;for(const part of leg.segments){if(part===segment)break;start=legHeading(part,part.duration,start);}}
+      const result=sampleLegBase(entity,segment,now,start);
       return {...result,arrived:!result.invalid&&now>=leg.startedAt+leg.duration,
         progress:clamp((now-leg.startedAt)/Math.max(.001,leg.duration),0,1)};
     }
     const distance=Math.hypot(leg.goal.x-leg.start.x,leg.goal.y-leg.start.y);
     if(distance<=arrivalEpsilon||(Number.isFinite(leg.startedAt)&&Number.isFinite(leg.duration)&&leg.duration>0&&now>=leg.startedAt+leg.duration)){
       entity.previousX=entity.x;entity.previousY=entity.y;entity.x=leg.goal.x;entity.y=leg.goal.y;
-      entity[headingKey(entity)]=wrap(finite(leg.heading,finite(entity[headingKey(entity)])));stop(entity,{preserveImpulse:true});
+      entity[headingKey(entity)]=legHeading(leg,Math.max(0,now-finite(leg.startedAt)),continuousStart??leg.headingStart??entity[headingKey(entity)]);stop(entity,{preserveImpulse:true});
       return {arrived:true,progress:1,distance:0};
     }
     if(!Number.isFinite(leg.duration)||leg.duration<=0||!(leg.distance>0)||!Number.isFinite(leg.startedAt)||!['distance','heading','headingStart','turnSeconds','initialSpeed','peakSpeed','acceleration','braking','accelSeconds','cruiseSeconds','brakeSeconds','accelDistance'].every(key=>Number.isFinite(leg[key])))return {arrived:false,invalid:true,progress:0};
-    const elapsed=clamp(finite(now)-leg.startedAt,0,leg.duration),arrived=elapsed>=leg.duration;
+    const elapsed=clamp(finite(now)-leg.startedAt,0,leg.duration),arrived=elapsed>=leg.duration,travelElapsed=Math.min(elapsed,leg.travelSeconds??leg.duration);
     let traveled=0,speed=0;
-    if(elapsed<=leg.accelSeconds){speed=leg.initialSpeed+leg.acceleration*elapsed;traveled=(leg.initialSpeed+speed)*elapsed/2;}
-    else if(elapsed<=leg.accelSeconds+leg.cruiseSeconds){speed=leg.peakSpeed;traveled=leg.accelDistance+speed*(elapsed-leg.accelSeconds);}
-    else{const brakeTime=elapsed-leg.accelSeconds-leg.cruiseSeconds;speed=Math.max(0,leg.peakSpeed-leg.braking*brakeTime);traveled=leg.accelDistance+leg.peakSpeed*leg.cruiseSeconds+(leg.peakSpeed+speed)*brakeTime/2;}
+    if(travelElapsed<=leg.accelSeconds){speed=leg.initialSpeed+leg.acceleration*travelElapsed;traveled=(leg.initialSpeed+speed)*travelElapsed/2;}
+    else if(travelElapsed<=leg.accelSeconds+leg.cruiseSeconds){speed=leg.peakSpeed;traveled=leg.accelDistance+speed*(travelElapsed-leg.accelSeconds);}
+    else{const brakeTime=travelElapsed-leg.accelSeconds-leg.cruiseSeconds;speed=Math.max(0,leg.peakSpeed-leg.braking*brakeTime);traveled=leg.accelDistance+leg.peakSpeed*leg.cruiseSeconds+(leg.peakSpeed+speed)*brakeTime/2;}
     const progress=arrived||!leg.distance?1:clamp(traveled/leg.distance,0,1),key=headingKey(entity);
     entity.previousX=entity.x;entity.previousY=entity.y;
     entity.x=leg.start.x+(leg.goal.x-leg.start.x)*progress;entity.y=leg.start.y+(leg.goal.y-leg.start.y)*progress;
-    entity[key]=wrap(leg.headingStart+wrap(leg.heading-leg.headingStart)*(leg.turnSeconds?clamp(elapsed/leg.turnSeconds,0,1):elapsed?1:0));
+    entity[key]=legHeading(leg,elapsed,continuousStart??leg.headingStart);
     entity.speed=arrived?0:speed;entity.vx=Math.cos(leg.heading)*entity.speed;entity.vy=Math.sin(leg.heading)*entity.speed;
     if(arrived)stop(entity,{preserveImpulse:true});
     return {arrived,progress,distance:Math.max(0,leg.distance-traveled)};
@@ -279,14 +314,14 @@
       const part=planLeg(pose,point,profile,cursor);if(part.valid===false)return part;
       segments.push(part);cursor+=part.duration;sampleLegBase(pose,part,cursor);stop(pose);
     }
-    return {version:3,valid:true,start,goal:{x:goal.x,y:goal.y},startedAt:at,duration:cursor-at,
+    return {version:3,turnVersion:1,valid:true,start,goal:{x:goal.x,y:goal.y},startedAt:at,duration:cursor-at,
       distance:segments.reduce((n,s)=>n+s.distance,0),segments};
   }
   // Predict relative motion, rather than steering away from a ship's old pose.
   // Every pilot passes to starboard. Stable identity breaks crossing ties.
   function trafficAdvice(ship,neighbors,profile={}){
     const leg=ship.entity?.localLeg||ship.entity?.lifeLeg;
-    const target=leg?.version===3?(leg.segments.find(p=>ship.at<p.startedAt+p.duration&&p.distance>arrivalEpsilon)||leg.segments.at(-1))?.goal:leg?.goal;
+    const target=leg?.version===3?(leg.segments.find(p=>ship.at<p.startedAt+p.duration&&p.distance>arrivalEpsilon)||leg.segments.at(-1))?.goal:leg?.goal||ship.followGoal;
     const speed=Math.hypot(ship.vx,ship.vy),distance=target?Math.hypot(target.x-ship.x,target.y-ship.y):Infinity;
     const heading=target&&distance>1?Math.atan2(target.y-ship.y,target.x-ship.x):ship.heading;
     const planned=Math.max(speed,leg&&distance>2?profile.maxSpeed||100:0),vx=speed>10?ship.vx:Math.cos(heading)*planned,vy=speed>10?ship.vy:Math.sin(heading)*planned;
@@ -299,7 +334,7 @@
       // passing traffic. The same swept physical ellipses must still be clear;
       // this cannot waive actual contact or another ship's right of way.
       const service=profile.serviceApproach&&ship.entity?.approachTarget;
-      if(service&&target&&service.category===other.category&&String(service.id)===String(other.id)&&Math.hypot(other.vx,other.vy)<5&&
+      if(service&&target&&service.category===other.category&&String(service.id)===String(other.id)&&
         !shipPairContact({...ship,previousX:ship.x,previousY:ship.y,x:target.x,y:target.y},{...other,previousX:other.x,previousY:other.y},1))continue;
       const rx=other.x-ship.x,ry=other.y-ship.y,rvx=other.vx-vx,rvy=other.vy-vy,sq=rvx*rvx+rvy*rvy;
       const clearance=shipRadius(ship)+shipRadius(other)+6+Math.min(24,Math.hypot(rvx,rvy)*.1)+turnRoom;
@@ -322,7 +357,8 @@
     if(command.hold||command.coast)return command;
     const facing=Number.isFinite(command.heading)?command.heading:command.goal?Math.atan2(command.goal.y-ship.y,command.goal.x-ship.x):ship.heading;
     const speed=Math.min(profile.maxSpeed||100,command.speed??(profile.maxSpeed||100)*(command.throttle??1));
-    const intended={...ship,vx:Math.cos(facing)*speed,vy:Math.sin(facing)*speed,heading:facing};
+    const carried=kickSample(ship.entity?.motionKick,ship.at??(ship.state?window.nativeSimulation?.seconds(ship.state):undefined));
+    const intended={...ship,vx:Math.cos(facing)*speed+carried.vx,vy:Math.sin(facing)*speed+carried.vy,heading:facing};
     const advice=trafficAdvice(intended,neighbors,profile);if(!advice||advice.t>2.5)return command;
     if(advice.distance<advice.clearance*.85){
       const dx=ship.x-advice.other.x,dy=ship.y-advice.other.y;
@@ -330,7 +366,10 @@
     }
     const angle=wrap(facing+Math.min(1.15,.45+Math.max(0,1-advice.t/3)*.7));
     const brake=advice.yield||advice.distance<advice.clearance*1.05;
-    return {...command,goal:undefined,heading:angle,throttle:brake?0:Math.min(command.throttle??1,.7),brake,speed:brake?0:command.speed};
+    const carrier=ship.entity?.carrier,otherCarrier=advice.other.entity?.carrier;
+    const sameFrame=carrier&&(carrier.category===advice.other.category&&String(carrier.id)===String(advice.other.id)||otherCarrier&&carrier.category===otherCarrier.category&&String(carrier.id)===String(otherCarrier.id));
+    const brakeInherited=command.brakeInherited||brake&&ship.entity?.motionKick?.inherited&&!sameFrame;
+    return {...command,goal:undefined,heading:angle,throttle:brake?0:Math.min(command.throttle??1,.7),brake,speed:brake?0:command.speed,...(brakeInherited?{brakeInherited:true}:{})};
   }
   function ellipseSupport(ship,nx,ny){
     const angle=ship.heading+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle),x=nx*c+ny*s,y=-nx*s+ny*c;
@@ -442,5 +481,5 @@
     }
     const result=asteroidPairContact(target,body,dt);return result?{...result,targetPose:result.a,debrisPose:result.b}:null;
   }
-  window.nativeShipMotion={step,followPath,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,collisionDamageFraction,debrisContact};
+  window.nativeShipMotion={step,followPath,followCommand,attachmentGoal,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,collisionDamageFraction,debrisContact};
 })();

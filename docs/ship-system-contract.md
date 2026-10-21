@@ -2,6 +2,8 @@
 
 The current hardware/equipment migration is specified in [unified ships](unified-ships.md).
 It supersedes the old ownership-specific capacity and movement exceptions below.
+Verified writes, legacy recovery and large-fleet encoding are specified in the
+[save contract](save-contract.md).
 
 The active game starts at `html-games/broken-mirror-port/index.html` and
 `native-game.js`. The archived previews are not alternate gameplay engines.
@@ -16,7 +18,7 @@ The live game and damage showcase share their weapon and shield shaders in
 | World targets, category adapters and collision dispatch | `ship-systems.js` | Register business consequences and which entities currently exist |
 | Acceleration, turning, braking, speed constraints, goal arrival, path following and inertial steering | `ship-motion.js` | Choose commands and a named movement profile |
 | Saved simulation time and pause gate | `simulation-clock.js` | Supply frame elapsed seconds through `native-game.js` |
-| Work budgets spanning animation-frame catch-up substeps | `simulation-frame.js` | Begin/end the host frame; retain unpaid scheduling debt |
+| Fixed physics scheduling, bounded catch-up debt and pure render interpolation | `simulation-frame.js` | Begin/end display frames, supply elapsed active time and integrate every admitted 1/60-second step |
 | Tactical detail eligibility | `ship-detail.js` | Ask the common predicate before steering, firing or collecting combat scenes |
 | Owned weapon identities, fitting, locker transfers, recharge deadlines and legacy equipment migration | `weapon-loadout.js` | Request an equipment operation |
 | Model/upgrade weapon specifications, eligibility, ballistic simulation, interception and swept collisions | `weapon-rules.js` | Choose a weapon/target, or request fire |
@@ -35,8 +37,9 @@ The live game and damage showcase share their weapon and shield shaders in
 | Scheduled local movement commands sampled at any detail level | `ship-motion.js` `planLeg` / `sampleLeg` | Choose a goal, definition movement profile and start time |
 | Calendar skips and conversion between days and job time | `world-time.js`, using the saved simulation clock | Advance a committed journey once; its presentation animation does not add economic time |
 | Lightweight ship inspection across registered categories | `ship-systems.js` `inspectAll`, `dev-galaxy-view.js` | Read authoritative position/task state; relocate the Dev observer only |
-| Bounded player lighting, warp layers and lamp surfaces | `ship-sprite-cache.js`, called by `flight-assets.js` | Supply artwork, stage, lighting, scale, heading, simulation time and warp appearance |
-| Cooperative optional damage-pixel preparation | `showcase-stage-fragments.js` queue; `cthia-destruction.js` and artwork profiles supply generators | Request preparation through `ship-effects.js`; keep base artwork visible |
+| Bounded instance lighting, shared animation, lamps and ordered Canvas/GPU comparison submission | `ship-sprite-cache.js`, called by `flight-assets.js` | Supply original artwork, entity, stage, lighting, scale, heading, simulation time and warp appearance |
+| Cooperative/worker optional damage-pixel preparation | Existing `showcase-stage-fragments.js` queue and `ship-art-readback.js` owner; original generators supply pixels | Request preparation through `ship-effects.js`; keep base artwork visible |
+| Verified mode-separated saves and bounded combat checkpoint coalescing | `save-storage.js`; `save-codec.js` provides versioned large-save encoding | Commit durable actions immediately and report failures |
 
 `player-combat.js` is a compatibility adapter for shared definitions, damage and
 effects. It does not contain a second player damage model. In the active game,
@@ -44,6 +47,31 @@ effects. It does not contain a second player damage model. In the active game,
 and frame. Do not additionally call the adapter's legacy `advance`/`paint` passes.
 
 ## Ship traffic and contact
+
+The host supplies elapsed active time to `simulation-frame.run`. Physics advances
+at 60 fixed steps per simulation second independently of display refresh. A host
+task admits at most eight steps and stops catch-up after its work budget; the
+unpaid amount remains in versioned saved
+`shipSimulation.schedule.pendingSeconds`. Overload is observable rather than
+discarded. Display callbacks alone accept elapsed time. The owner's bounded
+between-display service calls the same integrator with zero new elapsed time;
+it yields between tasks and cannot draw or request held fire. Diagnostic carry
+is distinct from each task's scheduler admission budget. Pause, hidden-tab and inventory gates preserve existing debt without
+accepting suspended time. Calendar skips retain their existing committed owner.
+Travel/calendar transitions reject unpaid whole physics steps with explicit
+catch-up feedback, allowing the existing schedule to settle them before the
+transition is retried. They cannot move pre-departure collision debt into a new
+system. The ordinary fractional display remainder stays owned by the clock.
+
+`trackPose` records the previous/current authoritative poses for an integrated
+actor. `renderPose` returns an immutable, short-turn interpolated copy. A teleport,
+system/hull change or separately advanced calendar clock snaps to the current
+pose. Only rendering uses interpolation: physics, range, shots and transactions
+continue to read authoritative state. Beams re-trace their visual contact against
+the same interpolated ship surfaces without applying damage again.
+
+See [fleet rendering](fleet-rendering.md) for culling, ordering, cache limits,
+worker admission and adding artwork without bypassing the shared interfaces.
 
 `ship-traffic.js` uses the existing player, civilians and company tugs. It predicts
 relative closest approach from one simultaneous snapshot, queries local spatial
@@ -55,9 +83,12 @@ remaining stopped inside another ship.
 
 Traffic planning and distant contacts run at 5 Hz on simulation time; active-system
 contacts run each physics step. Distant poses are sampled without preparing art.
-Registered ship descriptions are shared only within the physics step and
-invalidated after movement/contact; a traffic snapshot reuses geometry while
-resampling current poses. Swept bounding circles reject distant pairs first.
+Registered per-system geometry and spatial membership persist across physics
+steps. An individual movement/contact/fitting change replaces that actor's
+immutable descriptor; explicit unknown membership changes reconcile the owner.
+Scheduled legs use conservative complete-route bounds, then local queries sample
+their current authoritative poses. A retained traffic snapshot never changes
+under another owner's refresh. Swept bounding circles reject distant pairs first.
 Sweeps use previous authoritative poses and ignore system changes/teleports.
 Ship-pair narrow phase uses 32 supporting axes plus both ships' orientation axes
 for a conservative approximation of their curved physical hull ellipses.
@@ -235,6 +266,10 @@ read model until another step, authoritative clock advance or explicit mutation;
 inspection between host frames does not need another fleet census. Snapshot
 descriptors stay unchanged when their entities move. The step's scene/ship arrays
 are live registry views: copy an array when retaining a simultaneous snapshot.
+Immutability covers descriptor pose/value fields, not a deep clone of the world:
+`descriptor.entity` and membership entries reference authoritative live entities.
+Shared definitions and shapes are read-only. A historical owner must retain the
+specific values it needs rather than later reading mutable entity fields.
 
 `refreshShip(state, entity, category, system)` replaces that actor's description
 and grid membership without rebuilding other ships or asteroids. Shared motion,
@@ -309,7 +344,7 @@ work with a bounded service opportunity for the oldest task every eighth step.
 The queue owns one lazy `ship-art-readback.js` worker for snapshots of already
 filtered GPU artwork. A generator can suspend on its snapshot promise and resumes
 with its pixels or an exception; suspended tasks still count toward admission.
-Readback is bounded to eight requests, one million pixels per request and 16 MiB
+Foreground readback is bounded to eight requests, one million pixels per request and 16 MiB
 of staging reservations (bitmap, worker surface and returned RGBA), with a
 15-second timeout. Failed or unsupported readback records its failure and uses
 the same striped main-thread fallback without dropping valid artwork. Native
@@ -317,6 +352,11 @@ bitmap creation cannot be cancelled, so its reservation remains until a late
 bitmap settles and is closed. Report main-queue steps, bitmap snapshot time,
 worker work and total worker wait separately; these overlapping times must not
 be added together, and the slice target is not a hard native-operation deadline.
+Optional fragment/wreck tasks use separate 96-MiB admission reservations and a
+60-second timeout. These estimates include their bounded output surfaces; they
+are not process RSS or native-operation duration limits. See
+[rendering preparation ownership](fleet-rendering.md) for both budgets and live
+effect retention.
 Synchronous entry points remain for showcase and exact pixel regressions;
 specialized egg/creature preparation retains its own mask work and live readiness.
 Explicit full preparation still waits for fragment and wreck readiness.
@@ -435,7 +475,8 @@ warp, disabling and destruction clear flight input. Threatening ships lead the
 selection list; cycling and clicking still admit neutral ships and asteroids.
 
 `save-storage.schedule` coalesces redundant hit checkpoints using a 250 ms trailing
-delay and a one-second maximum wait. The host calls `flushDue` once per frame.
+delay and a one-second maximum wait. The host calls `flushDue` after display or
+bounded between-display simulation tasks; clean/no-longer-due calls do not write.
 Explicit saves, purchases, fitting and travel commits remain immediate verified
 writes; menu/focus/page lifecycle boundaries flush a dirty checkpoint. Normal and
 Dev queues remain separate. Failed writes remain dirty and return the real error,

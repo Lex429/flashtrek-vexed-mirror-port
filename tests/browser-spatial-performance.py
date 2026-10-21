@@ -28,20 +28,26 @@ SCENARIO=r"""() => {
  Object.assign(ship,location);systems.refreshShip(s,ship,'civilian');frames.end(s);
  // Exercise the real draw/advanceSimulation path, including actual contacts
  // and jobs, with a735ms active frame. No elapsed simulation time may disappear.
- const boundary=performance.now();window.__nativeFrame(boundary);const start=nativeSimulation.seconds(s);
+ const boundary=performance.now();window.__nativeFrame(boundary);const start=nativeSimulation.seconds(s),initialDebt=s.shipSimulation.schedule?.pendingSeconds||0;
  window.nativeSimulation=runtime;window.__nativeFrame(boundary+735);
  const elapsed=nativeSimulation.seconds(s)-start,physical=frames.snapshot(s);
- check(Math.abs(elapsed-.735)<1e-8,'Slow active frame discarded elapsed time '+elapsed);
- check(physical.steps===45,'Slow frame skipped required contact integration '+physical.steps);
+ const debt=s.shipSimulation.schedule.pendingSeconds;
+ check(Math.abs(elapsed+debt-initialDebt-.735)<1e-8,'Slow active frame discarded elapsed time '+elapsed+' debt '+debt);
+ check(physical.steps>0&&physical.steps<=8,'Slow frame did not bound physical catch-up '+physical.steps);
+ check(debt>.5,'Injected stall did not expose its unpaid physics debt');
  window.nativeSimulation={...runtime,blocked:()=>true};window.__nativeFrame(boundary+1500);
- check(Math.abs(nativeSimulation.seconds(s)-start-.735)<1e-8,'Pause advanced simulation');
+ check(Math.abs(nativeSimulation.seconds(s)-start-elapsed)<1e-8&&s.shipSimulation.schedule.pendingSeconds===debt,'Pause advanced simulation or discarded debt');
  const conserved=state=>JSON.stringify({jobs:state.civilianTraffic.ships.map(e=>({id:e.id,task:e.task,cargo:e.cargo,credits:e.credits,equipment:e.shipEquipment})),
    reservations:state.civilianTraffic.life.reservations,player:state.shipEquipment,cargo:state.solFreightHold,contracts:state.localContracts,
    clock:state.shipSimulation,events:state.weaponCombat?.events,transactions:state.civilianTraffic.life.transactions});
  const expected=conserved(s);check(nativeSaveStorage.write(s).ok,'Verified save failed');window.resumeNativeGame('dev');
  const restored=nativeNpcDev.getState();check(conserved(restored)===expected,'Reload changed jobs, cargo, equipment, recharge or transactions');
+ window.nativeSimulation=runtime;
+ for(let i=0;i<120&&restored.shipSimulation.schedule.pendingSeconds>=frames.fixedStep;i++)window.__nativeFrame(boundary+1500);
+ check(restored.shipSimulation.schedule.pendingSeconds<frames.fixedStep,'Catch-up failed to recover');
+ check(Math.abs(nativeSimulation.seconds(restored)-start+restored.shipSimulation.schedule.pendingSeconds-initialDebt-.735)<1e-8,'Recovery skipped or replayed active time');
  return {sceneCollections:work.sceneCollections,unchangedRocks:rocks.length,actorUpdates:30,elapsedSeconds:elapsed,physicalSubsteps:physical.steps,
-   pausedClockPreserved:true,verifiedReloadPreserved:true,population:restored.civilianTraffic.ships.length+restored.solEconomy.freighters.length+1};
+   savedDebtSeconds:debt,recoveredDebtSeconds:restored.shipSimulation.schedule.pendingSeconds,pausedClockPreserved:true,verifiedReloadPreserved:true,population:restored.civilianTraffic.ships.length+restored.solEconomy.freighters.length+1};
 }"""
 
 def main():

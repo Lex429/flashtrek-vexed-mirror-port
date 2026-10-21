@@ -112,8 +112,35 @@
       if(w&&h){const scale=Math.min(d.width/w,d.height/h);c.getContext('2d').drawImage(image,left,top,w,h,(d.width-w*scale)/2,(d.height-h*scale)/2,w*scale,h*scale);}
       c.referenceAligned=true;return c;
     }
+    // The same profile data that paints each effect owns its conservative
+    // support. Values are in the retained raster, before hull rotation. Keep
+    // the complete aligned art frame; only exterior transparent padding goes.
+    function rasterBounds(stage,options={}){
+      const s=Math.max(0,Math.min(3,stage)),sx=options.width/d.width,sy=options.height/d.height;
+      let minX=0,minY=0,maxX=options.width,maxY=options.height;
+      const include=(left,top,right,bottom,padX=0,padY=padX)=>{
+        minX=Math.min(minX,left*sx-padX);minY=Math.min(minY,top*sy-padY);
+        maxX=Math.max(maxX,right*sx+padX);maxY=Math.max(maxY,bottom*sy+padY);
+      };
+      if(options.lights!==false&&s<3){
+        const padding=Math.ceil(4*(options.lightBloom||1)*(options.rasterScale||1)*3);
+        for(const p of d.lights){
+          // drawLamp rounds its live texture extent. Retain the exact resulting
+          // source-to-raster factor, including tiny lamps at fractional zoom.
+          const px=padding*p.w*sx/Math.max(1,Math.round(p.w*sx)),py=padding*p.h*sy/Math.max(1,Math.round(p.h*sy));
+          include(p.left,p.top,p.left+p.w,p.top+p.h,px,py);
+        }
+      }
+      if(options.damage!==false)for(const p of d.damage[s]||[]){
+        // createShowcaseEffects: maximum breach glow/flame, followed by sparks
+        // travelling at most 44.4 art units plus a six-unit stroke and width.
+        const extent=Math.max(p.r*(s===3?1.6:1.25),s>=2?p.r*1.3+4:0,(s===3?44.4:37)+6+.75);
+        include(p.x-extent,p.y-extent,p.x+extent,p.y+extent);
+      }
+      return {minX,minY,maxX,maxY};
+    }
     const preparationMetrics=()=>({frames:lampFrames.filter(Boolean).length,maxFrames:4,bytes:lampFrames.reduce((sum,stage)=>sum+stage.reduce((n,p)=>n+(p.lit.width*p.lit.height+p.dim.width*p.dim.height)*4,0),0)});
-    window.starterShips.set(Number(key),{...d,align,alignAsync,alignReference,effects:Object.freeze({draw,snapshot:base.snapshot,unlitFrame,unlitFrameAsync,preparationMetrics}),
+    window.starterShips.set(Number(key),{...d,align,alignAsync,alignReference,effects:Object.freeze({draw,snapshot:base.snapshot,unlitFrame,unlitFrameAsync,rasterBounds,preparationMetrics}),
       breakAnchors:d.damage[3].map(p=>[p.x,p.y]),
       destruction:{sites:d.sites,core:d.core,energyColor:d.energyColor,coreEnabled:d.coreEnabled,sail:d.sail,
         coreIndex:d.coreEnabled===false?-1:d.sites.findIndex(p=>p[0]==='reactor housing')}});

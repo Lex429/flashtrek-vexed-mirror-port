@@ -5,6 +5,7 @@
   const cache=new WeakMap(),pending=new WeakMap(),metrics={prepared:0,sourcePixels:0,tornPixels:0};
   const make=(w,h)=>Object.assign(document.createElement('canvas'),{width:w,height:h});
   const noise=n=>{const value=Math.sin(n*127.1+311.7)*43758.5453;return value-Math.floor(value);};
+  function adopt(source,material){if(!cache.has(source)){cache.set(source,Object.freeze({...material,anchors:Object.freeze(material.anchors.map(point=>Object.freeze({...point})))}));metrics.prepared++;metrics.sourcePixels+=material.sourcePixels;metrics.tornPixels+=material.tornPixels;}return cache.get(source);}
   function* prepare(source,{organic=false,seed=0}={}){
     const existing=cache.get(source);if(existing)return existing;
     const ratio=Math.min(1,384/Math.max(source.width,source.height)),w=Math.max(1,Math.round(source.width*ratio)),h=Math.max(1,Math.round(source.height*ratio));
@@ -69,5 +70,5 @@
     const amp=Math.max(1,Math.min(6,Math.min(width,height)*.014)),xx=x+amp*(Math.sin(y*.19)+.45*Math.sin(y*.73+x*.09)),yy=y+amp*(Math.sin(x*.17)+.4*Math.sin(x*.67-y*.11));
     let best=0,distance=Infinity;for(let i=0;i<sites.length;i++){const p=sites[i],px=p[0],py=p[1],d=(xx-px)**2+(yy-py)**2;if(d<distance){distance=d;best=i;}}return best;
   }
-  window.wreckageEffects=Object.freeze({prepare,prime,primeAll,draw,owner,get:source=>cache.get(source)||null,memoryBytes:source=>{const p=cache.get(source);return p?(p.texture.width*p.texture.height+p.hot.width*p.hot.height)*4:0;},snapshot:()=>({...metrics})});
+  window.wreckageEffects=Object.freeze({prepare,prime,primeAll,draw,owner,adopt,get:source=>cache.get(source)||null,memoryBytes:source=>{const p=cache.get(source);return p?(p.texture.width*p.texture.height+p.hot.width*p.hot.height)*4:0;},snapshot:()=>({...metrics})});
 })();

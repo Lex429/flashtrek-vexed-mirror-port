@@ -70,9 +70,10 @@
     // the common spatial owner only for its own conservative swept bounds.
     if(impacts.hasWaves())impacts.update(clock);
   }
-  function paint(ctx,{state,ship,cx,cy}){
+  function paint(ctx,{state,ship,cx,cy,zoom=1,w=Infinity,h=Infinity}){
     if(state!==activeState)return;
-    impacts.draw(ctx,clock,{offsetX:cx-ship.x,offsetY:cy-ship.y});
+    impacts.draw(ctx,clock,{offsetX:cx-ship.x,offsetY:cy-ship.y,
+      visible:(x,y,r)=>!window.nativeEffectVisibility||window.nativeEffectVisibility.circle(cx+(x-ship.x)*zoom,cy+(y-ship.y)*zoom,r*zoom,{w,h})});
   }
   window.nativeEnvironmentalImpacts=Object.freeze({explode,debris,advance,paint,reset,snapshot:()=>({clock,...impacts.snapshot()})});
 })();

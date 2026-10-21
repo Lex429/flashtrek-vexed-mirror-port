@@ -84,9 +84,9 @@
       }
       return contacts;
     }
-    function draw(ctx,time,{offsetX=0,offsetY=0}={}){
+    function draw(ctx,time,{offsetX=0,offsetY=0,visible=()=>true}={}){
       ctx.save();ctx.lineWidth=1.5;
-      for(const wave of waves){const t=(time-wave.born)/wave.duration;if(t<0||t>1)continue;ctx.globalAlpha=Math.sin(Math.PI*t)*.24;ctx.strokeStyle='#ffd7a1';ctx.beginPath();ctx.arc(wave.x+offsetX,wave.y+offsetY,Math.max(.1,wave.radius*t),0,Math.PI*2);ctx.stroke();}
+      for(const wave of waves){const t=(time-wave.born)/wave.duration;if(t<0||t>1||!visible(wave.x,wave.y,wave.radius*t+2))continue;ctx.globalAlpha=Math.sin(Math.PI*t)*.24;ctx.strokeStyle='#ffd7a1';ctx.beginPath();ctx.arc(wave.x+offsetX,wave.y+offsetY,Math.max(.1,wave.radius*t),0,Math.PI*2);ctx.stroke();}
       ctx.restore();
     }
     return Object.freeze({explode,update,stepDebris,draw,hasWaves:()=>waves.length>0,reset:()=>{waves=[];pieceHits=new WeakMap();sourceCleared=new WeakSet();history=[];},snapshot:()=>({waves:waves.length,impacts:history.map(event=>({...event}))})});

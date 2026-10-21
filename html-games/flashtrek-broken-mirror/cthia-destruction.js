@@ -81,6 +81,10 @@ window.createShipDestruction = () => {
   }
   function prepare(frames,config={}){const iterator=preparation(frames,config);let result;do{result=iterator.next();}while(!result.done);stages=result.value;}
   async function prepareAsync(frames,config={}){
+    if(!config.partition){
+      const worker=window.nativeDamageArtPreparation?.optional?.('wreck',frames,config);
+      if(worker)try{stages=await worker;for(const stage of stages)for(const piece of stage.pieces)if(piece.material){window.wreckageEffects?.adopt?.(piece.texture,piece.material);delete piece.material;}return;}catch(_error){/* The bounded owner records failure; retain the cooperative fallback. */}
+    }
     const iterator=preparation(frames,config);
     if(window.nativeDamageArtPreparation)stages=await window.nativeDamageArtPreparation.run(iterator,{label:'wreck'});
     else{let result;do{result=iterator.next();if(!result.done)await new Promise(resolve=>setTimeout(resolve,0));}while(!result.done);stages=result.value;}
@@ -180,6 +184,6 @@ window.createShipDestruction = () => {
     ctx.translate(Math.sin(age*.093)*amplitude,Math.sin(age*.127+1)*amplitude*.7);
   }
   const emitFragments=(state,layout,world,stage,zoom,data)=>emit(state,layout,world,stage,zoom,null,data);
-  return Object.freeze({prepare,prepareAsync,emit,emitFragments,drawParticle,drawWreckSurface,drawWreckGlow,drawStructuralWreck,updateTrails,audit,memoryBytes,shake});
+  return Object.freeze({prepare,prepareAsync,serialized:()=>stages,emit,emitFragments,drawParticle,drawWreckSurface,drawWreckGlow,drawStructuralWreck,updateTrails,audit,memoryBytes,shake});
 };
 window.cthiaDestruction=window.createShipDestruction();

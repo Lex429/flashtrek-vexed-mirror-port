@@ -38,7 +38,7 @@ function fixture({backgroundTimers=null}={}){
   });
   const transforms=[];
   const ctx={save:()=>{},restore:()=>{},translate:(x,y)=>transforms.push({x,y}),rotate:angle=>transforms.push({angle}),drawImage:()=>{}};
-  return {window,definitions,entities,ctx,transforms,drawn,emitted,explosions,contacts,setTime:value=>{time=value;},setBlocked:value=>{blocked=value;}};
+  return {window,definitions,entities,ctx,transforms,drawn,emitted,explosions,contacts,context:sandbox,setTime:value=>{time=value;},setBlocked:value=>{blocked=value;}};
 }
 
 test('all registered ship types and role profiles share damage and authoritative surfaces',()=>{
@@ -330,4 +330,73 @@ test('a failed new damage plate retains visible art and can retry without a stal
   const replacement=await window.nativeShipEffects.request(descriptor.shipType,descriptor.category,{stage:2});
   assert.equal(window.nativeShipEffects.asset(role.describe()),replacement);
   assert.equal(replacement.hull,descriptor.definition.hull*.4);
+});
+
+test('base art paints synchronously after optional class eviction without restarting preparation',async()=>{
+  const {window,definitions,entities,ctx,drawn}=fixture(),loader=window.vexedFlightAssets,retained=new Map();
+  let loads=0;
+  const original=loader.loadShip;
+  loader.loadShip=async(type,hull)=>{loads++;const asset=await original(type,hull),maximum=definitions.get(type).hull;
+    asset.damageStage=hull/maximum<.25?3:hull/maximum<.5?2:hull/maximum<.75?1:0;retained.set(type+':'+asset.damageStage,asset);return asset;};
+  loader.peekShip=(type,stage,{fallback=false}={})=>retained.get(type+':'+stage)||(fallback?retained.get(type+':0'):null);
+  for(let type=1000;type<1030;type++){definitions.register(type,{hull:100});await window.nativeShipEffects.request(type,'civilian',{stage:type%4});}
+  assert.equal(window.nativeShipEffects.metrics().entries,12);
+  const before=loads;
+  for(let type=1000;type<1030;type++){
+    const role=entities(type)[1],stage=type%4;role.entity.hull=100*[1,.7,.4,.1][stage];
+    const art=window.nativeShipEffects.paintShip(ctx,role.describe(),{ship:{x:0,y:0},cx:300,cy:200});
+    assert.equal(art?.type,type);assert.equal(art?.damageStage,stage);
+  }
+  assert.equal(loads,before,'optional-data eviction cannot cause per-frame Promise requests');
+  assert.equal(drawn.filter(row=>row.kind==='ship').length,30);
+  const role=entities(1000)[1];role.entity.hull=40;
+  assert.equal(window.nativeShipEffects.asset(role.describe()).type,1000,'missing-stage loading keeps the same hull');
+  assert.equal(window.nativeShipEffects.asset(entities(9999)[1].describe()),null,'another hull never receives that fallback');
+});
+
+test('thirteen disabled classes retain the correct mission-start blend independently of optional class data',async()=>{
+  const f=fixture(),{window,context,definitions,entities,ctx}=f,loader=window.vexedFlightAssets,retained=new Map(),surfaces=[];
+  context.document={createElement:()=>{const calls=[],g={clearRect:()=>{},drawImage:art=>calls.push(art.key),save:()=>{},beginPath:()=>{},rect:()=>{},clip:()=>{},restore:()=>{}};
+    const canvas={getContext:()=>g,calls};surfaces.push(canvas);return canvas;}};
+  window.nativeShipRepairs={ref:(category,entity)=>({category,id:entity.id}),missionFor:s=>s.shipRepairs.missions[0]};
+  vm.runInContext(fs.readFileSync(path.join(port,'repair-visuals.js'),'utf8'),context);
+  let loads=0;
+  loader.loadShip=async(type,hull)=>{loads++;const stage=hull<25?3:hull<50?2:hull<75?1:0,
+    asset={type,damageStage:stage,width:64,height:128,art:{key:type+':'+stage},profile:{}};
+    retained.set(type+':'+stage,asset);return asset;};
+  loader.peekShip=(type,stage)=>retained.get(type+':'+stage)||null;
+  const idle=entities()[0].describe();
+  idle.entity.phase='disabled';
+  assert.equal(window.nativeRepairVisuals.requiredStages(idle).length,0,'an unassigned disabled hull needs only its current appearance');
+  idle.state.shipRepairs={missions:[{status:'active',startHull:idle.definition.hull*.25,restoredHull:0}]};
+  assert.ok(window.nativeRepairVisuals.requiredStages(idle).includes(2),'an assigned crew prepares the initial plate before first healing');
+  const roles=[];
+  for(let type=1000;type<1013;type++){
+    definitions.register(type,{hull:100});const role=entities(type).find(role=>role.category==='civilian');
+    Object.assign(role.entity,{phase:'disabled',hull:55});
+    role.state.shipRepairs={missions:[{status:'active',startHull:type%2?10:25,restoredHull:30}]};roles.push(role);
+    for(const stage of [0,1,2,3])await window.nativeShipEffects.request(type,'civilian',{stage});
+  }
+  assert.equal(window.nativeShipEffects.metrics().entries,12);
+  const beforeLoads=loads,before=JSON.stringify(roles),first=[];
+  for(const role of roles){
+    const d=role.describe(),start=role.state.shipRepairs.missions[0].startHull===25?2:3,
+      required=window.nativeRepairVisuals.requiredStages(d);
+    assert.ok(required.includes(start));assert.ok(Object.isFrozen(required));
+    const art=window.nativeShipEffects.paintShip(ctx,d,{ship:{x:0,y:0},cx:300,cy:200});
+    assert.equal(art.type,role.entity.shipType);assert.equal(art.repairSurface,true);
+    assert.deepEqual(art.art.calls,[role.entity.shipType+':'+start,role.entity.shipType+':0']);first.push(art);
+  }
+  for(const [index,role]of roles.entries())assert.equal(window.nativeShipEffects.paintShip(ctx,role.describe(),{ship:{x:0,y:0},cx:300,cy:200}),first[index],'paused unchanged repair keeps the same composition wrapper');
+  assert.equal(loads,beforeLoads,'loader-ready plates cannot restart class requests');
+  assert.equal(JSON.stringify(roles),before,'painting cannot alter repair state or owned equipment');
+  assert.equal(surfaces.length,13);assert.equal(window.nativeRepairVisuals.snapshot(roles[0].state).surfaces,13);
+  // A genuinely absent initial plate keeps the same hull visible while loading;
+  // it must not blend from severe simply because stage2 is unavailable.
+  const role=roles[0];retained.delete('1000:2');role.entity.hull=57;
+  const fallback=window.nativeShipEffects.paintShip(ctx,role.describe(),{ship:{x:0,y:0},cx:300,cy:200});
+  assert.equal(fallback.type,1000);assert.equal(fallback.repairSurface,undefined);assert.equal(surfaces.length,13);
+  await window.nativeShipEffects.request(1000,'civilian',{stage:2});
+  const resumed=window.nativeShipEffects.paintShip(ctx,role.describe(),{ship:{x:0,y:0},cx:300,cy:200});
+  assert.equal(resumed.repairSurface,true);assert.deepEqual(resumed.art.calls.slice(-2),['1000:2','1000:0']);
 });

@@ -37,7 +37,11 @@
   // Class differences belong here, never in the identity of the controller.
   const classes={18:{npcPolicy:'civilian',defaultRole:'mining'},23:{npcPolicy:'civilian',defaultRole:'trading'},
     10:{npcPolicy:'cargo'},56:{npcPolicy:'cargo'},57:{npcPolicy:'cargo'},
-    58:{slots:{repairDrone:6},npcPolicy:'medical',capabilities:{medical:true}}};
+    58:{slots:{repairDrone:6},npcPolicy:'medical',capabilities:{medical:true},repair:{bay:{x:.5,y:-1}}}};
+  // Directions are in the aligned artwork frame. The repair owner projects
+  // them onto this hull's shared physical ellipse, including custom hull sizes.
+  const repairAttachments=Object.freeze({bay:Object.freeze({x:0,y:1}),standOff:2,
+    work:Object.freeze([{x:-1,y:0},{x:1,y:0},{x:-.7,y:-.7},{x:.7,y:-.7},{x:-.7,y:.7},{x:.7,y:.7}].map(Object.freeze))});
   function validate(definition){
     const errors=[],d=definition.dimensions;
     if(!definition.name)errors.push('Missing ship name');
@@ -53,6 +57,12 @@
     for(const key of ['caution','aggression','retreatHull','retreatShield'])if(combat?.[key]!==undefined&&(!Number.isFinite(combat[key])||combat[key]<0||combat[key]>1))errors.push('Invalid combat '+key);
     if(combat?.distanceFactor!==undefined&&(!Number.isFinite(combat.distanceFactor)||combat.distanceFactor<=0||combat.distanceFactor>1))errors.push('Invalid combat distanceFactor');
     for(const key of ['protectCargo','survivalFirst'])if(combat?.[key]!==undefined&&typeof combat[key]!=='boolean')errors.push('Invalid combat '+key);
+    const repair=definition.repair;
+    if(repair){
+      const direction=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Math.hypot(p.x,p.y)>0;
+      if(!direction(repair.bay)||!Array.isArray(repair.work)||!repair.work.length||repair.work.some(p=>!direction(p)))errors.push('Invalid repair attachment directions');
+      if(!Number.isFinite(repair.standOff)||repair.standOff<0||repair.standOff>20)errors.push('Invalid repair work clearance');
+    }
     if(!policies[definition.npcPolicy?.name])errors.push('Unknown NPC policy');
     for(const activity of definition.npcPolicy?.activities||[])if(!['trade','mining','travel'].includes(activity))errors.push('Unknown activity '+activity);
     for(const [kind,items] of Object.entries(definition.startingEquipment)){
@@ -87,6 +97,7 @@
       damageStages:custom.damageStages||[.75,.5,.25],
       geometry:{hull:{width:.34,height:.44,minX:8,minY:12},...custom.geometry},
       emitters:custom.emitters||{beam:{x:0,y:-.36},beamAft:{x:0,y:.36},projectile:{x:0,y:-.36}},
+      repair:{...repairAttachments,...custom.repair},
       equipment:custom.equipment||stats.defaultWeapons||[],
       statUpgrades:custom.statUpgrades||(type===10?[{levelField:'tugEngineLevel',stat:'speedOrOtherStationValue',base:35,perLevel:15,maxLevel:2}]:[]),
       capabilities:{armed:true,canMine:true,canDock:true,canTrade:true,medical:policyName==='medical',disableRatio:.25,defensiveWeapon:type===47?1:10,...custom.capabilities}};
@@ -180,5 +191,5 @@
     return definition.damageStages.filter(threshold=>fraction<threshold).length;
   }
   const registered=()=>[...new Set([...window.VexedMirrorWorld.ships.map(ship=>Number(ship.id)),...overrides.keys()])].map(type=>get(type));
-  window.nativeShipDefinitions=Object.freeze({register,get,forEntity,dimensions,describe,surfaceRadii,stage,profiles,registered,artworkProfile,presentation,policies,validate});
+  window.nativeShipDefinitions=Object.freeze({register,get,forEntity,dimensions,describe,surfaceRadii,stage,profiles,registered,artworkProfile,presentation,policies,validate,revision:()=>revision});
 })();

@@ -5,6 +5,7 @@
   function advanceDays(state,days,random=Math.random){
     days=Math.max(0,Number(days)||0);
     if(!state||!Number.isFinite(days)||!days||window.nativeSimulation.blocked())return 0;
+    if(window.nativeSimulationFrame?.transitionReady&&!window.nativeSimulationFrame.transitionReady(state))return 0;
     const elapsed=window.nativeSimulation.advance(state,days*secondsPerDay);
     if(!elapsed)return 0;
     state.day=(Number(state.day)||0)+days;

@@ -3,10 +3,9 @@
 (() => {
   'use strict';
   const BASIC=9001,EPS=1e-7,HULL_PER_TON=5,RATE=1.5,MEDICAL_STOCK=200;
-  // Preserve the deployed showcase DOT/Olympic proportions: the carrier is
-  // 235 display units tall there and 75 world units tall in active gameplay.
-  const DOT_SCALE=75/235,DOT_SIZE=41.382*DOT_SCALE;
-  const initialized=new WeakSet(),clock=s=>window.nativeSimulation.seconds(s);
+  // A maintenance Dot is a small service craft, about 30% of a Runabout.
+  const DOT_SIZE=3.5,DOT_SCALE=DOT_SIZE/41.382;
+  const initialized=new WeakSet(),runtimes=new WeakMap(),clock=s=>window.nativeSimulation.seconds(s);
   const qty=n=>Math.max(0,Number(n)||0),alive=e=>e&&e.hull>0&&e.phase!=='destroyed';
   const definition=(s,e,category)=>window.nativeShipDefinitions.forEntity(s,e,{category});
   const medical=e=>definition(null,e,'civilian').capabilities.medical===true;
@@ -15,7 +14,7 @@
   const key=r=>`${r.category}:${r.id}:${r.generation||0}`;
   function resolve(s,r){
     if(!r)return null;
-    const e=r.category==='player'?s:r.category==='tug'?s.solEconomy?.freighters.find(e=>e.id===r.id):s.civilianTraffic?.ships.find(e=>e.id===r.id);
+    const e=r.category==='player'?s:r.category==='tug'?(window.nativeSolEconomy?.find?window.nativeSolEconomy.find(s,r.id):s.solEconomy?.freighters.find(e=>e.id===r.id)):(window.nativeNpcLives?.find?window.nativeNpcLives.find(s,r.id):s.civilianTraffic?.ships.find(e=>e.id===r.id));
     return e&&(e.lifeGeneration||0)===(r.generation||0)?e:null;
   }
   const fleet=s=>[{category:'player',entity:s},...(s.solEconomy?.freighters||[]).map(entity=>({category:'tug',entity})),...(s.civilianTraffic?.ships||[]).map(entity=>({category:'civilian',entity}))];
@@ -23,12 +22,35 @@
   function bay(s,e,category){
     window.nativeShipEquipment.ensure(s,e);e.repairDeuranium??=0;return e.repairBay;
   }
+  // Mutation hooks maintain the existing repair owner's working set. They never
+  // initialize another owner while a population migration is in progress.
+  function observe(s,e,category){
+    const rt=runtimes.get(s);if(!rt||!e||!['player','civilian','tug'].includes(category))return;
+    const old=rt.known.get(e),revision=window.nativeShipDefinitions.revision?.()||0;
+    let item=old;
+    if(!old||old.type!==e.shipType||old.revision!==revision||old.reference.generation!==(e.lifeGeneration||0)){
+      if(old){rt.disabled.delete(old.key);rt.medical.delete(old.key);rt.tugs.delete(old.key);rt.dead.delete(old.key);}
+      item={entity:e,category,reference:ref(category,e),type:e.shipType,revision,medical:category==='civilian'&&medical(e)};
+      item.key=key(item.reference);rt.known.set(e,item);
+    }
+    if(alive(e)&&e.phase==='disabled')rt.disabled.set(item.key,item);else rt.disabled.delete(item.key);
+    if(alive(e)&&item.medical)rt.medical.set(item.key,item);else rt.medical.delete(item.key);
+    if(category==='tug'&&alive(e))rt.tugs.set(item.key,item);else rt.tugs.delete(item.key);
+    if(!alive(e)&&!item.deadHandled)rt.dead.set(item.key,item);else if(alive(e)){rt.dead.delete(item.key);item.deadHandled=false;}
+  }
+  function census(s){
+    const rt=runtimes.get(s);rt.disabled.clear();rt.medical.clear();rt.tugs.clear();rt.dead.clear();
+    for(const {category,entity} of fleet(s))observe(s,entity,category);
+    rt.dirty=false;
+  }
+  function invalidateMembership(s){const rt=runtimes.get(s);if(rt)rt.dirty=true;}
 
   function initialize(s){
     if(initialized.has(s))return s.shipRepairs;
     const r=s.shipRepairs||={version:1,sequence:0,calls:[],missions:[],ledger:{consumed:0,lost:0,medicalCapital:0},nextPollAt:clock(s)};
     r.calls||=[];r.missions||=[];r.ledger||={consumed:0,lost:0,medicalCapital:0};
     initialized.add(s);
+    runtimes.set(s,{known:new WeakMap(),previousPoses:new WeakMap(),disabled:new Map(),medical:new Map(),tugs:new Map(),dead:new Map(),dirty:false,audit:0});
     // Install medical crews once in the existing persistent fleet. Initial capital
     // is an explicit source; later deuranium comes from paid markets or finite mining.
     if(!r.medicalFleetVersion&&s.civilianTraffic?.ships){
@@ -43,6 +65,7 @@
       }
     }
     for(const {category,entity} of fleet(s))bay(s,entity,category);
+    census(s);
     return r;
   }
   function supplies(s,r){return qty(r.category==='player'?s.deuranium:resolve(s,r)?.repairDeuranium);}
@@ -53,6 +76,7 @@
   }
   function destroyed(s,e,category){
     if(!s.shipRepairs||category==='repair-drone')return;
+    const rt=runtimes.get(s),item=rt?.known.get(e);if(item){item.deadHandled=true;rt.dead.delete(item.key);}
     if(category!=='player'){s.shipRepairs.ledger.lost+=qty(e.repairDeuranium);e.repairDeuranium=0;}
     for(const d of [...(e.repairBay?.slots||[]),...Object.values(e.shipEquipment?.instances||{}).filter(d=>d.category==='repairDrone'&&!['stowed','destroyed'].includes(d.phase))]){d.hull=0;d.phase='destroyed';delete d.localLeg;}
   }
@@ -104,11 +128,11 @@
       if(!validCall(s,c)){c.status=alive(resolve(s,c.target))?'completed':'lost';c.claim=null;continue;}
       const p=pose(s,c.target);Object.assign(c,{system:p.system,x:p.x,y:p.y});
       if(c.claim){
-        const e=s.civilianTraffic.ships.find(e=>key(ref('civilian',e))===c.claim);
+        const e=runtimes.get(s).medical.get(c.claim)?.entity;
         if(!alive(e)||e.phase==='disabled'||e.task?.kind!=='medical'||e.task?.status!=='active'){c.claim=null;c.status='queued';}
         else continue;
       }
-      const candidates=s.civilianTraffic.ships.filter(e=>medical(e)&&alive(e)&&e.phase!=='disabled'&&!e.journey&&!e.disputeId&&!e.retaliationId&&!e.scriptedDemo&&e.task?.kind!=='medical'&&qty(e.repairDeuranium)>EPS&&bay(s,e,'civilian').slots.some(d=>d.phase==='stowed'&&d.hull>0));
+      const candidates=[...runtimes.get(s).medical.values()].map(item=>item.entity).filter(e=>alive(e)&&e.phase!=='disabled'&&!e.journey&&!e.disputeId&&!e.retaliationId&&!e.scriptedDemo&&e.task?.kind!=='medical'&&qty(e.repairDeuranium)>EPS&&bay(s,e,'civilian').slots.some(d=>d.phase==='stowed'&&d.hull>0));
       candidates.sort((a,b)=>{
         const distance=e=>{const p=window.nativeNpcLives.galaxyPosition(s,e),anchor=window.nativeManualFlight.anchor(c.system);return Math.hypot(p.x-anchor.x-c.x,p.y-anchor.y-c.y);};
         return distance(a)-distance(b)||a.id-b.id;
@@ -122,31 +146,74 @@
   function dronePose(s,d){const p={...d};if(d.localLeg)window.nativeShipMotion.sampleLeg(p,d.localLeg,clock(s));return p;}
   function leg(d,goal,at,phase){
     d.localLeg=window.nativeShipMotion.planLeg(d,goal,window.nativeShipDefinitions.get(BASIC,'repair-drone').movement,at);
-    d.phase=phase;d.lastAt=at;
+    if(d.phase!==phase)delete d.trafficControl;
+    d.phase=phase;d.lastAt=at;d.motionAt=at;
   }
   function launch(s,carrier,target,at=clock(s)){
     if(missionFor(s,target)||supplies(s,carrier)<=EPS||s.shipRepairs.missions.filter(active).length>=16)return null;
     const e=resolve(s,carrier),t=resolve(s,target);if(!alive(e)||!alive(t)||t.phase!=='disabled')return null;
     const origin=pose(s,carrier),dest=pose(s,target);if(origin.system!==dest.system||Math.hypot(origin.x-dest.x,origin.y-dest.y)>500)return null;
     const drones=bay(s,e,carrier.category).slots.filter(d=>d.hull>0&&d.phase==='stowed');if(!drones.length)return null;
-    const m={id:`repair:${++s.shipRepairs.sequence}`,carrier,target,status:'active',startedAt:at,startHull:t.hull,restoredHull:0,spent:0,drones:drones.map(d=>d.id)};
+    const m={id:`repair:${++s.shipRepairs.sequence}`,carrier,target,status:'active',startedAt:at,startHull:t.hull,restoredHull:0,spent:0,drones:drones.map(d=>d.id),attachmentVersion:1};
+    observedPose(m,'carrierMotion',origin,at);observedPose(m,'targetMotion',dest,at);
     s.shipRepairs.missions.push(m);
     for(const [i,d] of drones.entries()){
-      const a=(i/drones.length)*Math.PI*2,rx=dest.hullRadii.rx,ry=dest.hullRadii.ry;
-      d.workLocal={x:Math.cos(a)*rx*.75,y:Math.sin(a)*ry*.75};
-      const contact=workPoint(dest,d),heading=Math.atan2(contact.y-origin.y,contact.x-origin.x);
-      const exit=bayPoint(origin,heading);
-      Object.assign(d,{x:exit.x,y:exit.y,heading,speed:0,system:origin.system,missionId:m.id,carrier:carrier,target:target,approachTarget:{category:dest.category,id:dest.id}});
-      leg(d,{x:contact.x+Math.cos(a)*(32+rx*.5),y:contact.y+Math.sin(a)*(32+ry*.5)},at+i*.8,'launching');
+      d.workSlot=i;configureWork(dest,d);
+      const exit=bayPoint(origin);
+      const heading=Math.atan2(exit.y-origin.y,exit.x-origin.x),vx=origin.vx||0,vy=origin.vy||0;
+      const launchAt=at+i*.8;
+      Object.assign(d,{x:exit.x,y:exit.y,heading,speed:Math.hypot(vx,vy),vx,vy,motionKick:Math.hypot(vx,vy)>.001?{version:1,mode:'free',vx,vy,inherited:true}:undefined,
+        launchPending:true,launchAt,system:origin.system,missionId:m.id,carrier:carrier,target:target,approachTarget:{category:dest.category,id:dest.id}});
+      delete d.trafficControl;
+      if(moving(origin)||moving(dest)){delete d.localLeg;d.phase='launching';d.lastAt=launchAt;d.motionAt=launchAt;}
+      else leg(d,stationPoint(dest,d),launchAt,'launching');
+      window.nativeShipSystems.refreshShip(s,d,'repair-drone',d.system);
     }
-    window.nativeShipSystems.invalidateShips(s);return m;
+    return m;
   }
-  function workPoint(p,d){const a=p.heading+Math.PI/2,c=Math.cos(a),sn=Math.sin(a);return {x:p.x+d.workLocal.x*c-d.workLocal.y*sn,y:p.y+d.workLocal.x*sn+d.workLocal.y*c};}
-  function bayPoint(p,heading=p.heading){const a=heading-p.heading-Math.PI/2,c=Math.cos(a),sn=Math.sin(a),r=1/Math.sqrt((c/p.hullRadii.rx)**2+(sn/p.hullRadii.ry)**2)+25;return {x:p.x+Math.cos(heading)*r,y:p.y+Math.sin(heading)*r};}
+  function localPoint(p,point){const a=p.heading+Math.PI/2,c=Math.cos(a),sn=Math.sin(a);return {x:p.x+point.x*c-point.y*sn,y:p.y+point.x*sn+point.y*c};}
+  function attachment(p,direction){
+    const {rx,ry}=p.hullRadii,length=Math.hypot(direction.x,direction.y),dx=direction.x/length,dy=direction.y/length;
+    const r=1/Math.hypot(dx/rx,dy/ry),x=dx*r,y=dy*r,nx=x/(rx*rx),ny=y/(ry*ry),n=Math.hypot(nx,ny);
+    return {x,y,nx:nx/n,ny:ny/n};
+  }
+  function configureWork(p,d){
+    const config=p.definition.repair,site=attachment(p,config.work[(d.workSlot||0)%config.work.length]);
+    d.workLocal={x:site.x,y:site.y};d.workNormal={x:site.nx,y:site.ny};
+    const clearance=config.standOff+DOT_SIZE*.34;
+    d.workStation={x:site.x+site.nx*clearance,y:site.y+site.ny*clearance};
+  }
+  function workPoint(p,d){return localPoint(p,d.workLocal);}
+  function stationPoint(p,d){return localPoint(p,d.workStation);}
+  function bayPoint(p){const site=attachment(p,p.definition.repair.bay),gap=DOT_SIZE*.34+.25;return localPoint(p,{x:site.x+site.nx*gap,y:site.y+site.ny*gap});}
+  const moving=p=>p&&(Math.hypot(p.vx||0,p.vy||0)>.05||Math.abs(p.angularVelocity||0)>.01);
+  function observedPose(m,key,p,at){
+    if(!p)return null;
+    const previous=m[key],dt=previous?at-previous.at:0;
+    // Attachment velocity follows authoritative pose progress. This also keeps
+    // old stationary saves/standalone owners with stale velocity fields honest.
+    const vx=dt>EPS?(p.x-previous.x)/dt:previous?.vx??p.vx??0,vy=dt>EPS?(p.y-previous.y)/dt:previous?.vy??p.vy??0;
+    const angularVelocity=dt>EPS?window.nativeShipMotion.wrap(p.heading-previous.heading)/dt:previous?.angularVelocity??p.angularVelocity??0;
+    m[key]={version:1,at,x:p.x,y:p.y,heading:p.heading,vx,vy,angularVelocity};return {...p,vx,vy,angularVelocity};
+  }
+  function followHull(s,d,p,goal,dt){
+    if(!(dt>0))return;
+    const motion=window.nativeShipMotion,profile=window.nativeShipDefinitions.get(BASIC,'repair-drone').movement,spin=p.angularVelocity||0;
+    const descriptorBase=window.nativeShipDefinitions.describe(s,d,{category:'repair-drone'});goal=motion.attachmentGoal(descriptorBase,p,goal);
+    const carried=d.speed===0&&!d.motionKick?.inherited?{vx:0,vy:0}:motion.kickSample(d.motionKick,clock(s));
+    const worldVelocity={x:(p.vx||0)-spin*(goal.y-p.y),y:(p.vy||0)+spin*(goal.x-p.x)};
+    const velocity={x:worldVelocity.x-carried.vx,y:worldVelocity.y-carried.vy};
+    let command=motion.followCommand(d,goal,velocity),descriptor={...descriptorBase,followGoal:goal};
+    if(Math.hypot(velocity.x,velocity.y)>profile.maxSpeed&&Math.hypot(worldVelocity.x,worldVelocity.y)<Math.hypot(carried.vx,carried.vy)*.5){command.brake=true;command.brakeInherited=true;}
+    command=window.nativeShipTraffic?.steer(s,descriptor,command,profile)||command;
+    motion.step(d,command,profile,dt);
+  }
   function returnDrone(s,m,d,at){
     if(d.hull<=0){d.phase='destroyed';delete d.localLeg;return;}
     const p=pose(s,m.carrier);if(!p||!alive(p.entity)){d.phase='destroyed';d.hull=0;delete d.localLeg;return;}
-    const goal=bayPoint(p,Math.atan2(d.y-p.y,d.x-p.x));d.returnHeading=Math.atan2(d.y-p.y,d.x-p.x);d.approachTarget={category:p.category,id:p.id};leg(d,goal,at,'returning');
+    const goal=bayPoint(p);d.approachTarget={category:p.category,id:p.id};d.returnAt=at;
+    if(moving(p)||d.motionKick){delete d.localLeg;delete d.trafficControl;d.phase='returning';d.lastAt=at;d.motionAt=at;}
+    else leg(d,goal,at,'returning');
   }
   function resume(s,r){
     const e=resolve(s,r);if(!alive(e)||e.phase!=='disabled')return;
@@ -158,23 +225,70 @@
     announce(s,r,'Hull repair complete. Drones recovered; resuming operations.');
   }
   function advanceMission(s,m,at){
+    m.attachmentVersion??=1;
     const carrier=resolve(s,m.carrier),target=resolve(s,m.target),slots=carrier?.repairBay?.slots||[],ds=m.drones.map(id=>slots.find(d=>d.id===id)||carrier?.shipEquipment?.instances[id]).filter(Boolean);
-    const carrierPose=alive(carrier)?pose(s,m.carrier):null,targetPose=alive(target)?pose(s,m.target):null;
+    const previousPoses=runtimes.get(s).previousPoses;
+    for(const d of ds){let previous=previousPoses.get(d);if(!previous){previous={};previousPoses.set(d,previous);}previous.x=d.x;previous.y=d.y;}
+    const carrierPose=alive(carrier)?observedPose(m,'carrierMotion',pose(s,m.carrier),at):null,targetPose=alive(target)?observedPose(m,'targetMotion',pose(s,m.target),at):null;
     const self=key(m.carrier)===key(m.target),valid=alive(target)&&target.phase==='disabled'&&alive(carrier)&&(self||carrier.task?.kind==='medical'&&carrier.task.status==='active'&&carrier.phase!=='disabled'&&!carrier.journey&&carrierPose.system===targetPose.system&&Math.hypot(carrierPose.x-targetPose.x,carrierPose.y-targetPose.y)<=1000);
     const returning=d=>{
-      if(d.phase!=='returning'||!d.localLeg)return;
+      if(d.phase!=='returning')return;
+      const queue=ds.filter(craft=>craft.phase==='returning'&&craft.hull>0),rank=queue.indexOf(d);
+      const currentBay=carrierPose&&bayPoint(carrierPose);
+      let goal=currentBay;
+      if(goal&&rank>0){
+        // Keep the shared predictor's six-unit gap and speed padding clear of
+        // the bay. A queue spaced only by hull size would still block its goal.
+        const site=attachment(carrierPose,carrierPose.definition.repair.bay),gap=DOT_SIZE*.34+.25+20,side=Math.ceil(rank/2)*32*(rank%2?1:-1);
+        goal=localPoint(carrierPose,{x:site.x+site.nx*gap-site.ny*side,y:site.y+site.ny*gap+site.nx*side});
+      }
+      if(at<(d.returnAt??0))return;
+      if(goal&&(moving(carrierPose)||d.motionKick)){
+        if(d.localLeg&&at<d.localLeg.startedAt)return;
+        const elapsed=Math.max(0,at-(d.motionAt??d.lastAt));delete d.localLeg;followHull(s,d,carrierPose,goal,elapsed);d.motionAt=at;
+        if(rank>0||Math.hypot(d.x-goal.x,d.y-goal.y)>.6)return;
+        d.phase='stowed';delete d.missionId;window.nativeShipMotion.stop(d);return;
+      }
+      if(!d.localLeg&&goal)leg(d,goal,at,'returning');
+      if(!d.localLeg)return;
+      if(goal&&at>=d.localLeg.startedAt&&Math.hypot(goal.x-d.localLeg.goal.x,goal.y-d.localLeg.goal.y)>.75){
+        window.nativeShipMotion.sampleLeg(d,d.localLeg,at);leg(d,goal,at,'returning');
+      }
       const sampled=window.nativeShipMotion.sampleLeg(d,d.localLeg,at);if(!sampled.arrived&&!sampled.invalid)return;
+      // One physical bay admits one craft at a time. The others hold at
+      // distinct clear approach points rather than mutually blocking its lip.
+      if(rank>0)return;
       const ended=d.localLeg.startedAt+d.localLeg.duration;delete d.localLeg;
       const p=pose(s,m.carrier);
       if(!alive(carrier)||!p||p.system!==d.system){d.hull=0;d.phase='destroyed';return;}
-      const goal=bayPoint(p,d.returnHeading);
-      if(Math.hypot(d.x-goal.x,d.y-goal.y)>20){leg(d,goal,Math.max(at,ended),'returning');return;}
-      d.phase='stowed';delete d.missionId;
+      const finalBay=bayPoint(p);
+      if(Math.hypot(d.x-finalBay.x,d.y-finalBay.y)>.6){leg(d,finalBay,Math.max(at,ended),'returning');return;}
+      d.phase='stowed';delete d.missionId;window.nativeShipMotion.stop(d);
     };
     for(const d of ds){
       if(d.hull<=0||!alive(carrier)){d.phase='destroyed';d.hull=0;delete d.localLeg;continue;}
       returning(d);
+      if(d.phase==='launching'&&at<(d.launchAt??d.localLeg?.startedAt??d.lastAt))continue;
+      if(d.phase==='launching'&&d.launchPending&&carrierPose){
+        const exit=bayPoint(carrierPose),physicalCarrier=pose(s,m.carrier),vx=physicalCarrier?.vx||0,vy=physicalCarrier?.vy||0;
+        Object.assign(d,{x:exit.x,y:exit.y,vx,vy,speed:Math.hypot(vx,vy),motionKick:Math.hypot(vx,vy)>.001?{version:1,mode:'free',vx,vy,inherited:true}:undefined,
+          heading:Math.atan2(exit.y-carrierPose.y,exit.x-carrierPose.x),launchPending:false});
+      }
+      if(d.phase==='launching'&&targetPose&&(moving(targetPose)||d.motionKick)){
+        if(d.localLeg&&at<d.localLeg.startedAt)continue;
+        d.workSlot??=ds.indexOf(d);configureWork(targetPose,d);const goal=stationPoint(targetPose,d);
+        const elapsed=Math.max(0,at-(d.motionAt??d.lastAt));delete d.localLeg;followHull(s,d,targetPose,goal,elapsed);d.motionAt=at;d.lastAt=at;
+        if(Math.hypot(d.x-goal.x,d.y-goal.y)<1)d.phase='repairing';
+      }
+      if(d.phase==='launching'&&!d.localLeg&&targetPose&&!moving(targetPose)&&!d.motionKick)leg(d,stationPoint(targetPose,d),at,'launching');
       if(d.phase==='launching'&&d.localLeg){
+        if(targetPose){
+          d.workSlot??=ds.indexOf(d);configureWork(targetPose,d);
+          const currentStation=stationPoint(targetPose,d);
+          if(at>=d.localLeg.startedAt&&Math.hypot(currentStation.x-d.localLeg.goal.x,currentStation.y-d.localLeg.goal.y)>1.5){
+            window.nativeShipMotion.sampleLeg(d,d.localLeg,at);leg(d,currentStation,at,'launching');
+          }
+        }
         const sampled=window.nativeShipMotion.sampleLeg(d,d.localLeg,at);
         if(sampled.arrived){d.lastAt=d.localLeg.startedAt+d.localLeg.duration;delete d.localLeg;d.phase='repairing';}
         else if(sampled.invalid){returnDrone(s,m,d,at);continue;}
@@ -192,8 +306,15 @@
       const working=ds.filter(d=>d.phase==='repairing');
       for(const d of working){
         if(d.system!==targetPose.system||Math.hypot(d.x-targetPose.x,d.y-targetPose.y)>Math.max(targetPose.dimensions.width,targetPose.dimensions.height)+150){returnDrone(s,m,d,at);continue;}
-        const point=workPoint(targetPose,d);
-        window.nativeShipMotion.step(d,{heading:Math.atan2(point.y-d.y,point.x-d.x),hold:true},window.nativeShipDefinitions.get(BASIC,'repair-drone').movement,Math.max(.000001,at-d.lastAt));
+        d.workSlot??=ds.indexOf(d);configureWork(targetPose,d);
+        const point=workPoint(targetPose,d),station=stationPoint(targetPose,d),distance=Math.hypot(station.x-d.x,station.y-d.y);
+        if(moving(targetPose)||d.motionKick)followHull(s,d,targetPose,station,Math.max(.000001,at-d.lastAt));
+        else{
+          const command=distance>.1?{goal:station}:{heading:Math.atan2(point.y-d.y,point.x-d.x),hold:true};
+          window.nativeShipMotion.step(d,command,window.nativeShipDefinitions.get(BASIC,'repair-drone').movement,Math.max(.000001,at-d.lastAt));
+        }
+        // A craft catching a drifting casualty cannot repair it remotely.
+        if(Math.hypot(station.x-d.x,station.y-d.y)>DOT_SIZE*2)d.lastAt=at;
       }
       // Integrate simultaneous welders over their actual arrival intervals. A
       // calendar skip and many small frames spend the same material exactly once.
@@ -210,6 +331,10 @@
     if(ds.every(d=>['stowed','destroyed'].includes(d.phase))){
       m.status=alive(target)&&target.hull>=definition(s,target,m.target.category).hull-EPS?'completed':valid?'exhausted':'cancelled';m.endedAt=at;resume(s,m.target);
     }
+    // Moving repair craft and changing hull condition update only their own
+    // descriptors; terminal craft are removed by the same registered resolver.
+    for(const d of ds){const previous=previousPoses.get(d);d.previousX=previous.x;d.previousY=previous.y;window.nativeShipSystems.refreshShip(s,d,'repair-drone',d.system);}
+    if(target)window.nativeShipSystems.refreshShip(s,target,m.target.category,targetPose?.system);
   }
   function service(s,e,c,at){
     if(!validCall(s,c))return false;
@@ -224,13 +349,17 @@
     if(!s||!(dt>0)||window.nativeSimulation.blocked())return;
     const r=initialize(s),at=clock(s);
     window.nativeRepairVisuals?.advance(s,dt);
-    let advanced=false;
-    for(const m of r.missions)if(active(m)){advanced=true;advanceMission(s,m,at);}
-    // The last mission can finish and stow its drones during this advance.
-    if(advanced)window.nativeShipSystems.invalidateShips(s);
+    for(const m of r.missions)if(active(m))advanceMission(s,m,at);
     if(at+EPS<r.nextPollAt)return;
     r.nextPollAt=at+1;
-    for(const {category,entity:e} of fleet(s)){
+    const rt=runtimes.get(s);if(rt.dirty)census(s);
+    observe(s,s,'player');
+    // A bounded safety reconciliation also recognizes old direct-mutating
+    // integrations without scanning an entire large fleet every second.
+    const civilians=s.civilianTraffic?.ships||[],tugs=s.solEconomy?.freighters||[],count=civilians.length+tugs.length;
+    for(let i=0;i<Math.min(64,count);i++){const index=rt.audit++%count;observe(s,index<civilians.length?civilians[index]:tugs[index-civilians.length],index<civilians.length?'civilian':'tug');}
+    const pending=new Map([...rt.tugs,...rt.disabled,...rt.dead]);
+    for(const {category,entity:e} of pending.values()){
       const reference=ref(category,e),b=bay(s,e,category);
       if(!alive(e)){
         destroyed(s,e,category);
@@ -251,11 +380,23 @@
   }
   function drones(s,system){
     const result=[];
-    for(const m of s.shipRepairs?.missions||[])if(active(m))for(const d of m.drones.map(id=>resolve(s,m.carrier)?.shipEquipment?.instances[id]||resolve(s,m.carrier)?.repairBay?.slots.find(d=>d.id===id)).filter(Boolean))if(d.missionId===m.id&&d.hull>0&&(system===undefined||d.system===system)&&!['stowed','destroyed'].includes(d.phase)&&!(d.phase==='launching'&&d.localLeg?.startedAt>clock(s))){
-      const p=dronePose(s,d),base=window.nativeShipDefinitions.describe(s,d,{category:'repair-drone'});
-      result.push({...base,x:p.x,y:p.y,heading:p.heading,speed:p.speed,vx:p.vx,vy:p.vy});
+    for(const m of s.shipRepairs?.missions||[])if(active(m)){
+      const carrier=resolve(s,m.carrier);
+      for(const id of m.drones){const d=carrier?.shipEquipment?.instances[id]||carrier?.repairBay?.slots.find(d=>d.id===id),target=droneTarget(s,m,d,system);if(target)result.push(target);}
     }
     return result;
+  }
+  function droneTarget(s,m,d,system){
+    if(!d||d.missionId!==m.id||!(d.hull>0)||system!==undefined&&d.system!==system||['stowed','destroyed'].includes(d.phase)||d.phase==='launching'&&(d.launchAt??d.localLeg?.startedAt)>clock(s))return null;
+    const p=dronePose(s,d),base=window.nativeShipDefinitions.describe(s,d,{category:'repair-drone'});
+    return {...base,x:p.x,y:p.y,heading:p.heading,speed:p.speed,vx:p.vx,vy:p.vy};
+  }
+  function resolveDrone(s,id,system){
+    for(const m of s.shipRepairs?.missions||[])if(active(m)&&m.drones.includes(id)){
+      const carrier=resolve(s,m.carrier),d=carrier?.shipEquipment?.instances[id]||carrier?.repairBay?.slots.find(d=>d.id===id);
+      return droneTarget(s,m,d,system);
+    }
+    return null;
   }
   function hit(s,t,amount,impact){
     const r=s.shipRepairs,m=r?.missions.find(m=>m.id===t.entity.missionId),e=m&&resolve(s,m.carrier),d=e?.shipEquipment?.instances[t.entity.id]||e?.repairBay?.slots.find(d=>d.id===t.entity.id);
@@ -265,10 +406,10 @@
     if(result.destroyed){d.phase='destroyed';delete d.localLeg;}return result;
   }
   const renderer={draw:(...args)=>window.nativeRepairVisuals?.drawDrone(...args),hit:(...args)=>window.nativeRepairVisuals?.hit(...args)};
-  window.nativeShipDefinitions.register(BASIC,{name:'Basic Dot repair drone',slots:{weapon:0,repairDrone:0,ability:0},hull:40,shields:0,cargo:0,equipment:[],movement:{maxSpeed:85,acceleration:100,braking:120,turnRate:Infinity,directGoal:true,snap:true,arrivalRadius:.1,serviceApproach:true},artwork:{scale:DOT_SCALE},dimensions:{width:DOT_SIZE,height:DOT_SIZE},
+  window.nativeShipDefinitions.register(BASIC,{name:'Basic Dot repair drone',slots:{weapon:0,repairDrone:0,ability:0},hull:40,shields:0,cargo:0,equipment:[],movement:{maxSpeed:85,acceleration:100,braking:120,turnRate:Infinity,directGoal:true,inertial:true,snap:true,arrivalRadius:.1,serviceApproach:true},artwork:{scale:DOT_SCALE},dimensions:{width:DOT_SIZE,height:DOT_SIZE},
     geometry:{hull:{width:.34,height:.34,minX:0,minY:0}},capabilities:{armed:false,canMine:false,canDock:false,canTrade:false,disableRatio:0},renderer});
-  window.nativeShipSystems.register('repair-drone',{collect:drones,inspect:s=>[],hit,resolve:(s,id,system)=>drones(s,system).find(d=>d.id===id),visualImpact:(s,t,e)=>window.nativeShipEffects.visualImpact(s,t,e)});
-  window.nativeShipRepairs=Object.freeze({initialize,advance,restock,call,claimed,validCall,releaseClaim,rendezvous,service,ref,key,resolve,pose,launch,missionFor,supplies,workPoint,drones,destroyed,
+  window.nativeShipSystems.register('repair-drone',{collect:drones,inspect:s=>[],hit,resolve:resolveDrone,visualImpact:(s,t,e)=>window.nativeShipEffects.visualImpact(s,t,e)});
+  window.nativeShipRepairs=Object.freeze({initialize,advance,restock,call,claimed,validCall,releaseClaim,rendezvous,service,ref,key,resolve,pose,launch,missionFor,supplies,workPoint,stationPoint,bayPoint,drones,destroyed,observe,invalidateMembership,
     reroute:(s,d,route)=>{if(!d.localLeg||route.valid===false)return false;d.localLeg=route;return true;},
     status:(s,e,category)=>({supplies:supplies(s,ref(category,e)),drones:e.repairBay?.slots.filter(d=>d.hull>0).length||0,mission:missionFor(s,ref(category,e))?.id,distress:callFor(s,ref(category,e))?.status}),
     rules:Object.freeze({hullPerTon:HULL_PER_TON,ratePerDrone:RATE,medicalStock:MEDICAL_STOCK,basicType:BASIC})});

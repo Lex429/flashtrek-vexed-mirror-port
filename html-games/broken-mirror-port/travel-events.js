@@ -6,6 +6,7 @@
   const governments = new Map(world.governments.map(government => [government.id, government.name]));
 
   function plan(game, journey, random = Math.random) {
+    if(window.nativeSimulationFrame?.transitionReady&&!window.nativeSimulationFrame.transitionReady(game))throw Error('Simulation is catching up. Wait for flight to recover before warping.');
     const next = JSON.parse(JSON.stringify(game));
     delete next.pendingTransit;
     const target = systems.get(journey.id);

@@ -15,7 +15,7 @@
   function bodySize(body) { return sizes[body.id] || 100; }
   function visibleBodies(state, view) {
     if (!state || state.system !== 1) return [];
-    const ship = shipPosition(state), zoom = view.zoom, margin = 220;
+    const ship = view.camera || shipPosition(state), zoom = view.zoom;
     return bodies.map(body => {
       const size = bodySize(body);
       const position = bodyPosition(body);
@@ -23,6 +23,7 @@
       const y = view.cy + position.y - ship.y;
       const screenX = view.cx + (x - view.cx) * zoom;
       const screenY = view.cy + (y - view.cy) * zoom;
+      const margin = Math.max(220, size * zoom * .75);
       return {body, size, x, y, screenX, screenY, screenSize:size*zoom,
         visible:screenX > -margin && screenX < view.w+margin && screenY > -margin && screenY < view.h+margin};
     }).filter(entry => entry.visible);

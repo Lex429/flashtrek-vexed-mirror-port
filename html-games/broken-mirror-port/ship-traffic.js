@@ -10,19 +10,25 @@
     const rt=runtime(state);if(rt.describedAt!==at){rt.describedAt=at;rt.descriptions.clear();}
     base||=rt.descriptions.get(entity);
     base||=window.nativeShipDefinitions.describe(state,entity,{category});rt.descriptions.set(entity,base);
-    const pose={...entity},leg=entity.localLeg||entity.lifeLeg;
+    const pose={x:entity.x,y:entity.y,heading:entity.heading,speed:entity.speed,vx:entity.vx,vy:entity.vy,motionKick:entity.motionKick,motionSpin:entity.motionSpin},leg=entity.localLeg||entity.lifeLeg;
     if(leg)motion().sampleLeg(pose,leg,at);
     return {...base,entity,x:pose.x,y:pose.y,heading:pose.heading,speed:pose.speed,vx:pose.vx||0,vy:pose.vy||0,
       previousX:pose.previousX??pose.x,previousY:pose.previousY??pose.y,hull:entity.hull,shields:entity.shields,
       radii:window.nativeShipDefinitions.surfaceRadii(base.dimensions,entity.shields>0,base.definition),angularVelocity:motion().spinSample(pose.motionSpin,at).velocity,at};
   }
   function fleet(state,at){
-    const result=[];
-    if(eligible(state)&&!state.landed&&!window.vexedWarp?.active)result.push({...window.nativeShipDefinitions.describe(state,state,{category:'player'}),at});
-    for(const ship of state.solEconomy?.freighters||[])if(eligible(ship))result.push(descriptor(state,ship,'tug',at));
-    for(const ship of state.civilianTraffic?.ships||[])if(eligible(ship))result.push(descriptor(state,ship,'civilian',at));
-    for(const ship of window.nativeShipRepairs?.drones(state)||[])if(eligible(ship.entity))result.push(descriptor(state,ship.entity,'repair-drone',at,ship));
-    return result;
+    const actors=[],found=new Map();
+    if(eligible(state)&&!state.landed&&!window.vexedWarp?.active)actors.push({...window.nativeShipDefinitions.describe(state,state,{category:'player'}),at});
+    for(const ship of window.nativeSolEconomy?.mobile?.(state)||state.solEconomy?.freighters||[])if(eligible(ship)&&(ship.lifeLeg||ship.motionKick||ship.motionSpin||ship.speed>0)){const current=window.nativeShipSystems.resolve(state,'tug:'+ship.id,1);if(current)actors.push({...current,at});}
+    for(const ship of window.nativeNpcLives?.mobile?.(state)||state.civilianTraffic?.ships||[])if(eligible(ship)&&(ship.localLeg||ship.motionKick||ship.motionSpin||ship.speed>0)){const current=window.nativeShipSystems.resolve(state,ship.id,ship.system);if(current)actors.push({...current,at});}
+    for(const ship of window.nativeShipRepairs?.drones(state)||[])if(eligible(ship.entity))actors.push(descriptor(state,ship.entity,'repair-drone',at,ship));
+    const regions=new Map();
+    for(const ship of actors){found.set(key(ship),ship);const reach=Math.max(200,Math.hypot(ship.vx,ship.vy)*6+motion().shipRadius(ship)+80),region=ship.system+':'+Math.floor(ship.x/4096)+':'+Math.floor(ship.y/4096);
+      const box={system:ship.system,minX:Math.min(ship.previousX,ship.x)-reach,minY:Math.min(ship.previousY,ship.y)-reach,maxX:Math.max(ship.previousX,ship.x)+reach,maxY:Math.max(ship.previousY,ship.y)+reach};
+      const existing=regions.get(region);if(existing){existing.minX=Math.min(existing.minX,box.minX);existing.minY=Math.min(existing.minY,box.minY);existing.maxX=Math.max(existing.maxX,box.maxX);existing.maxY=Math.max(existing.maxY,box.maxY);}else regions.set(region,box);
+    }
+    for(const box of regions.values())for(const near of window.nativeShipSystems.query(state,{...box,predictSeconds:6,categories:['player','tug','civilian','repair-drone']}).bystanders)if(eligible(near.entity)&&!found.has(key(near)))found.set(key(near),{...near,at});
+    return Array.from(found.values());
   }
   function grid(ships,cell=768){
     const buckets=new Map();let radius=0,speed=0,travel=0;
@@ -43,11 +49,24 @@
     // Read a single simultaneous snapshot: enumeration order cannot change who yields.
     for(const ship of ships){
       const e=ship.entity,leg=e.localLeg||e.lifeLeg;
-      if(ship.category==='player'||!leg||leg.startedAt+leg.duration<=at||e.disputeId||e.retaliationId||e.scriptedDemo||e.phase==='disabled'||at<(e.trafficControl?.nextPlanAt||0))continue;
+      if(ship.category==='player'||!leg||leg.startedAt+leg.duration<=at||e.disputeId||e.retaliationId||e.scriptedDemo||e.phase==='disabled')continue;
       const profile=ship.definition.movement,neighbors=space.near(ship,Math.max(200,(Math.hypot(ship.vx,ship.vy)+space.speed)*6+space.radius+motion().shipRadius(ship)+80));
       rt.checks+=neighbors.length;
       const advice=motion().trafficAdvice(ship,neighbors,profile);
       if(!advice){if(e.trafficControl&&at>=e.trafficControl.until)delete e.trafficControl;continue;}
+      const control=e.trafficControl;
+      if(control){
+        control.progressAt??=at;control.progressX??=ship.x;control.progressY??=ship.y;
+        if(Math.hypot(ship.x-control.progressX,ship.y-control.progressY)>5){control.progressAt=at;control.progressX=ship.x;control.progressY=ship.y;}
+        const horizon=Math.min(1.5,Math.max(.25,ship.speed/Math.max(1,profile.braking||225)+.25)),other=advice.other;
+        const forecast=s=>({...s,previousX:s.x,previousY:s.y,x:s.x+s.vx*horizon,y:s.y+s.vy*horizon});
+        const imminent=!!motion().shipPairContact(forecast(ship),forecast(other),horizon);
+        const committed=control.mode==='passing'&&at<control.until&&at-control.progressAt<3;
+        // Predicting the same passing neighbor again is not a reason to throw
+        // away a useful maneuver. Actual new collision risk may interrupt it;
+        // a stalled route gets a bounded recovery opportunity instead.
+        if(!imminent&&(at<(control.nextPlanAt||0)||committed&&control.obstacle===key(other)))continue;
+      }
       const goal=leg.goal,dx=goal.x-ship.x,dy=goal.y-ship.y,distance=Math.hypot(dx,dy);if(distance<.01)continue;
       const ux=dx/distance,uy=dy/distance,side={x:-uy,y:ux},other=advice.other,clearance=advice.clearance*1.45;
       const blockedGoal=Math.hypot(goal.x-other.x,goal.y-other.y)<advice.clearance&&advice.stationary;
@@ -75,23 +94,33 @@
       if(e.motionKick)e.motionKick={version:1,mode:'scheduled',at,duration:Math.max(.05,Math.min(3,route.duration)),x:0,y:0,vx:kick.vx,vy:kick.vy};
       if(e.motionSpin)e.motionSpin={version:1,mode:'scheduled',at,angle:0,velocity:spin.velocity};
       const maneuver=route.segments.at(-2)||route.segments[0];
-      e.trafficControl={version:1,mode:waiting?'yielding':'passing',obstacle:key(other),nextPlanAt:at+(waiting?.6:1),until:maneuver.startedAt+maneuver.duration};rt.plans++;
+      e.trafficControl={version:2,mode:waiting?'yielding':'passing',obstacle:key(other),nextPlanAt:at+(waiting?.6:1),until:maneuver.startedAt+maneuver.duration,
+        progressAt:at,progressX:ship.x,progressY:ship.y};rt.plans++;
       window.nativeShipSystems.refreshShip(state,e,ship.category,ship.system);
     }
   }
   function steer(state,ship,command,profile){
     if(ship.category==='player')return command;
-    const ships=window.nativeShipSystems.collectShips(state,ship.system).filter(s=>eligible(s.entity));
+    const reach=Math.max(200,Math.hypot(ship.vx,ship.vy)*6+motion().shipRadius(ship)+80);
+    const ships=window.nativeShipSystems.query(state,{system:ship.system,minX:ship.x-reach,minY:ship.y-reach,maxX:ship.x+reach,maxY:ship.y+reach,predictSeconds:6,categories:['player','tug','civilian','repair-drone']}).bystanders.filter(s=>eligible(s.entity));
     return motion().avoidShips(ship,ships,command,profile);
   }
   function push(state,ship,pose){return window.nativeShipSystems.applyContact(state,ship,pose);}
   function collide(state,dt){
     if(!state||!(dt>0)||window.nativeSimulation.blocked())return;
     const rt=runtime(state),at=time(state),offscreen=at-rt.offscreenAt>=.2-1e-8;
-    const active=window.nativeShipSystems.collectShips(state,state.system).filter(s=>eligible(s.entity)).map(s=>s.entity.localLeg||s.entity.lifeLeg?descriptor(state,s.entity,s.category,at,s):{...s});
+    const player=state.system===1?window.vexedSolFlight?.shipPosition(state)||state:state,radius=window.nativeShipDetail?.radius(state)||6500;
+    const active=window.nativeShipSystems.query(state,{minX:player.x-radius,minY:player.y-radius,maxX:player.x+radius,maxY:player.y+radius,categories:['player','tug','civilian','repair-drone']}).bystanders.filter(s=>eligible(s.entity)).map(s=>s.entity.localLeg||s.entity.lifeLeg?descriptor(state,s.entity,s.category,at,s):{...s});
+    const activeIds=new Set(active.map(key));
+    for(const entity of window.nativeNpcLives?.mobile?.(state,state.system)||[])if(!entity.localLeg&&(entity.motionKick||entity.motionSpin||entity.speed>0)){
+      const current=window.nativeShipSystems.resolve(state,entity.id,entity.system);if(current&&!activeIds.has(key(current))){active.push({...current});activeIds.add(key(current));}
+    }
+    if(state.system===1)for(const entity of window.nativeSolEconomy?.mobile?.(state)||[])if(!entity.lifeLeg&&(entity.motionKick||entity.motionSpin||entity.speed>0)){
+      const current=window.nativeShipSystems.resolve(state,'tug:'+entity.id,1);if(current&&!activeIds.has(key(current))){active.push({...current});activeIds.add(key(current));}
+    }
     let ships=active;
     if(offscreen){
-      const distant=fleet(state,at).filter(s=>s.system!==state.system);
+      const current=new Set(active.map(key)),distant=fleet(state,at).filter(s=>!current.has(key(s)));
       for(const s of distant){const prev=rt.lastPoses.get(key(s));s.previousX=prev?.system===s.system?prev.x:s.x;s.previousY=prev?.system===s.system?prev.y:s.y;s.contactDt=at-rt.offscreenAt;}
       rt.offscreenAt=at;ships=[...active,...distant];
     }
@@ -100,11 +129,21 @@
       if(s.system===state.system&&previous?.system===s.system){s.previousX=previous.x;s.previousY=previous.y;}
       const elapsed=s.contactDt||dt,travel=Math.hypot(s.x-s.previousX,s.y-s.previousY);
       if(travel>Math.max(500,Math.hypot(s.vx,s.vy)*elapsed*3+50)){s.previousX=s.x;s.previousY=s.y;}
-      if(s.category!=='player'&&!s.entity.localLeg&&!s.entity.lifeLeg&&(s.entity.motionKick||s.entity.motionSpin)&&!['fighting','ore-theft'].includes(s.entity.phase)){
+      if(s.category!=='player'&&s.category!=='repair-drone'&&!s.entity.localLeg&&!s.entity.lifeLeg&&(s.entity.motionKick||s.entity.motionSpin)&&!['fighting','ore-theft'].includes(s.entity.phase)){
         const oldHeading=s.heading,pose={...s,heading:s.heading,motionKick:s.entity.motionKick,motionSpin:s.entity.motionSpin,motionTime:at};motion().step(pose,s.entity.phase==='disabled'?{}:{hold:true},s.definition.movement,elapsed);
         Object.assign(s.entity,{x:pose.x,y:pose.y,heading:pose.heading,vx:pose.vx,vy:pose.vy,speed:pose.speed,motionKick:pose.motionKick,motionSpin:pose.motionSpin,previousX:pose.previousX,previousY:pose.previousY});Object.assign(s,{x:pose.x,y:pose.y,heading:pose.heading,vx:pose.vx,vy:pose.vy,previousX:pose.previousX,previousY:pose.previousY,angularVelocity:motion().spinSample(pose.motionSpin,at).velocity});
         if(pose.x!==pose.previousX||pose.y!==pose.previousY||pose.heading!==oldHeading)window.nativeShipSystems.refreshShip(state,s.entity,s.category,s.system);
       }
+    }
+    // Free movers keep physical contacts outside the observer's detailed area.
+    // Admit their stationary neighbors and connected contact chains through the
+    // same conservative grid; an idle hull is still a physical blocker.
+    const neighbors=new Set(ships.map(key));
+    for(const s of ships){const padding=motion().shipRadius(s)+2,box={minX:Math.min(s.x,s.previousX)-padding,minY:Math.min(s.y,s.previousY)-padding,maxX:Math.max(s.x,s.previousX)+padding,maxY:Math.max(s.y,s.previousY)+padding};
+      if(s.system===state.system&&box.minX>=player.x-radius&&box.maxX<=player.x+radius&&box.minY>=player.y-radius&&box.maxY<=player.y+radius)continue;
+      const nearby=window.nativeShipSystems.query(state,{system:s.system,...box,categories:['player','tug','civilian','repair-drone']}).bystanders;
+      window.nativeSimulationFrame?.count(state,'shipContactNeighborhoods');window.nativeSimulationFrame?.count(state,'shipContactCandidates',nearby.length);
+      for(const target of nearby)if(eligible(target.entity)&&!neighbors.has(key(target))){neighbors.add(key(target));const next=target.entity.localLeg||target.entity.lifeLeg?descriptor(state,target.entity,target.category,at,target):{...target},previous=rt.lastPoses.get(key(next));if(previous?.system===next.system){next.previousX=previous.x;next.previousY=previous.y;}ships.push(next);}
     }
     const space=grid(ships),seen=new Set();
     for(const a of ships){

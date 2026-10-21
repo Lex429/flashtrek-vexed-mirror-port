@@ -36,6 +36,68 @@ The event history is capped at 24 by default. Equipment continues to use saved
 owned weapon instances; there is no second recharge timer. Hull/shields and cargo
 on the ship remain authoritative.
 
+Runtime membership views belong to this same owner: `find`, `members(system)`,
+`systems`, `mobile(system?)`, `controlled`, `mining`, and `queryTransits(bounds)`.
+They index the existing saved arrays, not copies of the population. Ordinary
+task/journey changes update these views at the mutation boundary. Published array
+insertions, removals and same-length element replacements carry a revision;
+mutations through a retained raw alias must explicitly invalidate the owner.
+The revision is reconciled by indexed membership/query reads; an already cached
+same-clock full scene still requires `ship-systems.invalidateShips` at its
+membership mutation boundary. Ordinary fleet owners send that notification.
+Do not mutate retained route geometry or descriptor snapshots in place.
+
+Transit visibility uses conservative galaxy-space journey/warp bounds and then
+samples current poses. Extremely long bounds use a conservative overflow set;
+many genuinely crossing routes can still produce many candidates. The full Dev
+map intentionally enumerates global markers. Local planning, radar, contact and
+render queries use indexed system/region membership without activating distant
+artwork or tactical controllers.
+
+### Local queries and route-pose notifications
+
+`nativeShipSystems.query` retains the existing per-system physical grid between
+steps. Use it for bounded local work and use `nativeNpcLives.find` or the Sol
+owner's `find` for one identity. `members(state, system)` is a reused frozen array
+view of the existing owner; it is not a separate population or a permission to
+run every member's tactics each frame. Full `descriptors`/`inspectAll` enumeration
+is reserved for callers that actually need the galaxy, such as the Dev map.
+
+Explicit movement, contact, damage, fitting, disabling, destruction and system
+changes notify `refreshShip`. It remains forceful, including an upgrade changed
+inside an existing equipment object in the same clock tick. Existing committed
+route owners may instead call `sampledShip` after sampling an unchanged leg. That
+path acknowledges a query's already-current pose or defers an unobserved
+description; it retains the same conservative route membership and updates the
+velocity summary used by forecasts. A bounded read still obtains the current
+authoritative pose. A retained current scene is updated immediately, and changed
+condition, equipment/leg/kick references or definition revisions require an eager
+refresh. This optimization is not a general replacement for mutation notification.
+
+Local NPC detail and movement reuse the query's exact analytical sample,
+including scheduled spin/kick state. Historical due-event samples still use
+their own saved timestamps. Rendering interpolation uses separate immutable
+pose snapshots; it cannot change collision membership, task progress or money.
+Sol inspection projects current task progress without rewriting the saved task.
+
+Physical route bounds include the complete leg, rotating hull/shield extent and
+collision-kick reach. Very long routes or large station hulls can enter the
+conservative overflow set. They are never dropped to cap candidate counts.
+Full-route bounds can admit a distant crew whose future route crosses the query;
+current pose and exact collision tests then reject an irrelevant contact. Many
+such routes, or many genuinely touching large hulls, still require work. Free
+offscreen movers query nearby stationary blockers and connected contact chains;
+camera visibility does not remove those physical consequences.
+
+Remaining nonlocal costs include the five-Hz traffic pass over actual mobile
+crews, event-time berth searches over reservations and same-system hulls, Sol
+assignment/handling scans, overdue-heap diagnostic counts, and intentional global
+inspection. Initial
+indexing, save restoration, collection replacement and access-policy migration
+also require a census. These are not claims of constant-cost simulation for
+5,000 simultaneously moving or interacting crews. See the workload definitions,
+counters and reproduction commands in [fleet foundation results](fleet-foundation-results.md).
+
 Sol tugs retain their original `assignment`, `good`, `tons`, path and fleet slot.
 Their life metadata adds a stable identity, home/base, freight task, bounded
 16-event history, `lifeEventAt` and optional saved `lifeLeg`. They move internal
@@ -226,8 +288,8 @@ though only three connected hubs receive the new industrial cycles. Existing
 saved market balances are retained; reopening a market, cancelling contracts and
 reloading cannot repeat that allocation.
 
-Production and household settlement execute at most four cycles per animation
-frame and retain `nextEconomyAt` debt for subsequent frames. They use the saved
+Production and household settlement execute at most four cycles per bounded
+simulation task and retain `nextEconomyAt` debt for subsequent tasks. They use the saved
 simulation clock, including its pause/hidden/inventory gate and 120 seconds/day
 conversion. Satisfied demand and exhausted real supplies can legitimately leave
 ships idle. This is a small connected economy rather than an unlimited industrial
@@ -353,10 +415,12 @@ supplies only a fixed snapshot coordinate refreshes with its one-second
 enumeration cache.
 
 The civilian scheduler executes at most 64 actions and pops at most 256 heap
-entries per animation frame by default; standalone owner calls use the same
-per-call limits when no animation-frame context exists. Its economic settlement
+entries per bounded simulation task by default; standalone owner calls use the same
+per-call limits when no task context exists. Its economic settlement
 budget is four cycles across those substeps. Sol executes at most 96 fleet events
-and 64 production cycles per animation frame. Large skips retain saved overdue deadlines/production debt and
+and 64 production cycles per bounded task. A task may cover several fixed physics
+steps; a display callback and a between-display service task have independent
+admission budgets. Large skips retain saved overdue deadlines/production debt and
 drain it on later updates. No economic event is dropped to meet the budget.
 Consequently very large skips can temporarily show overdue actions while the
 backlog drains. The inspector exposes the next deadline and diagnostics expose
@@ -479,7 +543,26 @@ with 40 world units of clearance. Allocation excludes nearby physical hulls,
 planet surfaces and the nine dedicated company tug terminals. Those tug terminals
 are uniquely assigned by existing fleet slot and their spacing scales with hull
 size; they do not share the four civilian berths. Allocation runs only at life
-events, with at most sixteen space searches per host animation frame.
+events, with at most sixteen space searches per bounded simulation task.
+
+Runtime indexes within this owner group saved reservations by system, port and
+queue/berth/clearing status, and index their conservative point bounds. Candidate
+searches retain the original order and circle-clearance test, querying nearby
+reservations and the existing shared physical civilian index.
+Published ordinary assignments/deletions, including row and clearing fields,
+update those views.
+Retained raw aliases, `Object.defineProperty` or unclassified external edits must
+call `nativePortDocking.invalidate`; reconciliation rebuilds after restoration.
+Before life initialization finishes, allocation retains the migration fallback
+over the saved residents. A zero-hull corrupt record is retained with its cargo
+but is not a physical blocker once the shared live-target owner is ready.
+
+At most 256 indexed same-system residents are sampled once for each synchronous
+allocation. Larger local populations use conservative shared spatial searches;
+an allocation-local map reuses each encountered hull's unchanged pose and radius
+across rejected candidates. These snapshots expire when that allocation returns,
+so subsequent movement, hull changes and membership updates are observed by the
+next request. Reservation points remain spatially indexed in either mode.
 
 Pickup and delivery handling require reaching the assigned berth. Queued ships
 fly to their holding positions and request service every three seconds. They

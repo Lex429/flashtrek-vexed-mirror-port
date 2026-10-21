@@ -21,14 +21,14 @@
     y:descriptor.y+local.x*Math.sin(descriptor.heading+Math.PI/2)+local.y*Math.cos(descriptor.heading+Math.PI/2)};
   const newData=()=>({assets:[],fragments:null,destruction:null,optionalReady:false});
   function valueFor(cacheKey){return prepared.get(cacheKey)||loading.get(cacheKey)||newData();}
-  function stageRequest(type,category,stage,value,{backgroundWork=false}={}){
-    if(value.assets[stage])return Promise.resolve(value.assets[stage]);
+  function stageRequest(type,category,stage,value,{backgroundWork=false,visible=false}={}){
+    if(value.assets[stage])return Promise.resolve(visible?(window.vexedFlightAssets?.retainShip?.(value.assets[stage],{markVisible:true})||value.assets[stage]):value.assets[stage]);
     const cacheKey=key(type,category),stageKey=cacheKey+':'+stage;
-    if(stagePending.has(stageKey))return stagePending.get(stageKey).promise;
+    if(stagePending.has(stageKey)){const promise=stagePending.get(stageKey).promise;return visible?promise.then(asset=>window.vexedFlightAssets?.retainShip?.(asset,{markVisible:true})||asset):promise;}
     if(!window.vexedFlightAssets?.loadShip)return Promise.resolve(null);
     loading.set(cacheKey,value);counters.stageLoads++;counters[backgroundWork?'backgroundStages':'foregroundStages']++;
     const definition=window.nativeShipDefinitions.get(type,category),maximum=definition.hull||100;
-    const promise=window.vexedFlightAssets.loadShip(type,maximum*[1,.7,.4,.1][stage],{showcase:definition.artwork.source==='showcase'})
+    const promise=window.vexedFlightAssets.loadShip(type,maximum*[1,.7,.4,.1][stage],{showcase:definition.artwork.source==='showcase',visible})
       .then(asset=>{value.assets[stage]=asset;remember(cacheKey,value);return asset;})
       .finally(()=>{stagePending.delete(stageKey);if(![...stagePending.values()].some(job=>job.cacheKey===cacheKey))loading.delete(cacheKey);prune();});
     stagePending.set(stageKey,{promise,cacheKey,backgroundWork});return promise;
@@ -60,10 +60,10 @@
     // cannot keep preparing invisible damage art in the background.
     background.set(cacheKey,{type,category,value});scheduleBackground();
   }
-  function request(type,category='player',{stage=0}={}){
+  function request(type,category='player',{stage=0,visible=false}={}){
     stage=Math.max(0,Math.min(3,Math.floor(stage)||0));const cacheKey=key(type,category),value=valueFor(cacheKey);
     if(!value.assets[stage]&&!loading.has(cacheKey)&&loading.size>=limits.pending)return Promise.resolve(null);
-    const promise=stageRequest(type,category,stage,value);
+    const promise=stageRequest(type,category,stage,value,{visible});
     promise.then(asset=>{if(asset)deferStages(type,category,value);},()=>{counters.failures++;});
     return promise;
   }
@@ -93,9 +93,15 @@
   function data(descriptor){const cacheKey=key(descriptor.shipType,descriptor.category),value=prepared.get(cacheKey);if(value){prepared.delete(cacheKey);prepared.set(cacheKey,value);}return value;}
   function asset(descriptor){
     if(descriptor.definition.renderer)return null;
-    const ready=data(descriptor),stage=window.nativeShipDefinitions.stage(descriptor);
-    if(!ready?.assets[stage])request(descriptor.shipType,descriptor.category,{stage});
-    return ready?.assets[stage]||ready?.assets[0]||ready?.assets.find(Boolean)||null;
+    const ready=data(descriptor),stage=window.nativeShipDefinitions.stage(descriptor),loader=window.vexedFlightAssets;
+    // Optional fragments/wreck data has a deliberately small class LRU. Its
+    // eviction must not blank a fleet whose base appearances are still owned
+    // by the shared asset cache. Lookup is synchronous and hull/stage keyed.
+    const exact=ready?.assets[stage]||loader?.peekShip?.(descriptor.shipType,stage);
+    if(!exact)request(descriptor.shipType,descriptor.category,{stage,visible:true});
+    const art=exact||ready?.assets[0]||ready?.assets.find(Boolean)||loader?.peekShip?.(descriptor.shipType,stage,{fallback:true})||null;
+    if(art)loader?.retainShip?.(art,{markVisible:true});
+    return art;
   }
   function visual(state,descriptor){
     let value=visuals.get(descriptor.entity);
@@ -217,12 +223,13 @@
   }
   function position(descriptor,view){const zoom=view.zoom??1;return {x:view.x??view.cx+(descriptor.x-view.ship.x)*zoom,y:view.y??view.cy+(descriptor.y-view.ship.y)*zoom};}
   function paintSurface(ctx,descriptor,view,{front=false}={}){
+    descriptor=window.nativeSimulationFrame?.renderPose?.(descriptor.state,descriptor)||descriptor;
     const value=visuals.get(descriptor.entity),contact=value?.contact,time=now(descriptor.state),d=view.dimensions||descriptor.dimensions;
     let impact=value?.flash;
     // The hot contact of a still-visible beam uses the same pure line query as
     // the beam. The saved flash remains a historical effect after it fades out.
     if(impact?.kind==='beam'&&impact.weaponEventId!=null){
-      const current=window.nativeCombatShots.beamContactFor?.(descriptor.state,impact.weaponEventId,descriptor.id);
+      const current=window.nativeCombatShots.beamContactFor?.(descriptor.state,impact.weaponEventId,descriptor.id,{render:true});
       if(current?.shielded)impact={...impact,x:current.local.x,y:current.local.y,dx:current.dx,dy:current.dy};
     }
     const shield=impact&&time-impact.born<(impact.charge===0?430:620),touch=front&&contact&&time-contact.born<180;
@@ -243,27 +250,41 @@
     ctx.restore();
   }
   function paintShip(ctx,descriptor,view){
-    if(descriptor.definition.renderer)return descriptor.definition.renderer.draw(ctx,descriptor,view);
+    descriptor=window.nativeSimulationFrame?.renderPose?.(descriptor.state,descriptor)||descriptor;
+    // Visibility is presentation-only. Do this before custom renderers, artwork
+    // requests or repair compositing; offscreen mechanics continue in advance.
+    if(window.nativeEffectVisibility?.ship&&!window.nativeEffectVisibility.ship(descriptor,view))return null;
+    if(descriptor.definition.renderer){window.nativeShipSpriteCache?.flush?.(ctx);return descriptor.definition.renderer.draw(ctx,descriptor,view);}
     let art=view.asset||asset(descriptor);
-    if(descriptor.entity.phase==='disabled'&&window.nativeRepairVisuals){const ready=data(descriptor);
-      if(!ready?.assets[0])request(descriptor.shipType,descriptor.category,{stage:0});
-      if(!ready?.assets[3])request(descriptor.shipType,descriptor.category,{stage:3});
-      art=window.nativeRepairVisuals.surface(descriptor,ready?.assets,art);}
+    if(descriptor.entity.phase==='disabled'&&window.nativeRepairVisuals){
+      const ready=data(descriptor),loader=window.vexedFlightAssets,plates=ready?.assets.slice()||[],
+        required=window.nativeRepairVisuals.requiredStages?.(descriptor)||[0,3];
+      // Blending needs source plates, not optional fragments/wreck data. The
+      // shared loader can retain these even after its class leaves that LRU.
+      for(const stage of required){
+        plates[stage]||=loader?.peekShip?.(descriptor.shipType,stage);
+        if(plates[stage])loader?.retainShip?.(plates[stage],{markVisible:true});
+        else request(descriptor.shipType,descriptor.category,{stage,visible:true});
+      }
+      if(required.every(stage=>plates[stage]))art=window.nativeRepairVisuals.surface(descriptor,plates,art);
+    }
     const d=view.dimensions||descriptor.dimensions,p=position(descriptor,view),warp=view.warpEffect,zoom=view.zoom??1;
+    const impact=visuals.get(descriptor.entity),barrier=Boolean(view.warpEffect||art?.repairSurface||impact?.flash||impact?.contact);
+    if(barrier)window.nativeShipSpriteCache?.flush?.(ctx);
     paintSurface(ctx,descriptor,{...view,asset:art},{front:false});
     if(art)window.vexedFlightAssets.drawShip(ctx,art,p.x,p.y,d.width*zoom,warp?.angle??descriptor.heading+Math.PI/2,now(descriptor.state),
       {...warp,height:d.height*zoom,lights:descriptor.entity.phase!=='disabled',damage:!art.repairSurface,lightGain:2.8,lightBloom:2.5,effectRate:descriptor.category==='player'?60:20,
-        light:window.vexedSpace?.light,...view.appearance});
+        light:window.vexedSpace?.light,...view.appearance,owner:descriptor.entity,canvasOnly:barrier});
     paintSurface(ctx,descriptor,{...view,asset:art},{front:true});return art;
   }
   function paint(state,ctx,view){
     const time=now(state),visible=point=>point.state===state&&point.system===state.system;
     const zoom=view.zoom??1,onScreen=(point,radius)=>!window.nativeEffectVisibility||window.nativeEffectVisibility.circle(view.cx+(point.x-view.ship.x)*zoom,view.cy+(point.y-view.ship.y)*zoom,radius*zoom,view);
     ctx.save();if(zoom===1)ctx.translate(view.cx-view.ship.x,view.cy-view.ship.y);else{ctx.translate(view.cx,view.cy);ctx.scale(zoom,zoom);ctx.translate(-view.ship.x,-view.ship.y);}
-    for(const piece of fragments)if(visible(piece)&&onScreen(piece,Math.hypot(piece.w,piece.h)/2))window.showcaseStageFragments?.draw(ctx,piece,time);
+    for(const piece of fragments)if(visible(piece)&&onScreen(piece,Math.hypot(piece.w,piece.h)/2+52))window.showcaseStageFragments?.draw(ctx,piece,time);
     for(const wreck of wrecks){
       if(!visible(wreck)||!wreck.prepared)continue;const destruction=(wreck.artwork||prepared.get(wreck.assetKey))?.destruction;if(!destruction)continue;
-      for(const piece of wreck.debris){if(!onScreen(piece,Math.hypot(piece.w,piece.h)/2+28))continue;ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);
+      for(const piece of wreck.debris){if(!onScreen(piece,Math.hypot(piece.w,piece.h)/2+52))continue;ctx.save();ctx.translate(piece.x,piece.y);ctx.rotate(piece.angle);
         if(piece.structural)destruction.drawStructuralWreck(ctx,piece,wreck.time);
         else{destruction.drawWreckSurface(ctx,piece,wreck.time);destruction.drawWreckGlow(ctx,piece,wreck.time);}ctx.restore();}
       for(const particle of wreck.particles)if(onScreen(particle,particle.size*4+12))destruction.drawParticle(ctx,particle,wreck.time);

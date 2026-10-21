@@ -133,6 +133,7 @@
   }
   function stepProjectile(event,target,dt,rocks,radii,dimensions,scene=null,source=null){
     const from={x:event.x,y:event.y};
+    event.previousX=event.x;event.previousY=event.y;
     if(event.turn&&target&&target.targetable!==false){
       const angle=Math.atan2(event.vy,event.vx),desired=Math.atan2(target.y-event.y,target.x-event.x);
       const next=angle+clamp(wrap(desired-angle),-event.turn*dt,event.turn*dt);

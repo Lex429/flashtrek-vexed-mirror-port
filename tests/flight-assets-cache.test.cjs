@@ -58,3 +58,43 @@ test('loader reports image loading, decode and processing phases without duplica
   await api.loadShip(7,40);assert.equal(api.cacheSnapshot().preparation.ships,1,'cache hits cannot report another preparation');
   api.resetCaches();assert.equal(api.cacheSnapshot().preparation.ships,0);assert.equal(api.cacheSnapshot().preparation.recent.length,0);
 });
+
+test('the bounded visible working set survives optional plate churn and releases idle retention',async()=>{
+  const {api}=fixture();
+  api.beginRenderFrame();
+  for(let type=1;type<=40;type++)for(const hull of [100,40])await api.loadShip(type,hull,{visible:true});
+  let snapshot=api.cacheSnapshot();
+  assert.equal(snapshot.ships.visibleEntries,80);
+  assert.equal(snapshot.ships.entries,80,'actual visible plates may exceed ordinary warm retention');
+  assert.ok(snapshot.ships.bytes<=snapshot.limits.visibleShipBytes);
+  for(let type=1;type<=40;type++)for(const hull of [70,10])await api.loadShip(type,hull);
+  for(let type=1;type<=40;type++)for(const stage of [0,2]){
+    const asset=api.peekShip(type,stage);
+    assert.equal(asset?.type,type);assert.equal(asset?.damageStage,stage,'background damage preparation cannot evict a painted plate');
+  }
+  snapshot=api.cacheSnapshot();
+  assert.ok(snapshot.ships.bytes<=snapshot.limits.visibleShipBytes);
+  assert.ok(snapshot.ships.entries<=snapshot.limits.visibleShipEntries);
+  assert.equal(api.peekShip(999,0,{fallback:true}),null,'a different hull cannot inherit retained art');
+  api.beginRenderFrame();
+  assert.equal(api.cacheSnapshot().ships.visibleEntries,80,'keep the previous complete frame while the next one paints');
+  api.beginRenderFrame();
+  snapshot=api.cacheSnapshot();
+  assert.ok(snapshot.ships.bytes<=snapshot.limits.shipBytes);
+  assert.ok(snapshot.ships.entries<=snapshot.limits.shipEntries);
+  assert.equal(snapshot.ships.visibleEntries,0,'leaving the camera releases the larger strong working set');
+});
+
+test('visible retention still obeys its hard limit and synchronous fallback stays hull-local',async()=>{
+  const {api}=fixture();
+  api.beginRenderFrame();
+  for(let type=1;type<=40;type++)for(const hull of [100,70,40,10])await api.loadShip(type,hull,{visible:true});
+  const snapshot=api.cacheSnapshot();
+  assert.ok(snapshot.ships.bytes<=snapshot.limits.visibleShipBytes);
+  assert.ok(snapshot.ships.entries<=snapshot.limits.visibleShipEntries);
+  const fallback=api.peekShip(40,0,{fallback:true});
+  assert.equal(fallback.type,40);assert.equal(fallback.damageStage,0);
+  const preparations=snapshot.preparation.ships;
+  assert.equal(api.peekShip(40,0),fallback);
+  assert.equal(api.cacheSnapshot().preparation.ships,preparations,'synchronous painting cannot decode or prepare another plate');
+});

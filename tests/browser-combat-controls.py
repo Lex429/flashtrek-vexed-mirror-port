@@ -39,7 +39,9 @@ try:
         }""")
         page.wait_for_function('() => window.__controlsState && nativeCivilianTraffic.effectsReady() && nativeSolAsteroids.placements.length', timeout=120000)
         page.evaluate("() => {window.requestAnimationFrame=callback=>{if(callback.name==='draw'&&(!window.__controlsFrame||window.__controlsFrame===callback))window.__controlsFrame=callback;return 0;};}")
-        page.wait_for_timeout(100)
+        # A cold paint can take longer than a fixed sleep before it submits the
+        # next callback. Use timer polling because this fixture owns RAF now.
+        page.wait_for_function("() => typeof window.__controlsFrame === 'function'", polling=50, timeout=30000)
         page.evaluate("""() => {
           window.__controlFixture=true;
           let state=__controlsState;const clone=value=>JSON.parse(JSON.stringify(value)),template=clone(state.civilianTraffic.ships[0]);

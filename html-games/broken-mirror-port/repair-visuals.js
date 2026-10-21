@@ -17,7 +17,7 @@
         resolve(art);
       }catch(error){reject(error);}};
       frame.onerror=()=>reject(Error('Could not load repair artwork'));
-      frame.src='../flashtrek-broken-mirror/live-repair-assets.html?v=progressive-1';document.body.append(frame);
+      frame.src='../flashtrek-broken-mirror/live-repair-assets.html?v=fleet-culling-1';document.body.append(frame);
     });
     loading.catch(error=>{console.warn(error);});return loading;
   }
@@ -35,13 +35,22 @@
     if(result.destroyed)r.destruction.emit(pose);else r.damage.emit(pose);
   }
   function advance(s,dt){if(!(dt>0)||window.nativeSimulation.blocked())return;const r=states.get(s);r?.damage?.update(time(s));r?.destruction?.advance(time(s));}
+  const noStages=Object.freeze([]),baseStages=Object.freeze([0,3]),repairStages=Object.freeze([
+    baseStages,Object.freeze([0,3,1]),Object.freeze([0,3,2]),baseStages]);
+  const startStage=(d,m)=>d.definition.damageStages.filter(t=>m.startHull/d.definition.hull<t).length;
+  function requiredStages(d){
+    if(!d.state.shipRepairs)return noStages;
+    const m=window.nativeShipRepairs.missionFor(d.state,window.nativeShipRepairs.ref(d.category,d.entity));
+    return m?(repairStages[startStage(d,m)]||baseStages):noStages;
+  }
   function surface(d,assets,fallback){
     if(!assets?.[0]||!assets?.[3]||!d.state.shipRepairs)return fallback;
     const r=window.nativeShipRepairs.ref(d.category,d.entity),m=window.nativeShipRepairs.missionFor(d.state,r);
     if(!m||m.restoredHull<=0)return fallback;
     const max=d.definition.hull,q=Math.min(1,Math.max(0,(d.entity.hull-m.startHull)/Math.max(.001,max-m.startHull))),bucket=Math.floor(q*80);
     const id=m,old=surfaces.get(id);if(old?.bucket===bucket)return old.asset;
-    const initial=assets[d.definition.damageStages.filter(t=>m.startHull/max<t).length]||assets[3],intact=assets[0];
+    const initial=assets[startStage(d,m)],intact=assets[0];
+    if(!initial)return fallback;
     const width=256,height=Math.max(1,Math.round(width*intact.height/intact.width)),canvas=old?.canvas||Object.assign(document.createElement('canvas'),{width,height}),g=canvas.getContext('2d');
     g.clearRect(0,0,width,height);g.drawImage(initial.art,0,0,width,height);
     g.save();g.beginPath();g.rect(0,0,width*q,height);g.clip();g.clearRect(0,0,width,height);g.drawImage(intact.art,0,0,width,height);g.restore();
@@ -50,30 +59,41 @@
     const asset={...fallback,art:canvas,repairSurface:true};surfaces.set(id,{bucket,canvas,asset});
     while(surfaces.size>16)surfaces.delete(surfaces.keys().next().value);return asset;
   }
-  function beam(s,d){
-    const target=window.nativeShipRepairs.pose(s,d.entity.target);if(!target)return null;
+  function beam(s,d,rendered=false){
+    let target=window.nativeShipRepairs.pose(s,d.entity.target);if(!target)return null;
+    if(rendered)target=window.nativeSimulationFrame?.renderPose?.(s,target)||target;
     const nozzle=art?.sprites.nozzle('basic');if(!nozzle)return null;
     const scale=d.definition.artwork.scale,c=Math.cos(d.heading),sn=Math.sin(d.heading),from={x:d.x+(nozzle.x*c-nozzle.y*sn)*scale,y:d.y+(nozzle.x*sn+nozzle.y*c)*scale};
     return {from,to:window.nativeShipRepairs.workPoint(target,d.entity)};
   }
   function paint(s,ctx,view){
-    const drones=window.nativeShipRepairs.drones(s,s.system),z=view.zoom??1;
-    const visible=d=>{const x=view.cx+(d.x-view.ship.x)*z,y=view.cy+(d.y-view.ship.y)*z;return x>-100&&y>-100&&x<view.w+100&&y<view.h+100;};
-    const near=drones.filter(visible);if(near.length&&!art)ensure();
+    const drones=window.nativeShipRepairs.drones(s,s.system),z=view.zoom??1,visibility=window.nativeEffectVisibility;
+    const near=[];
+    for(const raw of drones){
+      const d=window.nativeSimulationFrame?.renderPose?.(s,raw)||raw;
+      let visible=visibility?.ship?visibility.ship(d,view,12):Math.abs(d.x-view.ship.x)*z<view.w/2+30&&Math.abs(d.y-view.ship.y)*z<view.h/2+30;
+      // A welding line can cross the camera even with both craft offscreen.
+      if(!visible&&d.entity.phase==='repairing'){
+        let target=window.nativeShipRepairs.pose(s,d.entity.target);
+        if(target){target=window.nativeSimulationFrame?.renderPose?.(s,target)||target;const hit=window.nativeShipRepairs.workPoint(target,d.entity);visible=visibility?.segment?.(view.cx+(d.x-view.ship.x)*z,view.cy+(d.y-view.ship.y)*z,view.cx+(hit.x-view.ship.x)*z,view.cy+(hit.y-view.ship.y)*z,12*z,view)||false;}
+      }
+      if(visible)near.push(d);
+    }
+    if(near.length&&!art)ensure();
     for(const d of near){
       window.nativeShipEffects.paintShip(ctx,d,view);
       if(d.entity.phase!=='repairing'||!art)continue;
-      const b=beam(s,d);if(!b)continue;
+      const b=beam(s,d,true);if(!b)continue;
       const x=p=>view.cx+(p.x-view.ship.x)*z,y=p=>view.cy+(p.y-view.ship.y)*z,now=time(s),pulse=.7+.3*Math.sin(now*.073)**2,effectZoom=z*d.definition.artwork.scale;
-      ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='#4dffac';ctx.globalAlpha=pulse;ctx.shadowColor='#48ff9d';ctx.shadowBlur=6*effectZoom;ctx.lineWidth=1.2*effectZoom;
+      ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='#4dffac';ctx.globalAlpha=pulse;ctx.shadowColor='#48ff9d';ctx.shadowBlur=Math.max(1.5*z,6*effectZoom);ctx.lineWidth=Math.max(.65*z,1.2*effectZoom);
       ctx.beginPath();ctx.moveTo(x(b.from),y(b.from));ctx.lineTo(x(b.to),y(b.to));ctx.stroke();
       ctx.fillStyle='#f0fff5';ctx.beginPath();ctx.arc(x(b.to),y(b.to),2*effectZoom,0,Math.PI*2);ctx.fill();
       for(let i=0;i<4;i++){const a=now*.003+i*1.7,age=(now*.002+i*.27)%1,len=age*11*effectZoom;ctx.globalAlpha=1-age;ctx.beginPath();ctx.moveTo(x(b.to)+Math.cos(a)*len,y(b.to)+Math.sin(a)*len);ctx.lineTo(x(b.to)+Math.cos(a)*(len+3*effectZoom),y(b.to)+Math.sin(a)*(len+3*effectZoom));ctx.stroke();}ctx.restore();
     }
     // Effects share simulation time/world coordinates, including camera rotation
     // and zoom. No completion, health or resource mutation occurs here.
-    const r=states.get(s);if(r){ctx.save();ctx.translate(view.cx,view.cy);ctx.scale(z,z);ctx.translate(-view.ship.x,-view.ship.y);r.damage?.draw(ctx,time(s));r.destruction?.draw(ctx,time(s));ctx.restore();}
+    const r=states.get(s);if(r){const visible=(x,y,radius)=>!visibility?.worldCircle||visibility.worldCircle(x,y,radius,view);ctx.save();ctx.translate(view.cx,view.cy);ctx.scale(z,z);ctx.translate(-view.ship.x,-view.ship.y);r.damage?.draw(ctx,time(s),{visible});r.destruction?.draw(ctx,time(s),{visible});ctx.restore();}
   }
-  window.nativeRepairVisuals=Object.freeze({ensure,drawDrone,hit,advance,surface,paint,beam,ready:()=>!!art,
+  window.nativeRepairVisuals=Object.freeze({ensure,drawDrone,hit,advance,requiredStages,surface,paint,beam,ready:()=>!!art,
     snapshot:s=>({ready:!!art,surfaces:surfaces.size,destruction:states.get(s)?.destruction?.snapshot()||null})});
 })();

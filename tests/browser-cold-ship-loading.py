@@ -192,6 +192,10 @@ try:
           const result=nativeShipSystems.applyHit(s,{target:d,point:{x:d.x,y:d.y},from:{x:d.x-100,y:d.y}},
             {damage:p.maximum*.3,kind:'beam'},{id:'player',system:s.system});
           if(!result?.ok)throw Error('Shared damage transition failed');p.damageResult=result;
+          // Observe the real hit's warm plate before retaliation/contact motion
+          // carries this visual fixture out of view. Painting continues on pause.
+          window.__coldWarmSimulation=window.nativeSimulation;
+          window.nativeSimulation={...window.nativeSimulation,blocked:()=>true};
         }""")
         try:
             page.wait_for_function('()=>__coldShip.stages.slice(__coldShip.damageStart).includes(2)', timeout=10000)
@@ -209,6 +213,7 @@ try:
         assert sorted(requested) == [0, 1, 2, 3], requested
         assert sorted(row['stage'] for row in result['preparations']) == [0, 1, 2, 3], result['preparations']
         assert {1, 2, 3}.issubset(result['observedStages']), result
+        page.evaluate('()=>{window.nativeSimulation=window.__coldWarmSimulation;delete window.__coldWarmSimulation;}')
         page.close()
         player_result = check_player_loading(browser)
         assert not errors, errors

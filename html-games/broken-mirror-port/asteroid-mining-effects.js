@@ -61,12 +61,13 @@
   }
   function draw(ctx,m,{x,y,source,zoom,now,w=Infinity,h=Infinity}){
     const age=now-m.born,rock=m.rock;
+    // Cut-piece motion here is presentation only. The mining/ore/physical
+    // debris owners continue offscreen; invisible artwork need not be fetched.
+    const visible=window.nativeEffectVisibility?.mining(x,y,source,rock.size,{w,h})??true;
+    if(!visible)return;
     const damage=rock.oreType==='deuranium'?Math.max(Number(m.state?.asteroidDamage?.[rock.slotId])||0,rock.maxHull*.75*clamp(age/6000,0,1)):0;
     const im=window.nativeSolAsteroids.image(damage?window.nativeSolAsteroids.frame(rock,damage):rock.file);
     if(!im.complete||!im.naturalWidth)return;
-    const visible=window.nativeEffectVisibility?.mining(x,y,source,rock.size,{w,h})??true;
-    // Avoid image sampling and texture construction for unseen mining effects.
-    if(!visible&&!m.effect)return;
     if(!m.effect||m.effect.data.image!==im)m.effect=create(im,rock,now);
     const effect=m.effect,{data,parts,unit,preview}=effect,size=rock.size,heatAge=age-3950,pressure=clamp(heatAge/3600,0,1),ease=pressure*pressure*(3-2*pressure),shieldScale=1.05-.43*ease;
     const dt=clamp((now-effect.clock)/1000,0,.06);effect.clock=now;
@@ -78,7 +79,6 @@
       if(inside){Object.assign(p,next);}else{p.vx*=-.35;p.vy*=-.35;p.spin*=-.4;effect.ripples.push({x:x+p.x,y:y+p.y,born:now});}
     }
     effect.ripples=effect.ripples.filter(r=>now-r.born<520);
-    if(!visible)return;
     const gather=1-.86*pressure,scale=1-.4*pressure,drain=clamp((clamp(heatAge/4400,0,1)-.16)/.72,0,1),oreGrowth=clamp((age-7150)/800,0,1),rockFade=1-clamp(oreGrowth/.22,0,1);
     for(let i=0;i<4;i++){
       const p=parts[i],offsetX=p.x*gather,offsetY=p.y*gather;

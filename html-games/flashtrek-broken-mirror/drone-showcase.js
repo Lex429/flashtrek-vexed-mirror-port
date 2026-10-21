@@ -61,10 +61,17 @@
       state.particles=state.particles.filter(p=>time-p.born<p.ttl);state.debris=state.debris.filter(p=>time-p.born<p.ttl);waves?.update(time);
     }
     function emit(pose){advance(pose.time);if(!shipExplosion(state,pose))return false;state.particles=state.particles.slice(-1800);state.debris=state.debris.slice(-160);waves?.explode({...pose.position,born:pose.time,radius:90,duration:700});return true;}
-    function draw(ctx,time){
-      ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';waves?.draw(ctx,time);
-      for(const p of state.debris){const age=time-p.born;if(age<0||age>=p.ttl)continue;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.globalAlpha=age/p.ttl<.65?1:(1-age/p.ttl)/.35;window.cthiaDestruction.drawWreckSurface(ctx,p,time);window.cthiaDestruction.drawWreckGlow(ctx,p,time);ctx.restore();}
-      for(const p of state.particles)window.cthiaDestruction.drawParticle(ctx,p,time);ctx.restore();
+    function draw(ctx,time,{visible=()=>true}={}){
+      ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';waves?.draw(ctx,time,{visible});
+      for(const p of state.debris){const age=time-p.born;if(age<0||age>=p.ttl)continue;
+        const radius=Math.max(Math.hypot(p.w,p.h)/2+52,p.core?Math.hypot(p.coreX||0,p.coreY||0)+13:0);
+        if(!visible(p.x,p.y,radius))continue;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.globalAlpha=age/p.ttl<.65?1:(1-age/p.ttl)/.35;window.cthiaDestruction.drawWreckSurface(ctx,p,time);window.cthiaDestruction.drawWreckGlow(ctx,p,time);ctx.restore();}
+      for(const p of state.particles){const age=time-p.born;if(age<0||age>=p.ttl)continue;const q=age/p.ttl;
+        // Include the complete spark stroke and the offset fire lobes used by
+        // the common painter, rather than culling only their point origins.
+        const radius=p.realistic==='spark'?8+p.size/2+1:p.size*(p.realistic==='core'?.65+q:1+q*2.4)*1.2+1;
+        if(visible(p.x,p.y,radius))window.cthiaDestruction.drawParticle(ctx,p,time);
+      }ctx.restore();
     }
     const snapshot=()=>({...explosionSnapshot(state),shockwaves:waves?.snapshot().waves||0});
     return {emit,advance,draw,snapshot};

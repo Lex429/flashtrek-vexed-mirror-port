@@ -52,15 +52,23 @@ try:
         assert layers.index('freighter') < layers.index('civilian'), layers
         before_flight = page.evaluate('({x:__flightState.x,y:__flightState.y,angle:__flightState.angle})')
         page.keyboard.down('w')
-        page.wait_for_timeout(180)
-        page.keyboard.up('w')
+        try:
+            page.wait_for_function('before=>__flightState.speed>0&&(__flightState.x!==before.x||__flightState.y!==before.y)',
+                                   arg=before_flight,polling=50,timeout=10000)
+        finally:
+            page.keyboard.up('w')
+        before_turn = page.evaluate('__flightState.angle')
         page.keyboard.down('d')
-        page.wait_for_timeout(180)
-        page.keyboard.up('d')
+        try:
+            # A cold native paint can exceed a fixed180-ms tap. Keep the actual
+            # key held until authoritative steering progresses; never set poses.
+            page.wait_for_function('angle=>__flightState.angle!==angle',arg=before_turn,polling=50,timeout=10000)
+        finally:
+            page.keyboard.up('d')
         after_flight = page.evaluate('({x:__flightState.x,y:__flightState.y,angle:__flightState.angle,speed:__flightState.speed})')
         assert after_flight['speed'] > 0
         assert (after_flight['x'],after_flight['y']) != (before_flight['x'],before_flight['y'])
-        assert after_flight['angle'] != before_flight['angle']
+        assert after_flight['angle'] != before_turn
         page.screenshot(path=str(OUTPUT / 'flight.png'))
         page.evaluate('window.requestAnimationFrame=()=>0')
         page.wait_for_timeout(100)

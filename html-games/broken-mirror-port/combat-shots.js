@@ -1,7 +1,7 @@
 /* One saved firing lifecycle for every controller and physical target. */
 (() => {
   'use strict';
-  const styles=new Map(),states=new Set(),runtime=new WeakMap(),awareness=new WeakMap(),shotIndexes=new WeakMap();
+  const styles=new Map(),states=new Set(),runtime=new WeakMap(),awareness=new WeakMap(),shotIndexes=new WeakMap(),renderContacts=new WeakMap();
   const rules=window.nativeWeaponRules;
   let units=window.showcaseWeaponAppearance.units,sceneProvider=null;
   const blocked=()=>window.nativeSimulation?.blocked?.()||document.hidden||window.nativePause?.active||window.nativeShipInventory?.active;
@@ -230,24 +230,39 @@
     else shot.targetPoint=()=>beamContact(state,event,entry).point;
     entry.shot=shot;return shot;
   }
-  function beamContact(state,event,entry){
-    const source=liveSource(state,event,entry);
+  function renderPose(state,target){return window.nativeSimulationFrame?.renderPose?.(state,target)||target;}
+  function renderScene(state,system){
+    const scenery=collisionScene(state,system),map=result=>({...result,
+      bystanders:(result.bystanders||[]).map(target=>renderPose(state,target)),
+      destructibles:(result.destructibles||[]).map(target=>renderPose(state,target))});
+    // Interpolated hulls may lie behind their current poses. The broadphase
+    // includes both physical endpoints; exact visual contact uses render poses.
+    return scenery.querySwept?{state,querySwept:(from,to,padding,options)=>map(scenery.querySwept(from,to,padding,{...options,instant:false}))}:map(scenery);
+  }
+  function traceBeamContact(state,event,entry,render=false){
+    const source=render?renderPose(state,liveSource(state,event,entry)):liveSource(state,event,entry),scenery=render?renderScene(state,event.system):collisionScene(state,event.system);
     // Keep the lock's current firing line even after an off-axis interception.
     // Re-intersect every surface instead of steering to the blocker's center
     // or rotating a saved local contact behind its shield.
-    const current=liveTarget(state,event,entry);
+    const current=render?renderPose(state,liveTarget(state,event,entry)):liveTarget(state,event,entry);
     if(event.resolved&&(!current||!resolve(state,event.hitTargetId,event.system))){
       const from=rules.emitter(source,event),end=event.point||event.beamEnd,dx=end.x-from.x,dy=end.y-from.y;
       const scale=Math.min(1,event.spec.range/(Math.hypot(dx,dy)||1)),to={x:from.x+dx*scale,y:from.y+dy*scale};
-      return rules.firstContact(from,to,source,null,collisionScene(state,event.system),undefined,undefined,0,{instant:true})||{kind:'miss',point:to,from};
+      return rules.firstContact(from,to,source,null,scenery,undefined,undefined,0,{instant:true})||{kind:'miss',point:to,from};
     }
     const target=fitTarget(current||{...event.targetSnapshot,targetable:false},entry);
-    return rules.beamTrace(event,source,target,collisionScene(state,event.system),target.radii,target.dimensions);
+    return rules.beamTrace(event,source,target,scenery,target.radii,target.dimensions);
   }
-  function beamContactFor(state,eventId,targetId){
+  function beamContact(state,event,entry,render=false){
+    const frame=render&&window.nativeSimulationFrame?.current?.(state),cached=render&&renderContacts.get(event);
+    if(frame&&cached?.frame===frame.id)return cached.contact;
+    const contact=traceBeamContact(state,event,entry,render);
+    if(frame)renderContacts.set(event,{frame:frame.id,contact});return contact;
+  }
+  function beamContactFor(state,eventId,targetId,{render=false}={}){
     const event=state.weaponCombat?.events?.find(event=>event.id===eventId);
     if(!event||event.kind!=='beam'||!event.resolved||event.cancelled||now(state)>=event.launchedAt+duration('beam')/1000)return null;
-    const result=beamContact(state,event,cache(state).get(event.id));
+    const result=beamContact(state,event,cache(state).get(event.id),render);
     return result.kind==='hit'&&String(result.target.id)===String(targetId)?result.contact:null;
   }
   function importEvent(state,legacy,{system=state.system,owner='civilian'}={}){
@@ -331,12 +346,25 @@
     const scale=.96/Math.hypot(lx/shape.rx,ly/shape.ry),length=Math.hypot(lx,ly),local={x:lx*scale,y:ly*scale};
     return {local,world:worldPoint(target,local),dx:-lx/length,dy:-ly/length,from:{...from},shielded,radii:shape,dimensions:{...d}};
   }
-  function paint(ctx,shot,{state,ship,cx,cy,zoom=1,now:time=performance.now()}){
+  function paint(ctx,shot,{state,ship,cx,cy,zoom=1,now:time=performance.now(),w=Infinity,h=Infinity}){
     if(!isVisible(shot,time))return false;
-    if(shot.projectile){const projectile=shot.projectile;window.paintShowcaseWeaponShot(ctx,shot,{screenPixels:true,x:cx+(projectile.x-ship.x)*zoom,y:cy+(projectile.y-ship.y)*zoom,angle:Math.atan2(projectile.vy,projectile.vx)},projectile.age*1000);return true;}
-    const elapsed=age(shot,time),from=source(shot,state,ship),to=shot.targetPoint?.(from)||shot.target;
+    if(shot.projectile){const projectile=shot.projectile,a=window.nativeSimulationFrame?.alpha?.(state)??1,
+      px=(projectile.previousX??projectile.x)*(1-a)+projectile.x*a,py=(projectile.previousY??projectile.y)*(1-a)+projectile.y*a,
+      x=cx+(px-ship.x)*zoom,y=cy+(py-ship.y)*zoom;
+      if(window.nativeEffectVisibility&&!window.nativeEffectVisibility.circle(x,y,Math.max(96,(projectile.radius||0)*zoom+64),{w,h}))return false;
+      window.paintShowcaseWeaponShot(ctx,shot,{screenPixels:true,x,y,angle:Math.atan2(projectile.vy,projectile.vx)},projectile.age*1000);return true;}
+    let from=source(shot,state,ship),to;
+    if(shot.event&&shot.kind==='beam'){
+      const firing=renderPose(state,shot.getSource?.()||shot.shooter||ship),origin=rules.emitter(firing,shot.event),radius=(shot.event.spec.range+64)*zoom;
+      // This conservative range disk rejects wholly invisible beams before
+      // target resolution or an exact surface trace. Crossing segments survive.
+      if(window.nativeEffectVisibility&&!window.nativeEffectVisibility.circle(cx+(origin.x-ship.x)*zoom,cy+(origin.y-ship.y)*zoom,radius,{w,h}))return false;
+      const contact=beamContact(state,shot.event,cache(state).get(shot.event.id),true);from=contact.from||origin;to=contact.point;
+    }else to=shot.targetPoint?.(from)||shot.target;
+    const elapsed=age(shot,time);
     if(!to)return false;
     const x1=cx+(from.x-ship.x)*zoom,y1=cy+(from.y-ship.y)*zoom,x2=cx+(to.x-ship.x)*zoom,y2=cy+(to.y-ship.y)*zoom;
+    if(window.nativeEffectVisibility&&!window.nativeEffectVisibility.segment(x1,y1,x2,y2,64,{w,h}))return false;
     if(shot.kind==='beam')window.paintShowcaseWeaponShot(ctx,shot,{screenPixels:true,x1,y1,x2,y2},elapsed);
     else{const progress=Math.min(1,elapsed/shot.duration);window.paintShowcaseWeaponShot(ctx,shot,{screenPixels:true,x:x1+(x2-x1)*progress,y:y1+(y2-y1)*progress,angle:Math.atan2(y2-y1,x2-x1)},elapsed);}
     return true;

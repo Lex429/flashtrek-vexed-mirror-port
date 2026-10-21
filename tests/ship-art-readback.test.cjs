@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'../html-games/flashtrek-broken-mirror/ship-art-readback.js'),'utf8');
 const tick=async()=>{await Promise.resolve();await Promise.resolve();};
 function fixture(missing){
-  const workers=[],snapshots=[],timers=new Map(),window={};let now=0,nextTimer=0;
+  const workers=[],snapshots=[],timers=new Map(),timerDelays=new Map(),window={};let now=0,nextTimer=0;
   class Worker{
     constructor(url){this.url=url;this.posted=[];this.terminated=false;workers.push(this);}
     postMessage(data,transfer){if(this.failTransfer)throw Error('Transfer refused');this.posted.push({data,transfer});}
@@ -16,14 +16,53 @@ function fixture(missing){
   }
   const context={window,document:{currentScript:{src:'https://game.test/ship-art-readback.js?v=readback'}},
     Worker,OffscreenCanvas:function(){},createImageBitmap:canvas=>new Promise((resolve,reject)=>snapshots.push({canvas,resolve,reject})),
-    ArrayBuffer,Uint8ClampedArray,performance:{now:()=>now},setTimeout:callback=>{timers.set(++nextTimer,callback);return nextTimer;},clearTimeout:id=>timers.delete(id)};
+    ArrayBuffer,Uint8ClampedArray,performance:{now:()=>now},setTimeout:(callback,delay)=>{timers.set(++nextTimer,callback);timerDelays.set(nextTimer,delay);return nextTimer;},clearTimeout:id=>{timerDelays.delete(id);timers.delete(id);}};
   if(missing==='script')context.document.currentScript=null;else if(missing)delete context[missing];
   vm.runInNewContext(source,context);
   const bitmap=(width=2,height=2)=>({width,height,closed:0,close(){this.closed++;}});
   const complete=(index=0)=>{const request=workers[0].posted[index].data;
     workers[0].reply({id:request.id,ok:true,width:request.width,height:request.height,buffer:new Uint8ClampedArray(request.width*request.height*4).fill(17).buffer,workMs:2.5});};
-  return {create:window.createShipArtReadback,workers,snapshots,timers,bitmap,complete,time:value=>{now=value;}};
+  return {create:window.createShipArtReadback,workers,snapshots,timers,timerDelays,bitmap,complete,time:value=>{now=value;}};
 }
+
+async function snapshotPreparation(f,offset=0){
+  for(let i=0;i<4;i++){
+    f.snapshots[offset+i].resolve(f.bitmap());await tick();
+    const timer=[...f.timers].find(([id])=>f.timerDelays.get(id)===0);assert.ok(timer,'each native snapshot yields before preparing another frame');
+    f.timers.delete(timer[0]);f.timerDelays.delete(timer[0]);timer[1]();await tick();
+  }
+}
+
+test('optional preparation shares the readback worker with bounded input, outputs and sequential snapshots',async()=>{
+  const f=fixture(),owner=f.create(),frames=Array.from({length:4},()=>({width:2,height:2})),pending=owner.prepare('fragments',frames,[[1,1]]);
+  assert.equal(f.workers.length,1);assert.equal(f.snapshots.length,1,'do not snapshot every optional frame synchronously');
+  assert.equal(owner.snapshot().preparationBytesInFlight,16*96);
+  await snapshotPreparation(f);const request=f.workers[0].posted[0].data;
+  assert.equal(request.kind,'prepare');assert.equal(request.frames.length,4);assert.equal(request.operation,'fragments');
+  const texture=f.bitmap(),material=f.bitmap(),hot=f.bitmap(),data=[[],[{texture,material:{texture:material,hot,anchors:[],sourcePixels:4,tornPixels:0}}],[],[]];
+  f.workers[0].reply({id:request.id,kind:'prepare',ok:true,data,bytes:48,outputs:3,workMs:5,preparation:{workMs:2,maxStepMs:.3,maxSliceMs:1,steps:20}});
+  assert.equal(await pending,data);assert.equal(owner.snapshot().pending,0);assert.equal(owner.snapshot().bytesInFlight,0);
+  assert.equal(owner.snapshot().prepareCompleted,1);assert.equal(owner.snapshot().workMs,0,'optional elapsed wall time is not labeled as native read CPU work');
+  assert.equal(owner.snapshot().prepareWallMs,5);assert.equal(texture.closed,0,'accepted artwork remains owned by its caller');
+});
+
+test('optional staging cannot consume foreground read reservations and rejects non-transferable configuration',async()=>{
+  const f=fixture(),owner=f.create({maxPreparationBytes:16*96}),frames=Array.from({length:4},()=>({width:2,height:2}));
+  const preparation=owner.prepare('wreck',frames,{}),caught=assert.rejects(preparation,{name:'AbortError'});
+  await assert.rejects(owner.prepare('wreck',frames,{}),error=>error.capacity===true);
+  const foreground=owner.read({width:2,height:2}),readRejection=assert.rejects(foreground,{name:'AbortError'});
+  assert.equal(owner.snapshot().readBytesInFlight,48);assert.equal(f.workers.length,1);
+  await assert.rejects(owner.prepare('wreck',frames,{partition:{owner(){}}}),{name:'NotSupportedError'});
+  owner.dispose();await Promise.all([caught,readRejection]);
+  const first=f.bitmap(),second=f.bitmap();f.snapshots[0].resolve(first);f.snapshots[1].resolve(second);await tick();
+  assert.equal(first.closed,1);assert.equal(second.closed,1);assert.equal(owner.snapshot().bytesInFlight,0);
+});
+
+test('malformed optional results close transferred images before disabling the owner',async()=>{
+  const f=fixture(),owner=f.create(),frames=Array.from({length:4},()=>({width:2,height:2})),pending=owner.prepare('fragments',frames,[]),rejected=assert.rejects(pending);
+  await snapshotPreparation(f);const texture=f.bitmap();f.workers[0].reply({id:1,kind:'prepare',ok:true,data:[texture],bytes:0,outputs:0,workMs:1});
+  await rejected;assert.equal(texture.closed,1);assert.equal(owner.snapshot().available,false);assert.equal(owner.snapshot().bytesInFlight,0);
+});
 
 test('readback lazily owns one worker, reserves staging first and returns authoritative RGBA',async()=>{
   const f=fixture(),owner=f.create();assert.equal(f.workers.length,0);

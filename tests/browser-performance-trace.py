@@ -25,11 +25,46 @@ review=module('performance_review','browser-performance-review.py')
 combat=module('save_cost_review','browser-combat-performance.py')
 
 DIAGNOSTICS=r"""() => {
-  const p=window.__diagnosticCosts={record:false,weaponCandidates:0,beamCandidates:null,projectileCandidates:null,debrisCandidates:0,fragmentSteps:0,shotAdvances:0,descriptions:0,stats:0,sceneRequests:0};
+  const p=window.__diagnosticCosts={record:false,weaponCandidates:0,beamCandidates:null,projectileCandidates:null,debrisCandidates:0,fragmentSteps:0,shotAdvances:0,descriptions:0,stats:0,sceneRequests:0,sceneBuilds:null,shipSpatialBuilds:null,shipCollections:null,drawImageCalls:0,submittedImagePixels:0};
+  // Diagnostic submission area only: clipping, transforms, filters, native
+  // raster tiles and actual GPU fragment work are recorded separately by CDP.
+  const draw=CanvasRenderingContext2D.prototype.drawImage;
+  CanvasRenderingContext2D.prototype.drawImage=function(...args){if(p.record){p.drawImageCalls++;const image=args[0],width=args.length===9?args[7]:args.length===5?args[3]:image.width,height=args.length===9?args[8]:args.length===5?args[4]:image.height;p.submittedImagePixels+=Math.abs((Number(width)||0)*(Number(height)||0));}return draw.apply(this,args);};
   for(const [name,method,counter] of [['nativeShipDefinitions','describe','descriptions'],['nativeShipDefinitions','forEntity','stats'],['nativeShipSystems','scene','sceneRequests'],['nativeEnvironmentalImpacts','debris','fragmentSteps'],['nativeCombatShots','advance','shotAdvances']]){
     const api=window[name],fn=api[method];window[name]={...api,[method](...args){if(p.record)p[counter]++;return fn(...args);}};
   }
 }"""
+
+def inject_ship_builders(original):
+    """Count actual cache-miss builders without changing either checkout.
+
+    Current shipRecord builds the persistent ship collection and grid together.
+    The old spatial(record) helper remains in that source but is not its owner.
+    """
+    persistent='function shipRecord(state,system)' in original
+    scene='const ships=collectShips(state,system),rocks=asteroidTargets(state,system),targets=[...ships,...rocks];'
+    completed="record.building=false;window.nativeSimulationFrame?.count(state,'shipSpatialBuilds');"
+    spatial='if(!record.space){record.space={grid:new Map(),entries:new Map(),overflow:new Set(),maxVelocity:0};'
+    collection="const targets=[];\n    for(const [category,adapter] of kinds)if(category!=='asteroid')"
+    specifications={
+        'sceneBuilds':(scene,'scene cache miss','before'),
+        'shipSpatialBuilds':(completed if persistent else spatial,'persistent shipRecord build completion' if persistent else 'spatial cache-miss grid allocation','before' if persistent else 'inside'),
+        'shipCollections':(completed if persistent else collection,'persistent shipRecord build completion' if persistent else 'collectShips cache-miss collection','before'),
+    }
+    patched=original;metadata={}
+    for counter,(marker,owner,position) in specifications.items():
+        matches=original.count(marker)
+        assert matches<=1,f'Ambiguous actual-builder marker for {counter}: {matches} matches'
+        item={'available':matches==1,'matches':matches,'owner':owner,'marker':marker,
+              'markerSha256':hashlib.sha256(marker.encode()).hexdigest()}
+        if matches==1:
+            increment=f'if(window.__diagnosticCosts?.record)window.__diagnosticCosts.{counter}++;'
+            replacement=marker.replace('if(!record.space){','if(!record.space){'+increment,1) if position=='inside' else increment+marker
+            patched=patched.replace(marker,replacement,1)
+        else:item['reason']='Exact executed-builder marker is absent; the value remains unavailable, not zero.'
+        metadata[counter]=item
+    return patched,metadata
+
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
@@ -38,6 +73,7 @@ def main():
     parser.add_argument('--fixture',type=Path,default=OUTPUT/'initial-save.json')
     parser.add_argument('--scenario',choices=['flight','crowdedFlight','crowdedCombat','miningDebris','warp','devMap'],default='crowdedCombat')
     parser.add_argument('--seconds',type=float,default=8)
+    parser.add_argument('--seed',type=int,default=4292026)
     parser.add_argument('--held-fire',action='store_true',help='Add sustained real player fire to measure hit checkpoints')
     args=parser.parse_args();OUTPUT.mkdir(parents=True,exist_ok=True)
     source=args.source_root.resolve();saved=args.fixture.read_text(encoding='utf-8')
@@ -45,6 +81,12 @@ def main():
         for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for path in sorted((source/folder).glob('*.js'))}
     harness_hashes={name:hashlib.sha256((ROOT/'tests'/name).read_bytes()).hexdigest()
         for name in ['browser-performance-trace.py','browser-performance-review.py','browser-stability.py','browser-combat-performance.py']}
+    builder_path='html-games/broken-mirror-port/ship-systems.js'
+    builder_original=(source/builder_path).read_text(encoding='utf-8')
+    builder_source,builder_metadata=inject_ship_builders(builder_original)
+    source_injections={builder_path:{'originalSha256':source_hashes[builder_path],
+        'normalizedSourceSha256':hashlib.sha256(builder_original.encode()).hexdigest(),
+        'injectedSha256':hashlib.sha256(builder_source.encode()).hexdigest(),'counters':builder_metadata}}
     class Handler(http.server.SimpleHTTPRequestHandler):
         def log_message(self,*_args):pass
         def do_GET(self):
@@ -52,6 +94,8 @@ def main():
             except (ConnectionResetError,BrokenPipeError):pass # A closed diagnostic page can cancel an unrelated image transfer.
         def _serve_get(self):
             relative=self.path.split('?')[0].lstrip('/')
+            if relative==builder_path:
+                body=builder_source.encode();self.send_response(200);self.send_header('Content-Type','text/javascript');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
             if relative.endswith(('weapon-rules.js','debris-impacts.js')):
                 file=source/relative
                 if file.is_file():
@@ -75,6 +119,7 @@ def main():
             cdp=browser.new_browser_cdp_session();gpu=cdp.send('SystemInfo.getInfo')
             page=browser.new_page(viewport={'width':1280,'height':850})
             page.on('pageerror',lambda error:errors.append(str(error)))
+            page.add_init_script('(()=>{let seed;window.__resetFixtureRandom=()=>{seed='+str(args.seed)+'>>>0;window.__fixtureRandomCalls=0;};__resetFixtureRandom();Math.random=()=>{window.__fixtureRandomCalls++;seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};})()')
             # Both diagnostic RAF wrappers inspect callback.name. Stability must
             # be outermost so it sees the actual draw callback rather than the
             # anonymous callback forwarded by the save-cost companion. Its
@@ -88,16 +133,21 @@ def main():
             # extract the instrumentation before its controller-start statement.
             page.evaluate(combat.INSTALL.replace('  startNativeDevGame();',''))
             page.evaluate('()=>{window.__traceBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};}')
+            page.evaluate('__resetFixtureRandom()')
             page.evaluate(review.stability.SETUP,{'saved':saved,'mode':'flight' if args.scenario=='crowdedFlight' else args.scenario})
+            page.evaluate('()=>{for(const timer of window.__stabilityTimers||[])clearInterval(timer);window.__stabilityTimers=[];}')
             page.evaluate('(mode)=>{window.__reviewMode=mode;}',args.scenario)
             if args.scenario=='crowdedFlight':page.evaluate('()=>{const s=nativeNpcDev.getState(),origin=vexedSolFlight.shipPosition(s);nativeShipMotion.stop(s);s.civilianTraffic.ships.filter(e=>e.hull>0).slice(0,12).forEach((ship,index)=>{nativeNpcLives.interrupt(s,ship,"rendering stress fixture");ship.scriptedDemo="benchmark";const angle=index*Math.PI/6,radius=180+(index%3)*35;Object.assign(ship,{system:s.system,x:origin.x+Math.cos(angle)*radius,y:origin.y+Math.sin(angle)*radius,phase:"docked",timer:1e6,heading:angle+Math.PI,speed:0});nativeNpcLives.refreshLocation(s,ship);});nativeShipSystems.invalidate(s);}')
             page.wait_for_timeout(3000)
             page.wait_for_function('()=>!nativeShipEffects.metrics().pending && !vexedFlightAssets.cacheSnapshot().ships.pending && !(nativeShipEffects.metrics().preparation?.pending)',timeout=120000)
             if args.scenario!='devMap' or args.held_fire:page.locator('#space').focus()
             if args.scenario in ['flight','crowdedFlight']:page.evaluate(review.SCRIPTED_INPUT)
+            if args.scenario=='miningDebris':page.evaluate(review.DEBRIS_INPUT)
+            page.evaluate('__resetFixtureRandom()')
             if args.held_fire:
                 page.evaluate('()=>{const s=nativeNpcDev.getState(),p=vexedSolFlight.shipPosition(s),ship=s.civilianTraffic.ships.filter(e=>e.system===s.system&&e.hull>0&&Math.hypot(e.x-p.x,e.y-p.y)<500).sort((a,b)=>b.hull-a.hull)[0];if(!ship)throw Error("No valid sustained-fire target");nativeCivilianTraffic.select(ship.id);}')
             page.evaluate(DIAGNOSTICS)
+            page.evaluate('(metadata)=>{const p=__diagnosticCosts;p.builderAvailability=metadata;for(const [name,item] of Object.entries(metadata))p[name]=item.available?0:null;}',builder_metadata)
             page_cdp=page.context.new_cdp_session(page);page_cdp.send('Profiler.enable');page_cdp.send('Profiler.setSamplingInterval',{'interval':1000});page_cdp.send('Performance.enable')
             metrics_before=page_cdp.send('Performance.getMetrics')
             completion=[];cdp.on('Tracing.tracingComplete',lambda event:completion.append(event))
@@ -107,12 +157,10 @@ def main():
             if args.held_fire:page.keyboard.down('Space')
             page.wait_for_timeout(args.seconds*1000)
             after=page.evaluate('()=>{performance.mark("vexed-measure-end");window.nativeSimulation={...nativeSimulation,blocked:()=>true};__diagnosticCosts.record=false;__combatPerf.record=false;__stability.record=false;return {simulation:nativeSimulation.seconds(nativeNpcDev.getState()),costs:__diagnosticCosts,counters:__reviewCounters(),frames:__stability.frames,saves:__combatPerf.saves,playerHits:__combatPerf.hits.length,inputs:__renderReview.inputs};}')
-            work={}
-            for frame in after['frames']:
-                for name,count in frame.get('frameBudget',{}).get('counters',{}).items():
-                    work[name]=work.get(name,0)+count
-            after['simulationWork']=work
-            after['physicsSubsteps']=sum(frame.get('frameBudget',{}).get('steps',0) for frame in after['frames'])
+            after.update(review.frame_work(after['frames'],before['counters'],after['counters']))
+            work=after['simulationWork']
+            after['builderCounts']={name:{'available':item['available'],'value':after['costs'][name] if item['available'] else None,'owner':item['owner']}
+                for name,item in builder_metadata.items()}
             assert len(after['frames'])>=2,'Trace recorder received fewer than two actual draw frames'
             assert after['physicsSubsteps']>0,'Trace recorder captured no physics substeps'
             assert after['simulation']>before['simulation'],'Trace simulation did not advance'
@@ -145,7 +193,7 @@ def main():
                 if event.get('ph') not in ['X','I','i']:continue
                 name=event.get('name','');row=names.setdefault(name,{'count':0,'inclusiveMs':0,'maxMs':0,'threads':set()});row['count']+=1;duration=event.get('dur',0)/1000;row['inclusiveMs']+=duration;row['maxMs']=max(row['maxMs'],duration);row['threads'].add((event['pid'],event['tid']))
             names={name:{**row,'threads':sorted(row['threads'])} for name,row in names.items()}
-            report={'label':args.label,'sourceRoot':str(source),'sourceHashes':source_hashes,'harnessSha256':harness_hashes['browser-performance-trace.py'],'harnessHashes':harness_hashes,'browser':browser.version,'graphics':gpu,'fixtureSha256':hashlib.sha256(args.fixture.read_bytes()).hexdigest(),'requestedSeconds':args.seconds,'scenario':args.scenario,'before':before,'after':after,'performanceBefore':metrics_before,'performanceAfter':metrics_after,'traceEventNames':names,'errors':errors,'notes':['Heavy trace/source counters/CPU profiler/save timings are diagnostic only. Inclusive event durations overlap: never sum parent and child events or all threads as frame time. Compositor/presentation events include browser work outside game JS.','Flight inputs and crowded-flight placement match browser-performance-review.py; other fixtures use its shared stability setup. Source hashes describe served files before diagnostic-only candidate-counter injection.','weaponCandidates counts exact collision tests for beams plus flying projectiles on both revisions. Baseline beam/projectile splits are unavailable (null); current simulationWork preserves separate categories.']}
+            report={'label':args.label,'sourceRoot':str(source),'sourceHashes':source_hashes,'sourceInjections':source_injections,'harnessSha256':harness_hashes['browser-performance-trace.py'],'harnessHashes':harness_hashes,'browser':browser.version,'graphics':gpu,'fixtureSha256':hashlib.sha256(args.fixture.read_bytes()).hexdigest(),'requestedSeconds':args.seconds,'scenario':args.scenario,'before':before,'after':after,'performanceBefore':metrics_before,'performanceAfter':metrics_after,'traceEventNames':names,'errors':errors,'notes':['Heavy trace/source counters/CPU profiler/save timings are diagnostic only. Inclusive event durations overlap: never sum parent and child events or all threads as frame time. Compositor/presentation events include browser work outside game JS.','Flight inputs and crowded-flight placement match browser-performance-review.py; other fixtures use its shared stability setup. Source hashes describe original served files before diagnostic-only source injection; sourceInjections records builder markers, availability and normalized/injected hashes.','weaponCandidates counts exact collision tests for beams plus flying projectiles on both revisions. Baseline beam/projectile splits are unavailable (null); current simulationWork preserves separate categories.','sceneRequests counts exported API requests, including cache hits; internal closure calls are not wrapped. builderCounts instead counts executed cache-miss scene/collection/grid builders on each revision. Persistent current shipRecord constructs its collection and spatial grid together. Unmatched builder markers retain null/unavailable; absence of an unsupported clean simulationWork counter must not be interpreted as zero.']}
             (OUTPUT/f'{args.label}-{args.scenario}-diagnostic.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
             page.screenshot(path=str(OUTPUT/f'{args.label}-{args.scenario}-diagnostic.png'));browser.close();assert not errors,errors
             print(json.dumps({'label':args.label,'scenario':args.scenario,'costs':after['costs'],'saves':len(after['saves']),'traceEvents':len(events)}),flush=True)

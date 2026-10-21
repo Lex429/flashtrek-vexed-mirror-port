@@ -251,10 +251,15 @@
     const civilianTarget = window.nativeCivilianTraffic?.target(state);
     const shipTarget = tugTarget || civilianTarget;
     const targetKind = tugTarget ? 'tug' : 'civilian';
-    const contacts = [
-      ...(state.system === 1 ? state.solEconomy?.freighters || [] : []).filter(ship => ship.phase !== 'destroyed').map(ship => ({...ship, name:`Tug II #${ship.id + 1}`, kind:'tug'})),
-      ...(window.nativeCivilianTraffic?.localShips(state) || []).map(ship => ({...ship, kind:'civilian'}))
-    ].filter(ship => Number.isFinite(ship.x) && Number.isFinite(ship.y));
+    const nearbyTargets=window.nativeShipSystems.query(state,{minX:player.x-69*unitsPerPixel,minY:player.y-35*unitsPerPixel,
+      maxX:player.x+69*unitsPerPixel,maxY:player.y+35*unitsPerPixel,categories:['tug','civilian']}).bystanders;
+    const contact=target=>({id:target.entity.id,name:target.category==='tug'?`Tug II #${target.entity.id+1}`:target.entity.name,
+      kind:target.category,x:target.x,y:target.y,heading:target.heading});
+    const contacts=nearbyTargets.map(contact);
+    if(shipTarget&&!contacts.some(ship=>ship.kind===targetKind&&ship.id===shipTarget.id)){
+      const selected=window.nativeShipSystems.resolve(state,targetKind==='tug'?'tug:'+shipTarget.id:shipTarget.id);
+      if(selected)contacts.push(contact(selected));
+    }
     const nearby = contacts.filter(ship => shipTarget && ship.kind === targetKind && ship.id === shipTarget.id || !radarPoint(ship.x-player.x, ship.y-player.y).edge);
     ctx.font = '600 7px system-ui';
     ctx.fillStyle = '#91d1df';

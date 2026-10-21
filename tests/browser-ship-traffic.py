@@ -70,7 +70,7 @@ try:
           for(const categories of [['player','civilian'],['player','tug'],['civilian','tug']])for(const shielded of [true,false]){
             const s=fresh(),a=put(s,categories[0],1,0,0,shielded),b=put(s,categories[1],2,40,.3,shielded);
             for(const [e,category] of [[a,categories[0]],[b,categories[1]]])await nativeShipEffects.prepare(e.shipType,category);
-            nativeShipTraffic.collide(s,.4);check(a.vx<100&&b.vx>0,'Both ships must exchange momentum');
+            nativeShipTraffic.collide(s,.4);check(a.vx<100&&b.vx>0,'Both ships must exchange momentum '+JSON.stringify({categories,shielded,a:{x:a.x,y:a.y,vx:a.vx,vy:a.vy,phase:a.phase},b:{x:b.x,y:b.y,vx:b.vx,vy:b.vy,phase:b.phase},traffic:nativeShipTraffic.snapshot(s)}));
             check(a.hull===1000&&b.hull===1000&&a.shields===(shielded?1000:0)&&b.shields===(shielded?1000:0),'Contact damaged ship health');
             check(a.cargo.tons===4&&b.cargo.tons===4,'Contact lost cargo');
             nativeSimulation.advance(s,.06);nativeShipEffects.advance(s,.06);
@@ -112,11 +112,17 @@ try:
           check(src.stock[5]===before.source-4&&dst.stock[5]===before.buyer+4,'Delivery inventory mismatch');check(src.credits+dst.credits+restored.credits===before.money,'Delivery money mismatch');
           // Head-on scheduled traffic, including the Sol company's tug owner.
           const traffic=fresh(),tug=put(traffic,'tug',1,-500,0,true),civilian=put(traffic,'civilian',2,500,Math.PI,true);
-          Object.assign(tug,{phase:'travel',lifeLeg:nativeShipMotion.planLeg(tug,{x:500,y:0},nativeShipMotion.profiles.tug(),nativeSimulation.seconds(traffic))});tug.lifeEventAt=tug.lifeLeg.startedAt+tug.lifeLeg.duration;
-          Object.assign(civilian,{lifeVersion:1,dockingVersion:1,phase:'cruise',cargo:null,task:{id:'traffic-test',kind:'idle',phase:'idle',status:'active',origin:{system:1,port:3},destination:{system:1,port:3}},localLeg:nativeShipMotion.planLeg(civilian,{x:-500,y:0},nativeShipMotion.profiles.civilian(nativeShipDefinitions.get(civilian.shipType,'civilian')),nativeSimulation.seconds(traffic))});civilian.nextActionAt=civilian.localLeg.startedAt+civilian.localLeg.duration;nativeNpcLives.initialize(traffic);
-          let min=Infinity;for(let i=0;i<3600;i++){nativeSimulation.advance(traffic,1/60);nativeShipTraffic.advance(traffic,1/60);nativeShipMotion.sampleLeg(tug,tug.lifeLeg,nativeSimulation.seconds(traffic));nativeShipMotion.sampleLeg(civilian,civilian.localLeg,nativeSimulation.seconds(traffic));nativeShipTraffic.collide(traffic,1/60);min=Math.min(min,Math.hypot(tug.x-civilian.x,tug.y-civilian.y));}
+          const tugProfile=nativeShipDefinitions.forEntity(traffic,tug,{category:'tug'}).movement,civilianProfile=nativeShipDefinitions.forEntity(traffic,civilian,{category:'civilian'}).movement;
+          Object.assign(tug,{phase:'travel',lifeLeg:nativeShipMotion.planLeg(tug,{x:500,y:0},tugProfile,nativeSimulation.seconds(traffic))});tug.lifeEventAt=tug.lifeLeg.startedAt+tug.lifeLeg.duration;
+          Object.assign(civilian,{lifeVersion:1,dockingVersion:1,phase:'cruise',cargo:null,task:{id:'traffic-test',kind:'idle',phase:'idle',status:'active',origin:{system:1,port:3},destination:{system:1,port:3}},localLeg:nativeShipMotion.planLeg(civilian,{x:-500,y:0},civilianProfile,nativeSimulation.seconds(traffic))});civilian.nextActionAt=civilian.localLeg.startedAt+civilian.localLeg.duration;nativeNpcLives.initialize(traffic);
+          let min=Infinity,maxTurnStep=0;for(let i=0;i<3600;i++){
+            const previous=[tug.heading,civilian.heading];nativeSimulation.advance(traffic,1/60);nativeShipTraffic.advance(traffic,1/60);
+            nativeShipMotion.sampleLeg(tug,tug.lifeLeg,nativeSimulation.seconds(traffic));nativeShipMotion.sampleLeg(civilian,civilian.localLeg,nativeSimulation.seconds(traffic));
+            [tug,civilian].forEach((e,index)=>{const turn=Math.abs(nativeShipMotion.wrap(e.heading-previous[index])),limit=[tugProfile,civilianProfile][index].turnRate/60;check(turn<=limit+1e-6,'Authoritative navigation heading snapped');maxTurnStep=Math.max(maxTurnStep,turn);});
+            nativeShipTraffic.collide(traffic,1/60);min=Math.min(min,Math.hypot(tug.x-civilian.x,tug.y-civilian.y));
+          }
           near(tug.x,500,'Tug destination');near(civilian.x,-500,'Civilian destination');check(nativeShipTraffic.snapshot(traffic).contacts.length===0,'Head-on traffic collided');
-          return {scenarios,delivery:{savedWhileYielding:true,settledOnce:true,moneyConserved:true,cargoConserved:true},headOn:{minimumSeparation:min,plans:nativeShipTraffic.snapshot(traffic).plans},liveFrameCalls};
+          return {scenarios,delivery:{savedWhileYielding:true,settledOnce:true,moneyConserved:true,cargoConserved:true},headOn:{minimumSeparation:min,plans:nativeShipTraffic.snapshot(traffic).plans,maxTurnStep},liveFrameCalls};
         }''')
         page.screenshot(path=str(OUTPUT/'contacts.png'))
         assert not errors, errors

@@ -39,10 +39,11 @@ INSTRUMENT = r"""() => {
     const start=performance.now(),interval=p.last===null?0:timestamp-p.last;p.last=timestamp;p.sim=0;p.owners={};p.nativeFrame=null;
     p.frameTactical={steering:0,distantSteering:0,firingAttempts:0,distantFiringAttempts:0,sceneRequests:0};
     try{return callback(timestamp);}finally{
-      if(p.record){const total=performance.now()-start,data=p.nativeFrame;
+      if(p.record){const total=performance.now()-start,data=p.nativeFrame,frameBudget=window.nativeSimulationFrame?.snapshot?.(window.nativeNpcDev?.getState?.())||null;
         p.frames.push({intervalMs:interval,callbackMs:total,moved:0,simulationMs:data?.simulation??p.sim,
+          backgroundSimulationMs:frameBudget?.background?.cpuMs||0,backgroundTasks:frameBudget?.background?.tasks||0,
           renderMs:data?.render??Math.max(0,total-p.sim),owners:{...p.owners},
-          tactical:{...p.frameTactical},frameBudget:window.nativeSimulationFrame?.snapshot?.(window.nativeNpcDev?.getState?.())||null});}
+          tactical:{...p.frameTactical},frameBudget});}
     }
   });
   try{new PerformanceObserver(list=>{for(const e of list.getEntries())if(p.record)p.longTasks.push({startTime:e.startTime,duration:e.duration});}).observe({type:'longtask',buffered:true});}catch{}

@@ -30,7 +30,24 @@
   };
   const buildMaterials=[[1,15],[2,12],[3,6],[7,5],[8,2]];
   const solGovernmentId=Number(world.systems.find(system=>system.id===1)?.governmentId)||1;
-  let targetId=null,tugSelectedAt=0;
+  let targetId=null,tugSelectedAt=0;const runtimes=new WeakMap(),deadlines=new WeakMap();
+  function pushEvent(heap,item){let i=heap.length;heap.push(item);while(i){const p=(i-1)>>1;if(heap[p].at<item.at||heap[p].at===item.at&&heap[p].order<=item.order)break;heap[i]=heap[p];i=p;}heap[i]=item;}
+  function popEvent(heap){const first=heap[0],last=heap.pop();if(heap.length){let i=0;while(true){let c=i*2+1;if(c>=heap.length)break;if(c+1<heap.length&&(heap[c+1].at<heap[c].at||heap[c+1].at===heap[c].at&&heap[c+1].order<heap[c].order))c++;if(heap[c].at>last.at||heap[c].at===last.at&&heap[c].order>=last.order)break;heap[i]=heap[c];i=c;}heap[i]=last;}return first;}
+  function watchDeadline(rt,ship,order){
+    let record=deadlines.get(ship);if(record?.rt===rt)return;
+    const value=ship.lifeEventAt;record={rt,value,token:0,order};deadlines.set(ship,record);
+    const enqueue=()=>{record.token++;if(Number.isFinite(record.value))pushEvent(rt.heap,{ship,at:record.value,token:record.token,order});else if(ship.phase!=='disabled')rt.unscheduled.add(ship);observeMotion(rt.state,ship);};
+    Object.defineProperty(ship,'lifeEventAt',{enumerable:true,configurable:true,get:()=>record.value,set(value){if(value===record.value)return;record.value=value;enqueue();}});enqueue();
+  }
+  function runtime(state,economy=state.solEconomy){
+    const collection=window.nativeShipSystems?.observeCollection?.(economy,'freighters');let rt=runtimes.get(economy);
+    if(!rt||rt.ships!==economy.freighters||rt.count!==economy.freighters.length||collection&&rt.revision!==collection.revision){
+      rt={state,ships:economy.freighters,count:economy.freighters.length,revision:collection?.revision||0,byId:new Map(),heap:[],unscheduled:new Set(),mobile:new Set(),mobileView:null,detailed:[],detailAt:-Infinity,distantAt:-Infinity};runtimes.set(economy,rt);
+      for(let order=0;order<economy.freighters.length;order++){const ship=economy.freighters[order];rt.byId.set(Number(ship.id),ship);watchDeadline(rt,ship,order);observeMotion(state,ship);window.nativeShipRepairs?.observe?.(state,ship,'tug');}
+    }
+    if(rt.heap.length>Math.max(64,rt.count*4)){rt.heap=[];for(const ship of rt.byId.values()){const record=deadlines.get(ship);if(Number.isFinite(record?.value))pushEvent(rt.heap,{ship,at:record.value,token:record.token,order:record.order});}}
+    return rt;
+  }
   const tugStats=ship=>ship?window.nativeShipDefinitions.forEntity(null,ship,{category:'tug'}):window.nativeShipDefinitions.get(10);
   const lifeNow=economy=>Number(economy.processingAt??economy.lifeClock)||0;
   function lifeEvent(economy,ship,kind,message){
@@ -40,6 +57,7 @@
     economy.flows||={produced:goods.map(()=>0),consumed:goods.map(()=>0),lost:goods.map(()=>0)};
     if(!Number.isFinite(economy.lifeClock))economy.lifeClock=window.nativeSimulation?.seconds(state)||0;
     economy.lifeMetrics||={detailed:0,distant:0,distantUpdates:0,scheduledEvents:0,deferred:0};
+    const rt=runtime(state,economy);if(rt.initialized)return economy;rt.initialized=true;
     for(const ship of economy.freighters){ship.shipType??=10;ship.equipmentOwner??='tug:'+ship.id;ship.weapons||=[];if(ship.shipEquipment?.version!==2)window.nativeShipEquipment?.ensure(state,ship,[]);}
     for(const ship of economy.freighters)if(ship.lifeVersion!==1){
       Object.assign(ship,{lifeVersion:1,identity:`tug:${ship.id}`,name:`Sol Freight ${String(ship.id+1).padStart(2,'0')}`,role:'freight',homeBase:{system:1,port:ship.port},system:1,credits:0,recentEvents:[]});
@@ -106,27 +124,38 @@
   const availableStock=(economy,port,good)=>Math.max(0,stock(economy,port,good)-qty(economy.stockReserved?.[port]?.[good]));
   const distance = (a,b) => Math.hypot(coords[a][0]-coords[b][0],coords[a][1]-coords[b][1]);
   function handlingTime(economy,port,tons,ship,unloading=false) {
-    const busy=economy.freighters.filter(other=>other!==ship&&other.port===port&&['loading','unloading'].includes(other.phase)).length;
-    const queue=Math.min(3,busy)*1.1;
+    let busy=0;for(const other of economy.freighters)if(other!==ship&&other.port===port&&(other.phase==='loading'||other.phase==='unloading')&&++busy===3)break;
+    const queue=busy*1.1;
     const variation=1.5*(1+Math.sin(economy.clock*.73+ship.id*2.17+port*.91+(unloading?1.4:0)))/2;
     return Math.max(2.5,(unloading?1.25:1.75)+Math.max(0,tons)/handlingRate[port]+queue+variation);
   }
   function inbound(economy,port,good,except) {
     return economy.freighters.reduce((sum,other)=>sum+(other!==except && !['disabled','destroyed'].includes(other.phase) && other.assignment?.to===port && other.assignment.good===good ? qty(other.assignment.tons) : 0),qty(economy.incomingReserved?.[port]?.[good]));
   }
-  function candidate(economy,from,to,good,ship) {
+  function inboundCommitments(economy,except){
+    const totals=new Map(ports.map(port=>[port,goods.map((_,good)=>qty(economy.incomingReserved?.[port]?.[good]))]));
+    // One synchronous selection owns this snapshot. Preserve each destination's
+    // original summation order, strict saved IDs and integer quantity rules.
+    for(const other of economy.freighters){
+      if(other===except||other.phase==='disabled'||other.phase==='destroyed')continue;
+      const assignment=other.assignment,row=totals.get(assignment?.to),good=assignment?.good;
+      if(row&&Number.isInteger(good)&&good>=0&&good<goods.length)row[good]+=qty(assignment.tons);
+    }
+    return totals;
+  }
+  function candidate(economy,from,to,good,ship,commitments) {
     const surplus=availableStock(economy,from,good)-targetStock[from][good];
-    const shortage=targetStock[to][good]-stock(economy,to,good)-inbound(economy,to,good,ship);
+    const shortage=targetStock[to][good]-stock(economy,to,good)-commitments.get(to)[good];
     const tons=Math.floor(Math.min(Math.max(0,tugStats().cargo-qty(ship.repairDeuranium)),surplus,shortage));
     if(from===to||tons<10)return null;
     const urgency=Math.min(2,shortage/Math.max(20,targetStock[to][good]));
     const score=tons*(1+urgency)*Math.sqrt(basePrices[good]/24)/(1+distance(from,to)/16000);
     return {from,to,good,tons,score};
   }
-  function bestJob(economy,ship,localOnly=false) {
+  function bestJob(economy,ship,localOnly,commitments) {
     let best=null;
     for(const from of localOnly?[ship.port]:ports)for(const to of ports)for(let good=0;good<goods.length;good++) {
-      const job=candidate(economy,from,to,good,ship);
+      const job=candidate(economy,from,to,good,ship,commitments);
       if(!job)continue;
       const approach=from===ship.port?1:1+distance(ship.port,from)/12000;
       const variety=to===ship.lastDestination?.to && good===ship.lastDestination.good ? .68:1;
@@ -151,7 +180,7 @@
   }
   function dispatch(economy,ship) {
     ship.assignment=null;ship.good=null;ship.tons=0;
-    const job=bestJob(economy,ship,true)||bestJob(economy,ship);
+    const commitments=inboundCommitments(economy,ship),job=bestJob(economy,ship,true,commitments)||bestJob(economy,ship,false,commitments);
     if(!job) {ship.phase='waiting';ship.dwell=5;ship.from=ship.port;ship.to=ship.port;syncTask(economy,ship);return;}
     ship.assignment={from:job.from,to:job.to,good:job.good,tons:job.tons};ship.good=job.good;
     if(job.from===ship.port) {
@@ -277,7 +306,7 @@
     beginRebuild(economy,ship);
   }
   function hit(state,id,damage,impact={}){
-    impact||={};const economy=initialize(state),ship=economy.freighters.find(entry=>entry.id===id);
+    impact||={};const economy=initialize(state),ship=runtime(state,economy).byId.get(Number(id));
     if(!ship)return {ok:false,error:'Target unavailable.'};
     const descriptor=window.nativeShipDefinitions.describe(state,ship,{category:'tug'});
     const result=window.nativeShipDamage.apply(descriptor,damage,impact);
@@ -288,7 +317,7 @@
     return {...result,reputation};
   }
   function visualImpact(state,id,event={}){
-    const ship=initialize(state).freighters.find(entry=>entry.id===id);
+    const ship=find(state,id);
     if(!ship||state.system!==1)return {ok:false};
     return window.nativeShipEffects.visualImpact(state,window.nativeShipDefinitions.describe(state,ship,{category:'tug'}),event);
   }
@@ -389,45 +418,56 @@
     // Production debt remains saved and drains over later frames; work per call is bounded.
     while(economy.clock>=30&&production++<64&&(!window.nativeSimulationFrame||window.nativeSimulationFrame.take(state,'solProduction',64))){economy.clock-=30;produce(economy);changed=true;}
     const metrics=economy.lifeMetrics;metrics.detailed=0;metrics.distant=0;metrics.deferred=0;metrics.scheduledEvents=0;metrics.distantUpdates=0;
-    for(const ship of economy.freighters){
-      if(ship.lifeEventAt==null&&ship.phase!=='disabled')scheduleTug(economy,ship,before);
-      const level=detail(state,ship);ship.simulationDetail=level;metrics[level==='detailed'?'detailed':'distant']++;
+    const rt=runtime(state,economy);
+    for(const ship of rt.unscheduled){rt.unscheduled.delete(ship);if(ship.lifeEventAt==null&&ship.phase!=='disabled'&&rt.byId.get(Number(ship.id))===ship)scheduleTug(economy,ship,before);}
+    if(now-rt.detailAt>=.2-1e-8){rt.detailAt=now;for(const ship of rt.detailed)ship.simulationDetail='distant';rt.detailed=[];
+      if(state.system===1){const player=window.vexedSolFlight?.shipPosition(state)||state,radius=window.nativeShipDetail?.radius(state)||6500;
+        const local=window.nativeShipSystems?.query?window.nativeShipSystems.query(state,{minX:player.x-radius,minY:player.y-radius,maxX:player.x+radius,maxY:player.y+radius,categories:['tug']}).bystanders.map(target=>target.entity):economy.freighters;
+        for(const ship of local)if(detail(state,ship)==='detailed'){ship.simulationDetail='detailed';rt.detailed.push(ship);}
+      }
     }
+    metrics.detailed=rt.detailed.length;metrics.distant=economy.freighters.length-metrics.detailed;
     let budget=96;
-    // Nine Sol fleet members: choose the next due event globally, independent of visibility.
+    // The same saved deadlines now use a heap, including larger company fleets.
     while(budget-->0){
-      let next=null;
-      for(const ship of economy.freighters)if(ship.lifeEventAt!=null&&ship.lifeEventAt<=now+1e-8&&(!next||ship.lifeEventAt<next.lifeEventAt))next=ship;
-      if(!next)break;
+      let due=rt.heap[0];if(!due||due.at>now+1e-8)break;
+      const tracked=deadlines.get(due.ship);if(tracked?.rt!==rt||tracked.token!==due.token||rt.byId.get(Number(due.ship.id))!==due.ship){popEvent(rt.heap);continue;}
       if(window.nativeSimulationFrame&&!window.nativeSimulationFrame.take(state,'solEvents',96))break;
-      const at=next.lifeEventAt;
+      popEvent(rt.heap);const next=due.ship,at=due.at;
       economy.processingAt=at;
       try{tugEvent(economy,next,at);}finally{delete economy.processingAt;}
+      window.nativeShipSystems?.refreshShip?.(state,next,'tug',1);
       metrics.scheduledEvents++;if(next.simulationDetail==='distant')metrics.distantUpdates++;changed=true;
     }
-    for(const ship of economy.freighters){
-      if(ship.lifeEventAt!=null&&ship.lifeEventAt<=now)metrics.deferred++;
-      if(ship.lifeLeg&&(ship.simulationDetail==='detailed'||now-(ship.lifeSampleAt||0)>=1)){
+    const distant=now-rt.distantAt>=1-1e-8;if(distant)rt.distantAt=now;
+    for(const ship of distant?rt.mobile:rt.detailed){
+      if(ship.lifeLeg&&(ship.simulationDetail==='detailed'||distant)){
+        const before={x:ship.x,y:ship.y,heading:ship.heading,system:1,shipType:ship.shipType,speed:ship.speed,vx:ship.vx,vy:ship.vy};
         window.nativeShipMotion.sampleLeg(ship,ship.lifeLeg,Math.min(now,ship.lifeEventAt));ship.lifeSampleAt=now;
+        const systems=window.nativeShipSystems;if(systems?.sampledShip)systems.sampledShip(state,ship,'tug',1,before);else systems?.refreshShip?.(state,ship,'tug',1);
         if(ship.simulationDetail==='distant')metrics.distantUpdates++;
       }
       const legProgress=ship.lifeLeg?Math.max(0,Math.min(1,(now-ship.lifeLeg.startedAt)/Math.max(.001,ship.lifeLeg.duration))):0;
       ship.task.phase=ship.phase;ship.task.progress=ship.lifeLeg?(ship.routeIndex+legProgress)/Math.max(1,ship.path.length):ship.progress||0;
     }
+    if(rt.heap[0]?.at<=now)metrics.deferred=new Set(rt.heap.filter(due=>due.at<=now&&deadlines.get(due.ship)?.token===due.token).map(due=>due.ship)).size;
     metrics.totalEvents=(metrics.totalEvents||0)+metrics.scheduledEvents;metrics.totalDistantUpdates=(metrics.totalDistantUpdates||0)+metrics.distantUpdates;
     return changed;
   }
   function lifeDescriptors(state){
     const economy=initialize(state),now=window.nativeSimulation?.seconds(state)||economy.lifeClock;
-    return economy.freighters.map(ship=>{
+    return economy.freighters.map(ship=>lifeDescriptor(state,ship,now));
+  }
+  function lifeDescriptor(state,ship,now=window.nativeSimulation.seconds(state)){
       const pose={...ship};if(ship.lifeLeg)window.nativeShipMotion.sampleLeg(pose,ship.lifeLeg,Math.min(now,ship.lifeEventAt));
+      const legProgress=ship.lifeLeg?Math.max(0,Math.min(1,(now-ship.lifeLeg.startedAt)/Math.max(.001,ship.lifeLeg.duration))):0,
+        task=ship.task?{...ship.task,phase:ship.phase,progress:ship.lifeLeg?(ship.routeIndex+legProgress)/Math.max(1,ship.path.length):ship.progress||0}:null;
       const anchor=window.nativeManualFlight?.anchor(1)||{x:0,y:0};
       return {id:ship.identity,category:'tug',entity:ship,name:ship.name,role:ship.role,faction:ship.ownerGovernmentId,system:1,port:ship.port,x:pose.x,y:pose.y,heading:pose.heading,
         galaxy:{x:anchor.x+pose.x,y:anchor.y+pose.y},detail:detail(state,pose),simulationDetail:detail(state,pose),phase:ship.phase,homeBase:ship.homeBase,
-        task:ship.task,cargo:ship.tons?{good:ship.good,tons:ship.tons}:null,credits:ship.credits,hull:ship.hull,shields:ship.shields,
+        task,cargo:ship.tons?{good:ship.good,tons:ship.tons}:null,credits:ship.credits,hull:ship.hull,shields:ship.shields,
         nextActionAt:ship.lifeEventAt,recentEvents:ship.recentEvents,origin:{system:1,port:ship.from},destination:{system:1,port:ship.to},route:ship.path,eta:Math.max(0,(ship.lifeEventAt||now)-now)};
-    });
-  }
+    }
   // Integrate the same stock curve one ton at a time. A sale traverses the
   // reverse marginal prices with the spread, so batching cannot create profit.
   function quote(state,port,good,buy,amount=1) {
@@ -504,7 +544,8 @@
   }
   function select(id){if(targetId!==id)tugSelectedAt=0;targetId=id;return id;}
   function clearTarget(){targetId=null;}
-  function target(state){return state?.solEconomy?.freighters.find(ship=>ship.id===targetId&&ship.phase!=='destroyed')||null;}
+  function find(state,id){if(id==null)return null;const economy=initialize(state);return runtime(state,economy).byId.get(Number(id))||null;}
+  function target(state){const ship=state?.solEconomy&&find(state,targetId);return ship?.phase!=='destroyed'?ship:null;}
   function hitTest(state,{ship,cx,cy,zoom,x,y}){
     const economy=initialize(state),dimensions=tugDimensions(zoom);
     const radius=Math.max(14,Math.hypot(dimensions.width,dimensions.height)*zoom*.41);
@@ -537,16 +578,18 @@
   }
   function paint(ctx,{state,ship,cx,cy,w,h,zoom=1}) {
     if(!state.solEconomy)return;
-    for(const freighter of state.solEconomy.freighters){
+    const visible=window.nativeShipSystems.query(state,{minX:ship.x-cx/zoom-64,minY:ship.y-cy/zoom-64,maxX:ship.x+(w-cx)/zoom+64,maxY:ship.y+(h-cy)/zoom+64,categories:['tug']}).bystanders;
+    for(const target of visible){const freighter=target.entity;
       if(freighter.phase==='destroyed')continue;
-      const descriptor=window.nativeShipDefinitions.describe(state,freighter,{category:'tug'}),d=descriptor.dimensions;
-      const x=cx+descriptor.x-ship.x,y=cy+descriptor.y-ship.y;
-      if(x+d.width/2< -20||x-d.width/2>w+20||y+d.height/2< -35||y-d.height/2>h+35)continue;
-      window.nativeShipEffects.paintShip(ctx,descriptor,{ship,cx,cy});
-      if(targetId===freighter.id)window.nativeAsteroidCombat?.drawTargetFrame(ctx,{
+      const dimensions=window.nativeShipDefinitions.dimensions(freighter,'tug');
+      const descriptor=window.nativeSimulationFrame?.renderPose?.(state,target)||target,d=descriptor.dimensions;
+      if(window.nativeEffectVisibility?.ship&&!window.nativeEffectVisibility.ship(descriptor,{ship,cx,cy,w,h,zoom,dimensions},64))continue;
+      const x=cx+(descriptor.x-ship.x)*zoom,y=cy+(descriptor.y-ship.y)*zoom;
+      window.nativeShipEffects.paintShip(ctx,descriptor,{ship,cx,cy,w,h,zoom});
+      if(targetId===freighter.id){window.nativeShipSpriteCache?.flush?.(ctx);window.nativeAsteroidCombat?.drawTargetFrame(ctx,{
         name:`Tug Class II #${freighter.id+1}`,size:Math.hypot(d.width,d.height)/Math.SQRT2,
         kind:freighter.phase==='disabled'?'DISABLED FREIGHTER':'FREIGHTER',color:'#ffd66e',shield:freighter.shields/Math.max(1,tugStats(freighter).shields),
-        hull:freighter.hull/Math.max(1,tugStats(freighter).hull),selectedAt:tugSelectedAt},x,y,zoom,cx);
+        hull:freighter.hull/Math.max(1,tugStats(freighter).hull),selectedAt:tugSelectedAt},x,y,zoom,cx);}
     }
   }
   function reroute(state,ship,leg){
@@ -569,5 +612,8 @@
     for(const [good,amount] of totals){economy.ports[port][good]-=amount;economy.flows.consumed[good]+=amount;}
     return {ok:true};
   }
-  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute,resumeAfterRepair,consumeMaterials};
+  function invalidateMembership(state){const rt=state.solEconomy&&runtimes.get(state.solEconomy);if(rt)rt.revision=-1;}
+  function observeMotion(state,ship){const rt=state.solEconomy&&runtimes.get(state.solEconomy);if(!rt)return;const moving=ship.hull>0&&ship.phase!=='destroyed'&&!!(ship.lifeLeg||ship.motionKick||ship.motionSpin||ship.speed>0);if(rt.mobile.has(ship)!==moving){if(moving)rt.mobile.add(ship);else rt.mobile.delete(ship);rt.mobileView=null;}}
+  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute,resumeAfterRepair,consumeMaterials,find,invalidateMembership,
+    members:(state,system=1)=>system===1?initialize(state).freighters:[],revision:state=>runtime(state,initialize(state)).revision,inspect:(state,id)=>{const ship=find(state,id);return ship?lifeDescriptor(state,ship):null;},observeMotion,mobile:state=>{const rt=runtime(state,initialize(state));return rt.mobileView||=Object.freeze(Array.from(rt.mobile));}};
 })();

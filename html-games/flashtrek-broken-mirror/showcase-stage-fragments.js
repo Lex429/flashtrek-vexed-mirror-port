@@ -5,7 +5,7 @@
   // class to spend a separate frame budget. Pixel loops yield between bounded
   // chunks. Readback and uploads are also striped: putting a full-frame native
   // pixel operation inside a generator does not make that operation resumable.
-  const queue=[],statistics={completed:0,failed:0,workMs:0,maxSliceMs:0,maxStepMs:0,slices:0,steps:0,peakPending:0,readbackFallbacks:0},operations=new Map(),limits={sliceMs:2,maxPending:64,maxSteps:64,pixelChunk:4096};
+  const queue=[],statistics={completed:0,failed:0,workMs:0,maxSliceMs:0,maxStepMs:0,slices:0,steps:0,peakPending:0,readbackFallbacks:0,optionalWorkerFallbacks:0},operations=new Map(),limits={sliceMs:2,maxPending:64,maxSteps:64,pixelChunk:4096};
   let scheduled=false,waiting=0,readback=null;
   const clock=()=>performance.now();
   const count=()=>queue.length+waiting;
@@ -55,8 +55,16 @@
     }catch(error){promise=Promise.reject(error);}
     return Promise.resolve(promise).catch(error=>{statistics.readbackFallbacks++;throw error;});
   }
+  function optional(operation,frames,config){
+    if(window.__shipArtWorker||!window.createShipArtReadback)return null;
+    try{if(!readback)readback=window.createShipArtReadback({maxPending:8,maxPixels:1_048_576,maxBytes:16*1024*1024,timeoutMs:15000});
+      if(!readback.prepare||!readback.snapshot().available||readback.snapshot().preparationAvailable===false)return null;
+      return run((function*(){for(;;){try{return yield readback.prepare(operation,frames,config);}catch(error){if(!error.capacity)throw error;yield new Promise(resolve=>setTimeout(resolve,24));}}})(),{label:'worker:'+operation})
+        .catch(error=>{statistics.optionalWorkerFallbacks++;throw error;});
+    }catch(error){statistics.optionalWorkerFallbacks++;return Promise.reject(error);}
+  }
   const pixels=Object.freeze({read:readPixels,write:writePixels,readAsync});
-  window.nativeDamageArtPreparation=Object.freeze({run,finish,pixels,snapshot:()=>({...statistics,pending:count(),queued:queue.length,waiting,limits:{...limits},readback:readback?.snapshot()||{initialized:false,pending:0},operations:Object.fromEntries([...operations].map(([name,row])=>[name,{...row}]))}),
+  window.nativeDamageArtPreparation=Object.freeze({run,finish,pixels,optional,snapshot:()=>({...statistics,pending:count(),queued:queue.length,waiting,limits:{...limits},readback:readback?.snapshot()||{initialized:false,pending:0},operations:Object.fromEntries([...operations].map(([name,row])=>[name,{...row}]))}),
     resetMetrics(){for(const field of Object.keys(statistics))statistics[field]=0;statistics.peakPending=count();operations.clear();readback?.resetMetrics?.();}});
   function* preparation(frames,anchors) {
     const w=frames[0].width,h=frames[0].height;
@@ -93,7 +101,8 @@
     return fragments;
   }
   const prepare=(frames,anchors)=>finish(preparation(frames,anchors));
-  const prepareAsync=(frames,anchors)=>run(preparation(frames,anchors),{label:'fragments'});
+  function adopt(fragments){for(const stage of fragments)for(const piece of stage)if(piece.material){window.wreckageEffects?.adopt?.(piece.texture,piece.material);delete piece.material;}return fragments;}
+  const prepareAsync=(frames,anchors)=>{const worker=optional('fragments',frames,anchors);return worker?worker.then(adopt).catch(()=>run(preparation(frames,anchors),{label:'fragments'})):run(preparation(frames,anchors),{label:'fragments'});};
   function emit({debris,fragments,before,after,layout,world,angle,time,zoom,burst}) {
     for(let stage=before+1;stage<=after;stage++)for(const piece of fragments[stage]){
       const point=world(piece),direction=Math.atan2(point.y-layout.y,point.x-layout.x),speed=(55+stage*18)*zoom;

@@ -23,3 +23,107 @@ Medical calls deliberately permit a claimed Olympic to enter an empty or exclude
 Validation: `tests/ship-repairs.test.cjs` covers equipment migration, atomic purchases, partial repairs, duplicate claims, real rescue journeys, commercial escrow, player and tug recovery, interruptions, midway reload, pause, catch-up and a full 30-minute production population with material/credit accounting. `tests/browser-ship-repairs.py` exercises actual painted lamps and welding pixels at rotated/scaled nozzle positions, hull plate progress, pause/read-only painting, offscreen preparation and real Dot wreckage. Existing economy, access, physics, traffic and browser suites remain required.
 
 `tests/deuranium-mining.test.cjs` additionally covers every historical regional rock, depleted extension IDs, raw/player refining, mining damage, an unfunded Olympic's midway mining and loaded-cargo reloads, conserved material/money, real refinery docking, refill hysteresis and rescue interruption. `tests/browser-deuranium-mining.py` checks the production alpha/damage surfaces, actual mining/refining/prospecting controls, pause and midway player reload, and a real Olympic mining-to-rescue life with six working Dots.
+
+## Attachment points and fleet cost
+
+The shared Basic Dot is 3.5 world units across, smaller than the 11.7-unit
+Runabout. Its original raster artwork, lights, nozzle and destruction frames use
+the same size conversion. This changes neither repair rate nor material cost.
+`ship-definitions.repair` supplies `bay`, a nonzero direction in the aligned
+artwork frame, `work`, an array of work directions, and `standOff`, the armor
+clearance in world units. Defaults provide an aft bay and six distributed work
+sites. Custom definitions can override these fields without controller or ID
+checks. Shared hull radii project the directions onto the actual physical hull;
+the repair owner rotates those attachments with the authoritative current pose.
+
+Launched craft begin at that bay surface and work just outside the armor. They
+follow drifting and rotating casualties through shared movement, and cannot
+repair from beyond their work range. Returning craft use the same bay; a saved
+mission's existing drone order forms a physical approach queue so several craft
+cannot mutually block its entrance. Stowing requires reaching the bay, rather
+than disappearing twenty units away. Shared traffic and physical contacts still
+apply. Rendering interpolates nozzle and hull contacts together and only reads
+repair progress; it cannot consume supplies or advance a mission.
+
+A launch inherits the carrier's actual physical velocity in the existing saved
+`motionKick` record (`inherited:true`). Relative maneuvering preserves that
+inertial frame while a shared braking command can counter it. The drone keeps
+its ordinary 85-unit/s relative engine limit, acceleration, contact impulses and
+material costs. This is retained through reload and does not alter ordinary
+collision-kick damping. Clear attachment approaches route physically around the
+target's hull; they do not exempt the drone from collision or move it while
+painting.
+
+The repair owner indexes disabled hulls and medical responders during its initial
+population reconciliation. Shared mutation hooks update those runtime sets;
+the one-second poll examines that working set plus a bounded 64-record safety
+audit. Membership reconciliation does not replace owned equipment or create
+medical crews. Moving Dots and changing casualty health refresh individual shared
+targets, including removal of the last stowed craft, rather than invalidating
+the whole system on every repair step. None of these runtime indexes is saved.
+
+`navigation-repair-foundation.test.cjs` covers moving armor, bay recovery, owned
+IDs/condition/recharge/cargo through reload, repair accounting and a 5,000-record
+polling fixture. The browser repair suite records actual flight-loop drift and
+spin with visible Dots and welding contacts in ignored `test-results/`.
+
+## Adding a repairable hull or a station
+
+Put attachment data in the hull's ordinary shared definition registration. For
+example, a six-slot utility hull can include this data alongside its original
+artwork, dimensions, equipment and movement fields:
+
+```js
+slots: {repairDrone: 6},
+repair: {
+  bay: {x: 0.5, y: -1},
+  work: [
+    {x: -1, y: 0}, {x: 1, y: 0},
+    {x: -0.7, y: -0.7}, {x: 0.7, y: -0.7},
+    {x: -0.7, y: 0.7}, {x: 0.7, y: 0.7}
+  ],
+  standOff: 2
+}
+```
+
+These are nonzero directions, not pixel coordinates. The shared owner projects
+each direction onto the aligned physical hull. Check the bay against intact and
+damaged artwork so that launches emerge from visible hardware. Keep one distinct
+work direction for each simultaneously deployed craft: slots reuse work points
+modulo the array length, and several physical Dots cannot occupy one site.
+`standOff` is validated between zero and twenty world units. It does not increase
+repair range, repair rate, engine speed or material efficiency. Use the equipment
+owner's hull change/reconciliation operations to alter capacity; do not replace
+owned drone instances or reset their condition and recharge deadlines.
+
+A station extension should use the same definition, target and rendering owners.
+Retain its original artwork proportions and aligned damage frames; define actual
+physical dimensions and mass separately from camera scale. Register a stable
+category adapter through `nativeShipSystems.register`, with saved identities,
+`collect`/`resolve` and common damage consequences. Feed committed pose, shield,
+equipment and membership changes to the existing refresh/invalidation APIs.
+Query shared spatial bounds and paint through `nativeShipEffects.paintShip` with
+the real viewport. Do not add a second collision list, private damage model,
+per-frame station census or render-driven repair loop. Very large bounds use the
+existing conservative overflow path; they must remain physical blockers even
+when their center is far outside the viewport.
+
+This is an extension recipe, not a completed station gameplay owner. The current
+repair owner resolves saved player, civilian and tug references only. Custom
+categories are excluded from its observation sets; a disabled custom station
+cannot silently become a repair mission. Shared target registration alone also
+does not install station traffic, docking, jobs or transaction policy. Those
+systems need an explicit owner integration and save migration where saved data
+changes. Medical approach currently uses center-distance launch/mission limits
+of 500/1,000 world units. A future station whose hull clearance exceeds those
+limits needs attachment-aware approach eligibility in the shared repair owner
+before external rescue can work. Enlarging ranges or hiding collisions in a
+benchmark is not a substitute.
+
+For a station integration, verify edge-of-screen rendering, large rotating
+shields, first-blocker weapon interception, ship/debris contact chains, berth
+queues, physical drone return and midway reload with funded jobs. Record actual
+nearby actors, shots, transactions and simulation debt alongside frame timings.
+The existing 50,000-by-50,000 synthetic station regression verifies conservative
+geometry/index behavior; it does not establish full station gameplay or a
+rendering performance target.

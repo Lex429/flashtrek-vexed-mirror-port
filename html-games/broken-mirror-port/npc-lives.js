@@ -68,8 +68,47 @@
   // authoritative; stale heap records are harmless and removed on pop.
   function push(heap,item){let i=heap.length;heap.push(item);while(i){const p=(i-1)>>1;if(heap[p].at<=item.at)break;heap[i]=heap[p];i=p;}heap[i]=item;}
   function pop(heap){const first=heap[0],last=heap.pop();if(heap.length){let i=0;while(true){let child=i*2+1;if(child>=heap.length)break;if(child+1<heap.length&&heap[child+1].at<heap[child].at)child++;if(heap[child].at>=last.at)break;heap[i]=heap[child];i=child;}heap[i]=last;}return first;}
-  function schedule(state,ship,at){ship.nextActionAt=Math.max(0,finite(at,now(state)));ship.lifeScheduleToken=(ship.lifeScheduleToken||0)+1;const rt=runtime.get(state);if(rt)push(rt.heap,{at:ship.nextActionAt,id:ship.id,token:ship.lifeScheduleToken});}
-  function indexMove(rt,ship,oldSystem){const previous=oldSystem??rt.indexedSystems.get(ship.id);if(previous!==undefined)rt.bySystem.get(previous)?.delete(ship.id);if(!rt.bySystem.has(ship.system))rt.bySystem.set(ship.system,new Set());rt.bySystem.get(ship.system).add(ship.id);rt.indexedSystems.set(ship.id,ship.system);}
+  function schedule(state,ship,at){ship.nextActionAt=Math.max(0,finite(at,now(state)));ship.lifeScheduleToken=(ship.lifeScheduleToken||0)+1;const rt=runtime.get(state);if(rt){push(rt.heap,{at:ship.nextActionAt,id:ship.id,token:ship.lifeScheduleToken});updateTransit(rt,ship);}window.nativeShipSystems?.refreshShip?.(state,ship,'civilian',ship.system);}
+  function updateTransit(rt,ship){const present=rt.transit.has(ship);if(!!ship.journey!==present){if(ship.journey)rt.transit.add(ship);else rt.transit.delete(ship);rt.transitView=null;}
+    if(ship.hull>0&&ship.phase!=='destroyed'&&(ship.journey||ship.warpVisual))trackTransit(rt,ship);else if(rt.transitSpace?.entries.has(ship))removeTransit(rt.transitSpace,ship);
+    const moving=ship.hull>0&&!ship.journey&&!['destroyed','warp','arriving'].includes(ship.phase)&&!!(ship.localLeg||ship.motionKick||ship.motionSpin||ship.speed>0);if(rt.mobile.has(ship)!==moving){if(moving)rt.mobile.add(ship);else rt.mobile.delete(ship);rt.mobileView=null;}
+    const previousSystem=rt.mobileLocations.get(ship),nextSystem=moving?ship.system:undefined;if(previousSystem!==nextSystem){if(previousSystem!==undefined){rt.mobileSystems.get(previousSystem)?.delete(ship);rt.mobileSystemViews.delete(previousSystem);}if(nextSystem!==undefined){let entries=rt.mobileSystems.get(nextSystem);if(!entries)rt.mobileSystems.set(nextSystem,entries=new Set());entries.add(ship);rt.mobileLocations.set(ship,nextSystem);rt.mobileSystemViews.delete(nextSystem);}else rt.mobileLocations.delete(ship);}
+    const controlled=!!(ship.scriptedDemo||ship.disputeId||ship.retaliationId||ship.projectileEvade||ship.phase==='fighting'||ship.phase==='ore-theft');if(rt.controlled.has(ship)!==controlled){if(controlled)rt.controlled.add(ship);else rt.controlled.delete(ship);rt.controlledView=null;}
+    const mining=['mining','collecting'].includes(ship.phase);if(rt.miners.has(ship)!==mining){if(mining)rt.miners.add(ship);else rt.miners.delete(ship);rt.minerView=null;}}
+  const transitCellSize=32768;
+  function transitCells(box){const minX=Math.floor(box.minX/transitCellSize),maxX=Math.floor(box.maxX/transitCellSize),minY=Math.floor(box.minY/transitCellSize),maxY=Math.floor(box.maxY/transitCellSize);return {minX,maxX,minY,maxY,count:(maxX-minX+1)*(maxY-minY+1)};}
+  function removeTransit(space,ship){const previous=space.entries.get(ship);if(!previous)return;for(const key of previous.cells){const bucket=space.grid.get(key);bucket?.delete(ship);if(!bucket?.size)space.grid.delete(key);}space.entries.delete(ship);space.overflow.delete(ship);}
+  function trackTransit(rt,ship){
+    const journey=ship.journey,visual=ship.warpVisual,source=journey||visual;if(!source)return;
+    let a,b;
+    if(journey?.galaxyFrom&&journey.galaxyTo){a=journey.galaxyFrom;b=journey.galaxyTo;}
+    else if(visual&&window.vexedRebirthWarp){const origin=anchor(ship.system),warp=window.vexedRebirthWarp,
+      start=warp.worldEffect(visual.kind,0,visual.angle,ship.x,ship.y),end=warp.worldEffect(visual.kind,visual.kind==='departure'?warp.departureMs:warp.arrivalMs,visual.angle,ship.x,ship.y);
+      a={x:origin.x+start.shipX,y:origin.y+start.shipY};b={x:origin.x+end.shipX,y:origin.y+end.shipY};
+    }else return;
+    const space=rt.transitSpace||={grid:new Map(),entries:new Map(),overflow:new Set()},previous=space.entries.get(ship),dimensions=window.nativeShipDefinitions.dimensions(ship,'civilian'),revision=window.nativeShipDefinitions.revision?.()||0;
+    rt.transitGeometryRevision??=revision;if(previous?.source===source&&previous.ax===a.x&&previous.ay===a.y&&previous.bx===b.x&&previous.by===b.y&&previous.width===dimensions.width&&previous.height===dimensions.height&&previous.revision===revision)return;
+    removeTransit(space,ship);
+    const padding=Math.max(1024,Math.hypot(dimensions.width,dimensions.height)*4);
+    const box={minX:Math.min(a.x,b.x)-padding,minY:Math.min(a.y,b.y)-padding,maxX:Math.max(a.x,b.x)+padding,maxY:Math.max(a.y,b.y)+padding},range=transitCells(box),entry={source,ax:a.x,ay:a.y,bx:b.x,by:b.y,box,padding,cells:[],width:dimensions.width,height:dimensions.height,revision};space.entries.set(ship,entry);
+    if(range.count>4096)space.overflow.add(ship);else for(let x=range.minX;x<=range.maxX;x++)for(let y=range.minY;y<=range.maxY;y++){const key=x+':'+y;let bucket=space.grid.get(key);if(!bucket)space.grid.set(key,bucket=new Set());bucket.add(ship);entry.cells.push(key);}
+    window.nativeSimulationFrame?.count(rt.state,'transitIndexAdds');
+  }
+  function queryTransits(state,box){
+    initialize(state);const rt=runtime.get(state),space=rt.transitSpace;if(!space)return [];
+    const revision=window.nativeShipDefinitions.revision?.()||0;if(rt.transitGeometryRevision!==revision){for(const ship of Array.from(space.entries.keys()))trackTransit(rt,ship);rt.transitGeometryRevision=revision;}
+    if(!box||!['minX','minY','maxX','maxY'].every(key=>Number.isFinite(box[key])))return Array.from(space.entries.keys());
+    const range=transitCells(box),candidates=new Set(space.overflow);
+    if(range.count>4096)for(const ship of space.entries.keys())candidates.add(ship);else for(let x=range.minX;x<=range.maxX;x++)for(let y=range.minY;y<=range.maxY;y++)for(const ship of space.grid.get(x+':'+y)||[])candidates.add(ship);
+    const result=[];for(const ship of candidates){const entry=space.entries.get(ship);if(!(ship.journey||ship.warpVisual)||ship.hull<=0||ship.phase==='destroyed')continue;
+      let point;if(ship.journey)point=galaxyPosition(state,ship);else{const visual=ship.warpVisual,effect=window.vexedRebirthWarp.worldEffect(visual.kind,visual.elapsedMs,visual.angle,ship.x,ship.y),origin=anchor(ship.system);point={x:origin.x+effect.shipX,y:origin.y+effect.shipY};}
+      const padding=entry.padding;if(point.x+padding>=box.minX&&point.x-padding<=box.maxX&&point.y+padding>=box.minY&&point.y-padding<=box.maxY)result.push(ship);}
+    window.nativeSimulationFrame?.count(state,'transitSpatialQueries');window.nativeSimulationFrame?.count(state,'transitSpatialCandidates',candidates.size);return result;
+  }
+  function indexMove(rt,ship,oldSystem){const previous=oldSystem??rt.indexedSystems.get(ship.id);if(previous!==ship.system||!rt.bySystem.get(ship.system)?.has(ship.id)){
+    if(previous!==undefined){rt.bySystem.get(previous)?.delete(ship.id);rt.memberViews.delete(previous);rt.systemRevisions.set(previous,(rt.systemRevisions.get(previous)||0)+1);}
+    if(!rt.bySystem.has(ship.system))rt.bySystem.set(ship.system,new Set());rt.bySystem.get(ship.system).add(ship.id);rt.indexedSystems.set(ship.id,ship.system);rt.memberViews.delete(ship.system);rt.systemRevisions.set(ship.system,(rt.systemRevisions.get(ship.system)||0)+1);
+  }updateTransit(rt,ship);window.nativeShipRepairs?.observe?.(rt.state,ship,'civilian');window.nativeShipSystems?.refreshShip?.(rt.state,ship,'civilian',ship.system);}
   function migrateShip(state,ship,life){
     window.nativeCivilianCombatAI?.traits(ship);
     if(ship.lifeVersion===1)return;
@@ -121,9 +160,9 @@
     life.economicLedger.initialMarketCredits??=0;life.economicLedger.initialMarketGoods||=costs.map(()=>0);
     life.economicLedger.lost||=costs.map(()=>0);
     life.config.secondsPerDay=window.nativeWorldTime?.secondsPerDay||120;
-    let rt=runtime.get(state);
-    if(!rt||rt.ships!==traffic.ships||rt.count!==traffic.ships.length){
-      rt={ships:traffic.ships,count:traffic.ships.length,initializing:true,byId:new Map(),bySystem:new Map(),indexedSystems:new Map(),heap:[],lastNow:now(state),stats:{detailedShips:0,distantUpdates:0,scheduledEvents:0,backlog:0,simulationMs:0}};
+    const collection=window.nativeShipSystems?.observeCollection?.(traffic,'ships');let rt=runtime.get(state);
+    if(!rt||rt.ships!==traffic.ships||rt.count!==traffic.ships.length||collection&&rt.collectionRevision!==collection.revision){
+      rt={state,ships:traffic.ships,count:traffic.ships.length,collectionRevision:collection?.revision,initializing:true,byId:new Map(),bySystem:new Map(),indexedSystems:new Map(),memberViews:new Map(),systemRevisions:new Map(),transit:new Set(),transitView:null,mobile:new Set(),mobileView:null,mobileSystems:new Map(),mobileLocations:new Map(),mobileSystemViews:new Map(),controlled:new Set(),controlledView:null,miners:new Set(),minerView:null,heap:[],lastNow:now(state),stats:{detailedShips:0,distantUpdates:0,scheduledEvents:0,backlog:0,simulationMs:0}};
       runtime.set(state,rt);
       for(const ship of traffic.ships){migrateShip(state,ship,life);rt.byId.set(ship.id,ship);indexMove(rt,ship);if(Number.isFinite(ship.nextActionAt))push(rt.heap,{at:ship.nextActionAt,id:ship.id,token:ship.lifeScheduleToken});}
       for(const m of Object.values(life.markets))if(m.system===1&&state.solEconomy){state.solEconomy.stockReserved||={};state.solEconomy.stockReserved[m.port]=m.reserved;state.solEconomy.incomingReserved||={};state.solEconomy.incomingReserved[m.port]=m.incoming;m.stock=state.solEconomy.ports[m.port]||m.stock;}
@@ -780,25 +819,32 @@
     choose(state,ship,at);
   }
   function playerPosition(state){return state.system===1&&window.vexedSolFlight?.shipPosition?window.vexedSolFlight.shipPosition(state):{x:finite(state.x),y:finite(state.y)};}
-  function detail(state,ship){
+  function detail(state,ship,prepared){
     if(!ship||['destroyed','disabled'].includes(ship.phase))return 'inactive';if(ship.journey||ship.phase==='warp')return 'transit';
-    if(window.nativeShipDetail)return window.nativeShipDetail.isDetailed(state,ship,{category:'civilian',pose:localPose(state,ship)})?'detailed':'distant';
-    const p=playerPosition(state),radius=initializeConfig(state).detailedRadius,pose=localPose(state,ship);return ship.system===state.system&&!state.landed&&Math.hypot(pose.x-p.x,pose.y-p.y)<=radius?'detailed':'distant';
+    if(window.nativeShipDetail)return window.nativeShipDetail.isDetailed(state,ship,{category:'civilian',pose:prepared||localPose(state,ship)})?'detailed':'distant';
+    const p=playerPosition(state),radius=initializeConfig(state).detailedRadius,pose=prepared||localPose(state,ship);return ship.system===state.system&&!state.landed&&Math.hypot(pose.x-p.x,pose.y-p.y)<=radius?'detailed':'distant';
   }
-  function sample(state,ship,at){
-    if(ship.localLeg&&(ship.task?.status==='active'||ship.dockingMove))window.nativeShipMotion.sampleLeg(ship,ship.localLeg,at);
+  function sample(state,ship,at,prepared){
+    const moving=ship.localLeg&&(ship.task?.status==='active'||ship.dockingMove);
+    const reuse=moving&&prepared?.sampledLeg===ship.localLeg&&prepared.sampledAt===at;
+    const before=moving&&!reuse?{x:ship.x,y:ship.y,heading:ship.heading,system:ship.system,shipType:ship.shipType,speed:ship.speed,vx:ship.vx,vy:ship.vy}:null;
+    if(reuse){Object.assign(ship,{x:prepared.x,y:prepared.y,heading:prepared.heading,speed:prepared.speed,vx:prepared.vx,vy:prepared.vy,previousX:prepared.previousX,previousY:prepared.previousY});
+      for(const key of ['motionKick','motionSpin'])if(prepared[key])ship[key]=prepared[key];else delete ship[key];
+    }else if(moving)window.nativeShipMotion.sampleLeg(ship,ship.localLeg,at);
     if(ship.journey){ship.journey.progress=clamp((at-ship.journey.departedAt)/ship.journey.duration,0,1);ship.timer=Math.max(0,ship.journey.arrivalAt-at);}
     if(ship.task){const job=ship.task;job.progress=job.status==='completed'?1:['transit','mining-transit'].includes(job.phase)?.2+(ship.journey?.progress||0)*.6:job.phase==='approaching'?.85:job.phase==='unloading'?.95:job.phase==='mining'?.5:0;}
+    if(moving){const systems=window.nativeShipSystems;if(systems?.sampledShip)systems.sampledShip(state,ship,'civilian',ship.system,before);else systems?.refreshShip?.(state,ship,'civilian',ship.system);}
   }
   function advance(state,dt){
     if(window.nativeSimulation.blocked()||!Number.isFinite(dt)||dt<=0)return;
     const started=performance.now(),life=initialize(state),rt=runtime.get(state),at=now(state),m=rt.stats;m.detailedShips=0;m.distantUpdates=0;m.scheduledEvents=0;
     if(access())auditAccess(state,life,rt);
     advanceEconomy(state,at);
-    const local=rt.bySystem.get(state.system)||new Set();
+    const origin=playerPosition(state),radius=window.nativeShipDetail?.radius(state)||life.config.detailedRadius;
+    const local=window.nativeShipSystems?.query?window.nativeShipSystems.query(state,{minX:origin.x-radius,minY:origin.y-radius,maxX:origin.x+radius,maxY:origin.y+radius,categories:['civilian']}).bystanders:Array.from(rt.bySystem.get(state.system)||[],id=>rt.byId.get(id));
     // Only the player's location is sampled every frame. No artwork is prepared
     // for distant lives or for opening the map.
-    for(const id of local){const ship=rt.byId.get(id);if(detail(state,ship)!=='detailed'||ship.scriptedDemo||ship.disputeId||ship.retaliationId)continue;sample(state,ship,at);m.detailedShips++;}
+    for(const target of local){const ship=target.entity||target,prepared=target.entity?target:undefined;if(detail(state,ship,prepared)!=='detailed'||ship.scriptedDemo||ship.disputeId||ship.retaliationId)continue;sample(state,ship,at,prepared);m.detailedShips++;}
     let popped=0;
     while(rt.heap.length&&rt.heap[0].at<=at&&m.scheduledEvents<life.config.eventBudget&&popped++<life.config.eventBudget*4){
       if(window.nativeSimulationFrame?.take&&!window.nativeSimulationFrame.take(state,'civilianHeapPops',life.config.eventBudget*4))break;
@@ -832,13 +878,22 @@
     }
   }
   function find(state,id){initialize(state);return runtime.get(state).byId.get(Number(id))||null;}
+  function members(state,systemId=state.system){initialize(state);const rt=runtime.get(state);let view=rt.memberViews.get(systemId);if(!view){view=Object.freeze(Array.from(rt.bySystem.get(systemId)||[],id=>rt.byId.get(id)).filter(Boolean));rt.memberViews.set(systemId,view);}return view;}
+  function membershipRevision(state,systemId=state.system){initialize(state);const rt=runtime.get(state);return rt.collectionRevision+':'+(rt.systemRevisions.get(systemId)||0);}
+  function invalidateMembership(state){const rt=runtime.get(state);if(rt)rt.collectionRevision=-1;}
+  function transits(state){initialize(state);const rt=runtime.get(state);return rt.transitView||=Object.freeze(Array.from(rt.transit));}
+  function mobile(state,systemId){initialize(state);const rt=runtime.get(state);if(systemId===undefined)return rt.mobileView||=Object.freeze(Array.from(rt.mobile));let view=rt.mobileSystemViews.get(systemId);if(!view){view=Object.freeze(Array.from(rt.mobileSystems.get(systemId)||[]));rt.mobileSystemViews.set(systemId,view);}return view;}
+  function controlled(state){initialize(state);const rt=runtime.get(state);return rt.controlledView||=Object.freeze(Array.from(rt.controlled));}
+  function mining(state){initialize(state);const rt=runtime.get(state);return rt.minerView||=Object.freeze(Array.from(rt.miners));}
+  function observeMotion(state,ship){const rt=runtime.get(state);if(rt)updateTransit(rt,ship);}
   function galaxyPosition(state,ship){
     if(ship.journey){const j=ship.journey,p=clamp((now(state)-j.departedAt)/j.duration,0,1);return {x:j.galaxyFrom.x+(j.galaxyTo.x-j.galaxyFrom.x)*p,y:j.galaxyFrom.y+(j.galaxyTo.y-j.galaxyFrom.y)*p};}
     const a=anchor(ship.system),pose=localPose(state,ship);return {x:a.x+pose.x,y:a.y+pose.y};
   }
   function localPose(state,ship){const pose={x:ship.x,y:ship.y,heading:ship.heading,speed:ship.speed,motionKick:ship.motionKick,motionSpin:ship.motionSpin};if(ship.localLeg)window.nativeShipMotion.sampleLeg(pose,ship.localLeg,Math.min(now(state),ship.nextActionAt));return pose;}
-  function descriptors(state){initialize(state);return state.civilianTraffic.ships.map(ship=>{const pose=localPose(state,ship);return {id:ship.id,category:'civilian',entity:ship,name:ship.name,role:ship.role,faction:ship.ownerGovernmentId,system:ship.system,x:pose.x,y:pose.y,heading:pose.heading,detail:detail(state,ship),galaxy:galaxyPosition(state,ship),location:{kind:ship.journey?'transit':'local',system:ship.system,port:ship.port},task:ship.task||null,journey:ship.journey||null,events:ship.recentEvents,nextActionAt:ship.nextActionAt};});}
-  function inspect(state,id){const ship=find(state,id);if(!ship)return null;const d=descriptors(state).find(s=>s.id===ship.id);return {id:ship.id,name:ship.name,category:'civilian',role:ship.role,faction:ship.ownerGovernmentId,home:ship.homeBase,location:d.location,galaxy:d.galaxy,detail:d.detail,
+  function descriptor(state,ship){const pose=localPose(state,ship);return {id:ship.id,category:'civilian',entity:ship,name:ship.name,role:ship.role,faction:ship.ownerGovernmentId,system:ship.system,x:pose.x,y:pose.y,heading:pose.heading,detail:detail(state,ship),galaxy:galaxyPosition(state,ship),location:{kind:ship.journey?'transit':'local',system:ship.system,port:ship.port},task:ship.task||null,journey:ship.journey||null,events:ship.recentEvents,nextActionAt:ship.nextActionAt};}
+  function descriptors(state){initialize(state);return state.civilianTraffic.ships.map(ship=>descriptor(state,ship));}
+  function inspect(state,id){const ship=find(state,id);if(!ship)return null;const d=descriptor(state,ship);return {id:ship.id,name:ship.name,category:'civilian',system:d.system,role:ship.role,faction:ship.ownerGovernmentId,home:ship.homeBase,location:d.location,galaxy:d.galaxy,detail:d.detail,
     docking:docking().inspect(state,ship),task:ship.task,journey:ship.journey||null,lastJourney:ship.lastJourney||null,cargo:ship.cargo,oreHold:ship.oreHold,credits:ship.credits,hull:ship.hull,shields:ship.shields,equipment:ship.weaponLoadout||ship.weapons,events:ship.recentEvents,nextActionAt:ship.nextActionAt};}
   function startDemo(state){
     initialize(state);const ships=state.civilianTraffic.ships;
@@ -897,6 +952,6 @@
     initialize(state);if(!ship.localLeg||ship.journey||!(ship.task?.status==='active'||ship.dockingMove)||leg.valid===false)return false;
     ship.localLeg=leg;schedule(state,ship,leg.startedAt+leg.duration);return true;
   }
-  window.nativeNpcLives={initialize,advance,descriptors,find,galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,suspendCombat,resumeWork,escapeRoute,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,refineDeuranium,upgradeMinerals,reroute,startRescue,
+  window.nativeNpcLives={initialize,advance,descriptors,find,members,mobile,controlled,mining,observeMotion,ready:state=>!!runtime.get(state)&&!runtime.get(state).initializing,revision:membershipRevision,invalidateMembership,transits,queryTransits,systems:state=>{initialize(state);return Array.from(runtime.get(state).bySystem.keys());},galaxyPosition,pose:localPose,detail,inspect,metrics,registerRole,configure,visit,startDelivery,startDemo,interrupt,suspendCombat,resumeWork,escapeRoute,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,refineDeuranium,upgradeMinerals,reroute,startRescue,
     scheduled:state=>{initialize(state);return runtime.get(state).heap.length;}};
 })();

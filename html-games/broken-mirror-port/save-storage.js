@@ -3,19 +3,26 @@
   'use strict';
   const legacyKey='broken-mirror-native-save',keys={normal:legacyKey+'-normal',dev:legacyKey+'-dev'};
   const queued=new Map();
+  let lastWrite=null;
+  const milliseconds=()=>window.performance?.now?.()??globalThis.performance?.now?.()??Date.now();
   const seconds=()=>((window.performance?.now?.()??(typeof performance!=='undefined'?performance.now():Date.now()))/1000);
-  const parse=text=>{try{const value=JSON.parse(text);return value&&typeof value==='object'?value:null;}catch{return null;}};
+  const parse=text=>{try{const value=window.nativeSaveCodec?window.nativeSaveCodec.parse(text):JSON.parse(text);return value&&typeof value==='object'?value:null;}catch{return null;}};
   const modeOf=s=>s.devMode?'dev':'normal';
   function write(state,storage){
+    const started=milliseconds(),cost={serializationMs:0,storageMs:0,verificationMs:0,characters:0,ok:false};
+    const measure=(key,operation)=>{const at=milliseconds();try{return operation();}finally{cost[key]+=milliseconds()-at;}};
     try{
       storage||=window.localStorage;
-      const mode=modeOf(state),serialized=JSON.stringify({...state,saveSlotVersion:1});
-      storage.setItem(keys[mode],serialized);
-      if(storage.getItem(keys[mode])!==serialized)throw Error('Storage did not retain the save.');
-      try{storage.setItem(legacyKey+'-mode',mode);}catch{}
+      const mode=modeOf(state),serialized=measure('serializationMs',()=>window.nativeSaveCodec?.stringify(state)??JSON.stringify({...state,saveSlotVersion:1}));
+      cost.characters=serialized.length;
+      measure('storageMs',()=>storage.setItem(keys[mode],serialized));
+      if(measure('verificationMs',()=>storage.getItem(keys[mode]))!==serialized)throw Error('Storage did not retain the save.');
+      try{measure('storageMs',()=>storage.setItem(legacyKey+'-mode',mode));}catch{}
       queued.delete(mode);
+      cost.ok=true;
       return {ok:true,mode};
-    }catch(error){return {ok:false,error:'Save failed: '+error.message};}
+    }catch(error){cost.error=error.message;return {ok:false,error:'Save failed: '+error.message};}
+    finally{cost.totalMs=milliseconds()-started;lastWrite=cost;}
   }
   // Only redundant combat checkpoints are deferred. Purchases, travel commits,
   // explicit saves and mode changes keep the existing immediate verified write.
@@ -48,5 +55,5 @@
       return null;
     }catch{return null;}
   }
-  window.nativeSaveStorage=Object.freeze({write,read,keys,legacyKey,schedule,flush,flushDue,pending:state=>queued.has(modeOf(state))});
+  window.nativeSaveStorage=Object.freeze({write,read,keys,legacyKey,schedule,flush,flushDue,pending:state=>queued.has(modeOf(state)),metrics:()=>lastWrite?{...lastWrite}:null});
 })();

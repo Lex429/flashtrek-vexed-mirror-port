@@ -2,11 +2,12 @@
 (() => {
   'use strict';
   const imageCache = new Map(), shipCache = new Map(), shipReferences = new Map(), imagePending = new Map(), shipPending = new Map(), planetCache = new Map(), localBodyCache = new Map();
-  const cacheLimits={sourceBytes:32*1024*1024,sourceEntries:48,shipBytes:24*1024*1024,shipEntries:24};
+  const cacheLimits={sourceBytes:32*1024*1024,sourceEntries:48,shipBytes:24*1024*1024,shipEntries:24,
+    visibleShipBytes:128*1024*1024,visibleShipEntries:256};
   const cacheMetrics={imageHits:0,imageMisses:0,shipHits:0,shipMisses:0,imageEvictions:0,shipEvictions:0};
   const preparation={imageLoads:0,imageLoadMs:0,imageDecodeMs:0,ships:0,catalogMs:0,alignmentMs:0,effectsMs:0,unlitMs:0,wallMs:0},recentPreparation=[];
   const imageTimings=new WeakMap(),clock=()=>globalThis.performance?.now?.()??Date.now();
-  let imageBytes=0,shipBytes=0;
+  let imageBytes=0,shipBytes=0,renderEpoch=0;
   let catalogPromise, warpRing;
   const shipSizes=new Map(window.VexedFlightReference.shipSizes.map(ship=>[ship.id,ship]));
   function flightDimensions(shipSize,zoom){
@@ -53,19 +54,54 @@
     imagePending.set(url,pending);return pending;
   }
 
+  const shipKey=(type,stage)=>Number(type)+':'+stage;
+  const visible=entry=>entry.lastVisibleEpoch>=renderEpoch-1;
+  function trimShips(){
+    // Ordinary warm retention stays small. Appearances actually painted in
+    // either of the last two frames share a larger, hard-bounded working set;
+    // optional destruction/stage preparation cannot evict visible ships.
+    for(const [key,entry]of shipCache){
+      if(shipCache.size<=cacheLimits.shipEntries&&shipBytes<=cacheLimits.shipBytes)break;
+      if(visible(entry))continue;
+      shipCache.delete(key);shipBytes-=entry.bytes;cacheMetrics.shipEvictions++;
+    }
+    while(shipCache.size>cacheLimits.visibleShipEntries||shipBytes>cacheLimits.visibleShipBytes){
+      const oldest=shipCache.keys().next().value,entry=shipCache.get(oldest);
+      shipCache.delete(oldest);shipBytes-=entry.bytes;cacheMetrics.shipEvictions++;
+    }
+  }
+  function retainShip(asset,{markVisible=false}={}){
+    if(!asset?.art||!Number.isFinite(asset.type)||!Number.isInteger(asset.damageStage))return asset;
+    const key=shipKey(asset.type,asset.damageStage),previous=shipCache.get(key),bytes=asset.width*asset.height*4;
+    if(bytes>cacheLimits.visibleShipBytes)return asset;
+    if(previous?.asset===asset){
+      if(markVisible)previous.lastVisibleEpoch=renderEpoch;
+      shipCache.delete(key);shipCache.set(key,previous);return asset;
+    }
+    if(previous)shipBytes-=previous.bytes;
+    shipCache.delete(key);shipCache.set(key,{asset,bytes,lastVisibleEpoch:markVisible?renderEpoch:(previous?.lastVisibleEpoch??-Infinity)});shipBytes+=bytes;
+    trimShips();return asset;
+  }
+  function beginRenderFrame(){renderEpoch++;trimShips();}
+  function peekShip(type,stage,{fallback=false,markVisible=true}={}){
+    const take=index=>shipCache.get(shipKey(type,index))?.asset||shipReferences.get(shipKey(type,index))?.deref();
+    let asset=take(stage);
+    if(!asset&&fallback){asset=take(0);for(let i=1;!asset&&i<4;i++)asset=take(i);}
+    return asset?retainShip(asset,{markVisible}):null;
+  }
   function loadShip(type = 7, hull = 100, options = {}) {
     type = Number(type);
     const maximum = window.nativeShipDefinitions?.get(type).hull || window.VexedMirrorWorld.ships.find(ship => ship.id === type)?.hull || 100;
     const strength = Math.max(0, Math.min(1, Number(hull) / maximum));
     const damageStage = strength < .25 ? 3 : strength < .5 ? 2 : strength < .75 ? 1 : 0;
-    const key = type + ':' + damageStage;
+    const key = shipKey(type,damageStage);
     const cached=shipCache.get(key);
-    if(cached){shipCache.delete(key);shipCache.set(key,cached);cacheMetrics.shipHits++;return Promise.resolve(cached.asset);}
+    if(cached){cacheMetrics.shipHits++;return Promise.resolve(retainShip(cached.asset,{markVisible:Boolean(options.visible)}));}
     // A current player/effects owner may still hold an evicted asset. Reuse that
     // object without pinning the whole fleet's decoded artwork in this loader.
     const retained=shipReferences.get(key)?.deref();
-    if(retained){cacheMetrics.shipHits++;return Promise.resolve(retained);}
-    if(shipPending.has(key))return shipPending.get(key);
+    if(retained){cacheMetrics.shipHits++;return Promise.resolve(retainShip(retained,{markVisible:Boolean(options.visible)}));}
+    if(shipPending.has(key))return options.visible?shipPending.get(key).then(asset=>retainShip(asset,{markVisible:true})):shipPending.get(key);
     cacheMetrics.shipMisses++;
     const started=clock(),timing={type,stage:damageStage,catalogMs:0,imageLoadMs:0,imageDecodeMs:0,imageWaitMs:0,imageCached:false,alignmentMs:0,effectsMs:0,unlitMs:0,wallMs:0};
     const pending = catalog().then(async data => {
@@ -96,14 +132,7 @@
           if(shipReferences.size>=256)shipReferences.delete(shipReferences.keys().next().value);
           shipReferences.set(key,new WeakRef(asset));
         }
-        const bytes=asset.width*asset.height*4;
-        if(bytes<=cacheLimits.shipBytes){
-          while(shipCache.size>=cacheLimits.shipEntries||shipBytes+bytes>cacheLimits.shipBytes){
-            const oldest=shipCache.keys().next().value;shipBytes-=shipCache.get(oldest).bytes;shipCache.delete(oldest);cacheMetrics.shipEvictions++;
-          }
-          shipCache.set(key,{asset,bytes});shipBytes+=bytes;
-        }
-        return asset;
+        return retainShip(asset,{markVisible:Boolean(options.visible)});
       }).finally(()=>shipPending.delete(key));
     shipPending.set(key,pending);return pending;
   }
@@ -132,7 +161,7 @@
     ctx.imageSmoothingQuality = 'high';
     ctx.translate(x, y);ctx.rotate(angle);ctx.scale(appearance.squeezeX ?? 1, 1);
     ctx.globalAlpha *= appearance.alpha ?? 1;
-    const source=appearance.light,localLight=source?{direction:Math.atan2(source.y-y,source.x-x)-angle,color:source.color,
+    const source=appearance.light,localLight=source?{direction:(source.direction??Math.atan2(source.y-y,source.x-x))-angle,color:source.color,
       bright:appearance.warpPulse?Math.min(.34,.22+appearance.warpPulse*.12):.22}:null;
     const cached=window.nativeShipSpriteCache?.draw(ctx,asset,width,height,time,{...appearance,localLight});
     if(!cached){ctx.drawImage(asset.art, -width / 2, -height / 2, width, height);
@@ -147,6 +176,12 @@
   }
   function drawWarpRing(ctx, ring, size) {
     if (!ring || !warpRing) return;
+    const transform=ctx.getTransform?.();
+    if(transform&&window.nativeEffectVisibility&&!window.nativeEffectVisibility.circle(
+      transform.a*ring.x+transform.c*ring.y+transform.e,transform.b*ring.x+transform.d*ring.y+transform.f,
+      size*ring.scale/2*Math.max(Math.hypot(transform.a,transform.b),Math.hypot(transform.c,transform.d)),
+      {w:ctx.canvas?.width,h:ctx.canvas?.height}))return;
+    window.nativeShipSpriteCache?.flush?.(ctx);
     ctx.save();ctx.translate(ring.x,ring.y);ctx.globalAlpha=ring.alpha;
     ctx.drawImage(warpRing,-size*ring.scale/2,-size*ring.scale/2,size*ring.scale,size*ring.scale);
     ctx.restore();
@@ -160,12 +195,13 @@
     return {bytes,uniqueArt:loaderArt,totalOwnedByteEstimate:bytes+auxiliaryBytes,
       auxiliary:{additionalBytes:auxiliaryBytes,planets:planetCache.size,localBodies:localBodyCache.size,warpRing:Boolean(warpRing)},
       source:{entries:imageCache.size,bytes:imageBytes,pending:imagePending.size},
-      ships:{entries:shipCache.size,bytes:shipBytes,pending:shipPending.size,weakReferences:shipReferences.size},limits:{...cacheLimits,weakReferences:256},counters:{...cacheMetrics},
+      ships:{entries:shipCache.size,bytes:shipBytes,pending:shipPending.size,weakReferences:shipReferences.size,
+        visibleEntries:[...shipCache.values()].filter(visible).length,renderEpoch},limits:{...cacheLimits,weakReferences:256},counters:{...cacheMetrics},
       preparation:{...preparation,recent:recentPreparation.map(row=>({...row}))}};
   }
   // Active ships/effects own their references; eviction only releases this
   // loader's retention. Pending requests remain deduplicated during a reset.
-  function resetCaches(){imageCache.clear();shipCache.clear();shipReferences.clear();imageBytes=shipBytes=0;for(const key of Object.keys(cacheMetrics))cacheMetrics[key]=0;for(const key of Object.keys(preparation))preparation[key]=0;recentPreparation.length=0;}
-  window.vexedFlightAssets = {loadShip, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing,cacheSnapshot,resetCaches, size:id=>shipSizes.get(Number(id))||(()=>{const d=window.nativeShipDefinitions?.dimensions({shipType:Number(id)});return d?{id:Number(id),playerWidth:d.width,playerHeight:d.height}:null;})(),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
+  function resetCaches(){imageCache.clear();shipCache.clear();shipReferences.clear();imageBytes=shipBytes=renderEpoch=0;for(const key of Object.keys(cacheMetrics))cacheMetrics[key]=0;for(const key of Object.keys(preparation))preparation[key]=0;recentPreparation.length=0;}
+  window.vexedFlightAssets = {loadShip,peekShip,retainShip,beginRenderFrame, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing,cacheSnapshot,resetCaches, size:id=>shipSizes.get(Number(id))||(()=>{const d=window.nativeShipDefinitions?.dimensions({shipType:Number(id)});return d?{id:Number(id),playerWidth:d.width,playerHeight:d.height}:null;})(),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
   loadWarpRing().catch(()=>{});
 })();
