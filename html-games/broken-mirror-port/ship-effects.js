@@ -260,7 +260,7 @@
       if(wreck.time>17000)wrecks.splice(i,1);
     }
     for(const [entity,value] of visuals)if(value.state===state){
-      if(value.flash&&time-value.flash.born>=620)value.flash=null;
+      if(value.flash&&time-value.flash.born>=(window.vexedShieldGPU?.available?900:620))value.flash=null;
       if(value.contact&&time-value.contact.born>=180)value.contact=null;
       if(!value.flash&&!value.contact)visuals.delete(entity);
     }
@@ -276,10 +276,11 @@
       const current=window.nativeCombatShots.beamContactFor?.(descriptor.state,impact.weaponEventId,descriptor.id,{render:true});
       if(current?.shielded)impact={...impact,x:current.local.x,y:current.local.y,dx:current.dx,dy:current.dy};
     }
-    const shield=impact&&time-impact.born<(impact.charge===0?430:620),touch=front&&contact&&time-contact.born<180;
+    const shield=impact&&time-impact.born<(impact.charge===0?430:window.vexedShieldGPU?.available?900:620),touch=front&&contact&&time-contact.born<180;
     if((!shield&&!touch)||view.warpEffect)return;
+    const gpuShield=shield&&window.vexedShieldGPU?.submit(ctx,descriptor,view,impact,time,{front});
     const p=position(descriptor,view);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(descriptor.heading+Math.PI/2);if(view.zoom!==undefined&&view.zoom!==1)ctx.scale(view.zoom,view.zoom);
-    if(shield){
+    if(shield&&!gpuShield){
       const art=view.asset||asset(descriptor),surfaceRadii=window.nativeShipDefinitions.surfaceRadii(d,true,descriptor.definition);
       if(art){
         if(front)window.drawShowcaseShieldFlash?.(ctx,art.art,d.width,d.height,impact,time,{surfaceRadii});
@@ -338,7 +339,7 @@
     ctx.restore();
   }
   function snapshot(descriptor){const value=descriptor?visuals.get(descriptor.entity):null;return {flash:value?.flash?{...value.flash}:null,contact:value?.contact?{...value.contact}:null,particles:bursts.filter(p=>!descriptor||p.entity===descriptor.entity).length};}
-  function reset(){visuals.clear();bursts.length=0;fragments.length=0;wrecks.length=0;deferredStages.length=0;}
+  function reset(){visuals.clear();bursts.length=0;fragments.length=0;wrecks.length=0;deferredStages.length=0;window.vexedShieldGPU?.reset();}
   function metrics(){const values=new Set([...prepared.values(),...wrecks.map(wreck=>wreck.artwork).filter(Boolean),...deferredStages.map(event=>event.artwork).filter(Boolean),...fragments.map(piece=>piece.artworkSource?.artwork).filter(Boolean)]);
     let bytes=0;for(const value of values)bytes+=assetBytes(value);
     const countedTextures=new Set();for(const value of values)for(const stage of value.fragments||[])for(const piece of stage)if(piece.texture)countedTextures.add(piece.texture);

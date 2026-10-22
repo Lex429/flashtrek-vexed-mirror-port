@@ -396,13 +396,25 @@ try:
               window.nativeSimulation={...nativeSimulation,blocked:()=>true};
               window.nativeSimulationHost?.checkpoint();
               if(!window.__nativeFrame)throw Error('Native gameplay frame was not captured');
-              const ctx=document.querySelector('#space').getContext('2d'),beams=[],flashes=[];
+              const ctx=document.querySelector('#space').getContext('2d'),beams=[],flashes=[],gpu=window.vexedShieldGPU;
+              const gpuBefore=gpu?.snapshot();
               const weapon=paintShowcaseWeaponShot;window.paintShowcaseWeaponShot=(context,shot,geometry,age)=>{if(context===ctx){const point=new DOMPoint(geometry.x2,geometry.y2).matrixTransform(context.getTransform());beams.push({x2:point.x,y2:point.y});}return weapon(context,shot,geometry,age);};
               const flash=drawShowcaseShieldFlash;window.drawShowcaseShieldFlash=(context,image,w,height,value,...args)=>{if(context===ctx){const point=new DOMPoint(value.x,value.y).matrixTransform(context.getTransform());flashes.push(point);}return flash(context,image,w,height,value,...args);};
               window.__nativeFrame(performance.now());
+              let gpuContactAlpha=null;
+              if(gpu?.available){
+                const after=gpu.snapshot();
+                if(after.submissions-gpuBefore.submissions!==1)throw Error('Actual GPU frame omitted or duplicated its shield contact');
+                const point=after.contacts[gpuBefore.submissions%after.contacts.length];flashes.push(point);
+                const gl=gpu.renderer.gl,pixels=new Uint8Array(5*5*4);
+                gl.readPixels(Math.round(point.x)-2,gl.canvas.height-Math.round(point.y)-3,5,5,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+                gpuContactAlpha=0;for(let i=3;i<pixels.length;i+=4)gpuContactAlpha=Math.max(gpuContactAlpha,pixels[i]);
+                if(gpuContactAlpha<80)throw Error('GPU shader omitted the bright contact at the actual beam endpoint');
+                if(flashes.length!==1)throw Error('Legacy Canvas shield also painted during the GPU frame');
+              }
               if(beams.length!==1||flashes.length!==1)throw Error('Actual native gameplay frame omitted its beam or shield contact');
               if(Math.hypot(beams[0].x2-flashes[0].x,beams[0].y2-flashes[0].y)>.025)throw Error('Native HUD gameplay beam and bright shield contact disagree '+JSON.stringify({beams,flashes}));
-              return {actualNativeCanvas:true,unpausedHud:true,rearwardFire:true,brightShieldContactAligned:true};
+              return {actualNativeCanvas:true,unpausedHud:true,rearwardFire:true,brightShieldContactAligned:true,gpuShields:!!gpu?.available,gpuContactAlpha};
             }""")
             page.screenshot(path=str(OUTPUT / 'native-rearward-gameplay.png'))
             results['nativeGameplayScreenshot'] = native_evidence

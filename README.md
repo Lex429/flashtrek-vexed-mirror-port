@@ -24,6 +24,15 @@ The `flashtrek-broken-mirror` folder contains artwork, audio, data, and JavaScri
 
 ## Combat and effects
 
+Live flight uses retained GPU shields: a bright contact flash, a clean cyan
+outline and an expanding energy wave, with an orange shield-collapse animation.
+Player ships and NPCs use the same shared impact events. Normal ship lighting,
+protection, damage, interception, contact geometry and saves keep their existing
+owners. Devices without WebGL2 retain the existing Canvas shield effect.
+The [100-ship demonstration](demos/shield-gpu/index.html) isolates rendering with
+**ship lighting OFF**; its results do not establish 120-FPS battles. See the
+[shield integration and verification notes](docs/gpu-shields.md).
+
 Inventory now displays and fits the current hull's weapon, repair-drone, ability,
 engineering and shield bays. The Olympic has six drone bays for players and NPCs.
 Hull changes preserve owned equipment in fitted bays or the locker; buy additional

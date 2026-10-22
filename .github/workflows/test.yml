@@ -36,6 +36,12 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-beam-targeting.py
+      - name: Retained GPU shield pixels, default gameplay, pause and context recovery
+        env:
+          BROWSER_CHANNEL: ''
+        run: |
+          python tests/browser-shield-gpu-visuals.py --output test-results/shield-gpu-design
+          python tests/browser-shield-gpu-live.py
       - name: Civilian live-shot awareness, survival policies and preserved jobs
         env:
           BROWSER_CHANNEL: ''

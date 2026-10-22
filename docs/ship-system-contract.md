@@ -7,8 +7,12 @@ Verified writes, legacy recovery and large-fleet encoding are specified in the
 
 The active game starts at `html-games/broken-mirror-port/index.html` and
 `native-game.js`. The archived previews are not alternate gameplay engines.
-The live game and damage showcase share their weapon and shield shaders in
-`html-games/flashtrek-broken-mirror/`.
+The live game and damage showcase share weapon artwork and effect resources in
+`html-games/flashtrek-broken-mirror/`. Live flight uses the retained GPU shield
+renderer through the existing `ship-effects.paintSurface` event boundary; the
+showcase and devices without WebGL2 retain the Canvas shield shader. Both use
+the definition-owned shield radii and authoritative shared contacts. See
+[GPU shields](gpu-shields.md).
 
 ## Ownership
 

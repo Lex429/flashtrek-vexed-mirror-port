@@ -173,6 +173,7 @@ addEventListener('native-pausechange',checkpointHost);addEventListener('native-i
 document.addEventListener('visibilitychange',()=>checkpointHost());
 addEventListener('pagehide',()=>{hostTime.checkpoint();flushCombatSave();});
 function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0,frameTime-last);hostTime.checkpoint(frameTime);const dt=hostTime.consumeDisplay();last=frameTime;starTime+=dt;inputFrame++;window.nativeSimulationFrame?.begin(game);advanceSimulation(0,window.nativeSimulation.now(game));simulationService.request(game);const now=window.nativeSimulation.now(game);heldFire.step(inputFrame);updateCombatFeedback();if(game)reportSaveResult(window.nativeSaveStorage.flushDue(game));const simulationMs=performance.now()-frameStarted,renderStarted=performance.now();const recordFrame=()=>{window.nativeSimulationMetrics?.record(game,{frame:frameMs,simulation:simulationMs,render:performance.now()-renderStarted,mode:devGalaxyView?'map':'flight'});window.nativeSimulationFrame?.end(game);};const {w,h,safeBottom}=size(),warpFlight=window.vexedWarp.flightEffect,zoom=1;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+ window.vexedShieldGPU?.beginFrame(ctx);
  if(game?.system===1&&!paused()&&!document.hidden&&!travelling()){
   const arrived=window.vexedSolFlight?.nearestArrival(game);
   if(arrived){updateVisuals();save(true);message(`Approaching ${arrived.name}. ${arrived.port?'Local services are available nearby.':'No port is available here.'}`);window.nativeSystemHub?.refresh();}
@@ -230,6 +231,7 @@ function draw(frameTime){const frameStarted=performance.now(),frameMs=Math.max(0
   x:warpFlight?warpFlight.shipX+cx-300:cx,y:warpFlight?warpFlight.shipY+cy-225:cy,dimensions:shipDimensions,warpEffect:warpFlight,
   appearance:{light:window.vexedSpace.light,warpPulse:warpFlight?.kind?1:0}});
  window.nativeShipSpriteCache.endFrame?.(ctx);
+ window.vexedShieldGPU?.endFrame(ctx,now);
  window.vexedFlightAssets.drawWarpRing(ctx,warpFlight?.ring?{...warpFlight.ring,x:warpFlight.ring.x+cx-300,y:warpFlight.ring.y+cy-225}:null,shipW);
  window.nativeCombatShots.paintAll(ctx,{state:game,ship:renderPosition||game,cx,cy,zoom,now,w,h});
  window.nativeShipEffects.paint(game,ctx,{ship:renderPosition||game,cx,cy,zoom,w,h});

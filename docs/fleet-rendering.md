@@ -29,7 +29,9 @@ local physical/render membership and conservative shared interfaces.
 
 The flight layer opens `ship-sprite-cache.beginFrame`, paints ships in their
 existing order, and closes `endFrame` before weapons and foreground debris.
-Canvas remains the selected production backend. Animated effects are shared by
+Canvas remains the selected ship-artwork backend. The GPU shield overlay described
+in [GPU shields](gpu-shields.md) consumes shared visual impacts independently;
+it does not migrate hull artwork, lighting or simulation. Animated hull effects are shared by
 artwork, aligned damage stage, raster size and cadence: healthy NPCs retain 20 Hz;
 player, damaged and warp effects retain 60 Hz. Directional masks and final
 compositions belong to the instance, so two ships of one class do not overwrite
