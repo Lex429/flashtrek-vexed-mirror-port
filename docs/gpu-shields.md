@@ -3,7 +3,7 @@
 The active `html-games/broken-mirror-port/index.html` loads `shield-gpu.js` and
 `shield-gpu-live.js` by default. A contact produces a bright flash, a cyan outline
 and an expanding wave; depletion produces an orange segmented collapse. The
-ordinary flash lasts 900 simulation milliseconds and collapse lasts 430. Pause
+ordinary effect lasts 900 simulation milliseconds and collapse lasts 430. Pause
 freezes the same simulation clock, including a flash paused on its birth frame.
 
 `ship-effects.js` owns visual-event lifetime and the beam's current shared
@@ -90,3 +90,52 @@ These are the demonstrated candidate's earlier measurements, not a new benchmark
 of this default game integration. Integration changes the event wiring and
 corrects float32 clock visibility; it retains the demonstrated shader artwork.
 No new battle-performance claim is made from functional regression results.
+
+## Shield polish comparison
+
+The blue rim is thinner and dimmer, with extra light around the actual impact.
+The contact stays white hot for roughly 45 ms and cools smoothly to cyan by
+80 ms. A softer wave follows it; the strong illumination fades by 255 ms and
+leaves a subtle tail. Time-dependent colour and brightness are computed at the
+existing quad vertices and passed as flat values to the fragment shader.
+The instanced batch, geometry, bounds, storage and live adapter are unchanged.
+Collapse pixels match the previous shader exactly at five sampled ages.
+
+**Ship lighting OFF:** headless Edge 155.0.4283.62 on Intel Arc with ANGLE D3D11,
+1280 by 850, DPR 1. All 100 original-size ships remained fully visible with all
+100 shields active. Each version received three warmed 20-second windows,
+followed by three more with the order reversed to check a small frame-time
+difference. All twelve windows are included in the pooled results:
+
+| Version | Average FPS | Mean ms | P95 ms | P99 ms | Worst ms | Pauses above 50 ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Previous GPU shields | 126.47 | 7.907 | 8.60 | 9.40 | 63.90 | 2 |
+| Polished GPU shields | 124.78 | 8.014 | 8.80 | 9.70 | 42.60 | 0 |
+
+The polished mean frame time was 1.35% higher, within the observed run spread;
+this is not evidence of zero additional cost or exact equivalence. Separate
+GPU queries averaged 0.287 ms before and 0.254 ms after for the complete scene,
+with lower means in all three pairs. Retained textures, buffers, instance arrays
+and framebuffer sizes stayed unchanged, with no additional texture uploads.
+The percentile frame times still exceed 8.33 ms, so locked smooth 120 FPS and
+physical monitor delivery remain unproven.
+
+All 517 Node tests, the 15 existing GPU visual checks, ten focused polish checks
+and the live, beam alignment, ship contract, equipment/save and smoke browser
+suites passed. The focused checks cover flash colour, localized brightness,
+fading, unchanged collapse pixels and visible contacts throughout a complete
+hit cycle for all 100 ships.
+
+Separate native combat checks with normal lighting ON averaged 12.25 FPS before
+and 9.96 FPS after, with 3–20 and 5–20 visible ships respectively. Both exercised
+AI, movement, beams, projectiles, shield/hull damage and interception, with at
+most one damage application per shot. These single battles diverged in activity
+and population and cannot isolate shield cost or establish battle performance.
+
+The comparison tools are `tests/browser-shield-polish.py`,
+`tests/browser-shield-polish-pixels.py` and
+`tests/browser-shield-polish-combat.py`; use `--help` for their arguments.
+The saved baseline comes from commit `e0445ac`: its `shield-gpu.js`,
+`shield-gpu-live.js`, and the replay's `index.html`, `replay.js` and `ships.js`
+are stored together in the baseline directory. Recordings, screenshots, raw
+timestamps, query samples and full reports remain in ignored `test-results/`.

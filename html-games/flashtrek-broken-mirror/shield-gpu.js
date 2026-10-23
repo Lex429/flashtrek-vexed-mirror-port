@@ -13,6 +13,7 @@
   uniform vec2 viewport;uniform float time;
   out vec2 local;out vec2 uv;flat out vec4 field;flat out vec4 event;
   flat out vec4 material;flat out float kind;
+  flat out vec4 energy;flat out vec3 fieldColour;flat out vec3 contactColour;
   void main(){
     float a=rotation.x+sin(time*.0005+rotation.y)*rotation.z*.125;
     vec2 p=pose.xy+vec2(sin(time*.0007+rotation.y),cos(time*.0006+rotation.y))*rotation.z;
@@ -20,17 +21,44 @@
     vec2 screen=p+mat2(cos(a),sin(a),-sin(a),cos(a))*v;
     gl_Position=vec4(screen/viewport*vec2(2.,-2.)+vec2(-1.,1.),0.,1.);
     local=v;uv=(corner+.5)*art.yz;field=shield;event=life;material=art;kind=rotation.w;
+    energy=vec4(0.);fieldColour=vec3(0.);contactColour=vec3(0.);
+    if(rotation.w>.5&&life.w<.5){
+      float age=(time-life.x)/life.y,seconds=(time-life.x)*.001;
+      float hot=1.-smoothstep(.045,.080,seconds),pulse=1.-smoothstep(.055,.255,seconds);
+      float fade=(1.-age)*(.28+.72*pulse)*life.z;
+      float shimmer=.92+.08*sin(time*.014+art.w);
+      fieldColour=mix(vec3(.08,.42,1.),vec3(.18,.73,1.),.5+.5*sin(time*.003+art.w));
+      energy=vec4(.11*shimmer,(.48*pulse+.12)*shimmer,.18+.42*pulse,0.)*fade;
+      contactColour=mix(fieldColour,vec3(1.),hot)*(.24+.76*pulse+1.4*hot)*fade;
+    }
   }`;
   const fragment=`#version 300 es
   precision highp float;precision highp sampler2DArray;
   in vec2 local;in vec2 uv;flat in vec4 field;flat in vec4 event;
   flat in vec4 material;flat in float kind;
+  flat in vec4 energy;flat in vec3 fieldColour;flat in vec3 contactColour;
   uniform sampler2DArray artwork;uniform float time;out vec4 pixel;
   void main(){
     if(kind<.5){vec4 c=texture(artwork,vec3(uv,material.x));pixel=vec4(c.rgb*c.a,c.a);return;}
     float age=(time-event.x)/event.y;
     if(age<0.||age>=1.||event.z<=0.)discard;
     float edge=(length(local/field.xy)-1.)*min(field.x,field.y);
+    if(event.w<.5){
+      float distanceToContact=length(local-field.zw);
+      float rim=1.-smoothstep(.18,.95,abs(edge));
+      float halo=1.-smoothstep(.9,3.5,abs(edge));
+      float impactSection=1.-smoothstep(3.,max(12.,min(field.x,field.y)*1.15),distanceToContact);
+      float radius=mix(3.,max(field.x,field.y)*2.2,age);
+      float wave=1.-smoothstep(.35,4.1,abs(distanceToContact-radius));
+      wave*=wave*(1.-smoothstep(-1.,.5,edge));
+      float contact=1.-smoothstep(.5,3.5,distanceToContact);
+      float contactHalo=(1.-smoothstep(2.,11.,distanceToContact))*.32;
+      float fieldEnergy=(rim+halo*.5)*energy.x+rim*impactSection*energy.y+wave*energy.z;
+      vec3 light=fieldColour*fieldEnergy+contactColour*(contact+contactHalo);
+      float alpha=clamp(max(light.r,max(light.g,light.b)),0.,1.);
+      if(alpha<.002)discard;
+      pixel=vec4(light,alpha);return;
+    }
     float rim=1.-smoothstep(.65,1.8,abs(edge));
     float halo=(1.-smoothstep(1.2,4.5,abs(edge)))*.18;
     float radius=mix(3.,max(field.x,field.y)*2.2,age);
