@@ -42,10 +42,10 @@ jobs:
         run: |
           python tests/browser-shield-gpu-visuals.py --output test-results/shield-gpu-design
           python tests/browser-shield-gpu-live.py
-          git fetch --no-tags --depth=1 origin 8987ef3f5ea0e7412a96b2cabf5d68e3a6865852
-          mkdir -p test-results/shield-polished-baseline
-          git show 8987ef3f5ea0e7412a96b2cabf5d68e3a6865852:html-games/flashtrek-broken-mirror/shield-gpu.js > test-results/shield-polished-baseline/shield-gpu.js
-          python tests/browser-shield-polish-pixels.py --baseline test-results/shield-polished-baseline --output test-results/shield-ripple-pixels
+          git fetch --no-tags --depth=1 origin ab5bb2504957c1de4cf239bfee882b810e1128e2
+          mkdir -p test-results/shield-cinematic-baseline
+          git show ab5bb2504957c1de4cf239bfee882b810e1128e2:html-games/flashtrek-broken-mirror/shield-gpu.js > test-results/shield-cinematic-baseline/shield-gpu.js
+          python tests/browser-shield-cinematic.py --baseline test-results/shield-cinematic-baseline --output test-results/shield-cinematic
       - name: Civilian live-shot awareness, survival policies and preserved jobs
         env:
           BROWSER_CHANNEL: ''

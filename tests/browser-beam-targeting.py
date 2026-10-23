@@ -60,6 +60,10 @@ try:
             const target={...clone(base.civilianTraffic.ships[0]),id:98002,shipType:47,system:1,phase:'cruise',x:origin.x+Math.cos(bearing)*distance,y:origin.y+Math.sin(bearing)*distance,heading:0,speed:0,hull:1000,shields:shield==='absent'?0:shield==='collapse'?weapon.damage/2:1000};
             for(const key of ['localLeg','journey','previousX','previousY','motionSpin','motionKick','combatAI','disputeId','retaliationId'])delete target[key];
             nativeShipMotion.stop(target);state.civilianTraffic.ships=[target];
+            // This fixture explicitly rebinds simulation time. Rebind the live
+            // host too, so time spent loading the previous fixture's artwork
+            // cannot age this new beam before its synthetic pixel check.
+            if(live)window.nativeSimulationHost?.reset();
             return {state,target,origin,source:()=>nativeShipDefinitions.describe(state,state,{category:'player'}),victim:()=>nativeShipDefinitions.describe(state,target,{category:'civilian'})};
           }
           const tick=(test,dt)=>{const elapsed=nativeSimulation.advance(test.state,dt);nativeCombatShots.advance(test.state,elapsed);nativeShipEffects.advance(test.state,elapsed);return elapsed;};

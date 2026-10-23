@@ -14,6 +14,7 @@
   out vec2 local;out vec2 uv;flat out vec4 field;flat out vec4 event;
   flat out vec4 material;flat out float kind;
   flat out vec4 energy;flat out vec3 fieldColour;flat out vec3 contactColour;
+  flat out vec4 fronts;flat out vec3 surfaceContact;
   void main(){
     float a=rotation.x+sin(time*.0005+rotation.y)*rotation.z*.125;
     vec2 p=pose.xy+vec2(sin(time*.0007+rotation.y),cos(time*.0006+rotation.y))*rotation.z;
@@ -22,17 +23,22 @@
     gl_Position=vec4(screen/viewport*vec2(2.,-2.)+vec2(-1.,1.),0.,1.);
     local=v;uv=(corner+.5)*art.yz;field=shield;event=life;material=art;kind=rotation.w;
     energy=vec4(0.);fieldColour=vec3(0.);contactColour=vec3(0.);
+    fronts=vec4(0.);surfaceContact=vec3(0.);
     if(rotation.w>.5&&life.w<.5){
       float age=(time-life.x)/life.y,seconds=(time-life.x)*.001;
       float hot=1.-smoothstep(.045,.080,seconds),pulse=1.-smoothstep(.055,.255,seconds);
       float contactFade=(1.-age)*(.28+.72*pulse)*life.z;
-      float travelSeconds=min(.380,life.y*.0006),fadeStart=min(.460,life.y*.0007);
-      float envelope=(1.-smoothstep(fadeStart,life.y*.001,seconds))*life.z;
-      float reach=max(shield.x,shield.y)+length(shield.zw)+4.1;
-      float radius=mix(3.,reach,clamp(seconds/travelSeconds,0.,1.));
+      // The last surface wave crosses before the field begins its separate fade.
+      float envelope=(1.-smoothstep(life.y*.00067,life.y*.001,seconds))*life.z;
+      float travel=max(.001,life.y*.000445),radius=.025+2.22*seconds/travel;
+      vec2 hit=shield.zw/shield.xy;
+      surfaceContact=vec3(hit,sqrt(max(0.,1.-dot(hit,hit))));
+      float branchEnvelope=smoothstep(0.,.025,seconds)*(1.-smoothstep(.120,.320,seconds))*life.z;
+      fronts=vec4(.025+2.22*(seconds-.085)/travel,.025+2.22*(seconds-.170)/travel,
+        branchEnvelope,.08+1.12*clamp(seconds/.190,0.,1.));
       float shimmer=.92+.08*sin(time*.014+art.w);
       fieldColour=mix(vec3(.12,.65,1.),vec3(.45,.95,1.),.5+.5*sin(time*.003+art.w));
-      energy=vec4(.18*shimmer*envelope,(.20+.28*pulse)*shimmer*envelope,.68*envelope,radius);
+      energy=vec4(.045*shimmer*envelope,(.12+.26*pulse)*envelope,.98*envelope,radius);
       contactColour=mix(fieldColour,vec3(1.),hot)*(.24+.76*pulse+1.4*hot)*contactFade;
     }
   }`;
@@ -41,7 +47,16 @@
   in vec2 local;in vec2 uv;flat in vec4 field;flat in vec4 event;
   flat in vec4 material;flat in float kind;
   flat in vec4 energy;flat in vec3 fieldColour;flat in vec3 contactColour;
+  flat in vec4 fronts;flat in vec3 surfaceContact;
   uniform sampler2DArray artwork;uniform float time;out vec4 pixel;
+  float softFront(float distance,float radius,float width){
+    float band=1.-smoothstep(width*.18,width,abs(distance-radius));
+    float wake=smoothstep(0.,width,distance-radius+width*4.)*(1.-smoothstep(-width*2.,0.,distance-radius));
+    return step(0.,radius)*(band*band+wake*.075);
+  }
+  float zig(float t,float phase){
+    return (abs(fract(t*4.7+phase)-.5)-.25)*.15+(abs(fract(t*11.3+phase*.71)-.5)-.25)*.065;
+  }
   void main(){
     if(kind<.5){vec4 c=texture(artwork,vec3(uv,material.x));pixel=vec4(c.rgb*c.a,c.a);return;}
     float age=(time-event.x)/event.y;
@@ -49,16 +64,37 @@
     float edge=(length(local/field.xy)-1.)*min(field.x,field.y);
     if(event.w<.5){
       float distanceToContact=length(local-field.zw);
-      float rim=1.-smoothstep(.18,.95,abs(edge));
-      float halo=1.-smoothstep(.9,3.5,abs(edge));
+      vec2 q=local/field.xy;float depth=sqrt(max(0.,1.-dot(q,q)));
+      float inside=1.-smoothstep(-.7,.25,edge),unit=min(field.x,field.y);
+      // An oblate curved surface: its projected fronts bend instead of flat rings.
+      float surfaceDistance=length(vec3(q-surfaceContact.xy,(depth-surfaceContact.z)*.68));
+      float attenuation=1./(1.+surfaceDistance*surfaceDistance*.18);
+      float rim=1.-smoothstep(.16,.85,abs(edge));
+      float halo=1.-smoothstep(.8,2.7,abs(edge));
       float impactSection=1.-smoothstep(3.,max(12.,min(field.x,field.y)*1.15),distanceToContact);
-      float radius=energy.w;
-      float wave=1.-smoothstep(.35,4.1,abs(distanceToContact-radius));
-      wave*=wave*(1.-smoothstep(-1.,.5,edge));
+      float width=max(.028,1.65/unit);
+      float wave=softFront(surfaceDistance,energy.w,width)
+        +softFront(surfaceDistance,fronts.x,width*.90)*.60
+        +softFront(surfaceDistance,fronts.y,width*.80)*.36;
+      wave*=inside*attenuation*(.72+.28*depth);
+      vec2 inward=-normalize(surfaceContact.xy+vec2(.0001,0.));
+      vec2 delta=q-surfaceContact.xy;
+      float along=dot(delta,inward),across=dot(delta,vec2(-inward.y,inward.x));
+      float crawl=along+.12*(depth-surfaceContact.z),bend=zig(crawl,material.w)*smoothstep(0.,.12,crawl);
+      float branch1=abs(across-bend-crawl*.25),branch2=abs(across+bend*.73+crawl*.32);
+      float fork=abs(across-bend*.6-(.20-(crawl-.42)*.32));
+      float filament=min(branch1,branch2);
+      if(crawl>.42)filament=min(filament,fork);
+      float branch=1.-smoothstep(.28,.95,filament*unit);
+      branch*=smoothstep(-.025,.025,crawl)*(1.-smoothstep(fronts.w-.05,fronts.w,crawl))*inside*fronts.z;
+      float tip=(1.-smoothstep(.02,.07,abs(crawl-fronts.w+.045)))*branch;
       float contact=1.-smoothstep(.5,3.5,distanceToContact);
       float contactHalo=(1.-smoothstep(2.,11.,distanceToContact))*.32;
-      float fieldEnergy=(rim+halo*.5)*energy.x+rim*impactSection*energy.y+wave*energy.z;
-      vec3 light=fieldColour*fieldEnergy+contactColour*(contact+contactHalo);
+      float grazing=(1.-depth)*(1.-depth),direction=.65+.35*clamp(dot(q,vec2(-.6,-.8)),0.,1.);
+      float fieldEnergy=(rim+halo*.28)*energy.x*direction+rim*impactSection*energy.y
+        +wave*energy.z+grazing*.010*inside*attenuation*energy.z;
+      vec3 light=fieldColour*fieldEnergy+mix(fieldColour,vec3(.75,.94,1.),.6)*branch*.68
+        +vec3(.8,.95,1.)*tip*.35+contactColour*(contact+contactHalo);
       float alpha=clamp(max(light.r,max(light.g,light.b)),0.,1.);
       if(alpha<.002)discard;
       pixel=vec4(light,alpha);return;

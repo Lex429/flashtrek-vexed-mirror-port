@@ -226,3 +226,92 @@ including physical interception and at most one damage application per shot.
 Pure GPU rendering preserved serialized gameplay state. These battles diverged
 in population and activity and cannot isolate shield cost; normal combat remains
 far below 120 FPS under these conditions.
+
+## Curved cinematic field
+
+This refinement starts from published `ab5bb25`. The retained WebGL2 shader now
+reveals an oblate curved field with three staggered surface waves, sparse
+electrical branches and brief bright tips. A compact contact stays white hot
+through roughly 45 ms and cools to cyan by 80 ms. The branches grow inward over
+the field and disappear by 320 ms, rather than forming a persistent flickering
+web. Instance phases give them deterministic variation without gameplay RNG.
+
+The wave distance includes the field's inferred surface depth. Its projected
+fronts bend with the shared ellipse instead of drawing flat contact circles.
+Waves start 85 ms apart and cross before the brightness envelope starts fading
+at 603 ms; normal expiry stays at 900 ms. A faint wake follows each front.
+Distance attenuation, a thin directional boundary and grazing-angle shading
+suggest surface thickness. This is an inexpensive depth illusion: there is no
+physical refraction or displacement of the underlying scene.
+
+The normal field covers little of the artwork: the focused interior pixel
+sample has about 8.7% of its area above a 30/255 light contribution. The contact
+and waves can still light individual hull details. The native-size comparison
+includes the ordinary 13.6 by 22.1-pixel runabout; the separately labelled close-up
+enlarges spatial detail 2x but always plays at normal speed.
+
+Runtime changes are confined to the shader. The JavaScript geometry, bounds,
+render submission, 128 slots and live adapter are unchanged. All effects remain
+in the existing single instanced shield batch, with no added texture, particle
+objects, composition surface, pass, blur, mask, Canvas upload or scene copy.
+The five sampled collapse frames remain pixel-identical. Damage, interception,
+recharge, physics, pause and saves retain their existing owners.
+
+**Controlled renderer comparison: ship lighting OFF.** Edge 155.0.4283.62,
+headless, Intel Arc / ANGLE D3D11, driver 32.0.101.9150, viewport 1280 by 850,
+DPR 1. Three sequential warmed 20-second windows per condition used the same
+100 fully visible ships, all 100 active shields, camera, artwork, movement and
+recorded hits. All six windows are retained; capture, encoding, GPU queries and
+functional tests were outside clean frame timing.
+
+| Version | Average FPS | Mean ms | P95 ms | P99 ms | Worst ms | Pauses above 50 ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Current GPU baseline | 128.13 | 7.805 | 8.60 | 9.00 | 16.10 | 0 |
+| Cinematic GPU | 128.12 | 7.805 | 8.60 | 8.90 | 23.30 | 0 |
+
+Separate GPU queries averaged 0.270 ms before and 0.562 ms after for the complete
+100-ship scene, an added 0.291 ms. The added details are not free. Frame delivery
+remained comparable in these runs, retaining average 120-FPS capability, but
+P95/P99 exceed 8.33 ms. Headless RAF does not establish locked smooth 120 FPS or
+physical display delivery. Windows reports a 2560 by 1600, 165-Hz panel; the
+headless measurements did not encounter a cap below 120.
+
+Replay retention stays at 8,388,600 texture bytes, 21,728 GPU buffer bytes,
+20,480 CPU instance bytes and a nominal 4,352,000-byte framebuffer. There are six
+initial artwork uploads and no later uploads or retained growth in any window.
+Boundary heap changes were -3.15 to +2.01 MB before and -4.13 to +2.04 MB after.
+These are not GC-normalized or proof of long-session leak absence; resource
+counts exclude driver/browser overhead and compiled shader storage.
+
+`browser-shield-cinematic.py` checks three separated wavefronts, visible travel
+on five small/large ship types, curved projection, transient branch contribution,
+transparent interiors, precise contact colour, unchanged collapse and retention.
+The previous appearance-specific polish tests remain as historical tools; CI
+uses this new target against pinned baseline `ab5bb25`, with the existing GPU
+lifecycle, contact and overlap tests unchanged.
+
+`browser-shield-cinematic-capture.py` records original Canvas → current GPU →
+revised GPU at normal speed for native-size ships, enlarged detail and the full
+100-ship replay. It calls the existing Canvas reference functions only for
+recording; that path is not used in the candidate or its timed measurements.
+The timed replay's pinned Sail width remains 90 logical pixels in both versions;
+the ordinary-ship comparison uses the actual shared native width of about 21.27.
+Reports, raw frames and videos remain in ignored
+`test-results/shield-cinematic-20261023/`; no generated images are committed.
+
+Separate live-combat checks with ordinary lighting ON passed shield/hull damage,
+physical interception and exactly-once shot damage. The first pair averaged
+11.61 FPS before and 7.69 after; a confirmation pair averaged 7.45 before and
+11.75 after, with changing 3–20-ship visible populations and combat activity.
+All four windows are retained. Confirmation shield-draw GPU queries averaged
+0.437 ms before and 0.664 ms after. These divergent battles do not isolate a
+frame-performance change or establish 120-FPS combat. No unrelated battle
+optimization was attempted.
+
+The required beam regression initially failed with both the saved baseline and
+candidate under load: its fixture replaced simulation data without rebinding
+the live host clock, allowing previous-scene artwork loading to age a new beam.
+The fixture now calls the existing host `reset` at that explicit time rebind.
+Both versions then pass the original geometry, pixels, input and exactly-once
+damage assertions. Production simulation code is unchanged. All 517 Node tests
+pass before and after the shield change.
