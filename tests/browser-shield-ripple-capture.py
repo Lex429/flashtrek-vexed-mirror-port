@@ -13,10 +13,11 @@ from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
 CORE='html-games/flashtrek-broken-mirror/shield-gpu.js'
-PREPARE=r'''(scale)=>{
+PREPARE=r'''({scale,geometry})=>{
  const p=shieldGPUReplay,indices=[2,0,1,3,4,5],columns=[130,330,518];
- const fleet=indices.map((i,j)=>({...p.fleet[i],x:columns[j%3],y:235+Math.floor(j/3)*365,angle:.35,motion:0,
-   w:p.fleet[i].w*scale,h:p.fleet[i].h*scale,rx:p.fleet[i].rx*scale,ry:p.fleet[i].ry*scale}));
+ const fleet=indices.map((i,j)=>{const native=geometry.find(s=>s.type===shieldReplayShips[p.fleet[i].layer].id);
+   return {...p.fleet[i],x:columns[j%3],y:235+Math.floor(j/3)*365,angle:.35,motion:0,
+     w:native.dimensions.width*scale,h:native.dimensions.height*scale,rx:native.radii.rx*scale,ry:native.radii.ry*scale};});
  p.renderer.setFleet(fleet);let last=-1;
  window.__casePaint=time=>{const cycle=Math.floor(time/1200);
   if(cycle!==last){fleet.forEach((s,i)=>p.renderer.hit(i,{x:s.rx*.94,y:0,born:cycle*1200,strength:1}));last=cycle;}
@@ -43,7 +44,11 @@ def main():
         browser=p.chromium.launch(**launch);page=browser.new_page(viewport={'width':1280,'height':850},device_scale_factor=1)
         page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
         page.wait_for_function('()=>window.nativeView&&window.nativeCombatShots?.isReady()')
-        view=page.evaluate('()=>nativeView.measure(document.querySelector("#space"))');browser.close()
+        view=page.evaluate('()=>nativeView.measure(document.querySelector("#space"))')
+        geometry=page.evaluate('''()=>[7,1,2,10,23,58].map(type=>{
+          const definition=nativeShipDefinitions.get(type,'civilian'),dimensions=nativeShipDefinitions.dimensions({shipType:type},'civilian');
+          return {type,dimensions,radii:nativeShipDefinitions.surfaceRadii(dimensions,true,definition)};})''');browser.close()
+        report['nativeShipGeometry']=geometry
         report['nativeGameView']=view;scale=view['scale'];report['browser']=browser.version
         for variant,body in sources.items():
           browser=p.chromium.launch(**launch);page=browser.new_page(viewport={'width':1280,'height':850},device_scale_factor=1,accept_downloads=True)
@@ -52,7 +57,7 @@ def main():
           page.goto(f'http://127.0.0.1:{server.server_port}/demos/shield-gpu/index.html');page.wait_for_function('()=>window.shieldGPUReplay')
           page.evaluate("document.body.classList.add('timing')")
           page.evaluate('()=>shieldGPUReplay.paint(5160,true)');page.locator('#gpu').screenshot(path=str(out/(variant+'-100.png')))
-          report['ordinaryShips']=page.evaluate(PREPARE,scale)
+          report['ordinaryShips']=page.evaluate(PREPARE,{'scale':scale,'geometry':geometry})
           for time in [40,160,300,380,460,620,800]:
             page.evaluate('(t)=>__casePaint(t)',time);page.locator('#gpu').screenshot(path=str(out/f'{variant}-ordinary-{time}.png'))
           if variant!='original':

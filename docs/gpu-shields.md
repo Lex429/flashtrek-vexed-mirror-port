@@ -162,7 +162,8 @@ there is still one instanced shield batch.
 
 **Controlled renderer comparison: ship lighting OFF.** Edge 155.0.4283.62,
 headless, Intel Arc / ANGLE D3D11 (driver 32.0.101.9150), 1280 by 850, DPR 1.
-Both versions used the same 100 original-size, fully visible mixed-fleet ships,
+Both versions used the same 100 fully visible mixed-fleet ships at the existing
+replay's pinned artwork dimensions,
 movement, recorded hits, background and camera. All 100 shields remained active
 on every measured frame. Each version received three sequential warmed
 20-second windows, followed by three more in reversed order after a slow final
@@ -209,6 +210,11 @@ an unused-space crop do not resize artwork. Captures and encoding are outside
 timing measurements. Raw results and the comparison recording are retained in
 `test-results/shield-ripple-20261023/` and are not committed. Actual combat is
 verified separately; this renderer replay does not establish battle performance.
+The capture reads dimensions and shield radii from the live shared definitions,
+independently of replay metadata. In particular, the pinned replay's Sail width
+is 90 logical pixels, whereas native gameplay uses approximately 21.27. The
+benchmark remains unchanged between versions; the ordinary-ship video uses the
+actual native width.
 
 All 517 Node tests passed before and after this refinement, as did eight local
 site tests, 15 existing GPU visual checks, 13 focused ripple checks in Edge and
