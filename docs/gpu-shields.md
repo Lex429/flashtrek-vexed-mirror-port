@@ -139,3 +139,84 @@ The saved baseline comes from commit `e0445ac`: its `shield-gpu.js`,
 `shield-gpu-live.js`, and the replay's `index.html`, `replay.js` and `ships.js`
 are stored together in the baseline directory. Recordings, screenshots, raw
 timestamps, query samples and full reports remain in ignored `test-results/`.
+
+## Brighter ripple with an independent fade
+
+The current refinement uses `8987ef3` as its polished comparison baseline and
+restores the cyan-blue colour range from `e0445ac`. It keeps the polished soft
+wave edges and localized contact light. The ordinary rim remains softer than
+the original bright hoop. The white-hot contact still cools between 45 and
+80 ms and has its own quick brightness decay.
+
+Ripple travel and field fading now have separate clocks. The wave reaches past
+the farthest possible shield point by 380 ms, including its soft edge; the field
+holds its brightness until 460 ms, then smoothly fades to the existing 900-ms
+expiry. Its conservative reach uses the shared ellipse radii plus the actual
+contact offset, so an elongated or small shield completes its journey too.
+Repeated hits refresh the existing bounded slot. Collapse is unchanged.
+
+Only the normal-effect shader parameters and wave radius changed at runtime.
+The geometry, instance storage, bounds, live adapter, drawing passes, pause and
+gameplay owners are unchanged. The radius reuses an existing shader varying;
+there is still one instanced shield batch.
+
+**Controlled renderer comparison: ship lighting OFF.** Edge 155.0.4283.62,
+headless, Intel Arc / ANGLE D3D11 (driver 32.0.101.9150), 1280 by 850, DPR 1.
+Both versions used the same 100 original-size, fully visible mixed-fleet ships,
+movement, recorded hits, background and camera. All 100 shields remained active
+on every measured frame. Each version received three sequential warmed
+20-second windows, followed by three more in reversed order after a slow final
+revised window. All twelve windows are retained:
+
+| Block | Version | Average FPS | Mean ms | P95 ms | P99 ms | Worst ms | Pauses above 50 ms |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| First three | Polished baseline | 123.56 | 8.093 | 8.90 | 15.80 | 48.40 | 0 |
+| First three | Revised ripple | 123.10 | 8.124 | 8.70 | 16.70 | 72.20 | 5 |
+| Reversed confirmation | Polished baseline | 128.06 | 7.809 | 8.60 | 9.00 | 13.70 | 0 |
+| Reversed confirmation | Revised ripple | 128.79 | 7.765 | 8.40 | 8.70 | 21.10 | 0 |
+| All six | Polished baseline | 125.81 | 7.949 | 8.60 | 10.20 | 48.40 | 0 |
+| All six | Revised ripple | 125.94 | 7.940 | 8.60 | 9.60 | 72.20 | 5 |
+
+The revised mean is 0.009 ms lower overall; the first block was 0.030 ms higher.
+These small differences change direction between blocks and are within the
+observed run variation. The slow revised window averaged 117.37 FPS and contained
+all five long pauses; it is not discarded or attributed to a specific cause.
+The confirmation did not reproduce those pauses. Separate GPU queries for the
+complete scene averaged 0.251 ms before and 0.242 ms after, with lower revised
+means in all three pairs. No meaningful shader performance regression was
+detected. This does not prove zero cost or locked smooth 120 FPS: percentile
+times exceed 8.33 ms and headless RAF does not verify physical monitor delivery.
+
+Retained replay resources stayed at 8,388,600 texture bytes, 21,728 GPU buffer
+bytes, 20,480 CPU instance bytes and a nominal 4,352,000-byte framebuffer.
+There were six initial artwork uploads and no further texture uploads in any
+window. The live overlay still uses its four-byte placeholder texture.
+Boundary V8 heap changes ranged from -4.27 to +2.21 MB before and -3.10 to
++1.98 MB after; these samples are not GC-normalized. Browser/driver overhead,
+compiled shaders and actual driver VRAM are outside the nominal resource counts.
+The short runs cannot establish absence of a long-session memory leak.
+
+The focused pixel regression now checks clear travel across five small/large
+ship types, sustained brightness before completion, fading afterward, the brief
+white contact and exact unchanged collapse pixels at five ages. CI installs
+Pillow explicitly for the existing GPU pixel tests, then fetches the pinned
+polished baseline for this regression.
+
+`tests/browser-shield-ripple-capture.py` captures matched ordinary ships at the
+actual native-game scale. Its side-by-side video labels the first 4.8 seconds
+as normal speed (1x) and the last 2.4 as slow motion (0.5x). Offline labels and
+an unused-space crop do not resize artwork. Captures and encoding are outside
+timing measurements. Raw results and the comparison recording are retained in
+`test-results/shield-ripple-20261023/` and are not committed. Actual combat is
+verified separately; this renderer replay does not establish battle performance.
+
+All 517 Node tests passed before and after this refinement, as did eight local
+site tests, 15 existing GPU visual checks, 13 focused ripple checks in Edge and
+Chromium, and the live GPU, beam alignment, ship contract, equipment/Inventory
+and smoke browser suites. The separate native combat check used normal lighting
+ON and 20 initial AI combatants: baseline 11.61 FPS with 1–20 visible ships,
+revised 9.93 FPS with 6–20. It recorded 466/437 shots and 363/366 shield impacts,
+including physical interception and at most one damage application per shot.
+Pure GPU rendering preserved serialized gameplay state. These battles diverged
+in population and activity and cannot isolate shield cost; normal combat remains
+far below 120 FPS under these conditions.

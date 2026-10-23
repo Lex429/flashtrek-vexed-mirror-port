@@ -1,4 +1,4 @@
-"""Fixed-time GPU readbacks for shield polish; all work is outside performance measurements."""
+"""GPU ripple travel/fade and visibility readbacks, outside performance measurements."""
 import argparse
 import functools
 import http.server
@@ -37,7 +37,22 @@ PROBE=r'''async()=>{
    minContactBlue=Math.min(minContactBlue,region(x+Math.cos(a)*lx-Math.sin(a)*ly,y+Math.sin(a)*lx+Math.cos(a)*ly).rgb[2]);
   }
  }
- return {phases,collapse,minContactBlue,minActive,glError:g.getError()};
+ const journeys=[];
+ for(const i of [2,0,1,4,5]){
+  const ship={...p.fleet[i],x:640,y:425,angle:.35,motion:0};p.renderer.setFleet([ship]);
+  p.renderer.hit(0,{x:ship.rx*.94,y:0,born:0,strength:1});
+  const samples=[.3,-.15,-.6,-.82].map(f=>({fraction:f,peakBlue:0,peakTime:0}));
+  for(let time=0;time<=400;time+=10){
+   p.renderer.render(time,{effects:true,ships:false,background:false});
+   for(const point of samples){const x=ship.rx*point.fraction,c=Math.cos(ship.angle),s=Math.sin(ship.angle),a=new Uint8Array(3*3*4);
+    g.readPixels(Math.round(ship.x+c*x)-1,g.canvas.height-Math.round(ship.y+s*x)-2,3,3,g.RGBA,g.UNSIGNED_BYTE,a);
+    let blue=0;for(let j=2;j<a.length;j+=4)blue=Math.max(blue,a[j]);
+    if(blue>point.peakBlue){point.peakBlue=blue;point.peakTime=time;}
+   }
+  }
+  journeys.push({type:shieldReplayShips[ship.layer].id,width:ship.w,height:ship.h,samples});
+ }
+ return {phases,collapse,minContactBlue,minActive,journeys,glError:g.getError()};
 }'''
 
 def main():
@@ -51,7 +66,7 @@ def main():
       with sync_playwright() as p:
        for variant in ['baseline','polished']:
         channel=os.environ.get('BROWSER_CHANNEL','msedge');browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
-        page=browser.new_page(viewport={'width':1280,'height':850},device_scale_factor=1)
+        page=browser.new_page(viewport={'width':1280,'height':850},device_scale_factor=1);page.set_default_timeout(120000)
         source=(args.baseline/'shield-gpu.js').read_bytes() if variant=='baseline' else (ROOT/'html-games/flashtrek-broken-mirror/shield-gpu.js').read_bytes()
         page.route('**/shield-gpu.js',lambda route:route.fulfill(status=200,content_type='text/javascript',body=source))
         page.goto(f'http://127.0.0.1:{server.server_port}/demos/shield-gpu/index.html');page.wait_for_function('()=>window.shieldGPUReplay')
@@ -59,10 +74,13 @@ def main():
       b={x['time']:x for x in results['baseline']['phases']};v={x['time']:x for x in results['polished']['phases']}
       checks={'whiteHotAt40ms':min(v[40]['front']['rgb'])>=245,
               'cyanBy80ms':v[80]['front']['rgb'][2]-v[80]['front']['rgb'][0]>80,
-              'quieterRimAt150ms':v[150]['back']['blueSum']<b[150]['back']['blueSum']*.4,
+              'clearerCyanRimThanPolishedBaseline':v[150]['back']['blueSum']>b[150]['back']['blueSum']*1.4,
               'impactSectionBrighterThanFarRim':v[150]['front']['rgb'][2]>v[150]['back']['rgb'][2]*3,
-              'strongPhaseFadesBeforeNextHit':v[440]['back']['blueSum']<v[150]['back']['blueSum']*.4,
+              'rimSustainsUntilRippleCompletes':v[440]['back']['blueSum']>v[150]['back']['blueSum']*.7,
               'faintTailAt650ms':v[650]['back']['rgb'][2]>0,
+              'smoothFadeAfterCrossing':0<v[650]['back']['blueSum']<v[440]['back']['blueSum'],
+              'visibleJourneyOnSmallAndLargeShips':all(min(p['peakBlue'] for p in j['samples'])>=90 for j in results['polished']['journeys']),
+              'rippleTravelsAcrossShieldInOrder':all(all(a['peakTime']<=b['peakTime'] for a,b in zip(j['samples'],j['samples'][1:])) for j in results['polished']['journeys']),
               'expiredAt900ms':v[900]['active']==0 and v[900]['front']['rgb']==[0,0,0],
               'collapsePixelsUnchanged':results['baseline']['collapse']==results['polished']['collapse'],
               '100ContactsRemainVisibleThroughoutHitCycle':results['polished']['minActive']==100 and results['polished']['minContactBlue']>=8,

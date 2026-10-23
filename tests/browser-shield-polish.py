@@ -125,6 +125,7 @@ def main():
           print(args.phase,variant,run,'setup',flush=True)
           channel=os.environ.get('BROWSER_CHANNEL','msedge')
           browser=p.chromium.launch(headless=not args.headed,**({'channel':channel} if channel else {}))
+          if 'browser' in report:assert report['browser']==browser.version,'Browser changed between trials'
           report['browser']=browser.version
           if 'graphics' not in report:
               session=browser.new_browser_cdp_session();report['graphics']=session.send('SystemInfo.getInfo');session.detach()
@@ -137,12 +138,16 @@ def main():
           page.wait_for_function("()=>/^(Ready|Failed)/.test(document.querySelector('#status').textContent)")
           assert page.locator('#status').inner_text().startswith('Ready'),page.locator('#status').inner_text()
           page.evaluate("document.body.classList.add('timing')")
-          report['environment']=page.evaluate('shieldGPUReplay.renderer.environment')
-          if 'replaySHA256' not in report:
-              for name in ['fleet','sequence']:
-                  text=page.evaluate('(name)=>JSON.stringify(shieldGPUReplay[name])',name)
-                  (out/(name+'.json')).write_text(text,encoding='utf-8')
-                  report[name+'SHA256']=hashlib.sha256(text.encode()).hexdigest()
+          environment=page.evaluate('shieldGPUReplay.renderer.environment')
+          if 'environment' in report:assert report['environment']==environment,'Graphics environment changed between trials'
+          report['environment']=environment
+          for name in ['fleet','sequence']:
+              text=page.evaluate('(name)=>JSON.stringify(shieldGPUReplay[name])',name)
+              digest=hashlib.sha256(text.encode()).hexdigest()
+              key=name+'SHA256'
+              if key in report:assert report[key]==digest,name+' changed between trials'
+              report[key]=digest
+              (out/(name+'.json')).write_text(text,encoding='utf-8')
           page.evaluate(MEASURE,{'seconds':3,'offset':0})
           if args.phase=='measure':
               before=memory(browser,page);resourceBefore=page.evaluate('shieldGPUReplay.renderer.snapshot()')

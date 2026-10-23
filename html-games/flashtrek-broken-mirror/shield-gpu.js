@@ -25,11 +25,15 @@
     if(rotation.w>.5&&life.w<.5){
       float age=(time-life.x)/life.y,seconds=(time-life.x)*.001;
       float hot=1.-smoothstep(.045,.080,seconds),pulse=1.-smoothstep(.055,.255,seconds);
-      float fade=(1.-age)*(.28+.72*pulse)*life.z;
+      float contactFade=(1.-age)*(.28+.72*pulse)*life.z;
+      float travelSeconds=min(.380,life.y*.0006),fadeStart=min(.460,life.y*.0007);
+      float envelope=(1.-smoothstep(fadeStart,life.y*.001,seconds))*life.z;
+      float reach=max(shield.x,shield.y)+length(shield.zw)+4.1;
+      float radius=mix(3.,reach,clamp(seconds/travelSeconds,0.,1.));
       float shimmer=.92+.08*sin(time*.014+art.w);
-      fieldColour=mix(vec3(.08,.42,1.),vec3(.18,.73,1.),.5+.5*sin(time*.003+art.w));
-      energy=vec4(.11*shimmer,(.48*pulse+.12)*shimmer,.18+.42*pulse,0.)*fade;
-      contactColour=mix(fieldColour,vec3(1.),hot)*(.24+.76*pulse+1.4*hot)*fade;
+      fieldColour=mix(vec3(.12,.65,1.),vec3(.45,.95,1.),.5+.5*sin(time*.003+art.w));
+      energy=vec4(.18*shimmer*envelope,(.20+.28*pulse)*shimmer*envelope,.68*envelope,radius);
+      contactColour=mix(fieldColour,vec3(1.),hot)*(.24+.76*pulse+1.4*hot)*contactFade;
     }
   }`;
   const fragment=`#version 300 es
@@ -48,7 +52,7 @@
       float rim=1.-smoothstep(.18,.95,abs(edge));
       float halo=1.-smoothstep(.9,3.5,abs(edge));
       float impactSection=1.-smoothstep(3.,max(12.,min(field.x,field.y)*1.15),distanceToContact);
-      float radius=mix(3.,max(field.x,field.y)*2.2,age);
+      float radius=energy.w;
       float wave=1.-smoothstep(.35,4.1,abs(distanceToContact-radius));
       wave*=wave*(1.-smoothstep(-1.,.5,edge));
       float contact=1.-smoothstep(.5,3.5,distanceToContact);
