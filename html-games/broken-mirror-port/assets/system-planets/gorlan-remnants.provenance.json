@@ -1,0 +1,14 @@
+{
+  "id": "gorlan-remnants",
+  "file": "gorlan-remnants.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: final transparent orbital game sprite for Vexed Mirror, matching the high-detail realistic cinematic planet art already used in Sol. ONE complete subject centered in square composition; entire object and rings/debris comfortably within 78 percent of frame, 11 percent transparent margin all around. Realistic orbital distance, natural upper-left illumination, detailed believable surface and clean antialiased silhouette. Genuinely transparent background. No background stars, no labels, no text, no logo, no spaceships. Subject: The destroyed Gorlan homeworld: an irregular compact orbital debris field of several large dark rocky planetary remnants and many finer shattered fragments, faint dusty arcs, with no intact planet remaining. Realistic lifeless fractured grey-brown rock faces, no glowing explosive fire, no bright center. Subject should read clearly as the ruins of a shattered world at icon size.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-02b93637-a47c-4292-aaf0-350f84171a87.png",
+  "sourceSha256": "b2f677d4e1cd82670766166af2aa160908b7a6a7807c9af9d5784ee5da0304da",
+  "sha256": "50bf3ef9ab746a30ad35f22fbdbf168e749837d9814ffde1fbc1372957f6209e",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "eris",
+  "file": "eris.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Eris, Solar System dwarf planet, bright pale grey-white icy surface with soft mottling, full spherical disk, no clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-c097a0da-7cb3-4449-8665-65cbe46e7f9c.png",
+  "sourceSha256": "733cf007e230b4602cb50d02747de07119957d538c4bd61bf7aa4dc3bdcb408d",
+  "sha256": "a3366a73c5123b859da8e3115964c9e194c6b79c4c9c19ec66c662bf9ef340a8",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

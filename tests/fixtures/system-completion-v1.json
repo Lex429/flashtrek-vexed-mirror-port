@@ -1,0 +1,4001 @@
+[
+  {
+    "id": 1,
+    "homeBodyByLegacy": {
+      "1": 3
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Sol",
+        "kind": "star",
+        "x": -6000,
+        "y": -1000,
+        "size": 266,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 1,
+        "name": "Mercury",
+        "kind": "planet",
+        "x": -4100,
+        "y": 1100,
+        "size": 87,
+        "port": true,
+        "population": 84000
+      },
+      {
+        "id": 2,
+        "name": "Venus",
+        "kind": "planet",
+        "x": -2300,
+        "y": -1500,
+        "size": 147,
+        "port": true,
+        "population": 120000
+      },
+      {
+        "id": 3,
+        "name": "Earth",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 1,
+        "port": true,
+        "population": 4200000000
+      },
+      {
+        "id": 4,
+        "name": "Moon",
+        "kind": "moon",
+        "x": 1400,
+        "y": -250,
+        "size": 67,
+        "parentId": 3,
+        "port": true,
+        "population": 50200000
+      },
+      {
+        "id": 5,
+        "name": "Mars",
+        "kind": "planet",
+        "x": 4800,
+        "y": 1800,
+        "size": 119,
+        "port": true,
+        "population": 133800000
+      },
+      {
+        "id": 6,
+        "name": "Asteroid Belt",
+        "kind": "belt",
+        "x": 8000,
+        "y": -1400,
+        "size": 147,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 7,
+        "name": "Jupiter",
+        "kind": "gas_giant",
+        "x": 11800,
+        "y": 2700,
+        "size": 231,
+        "port": true,
+        "population": 1200000
+      },
+      {
+        "id": 8,
+        "name": "Saturn",
+        "kind": "gas_giant",
+        "x": 15300,
+        "y": -2700,
+        "size": 217,
+        "port": true,
+        "population": 320000
+      },
+      {
+        "id": 9,
+        "name": "Uranus",
+        "kind": "ice_giant",
+        "x": 19000,
+        "y": 3300,
+        "size": 157,
+        "port": true,
+        "population": 48000
+      },
+      {
+        "id": 10,
+        "name": "Neptune",
+        "kind": "ice_giant",
+        "x": 23200,
+        "y": -4400,
+        "size": 154,
+        "port": true,
+        "population": 36000
+      },
+      {
+        "id": 11,
+        "name": "Pluto",
+        "kind": "dwarf_planet",
+        "x": 27400,
+        "y": 4200,
+        "size": 56,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 12,
+        "name": "Ceres",
+        "kind": "dwarf_planet",
+        "x": 8200,
+        "y": -2100,
+        "size": 48,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 13,
+        "name": "Haumea",
+        "kind": "dwarf_planet",
+        "x": 29200,
+        "y": -2400,
+        "size": 48,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 14,
+        "name": "Makemake",
+        "kind": "dwarf_planet",
+        "x": 31100,
+        "y": 2200,
+        "size": 48,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 15,
+        "name": "Eris",
+        "kind": "dwarf_planet",
+        "x": 33600,
+        "y": -3000,
+        "size": 48,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "homeBodyByLegacy": {
+      "2": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Orion",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 2,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Tabit / Pi³ Orionis",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "homeBodyByLegacy": {
+      "3": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Lik Prime",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 3,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Lik Secundus",
+        "kind": "planet",
+        "x": -1700,
+        "y": -1100,
+        "size": 85,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Lik Prime A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "homeBodyByLegacy": {
+      "4": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Alpha Centauri",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 4,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Rigil Kentaurus / Alpha Centauri A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 901,
+        "name": "Alpha Centauri B",
+        "kind": "star",
+        "x": -5500,
+        "y": 1400,
+        "size": 170,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "homeBodyByLegacy": {
+      "5": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Paso",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 5,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Paso A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "homeBodyByLegacy": {
+      "6": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "New Switzerland",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 6,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Helvetia",
+        "kind": "moon",
+        "x": 1050,
+        "y": -550,
+        "size": 68,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "New Switzerland A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "homeBodyByLegacy": {
+      "7": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Trey",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 7,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Trey Borealis",
+        "kind": "planet",
+        "x": 4100,
+        "y": -1500,
+        "size": 110,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Trey A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "homeBodyByLegacy": {
+      "8": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Epsilon",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 8,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Epsilon A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "homeBodyByLegacy": {
+      "9": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Quintus",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 9,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Quintus A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "homeBodyByLegacy": {
+      "10": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Gorn",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 10,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Gorn A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "homeBodyByLegacy": {
+      "11": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Rigel",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 11,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Rigel A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "homeBodyByLegacy": {
+      "12": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Vulcan",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 12,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 1,
+        "name": "T'Khut",
+        "kind": "planet",
+        "x": -1100,
+        "y": 1100,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 2,
+        "name": "40 Eridani A I",
+        "kind": "planet",
+        "x": -1800,
+        "y": -1200,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 3,
+        "name": "Kerkhov",
+        "kind": "planet",
+        "x": 4617,
+        "y": -546,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 4,
+        "name": "Kerkhov A",
+        "kind": "moon",
+        "x": 5517,
+        "y": -96,
+        "size": 66,
+        "parentId": 3,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 5,
+        "name": "T'Khut A",
+        "kind": "moon",
+        "x": -200,
+        "y": 2000,
+        "size": 66,
+        "parentId": 1,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Keid / 40 Eridani A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 901,
+        "name": "40 Eridani B",
+        "kind": "star",
+        "x": -5500,
+        "y": 1800,
+        "size": 85,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 902,
+        "name": "40 Eridani C",
+        "kind": "star",
+        "x": -6800,
+        "y": 3000,
+        "size": 65,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "homeBodyByLegacy": {
+      "13": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Opusab",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 13,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Opusab A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "homeBodyByLegacy": {
+      "14": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Ferenginar",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 14,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Ventarus Idrilon",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Ventarus Idrilon I",
+        "kind": "planet",
+        "x": -2500,
+        "y": -1700,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Ventarus Idrilon II",
+        "kind": "planet",
+        "x": -1600,
+        "y": -1100,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Ventarus Idrilon III",
+        "kind": "planet",
+        "x": -700,
+        "y": -450,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 103,
+        "name": "Ventarus Idrilon V",
+        "kind": "gas_giant",
+        "x": 2600,
+        "y": 1400,
+        "size": 210,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 104,
+        "name": "Ventarus Idrilon VI",
+        "kind": "planet",
+        "x": 5400,
+        "y": -1700,
+        "size": 125,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "homeBodyByLegacy": {
+      "15": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Lysia",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 15,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Lysia A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "homeBodyByLegacy": {
+      "16": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Nausicaa",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 16,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Nausicaa A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "homeBodyByLegacy": {
+      "17": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Denmark",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 17,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Skadi",
+        "kind": "gas_giant",
+        "x": 5000,
+        "y": 1900,
+        "size": 230,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Rime",
+        "kind": "moon",
+        "x": 5950,
+        "y": 2450,
+        "size": 62,
+        "parentId": 100,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Denmark A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "homeBodyByLegacy": {
+      "18": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Tholia",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 18,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Tholia A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "homeBodyByLegacy": {
+      "19": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Flash",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 19,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Flash A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "homeBodyByLegacy": {
+      "20": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Oce Nu",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 20,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Oce Nu A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "homeBodyByLegacy": {
+      "21": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Koann",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 21,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Kovath",
+        "kind": "planet",
+        "x": -2000,
+        "y": -850,
+        "size": 120,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Koann A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 22,
+    "homeBodyByLegacy": {
+      "22": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Biakisch",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 22,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Biakisch A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "homeBodyByLegacy": {
+      "23": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Delpi",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 23,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Delphara",
+        "kind": "moon",
+        "x": 900,
+        "y": 650,
+        "size": 62,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Delpi A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 24,
+    "homeBodyByLegacy": {
+      "24": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Iconia",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 24,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Iconia A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 25,
+    "homeBodyByLegacy": {
+      "25": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Andoria",
+        "kind": "moon",
+        "x": 0,
+        "y": 0,
+        "size": 105,
+        "legacyWorldId": 25,
+        "parentId": 1,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 1,
+        "name": "Andor",
+        "kind": "gas_giant",
+        "x": -1500,
+        "y": -900,
+        "size": 250,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Procyon A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 26,
+    "homeBodyByLegacy": {
+      "26": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Konae",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 26,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Konae A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 27,
+    "homeBodyByLegacy": {
+      "27": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Trill",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 27,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Trill A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 28,
+    "homeBodyByLegacy": {
+      "28": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Tepos",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 28,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Tepos Major",
+        "kind": "gas_giant",
+        "x": 4800,
+        "y": -2100,
+        "size": 220,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Tepos A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 29,
+    "homeBodyByLegacy": {
+      "29": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Blender",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 29,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Blender A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 31,
+    "homeBodyByLegacy": {
+      "30": 1,
+      "31": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Romulus",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 31,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 1,
+        "name": "Remus",
+        "kind": "planet",
+        "x": 1466,
+        "y": 1099,
+        "size": 180,
+        "legacyWorldId": 30,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 2,
+        "name": "V’Ralas",
+        "kind": "planet",
+        "x": -1800,
+        "y": -1200,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 3,
+        "name": "Draevan",
+        "kind": "planet",
+        "x": 4600,
+        "y": 2300,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Romulus",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 32,
+    "homeBodyByLegacy": {
+      "32": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Harman",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 32,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Harman A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 33,
+    "homeBodyByLegacy": {
+      "33": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Kardon",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 33,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Kardon A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 34,
+    "homeBodyByLegacy": {
+      "34": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Vex",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 34,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Vex A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 35,
+    "homeBodyByLegacy": {
+      "35": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Lameu",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 35,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Lameu A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 36,
+    "homeBodyByLegacy": {
+      "36": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Batos",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 36,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Batos A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 37,
+    "homeBodyByLegacy": {
+      "37": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Worf",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 37,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Worf A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 38,
+    "homeBodyByLegacy": {
+      "38": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Qo'noS",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 38,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 1,
+        "name": "Praxis",
+        "kind": "moon",
+        "x": 900,
+        "y": 900,
+        "size": 66,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Qo'noS A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 39,
+    "homeBodyByLegacy": {
+      "39": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Xonok",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 39,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Xonok A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 40,
+    "homeBodyByLegacy": {
+      "40": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Qem-Kis",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 40,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Qem-Kis A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 41,
+    "homeBodyByLegacy": {
+      "41": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Anorez",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 41,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Anorez Borealis",
+        "kind": "planet",
+        "x": 3900,
+        "y": 2600,
+        "size": 108,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Vesh",
+        "kind": "moon",
+        "x": -950,
+        "y": 600,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Anorez A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 42,
+    "homeBodyByLegacy": {
+      "42": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Du'Qot",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 42,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Du'Qot A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 43,
+    "homeBodyByLegacy": {
+      "43": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Hof-Maso",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 43,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Hof-Maso A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Korth Forge",
+        "kind": "planet",
+        "x": -1000,
+        "y": 850,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Khor’Vak",
+        "kind": "planet",
+        "x": 6800,
+        "y": -1600,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Maso A",
+        "kind": "moon",
+        "x": 1000,
+        "y": -600,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 103,
+        "name": "Mok’Tar",
+        "kind": "planet",
+        "x": 9200,
+        "y": 2000,
+        "size": 125,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 44,
+    "homeBodyByLegacy": {
+      "44": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Nyoabek",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 44,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Nyoabek A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 45,
+    "homeBodyByLegacy": {
+      "45": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Hos'Ichu",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 45,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Khorat",
+        "kind": "moon",
+        "x": 1000,
+        "y": -500,
+        "size": 58,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Hos'Ichu A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 46,
+    "homeBodyByLegacy": {
+      "46": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Kah'Less",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 46,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Kah'Less A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 47,
+    "homeBodyByLegacy": {
+      "47": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Bajor",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 47,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 1,
+        "name": "Bajor VIII",
+        "kind": "planet",
+        "x": 1466,
+        "y": 1099,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 2,
+        "name": "Bajor VIII-b",
+        "kind": "moon",
+        "x": 2366,
+        "y": 1549,
+        "size": 66,
+        "parentId": 1,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 3,
+        "name": "Derna",
+        "kind": "moon",
+        "x": 900,
+        "y": 900,
+        "size": 66,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 4,
+        "name": "Jeraddo",
+        "kind": "moon",
+        "x": 900,
+        "y": 450,
+        "size": 66,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "B'hava'el",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 48,
+    "homeBodyByLegacy": {
+      "48": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Noron",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 48,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Noron A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 49,
+    "homeBodyByLegacy": {
+      "49": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Erasariel",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 49,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Erasariel Farpoint",
+        "kind": "ice_giant",
+        "x": 4300,
+        "y": 2200,
+        "size": 185,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Erasariel A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 50,
+    "homeBodyByLegacy": {
+      "50": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Cardassia Prime",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 50,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 1,
+        "name": "Cardassia I",
+        "kind": "planet",
+        "x": -1800,
+        "y": -1200,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 2,
+        "name": "Cardassia III",
+        "kind": "planet",
+        "x": 2000,
+        "y": 1300,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 3,
+        "name": "Cardassia IV",
+        "kind": "planet",
+        "x": 4400,
+        "y": 2300,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 4,
+        "name": "Cardassia V",
+        "kind": "planet",
+        "x": 6500,
+        "y": -500,
+        "size": 140,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Cardassia",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 51,
+    "homeBodyByLegacy": {
+      "51": 1
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Dyson",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 1,
+        "name": "The Sphere",
+        "kind": "megastructure",
+        "x": -4000,
+        "y": 0,
+        "size": 330,
+        "legacyWorldId": 51,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Dyson A",
+        "kind": "star",
+        "x": -4000,
+        "y": 0,
+        "size": 230,
+        "port": false,
+        "population": 0,
+        "occludedBy": 1
+      }
+    ]
+  },
+  {
+    "id": 52,
+    "homeBodyByLegacy": {
+      "52": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Pirates Haven",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 52,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Pirates Haven A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 53,
+    "homeBodyByLegacy": {
+      "53": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Halkan homeworld",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 53,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Serevan",
+        "kind": "planet",
+        "x": -1700,
+        "y": -1100,
+        "size": 85,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Tharn",
+        "kind": "moon",
+        "x": 1050,
+        "y": 650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Lethan",
+        "kind": "planet",
+        "x": 6500,
+        "y": -2200,
+        "size": 105,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Halka A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 54,
+    "homeBodyByLegacy": {
+      "54": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Vintaak gas giant",
+        "kind": "gas_giant",
+        "x": 0,
+        "y": 0,
+        "size": 250,
+        "legacyWorldId": 54,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Vintaak A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Vintaak B",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Vintaak C",
+        "kind": "moon",
+        "x": 1430,
+        "y": -1010,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Vintaak A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 55,
+    "homeBodyByLegacy": {
+      "55": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Epsilon Indi IV",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 55,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Epsilon Indi I",
+        "kind": "planet",
+        "x": -2850,
+        "y": -1950,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Epsilon Indi II",
+        "kind": "planet",
+        "x": -1900,
+        "y": -1300,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Epsilon Indi III",
+        "kind": "planet",
+        "x": -950,
+        "y": -650,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Epsilon Indi A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 56,
+    "homeBodyByLegacy": {
+      "56": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Harlak",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 56,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Firewolf",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Harlak A",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Harlak A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 57,
+    "homeBodyByLegacy": {
+      "57": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Risa",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 57,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Risa A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Risa B",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Risan Ember",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Risa A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 58,
+    "homeBodyByLegacy": {
+      "58": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Vega IX",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 58,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Vega I",
+        "kind": "planet",
+        "x": -3378,
+        "y": -2311,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Vega II",
+        "kind": "planet",
+        "x": -2956,
+        "y": -2022,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Vega III",
+        "kind": "planet",
+        "x": -2533,
+        "y": -1733,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 103,
+        "name": "Vega IV",
+        "kind": "gas_giant",
+        "x": -2111,
+        "y": -1444,
+        "size": 210,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 104,
+        "name": "Vega V",
+        "kind": "planet",
+        "x": -1689,
+        "y": -1156,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 105,
+        "name": "Vega VI",
+        "kind": "gas_giant",
+        "x": -1267,
+        "y": -867,
+        "size": 210,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 106,
+        "name": "Vega VII",
+        "kind": "planet",
+        "x": -844,
+        "y": -578,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 107,
+        "name": "Vega VIII",
+        "kind": "planet",
+        "x": -422,
+        "y": -289,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Vega / Alpha Lyrae",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 59,
+    "homeBodyByLegacy": {
+      "59": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Gorlan homeworld remnants",
+        "kind": "debris_field",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 59,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Gorlan A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 60,
+    "homeBodyByLegacy": {
+      "60": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Kepler-174d",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 60,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Kepler-174 b",
+        "kind": "planet",
+        "x": -3239,
+        "y": -2216,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Kepler-174 c",
+        "kind": "planet",
+        "x": -2599,
+        "y": -1778,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Kepler-174",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 61,
+    "homeBodyByLegacy": {
+      "61": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Priors World",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 61,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Priors A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Priors Outwatch",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Priors World A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 62,
+    "homeBodyByLegacy": {
+      "62": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Tonnata VII",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 62,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Tonnata II",
+        "kind": "planet",
+        "x": -2533,
+        "y": -1733,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Tonnata V",
+        "kind": "gas_giant",
+        "x": -1267,
+        "y": -867,
+        "size": 210,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Tonnata VIII",
+        "kind": "planet",
+        "x": 8900,
+        "y": -2100,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Tonnata A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 63,
+    "homeBodyByLegacy": {
+      "63": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Sorna Prime",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 63,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Severus",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Sorna A",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Sorna A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 64,
+    "homeBodyByLegacy": {
+      "64": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Wurna Minor survey region",
+        "kind": "region",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 64,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Wurna Minor A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 65,
+    "homeBodyByLegacy": {
+      "65": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Purmata VI",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 65,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Alecto",
+        "kind": "planet",
+        "x": -1900,
+        "y": -1300,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Purmata A",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Purmata A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 66,
+    "homeBodyByLegacy": {
+      "66": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Elpha survey region",
+        "kind": "region",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 66,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Elpha A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 67,
+    "homeBodyByLegacy": {
+      "67": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Quam survey region",
+        "kind": "region",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 67,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Quam A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 68,
+    "homeBodyByLegacy": {
+      "68": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Mintaka III",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 68,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Mintaka I",
+        "kind": "planet",
+        "x": -2533,
+        "y": -1733,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Mintaka II",
+        "kind": "planet",
+        "x": -1267,
+        "y": -867,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Mintaka / Delta Orionis",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 69,
+    "homeBodyByLegacy": {
+      "69": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Betazed",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 69,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Betazed A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Rixara",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Betazed A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 70,
+    "homeBodyByLegacy": {
+      "70": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Talos IV",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 70,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Talos I",
+        "kind": "planet",
+        "x": -2850,
+        "y": -1950,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Talos II",
+        "kind": "planet",
+        "x": -1900,
+        "y": -1300,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Talos III",
+        "kind": "planet",
+        "x": -950,
+        "y": -650,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Talos A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 71,
+    "homeBodyByLegacy": {
+      "71": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Tau Ceti IV",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 71,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Tau Ceti I",
+        "kind": "planet",
+        "x": -2850,
+        "y": -1950,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Tau Ceti II",
+        "kind": "planet",
+        "x": -1900,
+        "y": -1300,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Tau Ceti III",
+        "kind": "planet",
+        "x": -950,
+        "y": -650,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Tau Ceti",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 72,
+    "homeBodyByLegacy": {
+      "72": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Gorlan Station",
+        "kind": "station",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 72,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Gorlan Station A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 73,
+    "homeBodyByLegacy": {
+      "73": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Badlands",
+        "kind": "region",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 73,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Badlands A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 74,
+    "homeBodyByLegacy": {
+      "74": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Fowla survey region",
+        "kind": "region",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 74,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Fowla A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 75,
+    "homeBodyByLegacy": {
+      "75": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Porathia asteroid belts",
+        "kind": "belt",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 75,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Porathia A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 76,
+    "homeBodyByLegacy": {
+      "76": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Ventar survey region",
+        "kind": "region",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 76,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Ventar A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 77,
+    "homeBodyByLegacy": {
+      "77": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Organia",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 77,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Organia A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Ayel",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Organia A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 78,
+    "homeBodyByLegacy": {
+      "78": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Dannus V",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 78,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Aevum",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Dannus A",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Dannus A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 79,
+    "homeBodyByLegacy": {
+      "79": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "New Bajor",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 79,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "New Bajor A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Taluno",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "New Bajor A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 80,
+    "homeBodyByLegacy": {
+      "80": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Pahvo",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 80,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Pahvo A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Resona",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Pahvo A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 81,
+    "homeBodyByLegacy": {
+      "81": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Kwejian",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 81,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Kwejian A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Kwejian B",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Kwejian A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 82,
+    "homeBodyByLegacy": {
+      "82": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Archer IV",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 82,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "61 Ursae Majoris I",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "61 Ursae Majoris II",
+        "kind": "planet",
+        "x": 6700,
+        "y": 1400,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "61 Ursae Majoris III",
+        "kind": "planet",
+        "x": 8900,
+        "y": -2100,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "61 Ursae Majoris",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 83,
+    "homeBodyByLegacy": {
+      "83": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Archer's Planet",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 83,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Archer's Planet A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Forrest",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Archer's Planet A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 84,
+    "homeBodyByLegacy": {
+      "84": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Beta III",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 84,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "C-111 I",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "C-111 II",
+        "kind": "planet",
+        "x": 6700,
+        "y": 1400,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "C-111 A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 85,
+    "homeBodyByLegacy": {
+      "85": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Eminiar VII",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 85,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Eminiar I",
+        "kind": "planet",
+        "x": -3257,
+        "y": -2229,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Eminiar II",
+        "kind": "planet",
+        "x": -2714,
+        "y": -1857,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 102,
+        "name": "Vendikar",
+        "kind": "planet",
+        "x": -2171,
+        "y": -1486,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 103,
+        "name": "Eminiar IV",
+        "kind": "gas_giant",
+        "x": -1629,
+        "y": -1114,
+        "size": 210,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 104,
+        "name": "Eminiar V",
+        "kind": "planet",
+        "x": -1086,
+        "y": -743,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 105,
+        "name": "Eminiar VI",
+        "kind": "planet",
+        "x": -543,
+        "y": -371,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Eminiar A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 86,
+    "homeBodyByLegacy": {
+      "86": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Sherman's Planet",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 86,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Baris",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Sherman Harvest Moon",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Sherman A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 87,
+    "homeBodyByLegacy": {
+      "87": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Tellar Prime",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 87,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Gral",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Tellar A",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Tellar A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 88,
+    "homeBodyByLegacy": {
+      "88": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Denobula",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 88,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Bexara",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Rellix",
+        "kind": "planet",
+        "x": 6700,
+        "y": 1400,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Denobula A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 89,
+    "homeBodyByLegacy": {
+      "89": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Coridan",
+        "kind": "planet",
+        "x": 0,
+        "y": 0,
+        "size": 180,
+        "legacyWorldId": 89,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Traeg",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Coridan A",
+        "kind": "moon",
+        "x": 1190,
+        "y": -830,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Coridan A",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 90,
+    "homeBodyByLegacy": {
+      "90": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Clarus Exchange",
+        "kind": "station",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 90,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Gintar",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Zekron",
+        "kind": "gas_giant",
+        "x": 6700,
+        "y": 1400,
+        "size": 210,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Clarus",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  },
+  {
+    "id": 91,
+    "homeBodyByLegacy": {
+      "91": 0
+    },
+    "bodies": [
+      {
+        "id": 0,
+        "name": "Irtok Exchange",
+        "kind": "station",
+        "x": 0,
+        "y": 0,
+        "size": 190,
+        "legacyWorldId": 91,
+        "port": true,
+        "population": 0
+      },
+      {
+        "id": 100,
+        "name": "Irtok A",
+        "kind": "moon",
+        "x": 950,
+        "y": -650,
+        "size": 65,
+        "parentId": 0,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 101,
+        "name": "Kraxx",
+        "kind": "planet",
+        "x": -1500,
+        "y": -900,
+        "size": 125,
+        "port": false,
+        "population": 0
+      },
+      {
+        "id": 900,
+        "name": "Irtok",
+        "kind": "star",
+        "x": -3800,
+        "y": -2600,
+        "size": 230,
+        "port": false,
+        "population": 0
+      }
+    ]
+  }
+]

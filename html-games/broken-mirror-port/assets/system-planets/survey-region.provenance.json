@@ -1,0 +1,14 @@
+{
+  "id": "survey-region",
+  "file": "survey-region.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: final transparent orbital game sprite for Vexed Mirror, matching the high-detail realistic cinematic planet art already used in Sol. ONE complete subject centered in square composition; entire object and rings/debris comfortably within 78 percent of frame, 11 percent transparent margin all around. Realistic orbital distance, natural upper-left illumination, detailed believable surface and clean antialiased silhouette. Genuinely transparent background. No background stars, no labels, no text, no logo, no spaceships. Subject: A compact atmospheric chart sprite representing an unresolved deep-space survey region: wisps of muted blue-grey interstellar dust and a few tiny distant white stars, irregular soft silhouette. No planet, no central giant star, no text, no diagram symbols. Clearly a region, not a fabricated physical planet. Restrained premium cinematic space appearance.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-7c58d1c4-084c-4407-8a8d-5e43d20b741b.png",
+  "sourceSha256": "a2e032769f1280ab8c6e78b1caf9f2efb5fd095a8c928dfa79de166b40e1acc7",
+  "sha256": "a22a9285485ddac5a9faae63797ffd8dda45e8fc6bb210330a5335c85b894085",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

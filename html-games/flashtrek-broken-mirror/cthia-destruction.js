@@ -1,5 +1,19 @@
 /* Cut the current hull into disjoint sections. Every source pixel belongs to
    one section, so the initial wreckage reconstructs the visible ship exactly. */
+// Measured torn seams have a data-only form for the artwork worker. Both
+// threads use this exact owner, including floating-point seam coordinates.
+window.createTornHullPartition = data => {
+  const {id,anchors,chips}=data;
+  const hash=n=>{const v=Math.sin(n*12.9898+73.217)*43758.5453;return v-Math.floor(v);};
+  function owner(x,y){
+    const dx=(hash(Math.floor(y/4)+id*17)-.5)*6,dy=(hash(Math.floor(x/4)+id*31)-.5)*6;
+    for(let i=0;i<chips.length;i++)if(Math.hypot(x-chips[i].x+dx*.15,y-chips[i].y+dy*.15)<chips[i].r)return anchors.length+i;
+    let best=0,distance=Infinity;
+    for(let i=0;i<anchors.length;i++){const p=anchors[i],d=(x+dx-p[1])**2+(y+dy-p[2])**2;if(d<distance){distance=d;best=i;}}
+    return best;
+  }
+  return {owner,serialized:{kind:'torn-anchors-v1',id,anchors,chips}};
+};
 window.createShipDestruction = () => {
   'use strict';
   const sites=[['bow',181,100],['left arm',78,209],['right arm',285,209],
@@ -77,6 +91,8 @@ window.createShipDestruction = () => {
   }
   function prepare(frames,config={}){const iterator=preparation(frames,config);let result;do{result=iterator.next();}while(!result.done);stages=result.value;}
   async function prepareAsync(frames,config={}){
+    const remote=window.nativeDamageArtPreparation?.offscreen?.('destruction',frames,config);
+    if(remote)try{stages=await remote;for(const stage of stages)for(const piece of stage.pieces)if(piece.material)window.wreckageEffects?.adopt(piece.texture,piece.material);return;}catch{}
     const iterator=preparation(frames,config);
     if(window.nativeDamageArtPreparation)stages=await window.nativeDamageArtPreparation.run(iterator);
     else{let result;do{result=iterator.next();if(!result.done)await new Promise(resolve=>setTimeout(resolve,0));}while(!result.done);stages=result.value;}
@@ -176,6 +192,14 @@ window.createShipDestruction = () => {
     ctx.translate(Math.sin(age*.093)*amplitude,Math.sin(age*.127+1)*amplitude*.7);
   }
   const emitFragments=(state,layout,world,stage,zoom,data)=>emit(state,layout,world,stage,zoom,null,data);
-  return Object.freeze({prepare,prepareAsync,emit,emitFragments,drawParticle,drawWreckSurface,drawWreckGlow,drawStructuralWreck,updateTrails,audit,memoryBytes,shake});
+  // Isolated presentations advance the same debris and particle representation
+  // without dispatching gameplay contacts, damage, cargo or mining consequences.
+  function advanceVisual(state,dt){
+    if(!(dt>0))return;state.time+=dt*1000;
+    for(const p of state.debris){p.x+=p.vx*dt;p.y+=p.vy*dt;p.angle+=p.spin*dt;}
+    for(const p of state.particles)if(state.time>=p.born){p.x+=(p.vx||0)*dt;p.y+=(p.vy||0)*dt;}
+    updateTrails(state);state.debris=state.debris.filter(p=>state.time-p.born<p.ttl);state.particles=state.particles.filter(p=>state.time-p.born<p.ttl);
+  }
+  return Object.freeze({prepare,prepareAsync,serialized:()=>stages,emit,emitFragments,drawParticle,drawWreckSurface,drawWreckGlow,drawStructuralWreck,updateTrails,advanceVisual,audit,memoryBytes,shake});
 };
 window.cthiaDestruction=window.createShipDestruction();

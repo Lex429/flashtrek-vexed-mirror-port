@@ -1,0 +1,14 @@
+{
+  "id": "alpha-centauri",
+  "file": "alpha-centauri.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Alpha Centauri colony planet, beautiful temperate ocean world, green continents, white weather systems, faint dense coastal settlements.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-41600ac2-e54e-43fe-b299-8183d7719fe2.png",
+  "sourceSha256": "98f1858bc61a1c01efa206682a04d05c7d263dd1f2db4eef88aae08dba3aa4c7",
+  "sha256": "fb4693ee0fba5b0bd9a7923c0ef3dd51dc5620428c193e5c4a71ed6567d22192",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

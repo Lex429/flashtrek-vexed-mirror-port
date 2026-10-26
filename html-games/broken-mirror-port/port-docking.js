@@ -5,6 +5,10 @@
   const coords={1:[-4100,1100],2:[-2300,-1500],3:[0,0],4:[1400,-250],5:[4800,1800],7:[11800,2700],8:[15300,-2700],9:[19000,3300],10:[23200,-4400]};
   const sizes={1:62,2:105,3:128,4:48,5:85,7:165,8:155,9:112,10:110};
   const owner=ship=>`civilian:${ship.id}`;
+  function clearRocks(state,system,point,radius){
+    const gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
+    return (window.nativeSolAsteroids?.nearby?.(system,point,radius+80)||[]).every(rock=>gone.has(rock.slotId)||Math.hypot(point.x-rock.x,point.y-rock.y)>=radius+rock.size*.43+GAP);
+  }
   const data=state=>state.portDocking||=( {version:1,sequence:0,ships:{}} );
   function center(system,port){
     if(system!==1)return {x:0,y:0};
@@ -53,7 +57,7 @@
       const p={x:c.x+Math.cos(angle)*distance,y:c.y+Math.sin(angle)*distance,radius:r};
       const clear=points.every(q=>Math.hypot(p.x-q.x,p.y-q.y)>=r+q.radius+GAP);
       const outsideBodies=system!==1||Object.keys(coords).every(key=>{const b=center(1,Number(key));return Math.hypot(p.x-b.x,p.y-b.y)>r+(sizes[key]||128)/2+100;});
-      if(clear&&outsideBodies)return p;
+      if(clear&&outsideBodies&&clearRocks(state,system,p,r))return p;
     }
     return null;
   }
@@ -61,7 +65,8 @@
   function request(state,ship,system,port){
     const d=data(state),id=owner(ship);let current=d.ships[id];
     if(current&&(current.system!==system||current.port!==port)){release(state,ship);current=null;}
-    if(current?.kind==='berth')return current;
+    if(current?.kind==='berth'&&clearRocks(state,system,current,radius(ship)))return current;
+    if(current?.kind==='berth'){release(state,ship);current=null;}
     const local=Object.values(d.ships).filter(r=>r.system===system&&r.port===port),queue=local.filter(r=>r.kind==='queue').sort((a,b)=>a.ticket-b.ticket);
     const taken=new Set(local.flatMap(r=>r.kind==='berth'?[r.slot]:r.clearing?[r.clearing.slot]:[]));
     const first=queue[0];

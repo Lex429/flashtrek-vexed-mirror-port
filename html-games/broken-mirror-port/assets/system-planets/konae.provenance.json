@@ -1,0 +1,14 @@
+{
+  "id": "konae",
+  "file": "konae.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Konae, small uncolonized pleasant world, blue seas, green-brown continents and scattered white clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-bc5a0890-e75e-4c28-b524-435db6f67c5b.png",
+  "sourceSha256": "45ea1138a5d7dfd08459ff9553a5a69dd4466d59902b351bbd8b099fea5159fc",
+  "sha256": "cdd68b5244a3b3d9c363400b16a588a088eadbe6f1f39b35a1729901257bad15",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

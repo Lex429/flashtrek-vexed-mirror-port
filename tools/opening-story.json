@@ -1,0 +1,19 @@
+{
+  "title": "A Firm Hand",
+  "leadSeconds": 2.5,
+  "tailSeconds": 7,
+  "voice": "Microsoft David Desktop",
+  "cues": [
+    {"scene":"founding","chapter":"THE BIRTH OF AN EMPIRE","location":"EARTH · 2125","direction":"thoughtful","rate":-1,"volume":94,"pause":0.7,"text":"The Earth Empire was founded in 2125."},
+    {"scene":"expansion","chapter":"TWO HUNDRED YEARS OF CONQUEST","location":"IMPERIAL EXPANSION","direction":"serious","rate":-1,"volume":96,"pause":0.85,"text":"Its drive for power, expansion, and conquest would lead it on a two-hundred-year campaign across the galaxy."},
+    {"scene":"annexation","chapter":"THE IMPERIAL REGIME","location":"SUBJECT WORLDS · 2145","direction":"serious","rate":-1,"volume":95,"pause":2.1,"text":"Within twenty years of the Empire’s birth, more than a dozen races had been annexed and put to work building the Imperial regime."},
+    {"scene":"revolution","chapter":"THE EMPIRE FRACTURES","location":"REBELLION IN THE COLONIES","direction":"tense","rate":-1,"volume":97,"pause":1.0,"text":"But revolution would eventually bring the Empire to the brink of collapse, opening the way for subject worlds to break away and reclaim their independence."},
+    {"scene":"klingons","chapter":"A NEW POWER RISES","location":"THE KLINGON ADVANCE","direction":"tense","rate":0,"volume":98,"pause":1.5,"text":"Of those powers that emerged from the chaos, the Klingons built the strongest empire, swiftly conquering more than half of former human territory."},
+    {"scene":"anarchy","chapter":"NO PEACE AMONG THE STARS","location":"A FRACTURED GALAXY","direction":"weary","rate":-1,"volume":86,"pause":0.6,"text":"Without the firm hand of the Earth Empire, the galaxy has since degenerated into anarchy."},
+    {"scene":"anarchy","chapter":"NO PEACE AMONG THE STARS","location":"A FRACTURED GALAXY","direction":"grave","rate":-1,"volume":91,"pause":0.65,"text":"Empires rise and fall with alarming regularity."},
+    {"scene":"war","chapter":"THE WAR WITHOUT END","location":"THE EARTH–KLINGON FRONT","direction":"angry","rate":0,"volume":100,"pause":2.0,"text":"Humanity and the Klingons remain locked in a bloody interstellar war, while countless other governments struggle to hold what territory remains under their control."},
+    {"scene":"aftermath","chapter":"WHO WILL COMMAND THE FUTURE?","location":"THE SILENCE AFTER BATTLE","direction":"thoughtful","rate":-1,"volume":89,"pause":1.8,"text":"The galaxy now waits for a power strong enough to impose order once again."},
+    {"scene":"resolve","chapter":"A FIRM HAND","location":"YOUR COMMAND AWAITS","direction":"whisper","rate":-2,"volume":72,"pause":1.1,"text":"For a firm hand to rise..."},
+    {"scene":"resolve","chapter":"A FIRM HAND","location":"YOUR COMMAND AWAITS","direction":"whisper","rate":-2,"volume":76,"pause":0.8,"text":"and restore law and order."}
+  ]
+}

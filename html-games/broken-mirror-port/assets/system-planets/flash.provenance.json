@@ -1,0 +1,14 @@
+{
+  "id": "flash",
+  "file": "flash.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Flash, inhabited temperate alien world with blue seas, emerald continents, pale atmospheric rim and faint city networks.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-29c9f833-565e-4250-b188-2c828e8fa1b2.png",
+  "sourceSha256": "44cbfc4f25936e7e68000560b6004da87053b4f14183cabf15cb546a906d179c",
+  "sha256": "9e4420142290451b4fc256ed5407c56792e33264d7b0cd12a5ad8ca57df1de25",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

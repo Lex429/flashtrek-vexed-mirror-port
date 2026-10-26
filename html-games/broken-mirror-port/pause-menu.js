@@ -39,8 +39,10 @@
   overlay.querySelector('[data-hub]').onclick=async()=>{if(bridge?.active()&&!bridge.save()?.ok){overlay.querySelector('[data-pause-title]').textContent='Save failed';return;}if(document.fullscreenElement)await document.exitFullscreen();if(parent!==window&&typeof parent.closeOverlay==='function')parent.closeOverlay();else close();};
   for(const button of overlay.querySelectorAll('[data-display]'))button.onclick=async()=>{try{await window.nativeView.choose(button.dataset.display);sync();feedback('Display updated.');}catch{feedback('Full screen could not open. You can use Windowed or Classic view.');sync();}};
   addEventListener('keydown',event=>{
+    if(window.nativeOpeningCinematic?.active)return;
     if(event.key==='Escape'){
       if(!document.getElementById('startup').hidden||event.repeat)return;
+      if(window.nativeShipyardServices?.active){event.preventDefault();event.stopImmediatePropagation();window.nativeShipyardServices.close();return;}
       if(window.nativeGalaxyMap?.isOpen){event.preventDefault();event.stopImmediatePropagation();window.nativeGalaxyMap.close();return;}
       if(window.nativeSetup?.active){event.preventDefault();event.stopImmediatePropagation();window.nativeSetup.back();return;}
       event.preventDefault();event.stopImmediatePropagation();if(!overlay.hidden){if(!options.hidden)show('home');else close();}else show();return;
@@ -52,7 +54,7 @@
     }
   },true);
   let wasFullscreen=!!document.fullscreenElement;
-  document.addEventListener('fullscreenchange',()=>{const fullscreen=!!document.fullscreenElement;sync();if(wasFullscreen&&!fullscreen&&overlay.hidden&&bridge?.active())show();wasFullscreen=fullscreen;});
+  document.addEventListener('fullscreenchange',()=>{const fullscreen=!!document.fullscreenElement;sync();if(wasFullscreen&&!fullscreen&&overlay.hidden&&bridge?.active()&&!window.nativeOpeningCinematic?.active)show();wasFullscreen=fullscreen;});
   addEventListener('native-displaychange',sync);
   const mainOptions=document.querySelector('[data-menu="options"]');mainOptions.disabled=false;mainOptions.onclick=()=>show('options');
   document.getElementById('pauseBtn').onclick=()=>show();

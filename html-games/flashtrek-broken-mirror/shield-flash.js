@@ -11,8 +11,43 @@
   window.showcaseShieldRadii=shieldRadii;
   const rgba=(hex,alpha)=>{const value=hex.replace('#','');const n=parseInt(value,16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${clamp(alpha,0,1)})`;};
   const random=n=>{const x=Math.sin(n*127.1+78.233)*43758.5453;return x-Math.floor(x);};
-  const lightLayers=new WeakMap();
-  const refractionLayers=new WeakMap();
+  // Scratch surfaces are synchronous: a completed draw never retains their pixels.
+  // Reuse by exact dimensions across ships/contexts; a single last-size slot churns
+  // continuously when a mixed fleet alternates between small and large hulls.
+  const layers=new Map(),limits=Object.freeze({entries:64,pixels:4*1024*1024});
+  let retainedPixels=0;
+  const counters={allocations:0,hits:0,misses:0,evictions:0,oversize:0};
+  function release(layer){
+    retainedPixels-=layer.pixels;
+    layer.canvas.width=layer.canvas.height=0;
+    if(layer.raw)layer.raw.width=layer.raw.height=0;
+  }
+  function surface(kind,width,height){
+    const key=kind+':'+width+':'+height;
+    let layer=layers.get(key);
+    if(layer){layers.delete(key);layers.set(key,layer);counters.hits++;return layer;}
+    counters.misses++;
+    const pixels=width*height*(kind==='refraction'?2:1);
+    while(pixels<=limits.pixels&&layers.size&&(layers.size>=limits.entries||retainedPixels+pixels>limits.pixels)){
+      const oldest=layers.keys().next().value;release(layers.get(oldest));layers.delete(oldest);counters.evictions++;
+    }
+    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;counters.allocations++;
+    layer={canvas,ctx:canvas.getContext('2d'),pixels};
+    if(kind==='refraction'){
+      const raw=document.createElement('canvas');raw.width=width;raw.height=height;counters.allocations++;
+      layer.raw=raw;layer.rawCtx=raw.getContext('2d');
+      const mask=layer.ctx.createRadialGradient(width*.5,height*.5,Math.min(width,height)*.13,width*.5,height*.5,Math.max(width,height)*.55);
+      mask.addColorStop(0,'rgba(255,255,255,.04)');mask.addColorStop(.58,'rgba(255,255,255,.07)');
+      mask.addColorStop(.86,'rgba(255,255,255,.34)');mask.addColorStop(1,'rgba(255,255,255,.66)');layer.mask=mask;
+    }
+    if(pixels<=limits.pixels){layers.set(key,layer);retainedPixels+=pixels;}
+    else counters.oversize++; // Preserve full native quality without retaining an oversized surface.
+    return layer;
+  }
+  window.showcaseShieldCache=Object.freeze({
+    snapshot:()=>({...counters,entries:layers.size,pixels:retainedPixels,bytes:retainedPixels*4,limits:{...limits}}),
+    clear:()=>{for(const layer of layers.values())release(layer);layers.clear();}
+  });
   window.drawShowcaseShieldSurface=(ctx,x,y,w,h,color,charge,time,{front=false,refract=false,impact=null,surfaceRadii=null}={})=>{
     if(!impact)return;
     const life=impact.charge===0?430:duration,age=time-impact.born;if(age<0||age>=life)return;
@@ -33,12 +68,7 @@
       if(refract){
         const m=ctx.getTransform(),scaleX=Math.hypot(m.a,m.b),scaleY=Math.hypot(m.c,m.d);
         const width=Math.ceil(rx*2*scaleX),height=Math.ceil(ry*2*scaleY);
-        let layer=refractionLayers.get(ctx);
-        if(!layer||layer.canvas.width!==width||layer.canvas.height!==height){
-          const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-          const raw=document.createElement('canvas');raw.width=width;raw.height=height;
-          layer={canvas,ctx:canvas.getContext('2d'),raw,rawCtx:raw.getContext('2d')};refractionLayers.set(ctx,layer);
-        }
+        const layer=surface('refraction',width,height);
         const raw=layer.rawCtx;raw.clearRect(0,0,width,height);
         if(Math.abs(m.b)>1e-6||Math.abs(m.c)>1e-6){
           // Sample the scene in shield-local coordinates so the lens turns with the hull.
@@ -50,10 +80,7 @@
         const g=layer.ctx;g.clearRect(0,0,width,height);g.globalCompositeOperation='source-over';
         g.drawImage(layer.raw,0,0);
         g.globalCompositeOperation='destination-in';
-        const mask=g.createRadialGradient(width*.5,height*.5,Math.min(width,height)*.13,width*.5,height*.5,Math.max(width,height)*.55);
-        mask.addColorStop(0,'rgba(255,255,255,.04)');mask.addColorStop(.58,'rgba(255,255,255,.07)');
-        mask.addColorStop(.86,'rgba(255,255,255,.34)');mask.addColorStop(1,'rgba(255,255,255,.66)');
-        g.fillStyle=mask;g.fillRect(0,0,width,height);g.globalCompositeOperation='source-over';
+        g.fillStyle=layer.mask;g.fillRect(0,0,width,height);g.globalCompositeOperation='source-over';
         ctx.save();ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);ctx.clip();
         const lens=1.012+.019*Math.sin(Math.PI*spread),drift=3*Math.sin(Math.PI*spread);
         ctx.drawImage(layer.canvas,-rx*lens+Math.cos(waveAngle)*drift,-ry*lens+Math.sin(waveAngle)*drift,rx*2*lens,ry*2*lens);
@@ -104,12 +131,8 @@
   };
   function lightHull(ctx,image,w,h,x,y,color,alpha){
     if(!image||!image.width||alpha<=0)return;
-    let layer=lightLayers.get(image);
     const width=Math.max(1,Math.ceil(w)),height=Math.max(1,Math.ceil(h));
-    if(!layer||layer.canvas.width!==width||layer.canvas.height!==height){
-      const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-      layer={canvas,ctx:canvas.getContext('2d')};lightLayers.set(image,layer);
-    }
+    const layer=surface('hull',width,height);
     const g=layer.ctx;g.clearRect(0,0,width,height);g.globalCompositeOperation='source-over';
     g.drawImage(image,0,0,width,height);g.globalCompositeOperation='source-in';
     const radius=Math.max(36,Math.min(w,h)*.43),gradient=g.createRadialGradient(width/2+x,height/2+y,0,width/2+x,height/2+y,radius);

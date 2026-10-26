@@ -1,0 +1,14 @@
+{
+  "id": "xonok",
+  "file": "xonok.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Xonok, heavily strip-mined barren rocky world, grey-brown mining scars and toxic murky atmospheric haze, no life or blue oceans.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-49ea5c87-4c5b-4d9b-b270-7ea391b783eb.png",
+  "sourceSha256": "a5d1e0b71ebe09663b5456d1658d1131fc2f99809121a546ba5d147bd5115806",
+  "sha256": "d54a0eeb168187d7f2a66ce6f9c4d94c75ab9fd39de764a75dd5b287dfcaf428",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

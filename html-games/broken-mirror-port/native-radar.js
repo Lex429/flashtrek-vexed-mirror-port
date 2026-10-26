@@ -14,6 +14,8 @@
   const footer = document.querySelector('body > footer');
   new ResizeObserver(() => stage.style.setProperty('--native-radar-bottom', `${footer.getBoundingClientRect().height + 8}px`)).observe(footer);
   const ctx = canvas.getContext('2d');
+  const backdrop = document.createElement('canvas'), backdropContext = backdrop.getContext('2d');
+  const counters = {frames:0, backdropBuilds:0};
   const factionNames = ['Non-Aligned', 'Earth Empire', 'Klingon Empire', 'Ferengi', 'Romulan Empire', 'Vulcan', 'Cardassian Order', 'Borg Collective'];
   const emblemBounds = new Array(8);
   const emblems = Array.from({length: 8}, (_, index) => {
@@ -67,7 +69,7 @@
       if (canvas.hidden) return;
       if (marker.kind === 'planet') {
         window.nativeManualFlight?.clearTracking?.();
-        if (lastState?.system === 1) window.vexedSolFlight?.setTarget(marker.id);
+        window.vexedSolFlight?.setTarget(marker.id,lastState.system);
       } else {
         window.nativeAsteroidCombat?.deselect();
         window.nativeSolEconomy?.select(marker.kind === 'tug' ? marker.id : null);
@@ -208,21 +210,8 @@
       140 - width / 2, 15 - height / 2, width, height);
   }
 
-  function paint(state, active) {
-    canvas.hidden = !active || !state || state.landed;
-    if (canvas.hidden) return;
-    lastState = state;
-    hitMarkers = [];
-    const bounds = canvas.getBoundingClientRect();
-    const density = Math.min(window.devicePixelRatio || 1, 2);
-    const pixelWidth = Math.max(1, Math.round(bounds.width * density));
-    const pixelHeight = Math.max(1, Math.round(bounds.height * density));
-    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-      canvas.width = pixelWidth;
-      canvas.height = pixelHeight;
-    }
-    ctx.setTransform(canvas.width / 160, 0, 0, canvas.height / 120, 0, 0);
-    ctx.clearRect(0, 0, 160, 120);
+  function paintBackdrop(){
+    const ctx=backdropContext;ctx.setTransform(backdrop.width/160,0,0,backdrop.height/120,0,0);
     const background = ctx.createLinearGradient(0, 0, 160, 120);
     background.addColorStop(0, '#102e40');
     background.addColorStop(.55, '#061a29');
@@ -244,18 +233,47 @@
     ctx.moveTo(centerX, 19);ctx.lineTo(centerX, 95);
     ctx.moveTo(6, centerY);ctx.lineTo(154, centerY);
     ctx.stroke();
-    const cruiseBody = state.localCruise && window.vexedSolFlight?.bodies.find(body => body.id === Number(state.localCruise.to));
+  }
+
+  function paint(state, active) {
+    canvas.hidden = !active || !state || state.landed;
+    if (canvas.hidden) return;
+    lastState = state;
+    hitMarkers = [];
+    const bounds = canvas.getBoundingClientRect();
+    const density = Math.min(window.devicePixelRatio || 1, 2);
+    const pixelWidth = Math.max(1, Math.round(bounds.width * density));
+    const pixelHeight = Math.max(1, Math.round(bounds.height * density));
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
+    ctx.setTransform(canvas.width / 160, 0, 0, canvas.height / 120, 0, 0);
+    ctx.clearRect(0, 0, 160, 120);
+    if(backdrop.width!==canvas.width||backdrop.height!==canvas.height||!counters.backdropBuilds){
+      backdrop.width=canvas.width;backdrop.height=canvas.height;
+      paintBackdrop();counters.backdropBuilds++;
+    }
+    ctx.drawImage(backdrop,0,0,160,120);counters.frames++;
+    const cruiseBody = state.localCruise && window.vexedSolFlight?.forSystem(state).find(body => body.id === Number(state.localCruise.to));
     const manual = !cruiseBody && window.nativeManualFlight?.guidance(state);
     const player = state.system === 1 ? window.vexedSolFlight.shipPosition(state) : state;
     const tugTarget = state.system === 1 ? window.nativeSolEconomy?.target(state) : null;
     const civilianTarget = window.nativeCivilianTraffic?.target(state);
     const shipTarget = tugTarget || civilianTarget;
     const targetKind = tugTarget ? 'tug' : 'civilian';
-    const contacts = [
-      ...(state.system === 1 ? state.solEconomy?.freighters || [] : []).filter(ship => ship.phase !== 'destroyed').map(ship => ({...ship, name:`Tug II #${ship.id + 1}`, kind:'tug'})),
-      ...(window.nativeCivilianTraffic?.localShips(state) || []).map(ship => ({...ship, kind:'civilian'}))
-    ].filter(ship => Number.isFinite(ship.x) && Number.isFinite(ship.y));
-    const nearby = contacts.filter(ship => shipTarget && ship.kind === targetKind && ship.id === shipTarget.id || !radarPoint(ship.x-player.x, ship.y-player.y).edge);
+    const nearby = [];
+    const addContact = (ship, kind, name) => {
+      if (!Number.isFinite(ship.x) || !Number.isFinite(ship.y)) return;
+      if (!(shipTarget && kind === targetKind && ship.id === shipTarget.id) && radarPoint(ship.x-player.x, ship.y-player.y).edge) return;
+      // Radar needs only this small presentation record, never a copy of the
+      // ship's cargo, equipment, route, reservations or other simulation data.
+      nearby.push({id:ship.id, x:ship.x, y:ship.y, heading:ship.heading, name, kind});
+    };
+    if (state.system === 1) for (const ship of state.solEconomy?.freighters || []) {
+      if (ship.phase !== 'destroyed') addContact(ship, 'tug', `Tug II #${ship.id + 1}`);
+    }
+    for (const ship of window.nativeCivilianTraffic?.localShips(state) || []) addContact(ship, 'civilian', ship.name);
     ctx.font = '600 7px system-ui';
     ctx.fillStyle = '#91d1df';
     ctx.fillText(cruiseBody ? `CRUISE TO ${cruiseBody.name.toUpperCase()}` : manual ? `TRACK ${manual.name.toUpperCase()}` : `LOCAL RADAR · ${nearby.length} SHIPS`, 10, 14, 110);
@@ -264,9 +282,9 @@
 
     let target;
     let contactCount = 0;
-    if (state.system === 1 && window.vexedSolFlight) {
+    if (window.vexedSolFlight) {
       const ship = player;
-      for (const body of window.vexedSolFlight.bodies) {
+      for (const body of window.vexedSolFlight.forSystem(state)) {
         const x = body.x - 220 - ship.x, y = body.y + 75 - ship.y;
         const selected = !manual && body.id === window.vexedSolFlight.targetId;
         marker(x, y, selected, body.id, body.name);
@@ -325,5 +343,5 @@
       lastLabel = label;
     }
   }
-  window.nativeRadar = {paint};
+  window.nativeRadar = {paint,snapshot:()=>({...counters,backdropBytes:backdrop.width*backdrop.height*4})};
 })();

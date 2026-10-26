@@ -1,0 +1,14 @@
+{
+  "id": "makemake",
+  "file": "makemake.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Makemake, Solar System dwarf planet, pale rust-red methane ice surface with subtle patchy bright frost, full spherical disk, no clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-6aa15eef-6b02-44c7-92b4-c1c258775876.png",
+  "sourceSha256": "180637279823ba3bd939adeed050e83e6d2ca8440397aa13e9408792c4710de8",
+  "sha256": "935b8623dcf99216e6acd54737643e533eb8baa7cfac01ea041e75c852d57829",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

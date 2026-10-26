@@ -1,0 +1,20 @@
+{
+  "id": "orion-sol-v2",
+  "file": "orion-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror, not a poster. Input image 1: actual Sol Earth artwork, a REFERENCE for realism, fine planetary-scale texture, natural spherical volume and sunlight only; not an edit target. Generate ONE new planet named Orion. Appearance: Lush emerald jungle continents, turquoise blue oceans and rocky shores. Large realistic continental landmasses, refined coastlines, sparse physically plausible white weather systems. Invent clearly different continent shapes from the reference Earth. Photorealistic high-detail orbital astronomical imagery matching the supplied Sol artwork, no painterly or plastic finish. Upper-left sunlight, softly shaded lower-right limb, mostly illuminated full globe. Centered complete circular globe occupies 88 percent of square image, 6 percent transparent padding on each side. 1280x1280 or higher, actual alpha transparency outside subject. No text, labels, stars, black background, nebula, frame, watermark, ships, other planets or giant ground-level mountains. Natural subtle atmospheric edge, no excessive bloom. Surface appearance is a game art interpretation.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-5637028b-522a-4999-8410-94c879500425.png",
+  "sourceSha256": "083100c762573bd3f72eb1b192500254155df2ac8216ef629d82d836dc754d45",
+  "sha256": "da527999c514c96fa6cda1dd4543313e17d9191e7a9281e2f1478b95cefa5c0d",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/05 - Mars.png",
+      "sha256": "3b8ca14309c978a5291f4a940e9ecbbbf2d17aa95aee3b1ecdefbe35085c26bb"
+    }
+  ]
+}

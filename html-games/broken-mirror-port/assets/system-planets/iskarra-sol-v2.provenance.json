@@ -1,0 +1,20 @@
+{
+  "id": "iskarra-sol-v2",
+  "file": "iskarra-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror. Input image 1 is the actual Sol Saturn artwork, a REFERENCE ONLY for realistic orbital photography, fine planetary-scale detail, natural spherical volume and illumination. It is not an edit target or a surface to recolor. Generate ONE distinctive new world: Iskarra, in the Harman system. Appearance specification: Cream-colored gas giant with charcoal bands and broad rings. Photorealistic astronomical imagery at the visual quality of the supplied Sol artwork. Invent original geography, continent silhouettes and/or storm arrangements, distinct from the reference image. Fine natural geological or atmospheric structure, no painterly brushwork, flat texture or plastic finish. Upper-left sunlight, mostly illuminated globe, soft shaded lower-right limb and realistic terminator. Entire circular globe and complete correctly occluded ring ellipse inside the image with comfortable transparent margins. Never squash the globe to fit the rings. Minimum 1280x1280 preferred. Genuine alpha transparency outside the subject. Clouds, coastlines, craters, mountains and any settlements must be appropriately small at planetary scale. Natural subdued atmospheric limb where appropriate, no excessive glow. No stars, black backdrop, scenery, labels, text, watermarks, borders, spacecraft or other planets. No added rings unless specified. The appearance and local planetary roster are original game interpretations, not claims of screen canon.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-367e734e-bb6b-4900-983b-1f1334620b99.png",
+  "sourceSha256": "9db469784948e3edc8711a27937c58ef570d9ef43fb2a70d58a3b14e3851e324",
+  "sha256": "e7d8fa35aeec46b1f3077a8ef390630bbae922d7df16aefd1fe6f92e4191b1c8",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/08 - Saturn.png",
+      "sha256": "2819332ce69bc703250a91edf9b04b0d40f67fa32fb0b1b7743c3f4ce3ba640e"
+    }
+  ]
+}

@@ -19,10 +19,10 @@
     if(!ship||ship.hull<=0||ship.phase==='destroyed')return {ok:false,error:'Target already destroyed.'};
     const definitions=window.nativeShipDefinitions,beforeStage=definitions.stage(descriptor);
     const before={shields:Math.max(0,Number(ship.shields)||0),hull:Math.max(0,Number(ship.hull)||0)};
-    const requested=Math.max(0,Number(damage)||0),ratio=descriptor.definition.capabilities.disableRatio||0;
+    const requested=Math.max(0,Number(damage)||0),mitigated=window.nativeShipyardRefits?.shieldHit(ship,requested,impact,descriptor.state)??requested,ratio=descriptor.definition.capabilities.disableRatio||0;
     const disableHull=ratio?Math.max(1,descriptor.definition.hull*ratio):0;
     const floor=impact.nonlethal?Math.min(before.hull,options.hullFloor??disableHull):Math.min(before.hull,Math.max(0,options.hullFloor||0));
-    const amount=Math.min(requested,before.shields+Math.max(0,before.hull-floor)),absorbed=Math.min(before.shields,amount),hullDamage=Math.min(before.hull-floor,amount-absorbed);
+    const amount=Math.min(mitigated,before.shields+Math.max(0,before.hull-floor)),absorbed=Math.min(before.shields,amount),hullDamage=Math.min(before.hull-floor,amount-absorbed);
     const contacts={shield:absorbed>0?collision(descriptor,impact,true):null,hull:hullDamage>0?collision(descriptor,impact,false):null};
     ship.shields=before.shields-absorbed;ship.hull=before.hull-hullDamage;
     return {ok:true,requested,amount,absorbed,hullDamage,before,beforeStage,afterStage:definitions.stage(descriptor),contacts,

@@ -1,0 +1,15 @@
+{
+  "source": "User supplied transparent artwork from Downloads; copied without alteration. Lighting and atlas placement are rendered at runtime by menu-emblem.js.",
+  "assets": [
+    {
+      "source": "New Skull.png",
+      "file": "menu-skull.png",
+      "sha256": "511187a1bef881f4b0610c9883d1d4468bae0396215093f089ec7c11a123da5c"
+    },
+    {
+      "source": "bone frags.png",
+      "file": "menu-bone-fragments.png",
+      "sha256": "7cae9d24a3a507206cf1d57a6b2c57e9219b5d9eb20ec7d274399b122243adfa"
+    }
+  ]
+}

@@ -92,7 +92,7 @@
     if(profile.inertial){
       const wantedX=Math.cos(entity[key])*speed,wantedY=Math.sin(entity[key])*speed;
       const ax=wantedX-entity.vx,ay=wantedY-entity.vy,length=Math.hypot(ax,ay);
-      const ratio=length>0?Math.min(1,acceleration*dt/length):0;
+      const ratio=length>0?Math.min(1,(command.brake?braking:acceleration)*dt/length):0;
       entity.vx+=ax*ratio;entity.vy+=ay*ratio;
       const magnitude=Math.hypot(entity.vx,entity.vy);
       if(magnitude>top){entity.vx*=top/magnitude;entity.vy*=top/magnitude;}
@@ -113,6 +113,15 @@
   function powerOff(entity){
     prepare(entity);const vx=finite(entity.vx),vy=finite(entity.vy);
     entity.motionKick={version:1,mode:'free',vx,vy};entity.speed=Math.hypot(vx,vy);return entity;
+  }
+  // Gameplay stabilization applies only to impact velocity, not commanded flight.
+  // Integrate the exponential analytically, including its finite settling time,
+  // so a distant sample and many small steps travel the same distance.
+  function settleVelocity(vx,vy,dt,rate=2.6,epsilon=.05){
+    const speed=Math.hypot(vx,vy);
+    if(speed<=epsilon)return {vx:0,vy:0,x:0,y:0};
+    const stopAt=Math.log(speed/epsilon)/rate,t=Math.min(Math.max(0,dt),stopAt),fade=Math.exp(-rate*t),travel=(1-fade)/rate;
+    return {vx:dt>=stopAt?0:vx*fade,vy:dt>=stopAt?0:vy*fade,x:vx*travel,y:vy*travel};
   }
   function kickSample(kick,at){
     if(!kick)return {x:0,y:0,vx:0,vy:0};
@@ -136,10 +145,11 @@
     const sampled=kickSample(entity.motionKick,finite(entity.motionTime,finite(entity.motionKick.at))),kick={version:1,mode:'free',vx:sampled.vx,vy:sampled.vy};
     const oldX=entity.x,oldY=entity.y;
     prepare(entity);entity.vx-=kick.vx;entity.vy-=kick.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
-    const result=integrate(entity,command,profile,dt),rate=command.brake?4:command.hold||command.goal?3:command.turn||command.throttle?2:0,decay=Math.exp(-rate*dt),travel=rate?(1-decay)/rate:dt;
-    entity.x+=kick.vx*travel;entity.y+=kick.vy*travel;kick.vx*=decay;kick.vy*=decay;
+    const result=integrate(entity,command,profile,dt),rate=command.brake?6:command.hold||command.goal?4:command.turn||command.throttle?3:2.6;
+    const recovery=settleVelocity(kick.vx,kick.vy,dt,rate);
+    entity.x+=recovery.x;entity.y+=recovery.y;kick.vx=recovery.vx;kick.vy=recovery.vy;
     entity.vx+=kick.vx;entity.vy+=kick.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
-    entity.motionKick=Math.hypot(kick.vx,kick.vy)>.001?kick:undefined;
+    entity.motionKick=kick.vx||kick.vy?kick:undefined;
     result.moved=entity.x!==oldX||entity.y!==oldY;
     if(command.goal){result.distance=Math.hypot(command.goal.x-entity.x,command.goal.y-entity.y);result.arrived=result.arrived&&result.distance<=(command.arrivalRadius??profile.arrivalRadius??.75);}
     return result;
@@ -289,14 +299,30 @@
     let threat=null;
     for(const other of neighbors){
       if(other.id===ship.id&&other.category===ship.category||other.system!==ship.system)continue;
+      if(window.nativeShipRepairs?.bayPassage(ship,other)||window.nativeShipRepairs?.bayPassage(other,ship))continue;
       // Service craft may approach their assigned hull more closely than normal
       // passing traffic. The same swept physical ellipses must still be clear;
       // this cannot waive actual contact or another ship's right of way.
       const service=profile.serviceApproach&&ship.entity?.approachTarget;
+      // Small maintenance craft sharing a mission can queue near the hatch.
+      // Use swept hull clearance there; ordinary traffic's much wider passing
+      // buffer can otherwise make every returning craft wait for every other.
+      if(service&&other.definition?.movement?.serviceApproach&&ship.entity?.missionId&&ship.entity.missionId===other.entity?.missionId){
+        const duration=Math.max(.001,Math.min(horizon,distance/Math.max(1,planned)));
+        if(!shipPairContact({...ship,previousX:ship.x,previousY:ship.y,x:ship.x+vx*duration,y:ship.y+vy*duration},
+          {...other,previousX:other.x,previousY:other.y,x:other.x+other.vx*duration,y:other.y+other.vy*duration},duration))continue;
+      }
       if(service&&target&&service.category===other.category&&String(service.id)===String(other.id)&&Math.hypot(other.vx,other.vy)<5&&
         !shipPairContact({...ship,previousX:ship.x,previousY:ship.y,x:target.x,y:target.y},{...other,previousX:other.x,previousY:other.y},1))continue;
       const rx=other.x-ship.x,ry=other.y-ship.y,rvx=other.vx-vx,rvy=other.vy-vy,sq=rvx*rvx+rvy*rvy;
-      const clearance=shipRadius(ship)+shipRadius(other)+6+Math.min(24,Math.hypot(rvx,rvy)*.1)+turnRoom;
+      const clearance=shipRadius(ship)+shipRadius(other)+6+Math.min(24,Math.hypot(rvx,rvy)*.1)+turnRoom+(other.category==='player'?14:0);
+      // Cruising needs a broad passing margin. A final braking leg may finish
+      // closer to a parked hull when its entire remaining physical corridor is
+      // clear. Otherwise adjacent, usable berths become permanent yield loops.
+      const otherLeg=other.entity?.localLeg||other.entity?.lifeLeg;
+      if(leg&&target&&distance<=clearance*2&&target.x===leg.goal.x&&target.y===leg.goal.y&&
+        Math.hypot(other.vx,other.vy)<5&&!otherLeg&&
+        clearSegment(ship,target,[{x:other.x,y:other.y,radius:shipRadius(other)}],shipRadius(ship)+6))continue;
       const closing=rx*rvx+ry*rvy;
       if(closing>=0&&Math.hypot(rx,ry)>clearance*.9)continue;
       const t=sq?clamp(-closing/sq,0,horizon):0,miss=Math.hypot(rx+rvx*t,ry+rvy*t);
@@ -317,14 +343,104 @@
     const facing=Number.isFinite(command.heading)?command.heading:command.goal?Math.atan2(command.goal.y-ship.y,command.goal.x-ship.x):ship.heading;
     const speed=Math.min(profile.maxSpeed||100,command.speed??(profile.maxSpeed||100)*(command.throttle??1));
     const intended={...ship,vx:Math.cos(facing)*speed,vy:Math.sin(facing)*speed,heading:facing};
-    const advice=trafficAdvice(intended,neighbors,profile);if(!advice||advice.t>2.5)return command;
+    const anticipated=trafficAdvice(intended,neighbors,profile),actual=trafficAdvice(ship,neighbors,profile);
+    const advice=actual&&(!anticipated||actual.t<anticipated.t)?actual:anticipated;
+    const actualSpeed=Math.hypot(ship.vx||0,ship.vy||0),braking=Math.max(1,profile.braking||profile.acceleration||100),reaction=Math.max(2.5,actualSpeed/braking+.5);
+    if(!advice||advice.t>reaction)return command;
     if(advice.distance<advice.clearance*.85){
       const dx=ship.x-advice.other.x,dy=ship.y-advice.other.y;
-      return {...command,goal:undefined,heading:Math.hypot(dx,dy)>1?Math.atan2(dy,dx):facing,throttle:.65,brake:false,speed:undefined};
+      const distance=Math.hypot(dx,dy),away=distance>1?Math.atan2(dy,dx):facing;
+      // A stopped hull has no separating velocity yet. Let it turn out and
+      // accelerate, while still braking genuine inward momentum first.
+      const closing=(ship.vx-advice.other.vx)*dx+(ship.vy-advice.other.vy)*dy<-Math.max(1,distance)*.1;
+      const brake=!!command.brake||closing||Math.cos(wrap(away-ship.heading))<.1;
+      return {...command,goal:undefined,heading:away,throttle:brake?0:.5,brake,speed:undefined};
     }
     const angle=wrap(facing+Math.min(1.15,.45+Math.max(0,1-advice.t/3)*.7));
-    const brake=advice.yield||advice.distance<advice.clearance*1.05;
+    const brake=advice.yield||advice.distance<advice.clearance*1.05+actualSpeed*actualSpeed/(2*braking)+actualSpeed*.15;
     return {...command,goal:undefined,heading:angle,throttle:brake?0:Math.min(command.throttle??1,.7),brake,speed:brake?0:command.speed};
+  }
+  function navigationBodies(system){
+    if(window.nativeSystemCatalog)return window.nativeSystemCatalog.bodies(system).filter(b=>b.kind!=='belt'&&!b.occludedBy).map(b=>({id:b.id,x:b.x-220,y:b.y+75,radius:(b.size||100)*.48}));
+    if(system!==1)return [{x:-220,y:75,radius:86.4,id:'planet'}];
+    return (window.nativeSystemHub?.sol||[]).filter(b=>b.id!==6).map(b=>({
+      id:b.id,x:b.x-220,y:b.y+75,radius:(window.vexedSolFlight?.bodySize?.(b)||100)*.48}));
+  }
+  function navigationObstacles(state,system,start,goal,padding=0){
+    const bodies=navigationBodies(system),asteroids=window.nativeSolAsteroids;
+    if(!asteroids?.sweptNearby)return bodies;
+    const gone=new Set([...(state?.minedAsteroids||[]),...(state?.destroyedAsteroids||[])]);
+    return [...bodies,...asteroids.sweptNearby(system,start,goal,padding+120).filter(r=>!gone.has(r.slotId)).map(r=>({id:'rock:'+r.slotId,x:r.x,y:r.y,radius:r.size*.43+6}))];
+  }
+  function clearSegment(a,b,circles,padding=0){
+    const dx=b.x-a.x,dy=b.y-a.y,length=dx*dx+dy*dy;
+    return circles.every(c=>{
+      const radius=c.radius+padding,fx=a.x-c.x,fy=a.y-c.y,tx=b.x-c.x,ty=b.y-c.y,from=fx*fx+fy*fy,to=tx*tx+ty*ty;
+      // A legacy hull already inside a clearance zone may leave it outwards.
+      if(from<radius*radius&&to>from&&fx*dx+fy*dy>=0)return true;
+      const t=length?clamp(((c.x-a.x)*dx+(c.y-a.y)*dy)/length,0,1):0;
+      const x=fx+dx*t,y=fy+dy*t;return x*x+y*y>=(radius-1e-5)**2;
+    });
+  }
+  function obstaclePoints(start,goal,circles,padding=0){
+    if(clearSegment(start,goal,circles,padding))return [];
+    if(circles.some(c=>Math.hypot(goal.x-c.x,goal.y-c.y)<c.radius+padding-1e-5))return null;
+    // Vertices lie outside circumscribed twelve-sided clearance polygons.
+    // Every candidate edge is checked against every obstacle, not just the one
+    // that caused the initial diversion. This runs at route creation, not paint.
+    const nodes=[start,goal],count=12,direct=Math.hypot(goal.x-start.x,goal.y-start.y),margin=4*Math.max(0,...circles.map(c=>c.radius+padding));
+    const relevant=circles.filter(c=>Math.hypot(start.x-c.x,start.y-c.y)+Math.hypot(goal.x-c.x,goal.y-c.y)<=direct+margin);
+    relevant.sort((a,b)=>(Math.hypot(start.x-a.x,start.y-a.y)+Math.hypot(goal.x-a.x,goal.y-a.y))-(Math.hypot(start.x-b.x,start.y-b.y)+Math.hypot(goal.x-b.x,goal.y-b.y)));
+    for(const body of relevant.slice(0,10)){
+      const radius=(body.radius+padding+.5)/Math.cos(Math.PI/count);
+      for(let i=0;i<count;i++){
+        const a=i*Math.PI*2/count,p={x:body.x+Math.cos(a)*radius,y:body.y+Math.sin(a)*radius};
+        if(circles.every(c=>Math.hypot(p.x-c.x,p.y-c.y)>=c.radius+padding))nodes.push(p);
+      }
+    }
+    if(relevant.length>10){
+      const left=Math.min(...relevant.map(c=>c.x-c.radius-padding))-1,right=Math.max(...relevant.map(c=>c.x+c.radius+padding))+1;
+      const top=Math.min(...relevant.map(c=>c.y-c.radius-padding))-1,bottom=Math.max(...relevant.map(c=>c.y+c.radius+padding))+1;
+      nodes.push({x:left,y:top},{x:right,y:top},{x:right,y:bottom},{x:left,y:bottom});
+    }
+    const cost=nodes.map(()=>Infinity),previous=nodes.map(()=>-1),visited=new Set();cost[0]=0;
+    for(let step=0;step<nodes.length;step++){
+      let best=-1;for(let i=0;i<nodes.length;i++)if(!visited.has(i)&&(best<0||cost[i]<cost[best]))best=i;
+      if(best<0||!Number.isFinite(cost[best]))break;
+      if(best===1){const path=[];for(let at=1;previous[at]>0;at=previous[at])path.unshift(nodes[previous[at]]);return path;}
+      visited.add(best);
+      for(let i=1;i<nodes.length;i++)if(!visited.has(i)&&clearSegment(nodes[best],nodes[i],circles,padding)){
+        const next=cost[best]+Math.hypot(nodes[i].x-nodes[best].x,nodes[i].y-nodes[best].y);
+        if(next<cost[i]){cost[i]=next;previous[i]=best;}
+      }
+    }
+    return null;
+  }
+  function avoidBodies(ship,command,profile,bodies=navigationBodies(ship.system)){
+    if(command.hold||command.coast||!bodies.length)return command;
+    const heading=Number.isFinite(command.heading)?command.heading:command.goal?Math.atan2(command.goal.y-ship.y,command.goal.x-ship.x):ship.heading;
+    const speed=Math.max(Math.hypot(ship.vx||0,ship.vy||0),(profile.maxSpeed||100)*(command.throttle??1));
+    const horizon=Math.min(4,Math.max(1,speed/Math.max(1,profile.braking||100)+.5)),reach=speed*horizon+30,padding=shipRadius(ship)+24;
+    // Turning candidates cannot reach geometry outside this circle. Keep exact
+    // segment checks for the nearby subset instead of every rock in the system.
+    bodies=bodies.filter(body=>{const x=body.x-ship.x,y=body.y-ship.y,r=reach+padding+body.radius;return x*x+y*y<=r*r;});
+    if(!bodies.length)return command;
+    const target={x:ship.x+Math.cos(heading)*reach,y:ship.y+Math.sin(heading)*reach};
+    const actual={x:ship.x+(ship.vx||0)*horizon,y:ship.y+(ship.vy||0)*horizon};
+    // Zero velocity inside the extra clearance margin is not an incoming
+    // collision. Otherwise a ship can brake forever without starting its exit.
+    const incoming=Math.hypot(ship.vx||0,ship.vy||0)>.1&&!clearSegment(ship,actual,bodies,padding);
+    const targetClear=clearSegment(ship,target,bodies,padding);
+    const forward={x:ship.x+Math.cos(ship.heading)*reach,y:ship.y+Math.sin(ship.heading)*reach};
+    const facingClear=clearSegment(ship,forward,bodies,padding);
+    if(targetClear&&!incoming&&(facingClear||profile.directGoal&&command.goal))return command;
+    let best=targetClear?heading:null;
+    if(!targetClear)for(const turn of [.35,-.35,.7,-.7,1.1,-1.1,1.55,-1.55,2.2,-2.2,Math.PI]){
+      const angle=heading+turn,p={x:ship.x+Math.cos(angle)*reach,y:ship.y+Math.sin(angle)*reach};
+      if(clearSegment(ship,p,bodies,padding)){best=angle;break;}
+    }
+    const brake=!!command.brake||best===null||incoming||!facingClear;
+    return {...command,goal:undefined,heading:best??heading,brake,throttle:brake?0:Math.min(command.throttle??1,.5),speed:undefined};
   }
   function ellipseSupport(ship,nx,ny){
     const angle=ship.heading+Math.PI/2,c=Math.cos(angle),s=Math.sin(angle),x=nx*c+ny*s,y=-nx*s+ny*c;
@@ -337,6 +453,7 @@
   // directions conservatively bound the curves; circles are broad phase only.
   function shipPairContact(a,b,dt){
     if(!(dt>0)||!validPoint(a)||!validPoint(b)||!a.radii||!b.radii)return null;
+    if(window.nativeShipRepairs?.bayPassage(a,b)||window.nativeShipRepairs?.bayPassage(b,a))return null;
     const ax=finite(a.previousX,a.x),ay=finite(a.previousY,a.y),bx=finite(b.previousX,b.x),by=finite(b.previousY,b.y);
     const fx=bx-ax,fy=by-ay,dx=b.x-a.x-fx,dy=b.y-a.y-fy;
     const sweep=dx*dx+dy*dy,closest=sweep?clamp(-(fx*dx+fy*dy)/sweep,0,1):0;
@@ -436,5 +553,5 @@
     }
     const result=asteroidPairContact(target,body,dt);return result?{...result,targetPose:result.a,debrisPose:result.b}:null;
   }
-  window.nativeShipMotion={step,followPath,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,collisionDamageFraction,debrisContact};
+  window.nativeShipMotion={step,followPath,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,avoidBodies,navigationBodies,navigationObstacles,clearSegment,obstaclePoints,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,settleVelocity,collisionDamageFraction,debrisContact};
 })();

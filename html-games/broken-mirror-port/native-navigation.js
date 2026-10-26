@@ -26,6 +26,7 @@
       const value = Number(prestige[system.id]);
       return [system.id, Number.isFinite(value) ? value : Number(faction.prestigeBySystem[system.id] || 0)];
     }));
+    window.nativeSystemCatalog?.initialize(game);
     game.planet = systems.get(Number(game.system)).name;
     return game;
   }
@@ -33,7 +34,9 @@
   function state(selectedId) {
     const game = bridge?.getGame();
     if (!game) return {ok: false, error: 'Begin a game before navigating.'};
-    const known = id => game.devMode || game.discovered.includes(id);
+    const catalog=window.nativeSystemCatalog;
+    const physical=id=>catalog?.physicalId(id)??id;
+    const known = id => game.devMode || game.discovered.some(world=>physical(world)===physical(id));
     const label = id => known(id) ? systems.get(id).name : 'Unknown system S-' + String(id).padStart(3, '0');
     const standing = id => !known(id) ? 'Unknown' : game.planetGovts[id] === 16 ? 'Your territory' :
       game.localPrestige[id] >= 100 ? 'Allied' : game.localPrestige[id] < 0 ? 'Hostile' : 'Neutral';
@@ -49,7 +52,7 @@
     const antimatterUse = Number(effective.antimatterUseOrPopulationEffect);
     const fuel = travelDays < 0 ? -1 : game.devMode ? 0 : Math.floor(travelDays / antimatterUse / 3);
     let error = '';
-    if (selected.id === game.system) error = 'You are already in this system.';
+    if (physical(selected.id) === physical(game.system)) error = 'You are already in this system.';
     else if (!current.charted || !selected.charted) error = 'No charted warp lane from this region. Use a wormhole to return.';
     else if (game.repairing) error = 'Wait for repairs to finish.';
     else if (!game.devMode && !(travelDays < Number(game.antimatter) * 2 * antimatterUse)) error = 'Insufficient antimatter for this journey.';
@@ -64,9 +67,10 @@
     return {
       ok: true,
       devMode:!!game.devMode,
-      current: game.system,
+      current: physical(game.system),
+      legacyCurrent:game.system,
       currentName: label(game.system),
-      localBody: Number(game.localBody ?? 3),
+      localBody: catalog?.currentId(game)??Number(game.localBody ?? 3),
       localNavTarget: Number(game.localNavTarget ?? window.vexedSolFlight?.targetId ?? game.localBody ?? 3),
       inLocalTransit: !!(game.localCruise || game.arrivalApproach),
       shipAngle: Number(game.angle)||0,
@@ -75,21 +79,22 @@
       shipName: String(game.shipName||'Your ship'),
       localShipPosition: game.system === 1 ? window.vexedSolFlight.shipPosition(game) : {x: Number(game.x)||0, y: Number(game.y)||0},
       shipPosition:window.nativeManualFlight.chartShipPosition(game),
-      nodes: charted.map(system => ({id: system.id, ...window.nativeManualFlight.chartPosition(system.id), name: label(system.id), known: known(system.id),
-        current: system.id === game.system, government: known(system.id) ? game.planetGovts[system.id] : -1,
+      nodes: charted.filter(system=>physical(system.id)===system.id).map(system => ({id: system.id, ...window.nativeManualFlight.chartPosition(system.id), name: label(system.id), known: known(system.id),
+        current: physical(system.id) === physical(game.system), government: known(system.id) ? game.planetGovts[system.id] : -1,
         prestige: known(system.id) ? Number(game.localPrestige[system.id]) : null,
         standing: standing(system.id), status: status(system.id)})),
       routes: [],
       fleet: (Array.isArray(game.fleet) ? game.fleet : []).filter(ship => systems.get(Number(ship.system))?.charted)
         .map(ship => ({system: Number(ship.system), name: String(ship.name || 'Fleet ship'), type: Number(ship.type || 7)})),
-      discovered: charted.filter(system => known(system.id)).length,
-      total: charted.length,
+      discovered: charted.filter(system => physical(system.id)===system.id&&known(system.id)).length,
+      total: charted.filter(system=>physical(system.id)===system.id).length,
       fuel: Number(game.antimatter),
       manualTargetSystem:Number(game.manualTargetSystem)||0,
       selected: {id: selected.id, name: label(selected.id), known: known(selected.id), government,
         governmentName: government === 16 ? String(game.government) : governments.get(government) || 'Unknown',
         prestige: known(selected.id) ? Number(game.localPrestige[selected.id]) : null,
-        localPopulations: selected.id===1 && known(selected.id) ? Object.fromEntries(window.nativeSystemHub.sol.map(body=>[body.id,window.nativeSystemHub.population(game,body.id)])) : null,
+        localPopulations: known(selected.id) && catalog ? Object.fromEntries(catalog.nodes({...game,system:selected.id}).map(body=>[body.id,body.population])) : selected.id===1 && known(selected.id) ? Object.fromEntries(window.nativeSystemHub.sol.map(body=>[body.id,window.nativeSystemHub.population(game,body.id)])) : null,
+        localWorlds: known(selected.id) && catalog ? Object.fromEntries(catalog.bodies(selected.id).filter(body=>body.legacyWorldId).map(body=>{const id=body.legacyWorldId;return [body.id,{government:game.planetGovts[id],governmentName:game.planetGovts[id]===16?String(game.government):governments.get(game.planetGovts[id])||'Unknown',prestige:Number(game.localPrestige[id]),standing:standing(id),status:status(id),strength:game.planetStrengths[id]}];})) : null,
         standing: standing(selected.id), status: status(selected.id), strength: known(selected.id) ? game.planetStrengths[selected.id] : -1,
         population: known(selected.id) ? game.planetPopulationCounts[selected.id] : -1,
         description, days: travel, travelDays, fuel, canTravel: !error, error, deliveries: [],
@@ -111,8 +116,8 @@
       if (['course','track','cruise','local-target'].includes(action) && (bridge.getGame().localCruise || bridge.getGame().arrivalApproach)) return {ok:false,error:'Finish the current approach before setting another course.'};
       if (action === 'cruise' || action === 'local-target') {
         const id=Number(value);
-        if(action==='cruise' && bridge.getGame().system!==1 && id===0)return bridge.cruise(id);
-        if(bridge.getGame().system!==1 || !Number.isInteger(id) || !window.nativeSystemHub.sol.some(body=>body.id===id)) return {ok:false,error:'Choose a local destination in Sol.'};
+
+        if(!Number.isInteger(id) || !(window.nativeSystemCatalog?.bodies(bridge.getGame().system)||window.nativeSystemHub.sol).some(body=>body.id===id)) return {ok:false,error:'Choose a local destination in this system.'};
         return action==='cruise' ? bridge.cruise(id) : bridge.selectLocal(id);
       }
       if (action === 'track') {

@@ -406,7 +406,9 @@
       "weaponsRating": 6.0,
       "hull": 8000.0,
       "shields": 8000.0
-    }
+    },
+    "426": {"name":"Kirk's Ship - I.S.S. Enterprise NCC-1701","weaponsRating":3.0,"hull":200.0,"shields":200.0},
+    "427": {"name":"Constitution Class","weaponsRating":3.0,"hull":200.0,"shields":200.0}
   },
   "weapons": {
     "beam": [

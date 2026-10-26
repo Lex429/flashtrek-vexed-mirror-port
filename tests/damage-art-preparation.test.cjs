@@ -55,3 +55,27 @@ test('synchronous showcase API retains the exact source pixels and structural me
   destruction.emit(state,{x:0,y:0,w:48,h:64},piece=>({x:piece.x*48,y:piece.y*64}),0,1);
   assert.equal(state.debris.reduce((n,piece)=>n+piece.pixels,0),frames[0].width*frames[0].height);
 });
+
+test('serialized CThia partitions preserve the approved torn seam ownership',()=>{
+  const {window}=fixture();
+  window.starterShips={get:()=>({destruction:{sites:[['stub',0,0]]}})};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../html-games/flashtrek-broken-mirror/earth-fractures.js'),'utf8'),{window});
+  const original=window.earthFractureConfigs.get(59).partition;
+  const restored=window.createTornHullPartition(structuredClone(original.serialized));
+  const buffer=Buffer.alloc(365*512*2);let i=0;
+  for(let y=0;y<512;y++)for(let x=0;x<365;x++){
+    const owner=restored.owner(x+.137,y-.281);
+    assert.equal(owner,original.owner(x+.137,y-.281));buffer.writeUInt16LE(owner,i++*2);
+  }
+  // Captured from the pre-migration approved partition, including float seams.
+  assert.equal(require('node:crypto').createHash('sha256').update(buffer).digest('hex'),'796b961a397e23e71ede661fa0bc4c61ac59e9504add092c85ba7794b377cf8b');
+});
+
+test('showcase preparation suspends during a stress test and resumes without losing work',async()=>{
+  const {window,frames,flush}=fixture(),queue=window.nativeDamageArtPreparation;
+  queue.setPaused(true);
+  const pending=window.showcaseStageFragments.prepareAsync(frames,[[8,16],[35,42]]);
+  assert.equal(flush(),0);assert.equal(queue.snapshot().completed,0);assert.equal(queue.snapshot().pending,1);
+  queue.setPaused(false);flush();await pending;assert.equal(queue.snapshot().pending,0);
+  assert.equal(queue.snapshot().completed,1);
+});

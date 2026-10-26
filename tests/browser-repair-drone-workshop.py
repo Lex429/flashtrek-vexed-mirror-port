@@ -40,7 +40,10 @@ try:
         url = base + '/html-games/flashtrek-broken-mirror/damage-showcase.html?ship=1'
         page.goto(url)
         page.wait_for_function('window.showcaseState && showcaseState().ready', polling=50)
+        page.locator('[data-workspace-tab="repair"]').click()
+        page.locator('[data-workspace-page="mission"]:visible').click()
         page.locator('#drone-auto-attack').uncheck()
+        page.locator('[data-workspace-page="fleet"]:visible').click()
         assert page.evaluate('repairDroneFleet.read().owned.basic===1 && repairDroneFleet.read().credits===6000')
         assert page.locator('[data-owned="basic"]').inner_text() == 'Owned: 1'
         previews = page.locator('#drone-panel-repair .drone-preview').evaluate_all('(items)=>items.map(canvas=>canvas.toDataURL())')
@@ -83,12 +86,16 @@ try:
         page.locator('[data-upgrade-drone="basic"]').click()
         assert page.evaluate('repairDroneFleet.read().credits===5400 && repairDroneFleet.read().owned.basic===0 && repairDroneFleet.read().owned.upgraded===1')
         mission('upgraded', ['upgraded'])
+        page.locator('[data-workspace-tier="upgraded"]').click()
         page.locator('[data-upgrade-drone="upgraded"]').click()
         assert page.evaluate('repairDroneFleet.read().credits===3900 && repairDroneFleet.read().owned.advanced===1')
         mission('advanced', ['advanced'])
+        page.locator('[data-workspace-tier="basic"]').click()
         page.locator('[data-buy-drone="basic"]').click()
+        page.locator('[data-workspace-tier="upgraded"]').click()
         page.locator('[data-buy-drone="upgraded"]').click()
         mission('mixed', ['basic', 'upgraded', 'advanced'])
+        page.locator('[data-workspace-tier="advanced"]').click()
         page.locator('[data-buy-drone="advanced"]').click()
         mission('larger', ['basic', 'upgraded', 'advanced', 'advanced'])
         assert results['upgraded']['duration'] < results['basic']['duration']
@@ -103,7 +110,10 @@ try:
         before = page.evaluate('repairDroneFleet.read()')
         page.reload()
         page.wait_for_function('window.showcaseState && showcaseState().ready', polling=50)
+        page.locator('[data-workspace-tab="repair"]').click()
+        page.locator('[data-workspace-page="mission"]:visible').click()
         page.locator('#drone-auto-attack').uncheck()
+        page.locator('[data-workspace-page="fleet"]:visible').click()
         assert page.evaluate('repairDroneFleet.read()') == before
         assert page.locator('[data-owned="advanced"]').inner_text() == 'Owned: 2'
         page.locator('button[data-stage="3"]').click()
@@ -113,7 +123,9 @@ try:
         assert page.evaluate('showcaseState().repair===null && showcaseState().hull===100')
         assert page.evaluate('repairDroneFleet.read()') == before, 'flying does not spend again or consume purchased drones'
 
+        page.locator('[data-workspace-page="tools"]:visible').click()
         page.locator('.drone-workshop-reset').click()
+        page.locator('[data-workspace-page="fleet"]:visible').click()
         for _ in range(7):
             page.locator('[data-buy-drone="basic"]').click()
         assert page.evaluate('repairDroneFleet.read().owned.basic===8')

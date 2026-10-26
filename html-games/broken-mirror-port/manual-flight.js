@@ -10,6 +10,7 @@
   const unchartedPositions = new Map([[51, {x:-250, y:-125}], [52, {x:-220, y:-160}]]);
 
   function chartPosition(id) {
+    if(Number(id)===30&&window.nativeSystemCatalog){const base=byId.get(31).mapPosition,body=window.nativeSystemCatalog.bodies(31).find(b=>b.legacyWorldId===30);return {x:base.x+body.x/1000,y:base.y+body.y/1000};}
     return byId.get(Number(id))?.mapPosition || unchartedPositions.get(Number(id)) || null;
   }
   function anchor(id) {
@@ -45,7 +46,7 @@
     if(!ship)return null;
     let nearest=null,distance=arrivalRadius;
     for(const system of systems){
-      if(system.id===state.system)continue;
+      if(system.id===state.system||window.nativeSystemCatalog?.sameSystem(system.id,state.system))continue;
       const destination=planetPosition(system.id);
       if(!destination)continue;
       const d=Math.hypot(destination.x-ship.x,destination.y-ship.y);
@@ -60,7 +61,9 @@
     state.planet=system.name;
     state.x=ship.x-origin.x;
     state.y=ship.y-origin.y;
-    if(system.id===1)state.localBody=3;
+    state.localBody=window.nativeSystemCatalog?.homeId(system.id)??(system.id===1?3:0);
+    window.nativeSystemCatalog?.initialize(state);
+    window.vexedSolFlight?.setTarget(state.localBody,state.system);
     state.landed=false;
     state.discovered=[...new Set([...(state.discovered||[]),system.id])];
     return true;

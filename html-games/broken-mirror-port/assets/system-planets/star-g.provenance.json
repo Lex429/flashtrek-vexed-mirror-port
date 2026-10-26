@@ -1,0 +1,14 @@
+{
+  "id": "star-g",
+  "file": "star-g.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: polished production stellar sprite for Vexed Mirror. Reference image is a NASA SDO/HMI continuum observation; use its fine photospheric texture, round silhouette and limb darkening as scientific reference ONLY. Its displayed orange color is assigned and must not be copied automatically. Render ONE complete self-luminous star, visible across its entire disk, no planet-like night-side terminator. Subtle finely resolved surface texture, restrained translucent corona and tiny realistic limb activity. No molten-rock cracks, no lava planet, no oversized fireball, no spiky sun icon. Square composition with entire glowing star and corona inside central 76 percent, at least 12 percent transparent padding all around. Genuine transparent background; no labels, text, logos, watermark, background stars, planets or ships. Premium realistic astronomical appearance, high detail, smooth antialiased limb. Subject: G-type main-sequence star like Sol, predominantly warm WHITE photosphere with faint ivory variation, small restrained grey sunspots and fine granulation. A delicate warm-white corona, not a uniformly orange ball.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-8051fdcc-5e44-4c48-8565-c37c45200657.png",
+  "sourceSha256": "19b844668f8da7d3e29dbd1cb74442a63ba1530584f134510c4c04b731041b6c",
+  "sha256": "454bd067ee56930493ca2fd002e7e55b633f792073ebbd57aaa3eed36810791f",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

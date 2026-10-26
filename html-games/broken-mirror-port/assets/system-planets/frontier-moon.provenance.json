@@ -1,0 +1,14 @@
+{
+  "id": "frontier-moon",
+  "file": "frontier-moon.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: a small airless alien moon, grey basalt, intricate craters and long eroded mineral ridges.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-fee7ac10-bfed-4083-aaac-5cd2abead86f.png",
+  "sourceSha256": "88243d572a9a0534eefbf1c18a7f29ad09dc6f3d11ceece825e63c2d8fb27610",
+  "sha256": "b1d713f31807ca6f8d982c1af9a1c3cb5bd1243bf665e3c76634121724de1e9b",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

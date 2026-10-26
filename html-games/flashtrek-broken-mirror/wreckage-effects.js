@@ -67,5 +67,5 @@
     const amp=Math.max(1,Math.min(6,Math.min(width,height)*.014)),xx=x+amp*(Math.sin(y*.19)+.45*Math.sin(y*.73+x*.09)),yy=y+amp*(Math.sin(x*.17)+.4*Math.sin(x*.67-y*.11));
     let best=0,distance=Infinity;for(let i=0;i<sites.length;i++){const p=sites[i],px=p[0],py=p[1],d=(xx-px)**2+(yy-py)**2;if(d<distance){distance=d;best=i;}}return best;
   }
-  window.wreckageEffects=Object.freeze({prepare,prime,primeAll,draw,owner,get:source=>cache.get(source)||null,memoryBytes:source=>{const p=cache.get(source);return p?(p.texture.width*p.texture.height+p.hot.width*p.hot.height)*4:0;},snapshot:()=>({...metrics})});
+  window.wreckageEffects=Object.freeze({prepare,prime,primeAll,draw,owner,adopt:(source,material)=>cache.set(source,material),get:source=>cache.get(source)||null,memoryBytes:source=>{const p=cache.get(source);return p?(p.texture.width*p.texture.height+p.hot.width*p.hot.height)*4:0;},snapshot:()=>({...metrics})});
 })();

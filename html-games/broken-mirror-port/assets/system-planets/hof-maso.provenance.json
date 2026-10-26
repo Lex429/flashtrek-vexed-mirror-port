@@ -1,0 +1,14 @@
+{
+  "id": "hof-maso",
+  "file": "hof-maso.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Hof-Maso, Klingon frontier planet with olive ochre continents, modest blue-grey sea basins and thin clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-718baa0f-e905-4e10-bb18-60f946428b74.png",
+  "sourceSha256": "79d51c8d59c186a931fc250708f3442a52de72eb1cb0816e5693bfe879a87763",
+  "sha256": "5e9c2c04d547ea99029b19635b490064f4172cb889764edd65d260b9c02a250f",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

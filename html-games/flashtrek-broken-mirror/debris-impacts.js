@@ -16,6 +16,21 @@
     const radius=target=>Math.max(1,Number(target.radius)||Number(target.size)*.45||Math.hypot(target.w||0,target.h||0)*.5);
     const position=target=>({x:target.centerX??target.x,y:target.centerY??target.y});
     const matches=(source,target)=>source.system==null||target.system==null||source.system===target.system;
+    function distant(piece,from,to,target,padding){
+      // Conservative swept boxes only. The shared physical solver still owns
+      // every accepted contact, its order, reflection and damage consequence.
+      const body=target.descriptor||target.entity||target,x=target.centerX??target.x,y=target.centerY??target.y;
+      const shape=body.hullRadii||body.radii,bound=Math.max(radius(target),shape?.rx||0,shape?.ry||0);
+      const r=bound+Math.max(padding,Math.max(piece.w||0,piece.h||0,piece.size||0)*.5)+1;
+      if(!Number.isFinite(r)||!Number.isFinite(x)||!Number.isFinite(y))return false;
+      const dt=Number.isFinite(piece.dt)?piece.dt:1/60,vx=body.vx||0,vy=body.vy||0;
+      const px=Number.isFinite(body.previousX)?body.previousX:x,py=Number.isFinite(body.previousY)?body.previousY:y;
+      // Include both explicit previous poses and velocity-derived starts. A
+      // target crossing a stationary fragment must still reach narrow phase.
+      const left=Math.min(x,px,x-vx*dt)-r,right=Math.max(x,px,x-vx*dt)+r;
+      const top=Math.min(y,py,y-vy*dt)-r,bottom=Math.max(y,py,y-vy*dt)+r;
+      return Math.max(from.x,to.x)<left||Math.min(from.x,to.x)>right||Math.max(from.y,to.y)<top||Math.min(from.y,to.y)>bottom;
+    }
     function record(type,target,event){
       history.push({target:key(type,target),...event});if(history.length>80)history.shift();
       if(type==='ship')onShipImpact(target,event);else onAsteroidHit(target,event);
@@ -44,7 +59,8 @@
       if(time<(piece.born||0)||piece.ore)return [];
       let hits=pieceHits.get(piece);if(!hits){hits=new Set();pieceHits.set(piece,hits);}
       const from={x:oldX,y:oldY},to={x:piece.x,y:piece.y},padding=Math.min(12,Math.max(piece.w||0,piece.h||0,piece.size||0)*.25),contacts=[];
-      for(const [type,targets] of [['ship',getShips()],['asteroid',getAsteroids()]])for(const target of targets){
+      const query={from,to,padding:Math.max(padding,Math.max(piece.w||0,piece.h||0,piece.size||0)*.5)+1,dt:piece.dt||1/60,sourceKey};
+      for(const [type,targets] of [['ship',getShips(query)],['asteroid',getAsteroids(query)]])for(const target of targets){
         if(skipShips&&type==='ship')continue;
         const id=key(type,target);if((!resolveDebris&&hits.has(id))||!matches({system},target))continue;
         if(id===sourceKey&&(!resolveDebris||!sourceCleared.has(piece))){
@@ -52,6 +68,7 @@
           if(resolveDebris&&Math.hypot(to.x-center.x,to.y-center.y)>bound+padding)sourceCleared.add(piece);
           continue; // Birth immunity ends once the fragment leaves its parent.
         }
+        if(debrisContact&&distant(piece,from,to,target,padding))continue;
         const contact=debrisContact?debrisContact(piece,from,target,type):sweptCircleContact(from,to,position(target),radius(target)+padding);if(contact)contacts.push({type,target,id,contact});
       }
       contacts.sort((a,b)=>a.contact.t-b.contact.t);

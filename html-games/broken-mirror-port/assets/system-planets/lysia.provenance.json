@@ -1,0 +1,14 @@
+{
+  "id": "lysia",
+  "file": "lysia.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Lysia, an inhabited temperate alien world with green-brown continents, blue oceans and soft cloud bands.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-fad54846-413c-49de-9ced-a2d0fec9cf08.png",
+  "sourceSha256": "e1cfbc71ae096cdb89b7ace465ef90915b4e099aeea1da9648b428f746295b5f",
+  "sha256": "9e4e95197bae930ec06eba0d5be7006739282649a62e19c5e9fc842c1fd5e2ff",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

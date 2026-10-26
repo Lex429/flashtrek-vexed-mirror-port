@@ -30,13 +30,14 @@
   };
   const buildMaterials=[[1,15],[2,12],[3,6],[7,5],[8,2]];
   const solGovernmentId=Number(world.systems.find(system=>system.id===1)?.governmentId)||1;
-  let targetId=null,tugSelectedAt=0;
+  let targetId=null,tugSelectedAt=0;const owners=new WeakMap();
   const tugStats=ship=>ship?window.nativeShipDefinitions.forEntity(null,ship,{category:'tug'}):window.nativeShipDefinitions.get(10);
   const lifeNow=economy=>Number(economy.processingAt??economy.lifeClock)||0;
   function lifeEvent(economy,ship,kind,message){
     ship.recentEvents||=[];ship.recentEvents.unshift({at:lifeNow(economy),kind,message});ship.recentEvents.length=Math.min(16,ship.recentEvents.length);
   }
   function ensureLives(economy,state){
+    if(state)owners.set(economy,state);
     economy.flows||={produced:goods.map(()=>0),consumed:goods.map(()=>0),lost:goods.map(()=>0)};
     if(!Number.isFinite(economy.lifeClock))economy.lifeClock=window.nativeSimulation?.seconds(state)||0;
     economy.lifeMetrics||={detailed:0,distant:0,distantUpdates:0,scheduledEvents:0,deferred:0};
@@ -331,7 +332,10 @@
       }
       if(skipped>64){ship.lifeSkipPending=true;ship.lifeEventAt=at+1/60;return;}
       if(!goal){arriveTug(economy,ship);scheduleTug(economy,ship,at);return;}
-      ship.lifeLeg=window.nativeShipMotion.planLeg(ship,goal,window.nativeShipDefinitions.forEntity(null,ship,{category:'tug'}).movement||window.nativeShipMotion.profiles.manual(tugStats()),at);
+      const motion=window.nativeShipMotion,profile=window.nativeShipDefinitions.forEntity(null,ship,{category:'tug'}).movement||motion.profiles.manual(tugStats());
+      const state=owners.get(economy)||{system:1,shipSimulation:{seconds:at}},descriptor=window.nativeShipDefinitions.describe(state,ship,{category:'tug'}),padding=motion.shipRadius(descriptor)+24;
+      const points=motion.obstaclePoints(ship,goal,motion.navigationObstacles(state,1,ship,goal,padding),padding);
+      ship.lifeLeg=points===null?{valid:false}:points.length?motion.routeLeg(ship,goal,points,profile,at):motion.planLeg(ship,goal,profile,at);
       if(ship.lifeLeg.valid!==false){ship.lifeEventAt=at+ship.lifeLeg.duration;return;}
       ship.lifeLeg=null;ship.phase='waiting-route';window.nativeShipMotion.stop(ship);ship.task.status='blocked';ship.task.failureReason='Invalid saved route; cargo remains aboard';
     }
@@ -393,7 +397,8 @@
       if(ship.lifeEventAt==null&&ship.phase!=='disabled')scheduleTug(economy,ship,before);
       const level=detail(state,ship);ship.simulationDetail=level;metrics[level==='detailed'?'detailed':'distant']++;
     }
-    if(metrics.detailed&&!window.nativeShipEffects.ready?.(10,'tug'))window.nativeShipEffects.prepare(10,'tug');
+    // Simulation schedules freight without requesting artwork. Visible hulls
+    // request their current plate through the shared renderer.
     let budget=96;
     // Nine Sol fleet members: choose the next due event globally, independent of visibility.
     while(budget-->0){

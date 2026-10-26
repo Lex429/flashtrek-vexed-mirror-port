@@ -1,0 +1,14 @@
+{
+  "id": "delpi",
+  "file": "delpi.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Delpi, almost entirely ocean, 99.8 percent water, deep sapphire water and turquoise shallows, a few tiny islands and swirling white clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-d704e92e-712f-4571-b061-a767f01b8127.png",
+  "sourceSha256": "d36acde11c331ba4b3575cc1e793722e1b310ac9ec9dd8eacb825c4ff0c891ba",
+  "sha256": "c413a6fdc019c4ea1a54b2dc8039cc4a7bcf21a5e71cd2594398d63713238d77",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

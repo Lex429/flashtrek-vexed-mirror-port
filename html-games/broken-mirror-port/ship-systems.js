@@ -17,11 +17,19 @@
     if(frame)frame.caches.set(cacheKey,targets);
     return targets;
   }
+  function presentation(state,entity=state,category=entity===state?'player':'civilian',system=entity.system??state.system){
+    const frame=window.nativeSimulationFrame?.current(state);
+    if(!frame)return window.nativeShipDefinitions.describe(state,entity,{category});
+    const cacheKey='presentation:'+system;let cached=frame.caches.get(cacheKey);
+    if(!cached){cached=new Map(collectShips(state,system).map(target=>[target.entity,target]));frame.caches.set(cacheKey,cached);}
+    const target=cached.get(entity);
+    return target?.category===category?target:window.nativeShipDefinitions.describe(state,entity,{category});
+  }
   function scene(state,{system=state.system}={}){
     const frame=window.nativeSimulationFrame?.current(state),cacheKey='targets:'+system,cached=frame?.caches.get(cacheKey);
     if(cached)return cached.scene;
     const targets=collect(state,system);
-    const bodies=system===1?(window.nativeSystemHub?.sol||[]).filter(body=>body.id!==6).map(body=>({x:body.x-220,y:body.y+75,radius:(window.vexedSolFlight?.bodySize(body)||100)*.44})):[];
+    const bodies=window.nativeSystemCatalog?window.nativeSystemCatalog.bodies(system).filter(body=>body.kind!=='belt'&&!body.occludedBy).map(body=>({x:body.x-220,y:body.y+75,radius:(body.size||100)*.44})):system===1?(window.nativeSystemHub?.sol||[]).filter(body=>body.id!==6).map(body=>({x:body.x-220,y:body.y+75,radius:(window.vexedSolFlight?.bodySize(body)||100)*.44})):[];
     const result={state,targets,bystanders:targets.filter(target=>target.category!=='asteroid'),rocks:targets.filter(target=>target.category==='asteroid'),destructibles:[],bodies};
     if(frame)frame.caches.set(cacheKey,{scene:result,byId:new Map(targets.map(target=>[idKey(target.id),target]))});
     window.nativeSimulationFrame?.count(state,'sceneCollections');
@@ -29,7 +37,22 @@
   }
   function invalidate(state,system){
     const frame=window.nativeSimulationFrame?.current(state);if(!frame)return;
-    if(system===undefined)frame.caches.clear();else{frame.caches.delete('targets:'+system);frame.caches.delete('ships:'+system);}
+    if(system===undefined)frame.caches.clear();else{frame.caches.delete('targets:'+system);frame.caches.delete('ships:'+system);frame.caches.delete('presentation:'+system);}
+  }
+  // Steering changes one hull, not the rest of the system. Refresh that read
+  // model without rebuilding every ship/rock for each pilot in a combat step.
+  // Damage, depletion, system changes and physics keep full invalidation.
+  function refreshShip(state,entity,category,system=entity.system??state.system){
+    const frame=window.nativeSimulationFrame?.current(state);if(!frame)return;
+    if(entity.hull<=0||['destroyed','warp','arriving'].includes(entity.phase)){invalidate(state,system);return;}
+    const descriptor=window.nativeShipDefinitions.describe(state,entity,{category});
+    const replace=list=>{const index=list?.findIndex(target=>target.entity===entity&&target.category===category)??-1;
+      if(index>=0)list[index]={...list[index],...descriptor};};
+    replace(frame.caches.get('ships:'+system));
+    frame.caches.get('presentation:'+system)?.set(entity,descriptor);
+    const cached=frame.caches.get('targets:'+system);if(!cached)return;
+    replace(cached.scene.targets);replace(cached.scene.bystanders);
+    cached.byId.set(idKey(descriptor.id),cached.scene.targets.find(target=>target.entity===entity&&target.category===category)||descriptor);
   }
   function resolve(state,id,system=state.system){
     const frame=window.nativeSimulationFrame?.current(state);
@@ -87,7 +110,7 @@
       vx:entity.vx,vy:entity.vy,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionSpin:entity.motionSpin,motionTime:window.nativeSimulation.seconds(state)};
     const origin={x:descriptor.x-entity.x,y:descriptor.y-entity.y};
     profile||=descriptor.definition.movement;
-    if(entity.phase==='disabled'||descriptor.definition.engineOnline===false){command={coast:true};profile={maxSpeed:Infinity,turnRate:0,damping:0,inertial:true};}
+    if(entity.phase==='disabled'){command={coast:true};profile={maxSpeed:Infinity,turnRate:0,damping:0,inertial:true};}
     command=window.nativeShipTraffic?.steer(state,descriptor,command,profile)||command;
     const result=window.nativeShipMotion.step(pose,command,profile,dt);
     Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionAngularVelocity:pose.motionAngularVelocity,
@@ -126,5 +149,5 @@
     return (window.nativeSolAsteroids?.forSystem?.(system)||window.nativeSolAsteroids?.placements||[]).filter(rock=>!gone.has(rock.slotId)).map(rock=>({...rock,id:'rock:'+rock.slotId,rockId:rock.slotId,category:'asteroid',system,heading:rock.angle||0,
       dimensions:{width:rock.size,height:rock.size},radius:rock.size*.43,entity:rock,targetable:true}));
   },hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.weaponHit(state,target.rockId,amount,impact)});
-  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,scene,resolve,applyHit,visualImpact,resolved,move,applyContact,inspectAll,invalidate});
+  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,presentation,scene,resolve,applyHit,visualImpact,resolved,move,applyContact,inspectAll,invalidate,refreshShip});
 })();

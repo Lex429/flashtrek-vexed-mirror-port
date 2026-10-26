@@ -1,0 +1,14 @@
+{
+  "id": "bajora",
+  "file": "bajora.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Bajor, beautiful pristine temperate planet, rich blue oceans, deep green and ochre continents, snow-capped mountains and clean white weather patterns.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-c2d9644a-dc22-47f3-821a-c2d4a0bb647c.png",
+  "sourceSha256": "28b0f4753084c0c8c639454a21307a0e15fda01e5bb1645f6935026d6840c2c6",
+  "sha256": "2e987c419781ae08d36fe48057ac9289d68314d7fad6dbb077e33ffee7357ddb",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

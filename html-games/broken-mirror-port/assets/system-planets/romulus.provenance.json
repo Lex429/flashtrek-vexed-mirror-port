@@ -1,0 +1,14 @@
+{
+  "id": "romulus",
+  "file": "romulus.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb, natural sunlight from upper left, soft night-side terminator on lower right, matching the polished existing Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no other planets, no spacecraft, no ground-level landscape. Planet subject: Romulus, the lush temperate Romulan homeworld: blue-green oceans, deep emerald wooded continental landmasses, mountain ranges and intricate white weather systems, restrained pale cyan atmosphere. Original geography, not Earth continents. Intact pre-supernova Mirror-game world.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-038af137-eb07-476e-b6bb-cab16fa129bb.png",
+  "sourceSha256": "c471b345ef43168075962748a73a7a92260d874e4d721c94f5136ae7322d19a1",
+  "sha256": "6e9be0f8c3d546389ed0da353c79d20a65c06a0d15f40bc97ae6111e020bda36",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

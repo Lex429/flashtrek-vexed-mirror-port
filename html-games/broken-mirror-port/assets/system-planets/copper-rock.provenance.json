@@ -1,0 +1,14 @@
+{
+  "id": "copper-rock",
+  "file": "copper-rock.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: a small airless rocky planet with deep copper mineral basins, charcoal volcanic plains and densely detailed ancient craters, no atmosphere or water.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-36feb8ad-ab6d-4adf-8317-a416f8484b1f.png",
+  "sourceSha256": "1e9e27118045b5885128fa3e420b3515c98fa84fa981a4a5a4810727eaaa1c3b",
+  "sha256": "ffb51075210423bc5df30f3ef3b6887215f8e4803ce364bdd699e08d1781d757",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

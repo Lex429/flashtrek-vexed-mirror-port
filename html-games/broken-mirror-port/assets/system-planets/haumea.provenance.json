@@ -1,0 +1,14 @@
+{
+  "id": "haumea",
+  "file": "haumea.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Haumea, Solar System elongated rapidly rotating icy dwarf planet, realistic pale grey-white rocky ice texture, horizontally elongated ellipsoid instead of spherical, thin delicate ring entirely contained in frame.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-632c5469-5235-46c8-ab1b-e6efc1dd35d5.png",
+  "sourceSha256": "089abe98e27e733962b14565f4362292b0ea413bae6ee4e2faad892542e45725",
+  "sha256": "575da275104176dc586645e561f0efe4c7978b4581154c93e06331187fa6b2b7",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

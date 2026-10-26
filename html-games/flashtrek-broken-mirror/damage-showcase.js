@@ -9,7 +9,7 @@
   const names=['Intact','Light damage','Heavy damage','Severe damage'],colors={enemy:'#ff7777',fleet:'#9cffb4',neutral:'#ffd66e'};
   const state={ready:false,ship:null,hull:100,shields:100,shieldsEnabled:true,shieldCharge:100,cloaked:false,damage:26,paused:false,slow:false,rotate:false,compare:false,sound:false,zoom:1,angle:0,target:'enemy',destroyed:false,time:0,shots:[],particles:[],debris:[],stationFragments:[],stationSparks:[],stationGlassCracks:[],stationArcs:[],flash:null,sequence:null,miningSequence:null,miningSplit:null,asteroidOreField:null,hits:0,weaponReadyAt:{},asteroidTransition:null,asteroidBlast:null};
   let catalog,combat,shooter,shipPicker,asteroidData,structureData,last=performance.now(),selectionToken=0,asteroidAlphaCache=null,asteroidShieldCache=null;const images=new Map(),pendingImages=new Map(),audio=new Set();
-  let lastHit=null;
+  let lastHit=null,shieldAim=null,shieldSequence=0;
   const healthOverrides={};
   try{const saved=JSON.parse(localStorage.getItem('creatureHealth')||'{}');for(const [id,v] of Object.entries(saved))if(Number.isFinite(v)&&v>=1&&v<=100000)healthOverrides[id]=v;}catch{}
   const asteroidMaxHealth=()=>Math.round(clamp(45+(state.ship?.previewSize||250)*.19,65,150));
@@ -56,12 +56,15 @@
   const egg=()=>state.ship?.creatureType==='egg'||[67,68].includes(state.ship?.id);
   const babyFile=()=>state.ship.babyFile||`creatures/larva-${state.ship.id===67?'a':'b'}-intact.png`;
   const droneShip=()=>state.ship?.kind==='drone';
+  const repairableShip=()=>!!state.ship&&!creature()&&!asteroid()&&!structure()&&!droneShip();
   const asteroid=()=>state.ship?.kind==='asteroid';
   const structure=()=>state.ship?.kind==='structure'||state.ship?.kind==='turret';
   const animatedStructure=()=>structure()&&!!state.ship.damageReady;
   const creature=()=>state.ship?.kind==='creature';
   const intactOnly=()=>state.ship?.artworkStatus==='intact-only';
   const artworkOnlyShip=()=>state.ship?.kind==='ship'&&intactOnly();
+  const constitutionPreview=()=>window.constitutionShowcaseLights?.has(state.ship?.id);
+  const artworkLights=()=>constitutionPreview()?window.constitutionShowcaseLights:window.tugClassIILights;
   const tugDamageShip=()=>state.ship?.id===416&&!!state.ship.damageReady;
   const biological=()=>!!window.starterShips.get(state.ship?.id)?.biological;
   const biology=()=>window.starterShips.get(state.ship?.id)?.biology;
@@ -108,9 +111,9 @@
     const flash=debrisImpacts.currentFlash(),c=Math.cos(source.a),s=Math.sin(source.a),dx=(flash?.x||0)-source.centerX,dy=(flash?.y||0)-source.centerY;
     const impact=flash?{...flash,x:dx*c+dy*s,y:-dx*s+dy*c,kind:flash.source}:null;
     ctx.save();ctx.translate(source.centerX,source.centerY);ctx.rotate(source.a);
-    if(impact)window.drawShowcaseShieldSurface(ctx,0,0,source.w,source.h,shieldColor(shooter),1,state.time,{refract:true,impact});
+    if(impact)window.drawShowcaseShieldSurface(ctx,0,0,source.w,source.h,shieldColor(shooter),1,state.time,{refract:true,impact,entity:shooter});
     shipImage(images.get(shooter.frames[0]),0,0,source.w,source.h);
-    if(impact)window.drawShowcaseShieldSurface(ctx,0,0,source.w,source.h,shieldColor(shooter),1,state.time,{front:true,impact});
+    if(impact)window.drawShowcaseShieldSurface(ctx,0,0,source.w,source.h,shieldColor(shooter),1,state.time,{front:true,impact,entity:shooter});
     ctx.restore();debrisImpacts.draw(ctx,source,state.time,shieldColor(shooter));
     label('FIRING SHIP · '+shooter.name.toUpperCase(),source.centerX,source.centerY+64);
   }
@@ -240,7 +243,7 @@
     const promise=new Promise((resolve,reject)=>{
       const im=new Image();let attempt=0;
       const request=()=>{im.src=base+file+'?v=tug-ii-a-anim-3'+(attempt?'&retry='+attempt:'');};
-      im.onload=async()=>{if(/^debris-\d+-\d+\.png$/.test(file))await window.wreckageEffects?.prime(im);images.set(file,im);if(attempt){const stage=state.ship?.frames.indexOf(file)??-1;if(stage>=0)$('thumb-'+stage).src=im.src;}resolve(im);};
+      im.onload=()=>{if(/^debris-\d+-\d+\.png$/.test(file))window.wreckageEffects?.prime(im).catch(error=>console.warn('Optional debris material:',error.message));images.set(file,im);if(attempt){const stage=state.ship?.frames.indexOf(file)??-1;if(stage>=0)$('thumb-'+stage).src=im.src;}resolve(im);};
       im.onerror=()=>{if(++attempt<3)setTimeout(request,attempt*250);else{pendingImages.delete(file);reject(Error('Could not load '+file));}};
       request();
     });
@@ -252,9 +255,11 @@
     const a=new Audio(base+file+'.mp3');a.volume=volume;audio.add(a);const remove=()=>audio.delete(a);a.onended=remove;a.onerror=remove;a.play().catch(remove);
   }
   function stopSequence(){state.sequence=null;$('sequence').textContent='▶ Play damage sequence';}
-  function clearEffects(){dotDamageEffects.clear();cthiaOptions.toolDemo=false;state.droneBattle=null;state.repair=null;state.repairSurface=null;repairControls(false);window.tugIIADamage?.reset();state.weaponReadyAt={};state.eggHatch=null;state.evolution=null;state.evolutionLanding=null;state.miningSequence=null;state.miningSplit=null;state.asteroidOreField=null;state.asteroidTransition=null;state.asteroidBlast=null;state.stationImpact=null;state.stationFragments=[];state.stationSparks=[];state.stationGlassCracks=[];state.stationArcs=[];cthiaOptions.impact=null;if(window.larvaMotion){window.larvaMotion.mode='idle';window.larvaMotion.offset=0;window.larvaMotion.xOffset=0;window.larvaMotion.born=state.time;}state.bioLeakAt=0;state.bioDeath=null;state.cthiaBlast=null;state.shots=[];state.particles=[];state.debris=[];state.flash=null;debrisImpacts.reset();environmentalImpacts.reset();resetNearbyAsteroids();$('debris-impact-status').textContent='Blast waves and debris destroy nearby asteroids. Ship shields flash or hulls spark without damage.';}
+  function clearEffects(){dotDamageEffects.clear();cthiaOptions.toolDemo=false;state.droneBattle=null;state.repair=null;state.repairSurface=null;repairControls(false);window.tugIIADamage?.reset();state.weaponReadyAt={};state.eggHatch=null;state.evolution=null;state.evolutionLanding=null;state.miningSequence=null;state.miningSplit=null;state.asteroidOreField=null;state.asteroidTransition=null;state.asteroidBlast=null;state.stationImpact=null;state.stationFragments=[];state.stationSparks=[];state.stationGlassCracks=[];state.stationArcs=[];cthiaOptions.impact=null;if(window.larvaMotion){window.larvaMotion.mode='idle';window.larvaMotion.offset=0;window.larvaMotion.xOffset=0;window.larvaMotion.born=state.time;}state.bioLeakAt=0;state.bioDeath=null;state.cthiaBlast=null;state.shots=[];state.particles=[];state.debris=[];state.flash=null;state.hullFlash=null;window.showcaseShields?.reset();debrisImpacts.reset();environmentalImpacts.reset();resetNearbyAsteroids();$('debris-impact-status').textContent='Blast waves and debris destroy nearby asteroids. Ship shields flash or hulls spark without damage.';}
   const repairControlStates=new Map();
-  const repairWorkshop=window.repairDroneFleet.mount({isBusy:()=>!!state.repair||!!state.droneBattle?.isBusy(),canWave:()=>!!state.repair&&!state.repair.snapshot().recalling&&!state.droneBattle?.waveActive(),waveActive:()=>!!state.droneBattle?.waveActive(),onWave:()=>{if(state.droneBattle?.launchWave(window.repairDroneFleet.read().wave,state.time)){updateUI();explain("Red hunters launched. Blue defenders intercept attackers while green Dot’s continue welding.");}},isReady:()=>state.ready&&state.ship?.id===1,onChange:()=>updateUI(),onLaunch:()=>startSteamrunnerRepair(true)});
+  let droneArtReady=!window.dotSprites;
+  window.dotSprites?.ready.then(loaded=>{droneArtReady=loaded.every(Boolean);updateUI();});
+  const repairWorkshop=window.repairDroneFleet.mount({isBusy:()=>!!state.repair||!!state.droneBattle?.isBusy(),canWave:()=>!!state.repair&&!state.repair.snapshot().recalling&&!state.droneBattle?.waveActive(),waveActive:()=>!!state.droneBattle?.waveActive(),onWave:()=>{if(state.droneBattle?.launchWave(window.repairDroneFleet.read().wave,state.time)){updateUI();explain("Red hunters launched. Blue defenders intercept attackers while green Dot’s continue welding.");}},isReady:()=>state.ready&&repairableShip()&&droneArtReady,onChange:()=>updateUI(),onLaunch:()=>startSteamrunnerRepair(true)});
   function repairControls(active){
     for(const id of ['hull','destroy','cloak','shields','sequence','repair','repair-demo','compare','firing-ship']){
       const button=$(id);
@@ -290,7 +295,23 @@
     const battle=state.droneBattle?.snapshot(),stats=battle?.metrics;
     $('drone-combat-status').textContent=busy?`Green Dot’s evade; blue defenders intercept red hunters. Click a drone to target it. ${stats?`${stats.hits} projectile hits / ${stats.interceptions} body blocks / ${Math.round(stats.repairDamage)} worker damage.`:''}`:state.repairSurface?'Partial repairs are preserved. Buy replacements or relaunch the survivors to continue.':'Choose a damage state and launch repairs. Matched red waves launch automatically when enabled.';
   }
-  function shotPoint(shot){return shot.dronePoint||world(shot.hit);}
+  function aimedShieldPoint(){
+    const mode=$('shield-hit-location')?.value;
+    if(!state.shieldsEnabled||state.shields<=0||creature()||structure()||mode==='source'||!mode)return null;
+    const l=layout(),r=window.showcaseShieldRadii(l.w,l.h);
+    if(mode==='pick')return shieldAim||{x:0,y:0};
+    const angle=shieldSequence++*2.399963229728653,radius=shieldSequence%4===0?.25:.86;
+    return {x:Math.cos(angle)*radius*r.rx/l.w,y:Math.sin(angle)*radius*r.ry/l.h};
+  }
+  function shotPoint(shot){
+    if(shot.aimedShield&&(!shot.impacted?state.shields>0:shot.shieldImpact))return world(shot.hit);
+    if(shot.dronePoint)return shot.dronePoint;
+    if(shot.impacted&&shot.shieldImpact&&shot.shieldContactLocal)return world(shot.shieldContactLocal);
+    if(shot.shieldContact&&(shot.impacted?shot.shieldImpact:state.shields>0)){
+      const contact=window.showcaseShields?.contact(layout(),state.angle,shot.from);if(contact)return contact.world;
+    }
+    return world(shot.hit);
+  }
   function hitRepairDrone(shot){
     const result=shot.repairMission.hit(shot.droneId,shot.damage,state.time);
     if(!result.hit){$('hit-result').textContent='Drone shot missed: the target was already destroyed or safely docked.';return;}
@@ -299,15 +320,21 @@
     explain(result.role&&result.role!=='repair'?`${result.role} drone ${result.destroyed?'destroyed':'hit'}. ${result.health} HP remains. Owned blue losses are saved.`:result.destroyed?(result.allLost?'All Dot’s have been destroyed. Repairs stop at the progress reached. Buy replacements to continue.':result.reassigned?'Dot’s destroyed and removed from the workshop inventory. Survivors are taking over its unfinished work.':'Returning drone destroyed and removed from the workshop inventory. Completed repairs remain intact.'):`Dot’s hit. ${number(result.health)} HP remains.`);
     updateUI();
   }
-  function startSteamrunnerRepair(focus=false){
-    if(!state.ready||state.ship.id!==1||state.repair||state.droneBattle?.isBusy())return;
+  async function startSteamrunnerRepair(focus=false){
+    if(!state.ready||!repairableShip()||state.repair||state.droneBattle?.isBusy())return;
+    if(!droneArtReady&&window.dotSprites){
+      const token=selectionToken;explain('Preparing repair drone artwork in the background.');
+      const loaded=await window.dotSprites.ready;
+      if(token!==selectionToken||state.repair||state.droneBattle?.isBusy())return;
+      if(!loaded.every(Boolean)){explain('Repair drone artwork could not be loaded. Reload to try again.');return;}
+    }
     if(state.hull>=100&&!state.destroyed){explain('No repairs needed. The hull is intact, so the drones stay aboard.');return;}
     const inventory=window.repairDroneFleet.read();
     const automatic=repairWorkshop.autoAttack();
     if(!Object.values(inventory.owned).some(n=>n>0)){explain('No Dot’s remain. Buy a replacement in the workshop.');return;}
     stopSequence();
     const sourceStage=state.destroyed?3:stage(),previous=state.repairSurface;
-    let source=previous?.frame()||images.get(state.ship.frames[sourceStage]);
+    let source=previous?.frame()||images.get(state.ship.frames[sourceStage]||state.ship.frames[0]);
     if(state.destroyed){source=document.createElement('canvas');source.width=images.get(state.ship.frames[0]).width;source.height=images.get(state.ship.frames[0]).height;}
     clearEffects();state.destroyed=false;state.cloaked=false;window.CinematicCloak?.reset(state);
     state.shields=0;state.shieldsEnabled=false;$('shields').checked=false;
@@ -323,7 +350,7 @@
       onDestroyed:(tier,id,role)=>window.repairDroneFleet.lose(tier,role)});
     if(automatic)state.droneBattle.launchWave(window.droneBattle.planWave(inventory),state.time,{coordinated:true});
     state.repairHull=state.hull;state.repairUiAt=0;
-    updateUI();repairControls(true);$('scene-label').textContent='STEAMRUNNER / HULL RECONSTRUCTION';
+    updateUI();repairControls(true);$('scene-label').textContent=state.ship.name.toUpperCase()+' / HULL RECONSTRUCTION';
     explain(`Repairing from ${Math.round(state.hull)}% hull. ${automatic?"Red hunters are approaching the work area as your fleet deploys.":"Automatic attacks are off."} Drones share the remaining work and can be targeted by weapons. Recall stops welding and returns the survivors; repaired metal stays repaired.`);
   }
   function stepSteamrunnerRepair(){
@@ -335,7 +362,7 @@
       explain(snapshot.progress===1?'Hull repair complete. Surviving Dot’s have returned to the support ship.':snapshot.outcome==='failed'?`Repairs halted at ${Math.round(state.hull)}% hull. All drones were lost. Completed repairs are preserved; buy replacements to continue.`:`Drones recalled at ${Math.round(state.hull)}% hull. Completed repairs are preserved. Relaunch to finish the remaining work.`);
     }else if(state.time>=state.repairUiAt){
       state.repairUiAt=state.time+100;updateUI();repairControls(true);
-      $('scene-label').textContent='STEAMRUNNER / HULL RECONSTRUCTION';$('stage-badge').textContent=(snapshot.outcome==='failed'?'HALTED ':snapshot.recalling?'RECALLED ':'REPAIRING ')+Math.round(snapshot.progress*100)+'%';
+      $('scene-label').textContent=state.ship.name.toUpperCase()+' / HULL RECONSTRUCTION';$('stage-badge').textContent=(snapshot.outcome==='failed'?'HALTED ':snapshot.recalling?'RECALLED ':'REPAIRING ')+Math.round(snapshot.progress*100)+'%';
     }
   }
   function reset(repairOnly=false){
@@ -348,10 +375,11 @@
       document.querySelectorAll('[data-target]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.target==='enemy')));
     }
     if(structure()||tugDamageShip()||droneShip()){state.shields=0;state.shieldCharge=0;state.shieldsEnabled=false;$('shields').checked=false;}
-    updateUI();if(animatedStructure()){explain(`${state.ship.name} restored. Its station lights are active; fire weapons to expose burning hull at each damage stage.`);return;}if(structure()){explain(state.ship.name+' artwork preview reset. Damage animations will be added next.');return;}if(intactOnly()){explain(state.ship.name+' restored to full health. Weapon testing is ready; separate damage artwork is pending.');return;}if(creature()){explain(egg()?'Egg restored: living contents pulse beneath the intact membrane.':'Creature restored: movement, under-shell circulation and intact tissue are restored.');return;}explain(repairOnly?'Hull repaired to 100%. The intact artwork is restored in the same position and at the same size.':'Demo reset. Fire a weapon, enable shields, or play the guided damage sequence.');
+    updateUI();if(animatedStructure()){explain(`${state.ship.name} restored. Its station lights are active; fire weapons to expose burning hull at each damage stage.`);return;}if(structure()){explain(state.ship.name+' artwork preview reset. Damage animations will be added next.');return;}if(artworkOnlyShip()){explain(state.ship.name+' restored. Intact artwork and live lights are ready; separate damage artwork is pending.');return;}if(intactOnly()){explain(state.ship.name+' restored to full health. Weapon testing is ready; separate damage artwork is pending.');return;}if(creature()){explain(egg()?'Egg restored: living contents pulse beneath the intact membrane.':'Creature restored: movement, under-shell circulation and intact tissue are restored.');return;}explain(repairOnly?'Hull repaired to 100%. The intact artwork is restored in the same position and at the same size.':'Demo reset. Fire a weapon, enable shields, or play the guided damage sequence.');
   }
   function configureArtworkUI(){
     const only=intactOnly();
+    $('destroy').hidden=false;$('sequence').hidden=false;
     const isAsteroid=asteroid();
     $('mine-asteroid').hidden=!isAsteroid;
     $('mine-asteroid').disabled=!state.ready||!!state.miningSequence;
@@ -397,8 +425,9 @@
   }
   function updateUI(){
     if(!state.ship)return;
-    $('repair-demo').hidden=state.ship.id!==1;$('repair-demo').disabled=!state.ready||!!state.repair;
-    $('repair-workshop').hidden=state.ship.id!==1;repairWorkshop.refresh();refreshDroneCombat();
+    $('repair-demo').hidden=!repairableShip();$('repair-demo').disabled=!state.ready||!droneArtReady||!!state.repair;
+    $('repair-workshop').hidden=!repairableShip();repairWorkshop.refresh();refreshDroneCombat();
+    if(!droneArtReady&&repairableShip())document.querySelector('#repair-workshop .drone-flight-note').textContent='Preparing repair drone artwork in the background. Ship and weapon controls are ready.';
     $('damage-effects').hidden=false;$('effect-locations').hidden=false;$('drone-light-demo').hidden=!droneShip();$('drone-light-demo').disabled=!state.ready||state.destroyed;$('drone-light-demo').setAttribute('aria-pressed',String(cthiaOptions.toolDemo));
     $('evolve').hidden=![67,69].includes(state.ship.id);
     $('hull').disabled=!!state.evolution;
@@ -410,11 +439,19 @@
       $('scene-label').textContent=artworkOnlyShip()?'LIVE SHIP LIGHTING PREVIEW':state.ship.kind==='turret'?'TURRET ARTWORK PREVIEW':'STATION & FACILITY ARTWORK PREVIEW';
       $('stage-badge').textContent=artworkOnlyShip()?'INTACT ONLY':'ARTWORK READY';$('stage-badge').dataset.stage=0;$('compare').disabled=true;
       if(artworkOnlyShip()){
-        const lights=window.tugClassIILights.snapshot(state.ship.id);
-        $('animation-example').textContent='Tug Class II lighting';
+        document.querySelector('.health-panel').hidden=false;
+        $('destroy').hidden=true;$('sequence').hidden=true;
+        $('hull').disabled=!state.ready||!!state.repair;$('hull').value=state.hull;
+        $('hull-output').value=Math.round(state.hull)+'%';$('hull-bar').style.width=state.hull+'%';
+        if(state.repair)$('stage-badge').textContent='SERVICING '+Math.round(state.hull)+'%';
+        $('repair').disabled=!state.ready||!!state.repair;
+        document.querySelector('label[for="hull"]').textContent='Maintenance condition';
+        $('ship-health').textContent=`Hull condition ${Math.round(state.hull)}%. Repair drones service the existing hull; separate damage artwork is pending.`;
+        const lights=artworkLights().snapshot(state.ship.id);
+        $('animation-example').textContent=constitutionPreview()?'Constitution Class lighting':'Tug Class II lighting';
         $('ship-lights').hidden=false;$('ship-lights').textContent='Ship lights';
         $('damage-effects').hidden=true;$('effect-locations').hidden=true;
-        $('cthia-status').textContent=lights?cthiaOptions.lights?`${lights.total} live light regions active: red running lights, blue nacelle strips, and warm hull lamps.`:`${lights.total} live light regions switched off. Damage stages are pending.`:'Preparing light locations…';
+        $('cthia-status').textContent=lights?cthiaOptions.lights?`${lights.total} live light regions active: ${constitutionPreview()?'saucer windows, hull lamps, orange nacelle caps and aft exhaust':'red running lights, blue nacelle strips, and warm hull lamps'}.`:`${lights.total} live light regions switched off. Damage stages are pending.`:'Preparing light locations…';
       }
       canvas.setAttribute('aria-label',`${state.ship.name}, intact artwork preview; damage animations pending`);
       return;
@@ -506,18 +543,17 @@
         explain(`${entry.name} is ready. Select a damage stage, fire a weapon, or destroy and restore the drone. This inspection does not change your purchased fleet.`);return;
       }
       const assets=animatedStructure()?[...state.ship.frames,shooter.frames[0]]:structure()||artworkOnlyShip()?[state.ship.frames[0]]:asteroid()?[...state.ship.frames,shooter.frames[0],state.ship.oreImage]:[...state.ship.frames,state.ship.original,shooter.frames[0],...(egg()?[babyFile()]:[]),...([67,69].includes(id)?Object.values(window.creatureEvolution.files):[]),...(creature()?[]:Array.from({length:6},(_,i)=>`debris-${state.ship.debrisKind}-${i}.png`))];await Promise.all(assets.map(loadImage));
-      if(id===1&&window.dotSprites)await window.dotSprites.ready;
       if(token!==selectionToken)return;
       await Promise.all((asteroidData||[]).slice(0,3).map(rock=>loadImage(rock.file)));resetNearbyAsteroids();
       if(animatedStructure()){state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));await prepareEarthStarbaseFragments();if(token!==selectionToken)return;if([286,300].includes(state.ship.id))prepareArtworkLights();state.shields=0;state.shieldCharge=0;state.shieldsEnabled=false;state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} is ready. Hits tear away matching armor sections while exposed fires glow. All powered lights fail in the severe stage.`);return;}
       if(structure()){state.shields=0;state.shieldsEnabled=false;state.ready=true;$('loading').hidden=true;updateUI();explain(state.ship.kind==='turret'?`${state.ship.name} equipment icon is available for the turret animation pass.`:`${state.ship.name} artwork is available. Damage animations will be built in the next pass.`);return;}
-      if(artworkOnlyShip()){window.tugClassIILights.prepare(id,images.get(state.ship.frames[0]));state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} has live lights at its painted lamps, nacelle tips and drive strips. Use Ship lights to toggle the effect; damage stages are pending.`);return;}
+      if(artworkOnlyShip()){artworkLights().prepare(id,images.get(state.ship.frames[0]));state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} has live lights at its painted lamps and nacelles. Use Ship lights to toggle the effect; damage stages are pending.`);return;}
       if(asteroid()){state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));state.ship.maxHealth=asteroidMaxHealth();state.ready=true;$('loading').hidden=true;updateUI();explain(`${state.ship.name} contains ${state.ship.oreLabel}: ${state.ship.oreRole} Any phaser, proton weapon, or other weapon destroys it with one hit and ejects matching mineral fragments. Damage stages remain available for manual animation review.`);return;}
       if(starter()?.alignReference)images.set(state.ship.original,starter().alignReference(images.get(state.ship.original)));
       state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));if(enhancedShip()){if(starter())state.ship.frames.forEach((file,s)=>{const aligned=starter().align(images.get(file),s);images.set(file,aligned);if(aligned.toDataURL)$('thumb-'+s).src=aligned.toDataURL();});if(id===57||id===58)state.ship.frames.forEach((file,s)=>{const aligned=(id===57?window.alignTugFrame:window.alignOlympicFrame)(images.get(file),s);images.set(file,aligned);if(aligned.toDataURL)$('thumb-'+s).src=aligned.toDataURL();});if(state.ship.frames[3]){const severe=shipEffects().unlitFrame(images.get(state.ship.frames[3]));images.set(state.ship.frames[3],severe);$('thumb-3').src=severe.toDataURL();}if(biological()){cthiaFragments=[[],[],[],[]];biology().prepare(state.ship.frames.map(file=>images.get(file)));await biology().ready;if(token!==selectionToken)return;}else{const fragments=await prepareCthiaFragments();if(token!==selectionToken)return;cthiaFragments=fragments;const destruction=window.createShipDestruction();await destruction.prepareAsync(state.ship.frames.map(file=>images.get(file)),window.earthFractureConfigs.get(id)||starter()?.destruction||(id===56?window.constitutionTugDestructionConfig:id===57?window.tugDestructionConfig:id===58?window.olympicDestructionConfig:{}));if(token!==selectionToken)return;window.cthiaDestruction=destruction;}}if(token!==selectionToken)return;if(tugDamageShip()){state.shields=0;state.shieldCharge=0;state.shieldsEnabled=false;for(let s=0;s<3;s++)window.tugClassIILights.prepare(id,images.get(state.ship.frames[s]),s);window.tugIIADamage.prepare(state.ship.frames.map(file=>images.get(file)));await window.tugIIADamage.ready;if(token!==selectionToken)return;}state.ship.hitPoints=opaquePoints(images.get(state.ship.frames[0]));if(egg())biology().prepareHatch(images.get(babyFile()));state.ready=true;$('loading').hidden=true;updateUI();
       if(id===67){const files=window.creatureEvolution.files,larvaImage=images.get(files.larva);window.starterShips.get(69).biology.prepare([larvaImage,larvaImage,larvaImage,larvaImage]);biology().prepareHatch(larvaImage,images.get(files.rupture),images.get(files.husk));}
       if(intactOnly()){explain(state.ship.name+' is ready for weapon testing with editable health and no shields. Separate damage artwork is pending.'+(larva()?' Try Newborn, Idle, Crawl and Settle.':''));return;}
-      explain(`${state.ship.name} is ready. ${biological()?'Its four biological stages show torn membranes, exposed organs and necrotic tissue.':state.ship.origin==='AI remaster'?'Its four hull stages use newly rebuilt artwork matched to your approved fleet references.':state.ship.origin==='Rebirth'?'Its four hull stages use Rebirth artwork.':'Its four hull stages use your supplied damage sheet.'} ${egg()?'Choose a damage stage, play the damage sequence, or hatch the healthy egg. Dead eggs cannot hatch.':creature()?'Choose Idle, Crawl or Settle; fire weapons to see tissue damage and weakening circulation.':'Fire a weapon to see the damage develop.'}`);
+      explain(`${state.ship.name} is ready. ${biological()?'Its four biological stages show torn membranes, exposed organs and necrotic tissue.':constitutionPreview()?'Its four hull stages show torn saucers, ruptured engineering hulls and shattered nacelles.':state.ship.origin==='AI remaster'?'Its four hull stages use newly rebuilt artwork matched to your approved fleet references.':state.ship.origin==='Rebirth'?'Its four hull stages use Rebirth artwork.':'Its four hull stages use your supplied damage sheet.'} ${egg()?'Choose a damage stage, play the damage sequence, or hatch the healthy egg. Dead eggs cannot hatch.':creature()?'Choose Idle, Crawl or Settle; fire weapons to see tissue damage and weakening circulation.':'Fire a weapon to see the damage develop.'}`);
     }catch(e){if(token===selectionToken){$('loading').textContent=e.message+' — reload the page to try again.';explain('The ship artwork could not be loaded.');}}
   }
   function opaquePoints(im){
@@ -568,7 +604,7 @@
     return {x:x+p.x*w*Math.cos(a)-p.y*h*Math.sin(a),y:y+p.x*w*Math.sin(a)+p.y*h*Math.cos(a),centerX:x,centerY:y,w,h,a};
   }
   function burst(point,strength=1,sparksOnly=false,delay=0){
-    window.showcaseHullBurst.burst(state.particles,point,state.time,catalog.units,state.zoom,strength,sparksOnly,delay);
+    const l=layout();window.showcaseHullBurst.burst(state.particles,{...point,normal:point.normal||{x:point.x-l.x,y:point.y-l.y}},state.time,catalog.units,state.zoom,strength,sparksOnly,delay);
   }
   function beginAsteroidTransition(before,after,hitPoint=null){
     if(!asteroid()||before===after)return;
@@ -987,8 +1023,12 @@
     if(shot.repairMission){hitRepairDrone(shot);return;}
     if(state.destroyed)return;state.repairSurface=null;
     state.hits++;const before=stage(),p=world(shot.hit),shielded=state.shields>0,oldHull=hullPoints(),oldShields=shieldPoints();let amount=shot.damage,absorbed=0;
-    if(shielded){absorbed=Math.min(oldShields,amount);state.shields=Number(((oldShields-absorbed)/stats().shields*100).toFixed(12));amount-=absorbed;const l=layout(),vx=p.x-shot.from.x,vy=p.y-shot.from.y,length=Math.hypot(vx,vy)||1,c=Math.cos(state.angle),s=Math.sin(state.angle);state.flash={born:state.time,color:shieldColor(),x:shot.hit.x*l.w,y:shot.hit.y*l.h,dx:(vx*c+vy*s)/length,dy:(-vx*s+vy*c)/length,kind:shot.kind,energy:1+Math.min(.55,absorbed/Math.max(1,oldShields)*.7),charge:state.shields/100};playSound('shieldhit',.12);}
-    if(amount>0){state.hull=Number((Math.max(0,oldHull-amount)/stats().hull*100).toFixed(12));if(biological()){biology().spray(state,p,state.zoom,20);cthiaOptions.impact={born:state.time,point:shot.hit};}else if(animatedStructure()){if(stage()===before)stationSparkBurst(shot.hit,7);}else if(!asteroid())burst(p,1);}
+    shot.shieldImpact=shielded;
+    const shieldContact=shielded&&!shot.aimedShield?window.showcaseShields?.contact(layout(),state.angle,shot.from):null;
+    const shieldHit=shieldContact?{x:shieldContact.local.x/layout().w,y:shieldContact.local.y/layout().h}:shot.hit;
+    if(shielded)shot.shieldContactLocal={...shieldHit};
+    if(shielded){absorbed=Math.min(oldShields,amount);state.shields=Number(((oldShields-absorbed)/stats().shields*100).toFixed(12));amount-=absorbed;const l=layout(),vx=p.x-shot.from.x,vy=p.y-shot.from.y,length=Math.hypot(vx,vy)||1,c=Math.cos(state.angle),s=Math.sin(state.angle);state.flash={born:state.time,color:shieldColor(),localNormalized:{x:shieldHit.x,y:shieldHit.y},x:shieldHit.x*l.w,y:shieldHit.y*l.h,dx:(vx*c+vy*s)/length,dy:(-vx*s+vy*c)/length,kind:shot.kind,weaponColor:shot.style.color,absorbed,shieldCapacity:stats().shields,energy:1+Math.min(.55,absorbed/Math.max(1,oldShields)*.7),charge:state.shields/100};playSound('shieldhit',.12);}
+    if(amount>0){state.hullFlash={born:state.time,local:{...shot.hit},kind:shot.kind,color:shot.style.color,strength:Math.min(1.8,.55+1.25*Math.sqrt(Math.min(amount,oldHull)/Math.max(1,stats().hull)))};state.hull=Number((Math.max(0,oldHull-amount)/stats().hull*100).toFixed(12));if(biological()){biology().spray(state,p,state.zoom,20);cthiaOptions.impact={born:state.time,point:shot.hit};}else if(animatedStructure()){if(stage()===before)stationSparkBurst(shot.hit,7);}else if(!asteroid())burst({...p,damage:Math.min(amount,oldHull),capacity:stats().hull,kind:shot.kind},1);}
     if(tugDamageShip()&&state.hull>0&&stage()>before)window.tugIIADamage.change(before,stage(),layout(),state.angle,state.time,p);
     if(animatedStructure()&&amount>0)state.stationImpact={born:state.time,point:shot.hit};
     lastHit={weaponId:shot.style.id,weapon:shot.style.name,damage:shot.damage,shieldDamage:absorbed,hullDamage:oldHull-hullPoints(),overkill:Math.max(0,amount-oldHull),visual:shot.visual};
@@ -1015,7 +1055,9 @@
       state.weaponReadyAt[style.id]=state.time+style.recharge*1000/13;
     }
     const target=drone?{point:{x:0,y:0},site:null}:shotTarget(damage),shot={...window.createShowcaseWeaponVisual({kind,style,units:catalog.units}),visual,from:{x:from.x,y:from.y},hit:target.point,site:target.site,born:state.time,damage};
+    if(!drone){const aim=aimedShieldPoint();if(aim){shot.hit=aim;shot.aimedShield=true;}}
     if(drone){shot.repairMission=drone.owner;shot.droneId=drone.id;shot.dronePoint={...drone.position};}
+    shot.shieldContact=!drone&&state.shieldsEnabled&&state.shields>0&&!creature()&&!structure();
     state.shots.push(shot);playSound(style.sound);
     if(kind!=='beam')explain(`${style.name} is traveling toward ${drone?'the selected drone':'the hull'}. Damage is applied when it arrives.`);
     updateRecharge();
@@ -1068,7 +1110,7 @@
   }
   function gradient(x,y,r,hex,alpha=1){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'#ffffff');g.addColorStop(.18,hex);g.addColorStop(1,hex+'00');ctx.globalAlpha=alpha;ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
   function shipImage(im,x,y,w,h,a=0,flash=false){
-    if(!im)return;ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.drawImage(im,-w/2,-h/2,w,h);
+    if(!im)return;ctx.save();ctx.translate(x,y);ctx.rotate(a);window.nativeEffectProfiles?.queueShipSurface?.(ctx,{art:im},w,h);ctx.drawImage(im,-w/2,-h/2,w,h);
     if(flash&&state.flash&&state.time-state.flash.born<620){
       window.drawShowcaseShieldFlash(ctx,im,w,h,state.flash,state.time);
     }ctx.restore();
@@ -1190,8 +1232,10 @@
     if(!state.ready)return;
     drawEnvironmentalScene();
     if(structure()&&!animatedStructure()||artworkOnlyShip()){
-      const l=layout();shipImage(images.get(state.ship.frames[0]),l.x,l.y,l.w,l.h,state.angle);
-      if(artworkOnlyShip())window.tugClassIILights.draw(ctx,state.ship.id,l,state.angle,state.time,cthiaOptions.lights);
+      const l=layout(),repair=state.repair||state.repairSurface;
+      if(repair)repair.drawBody(ctx,l,state.angle);else shipImage(images.get(state.ship.frames[0]),l.x,l.y,l.w,l.h,state.angle);
+      if(artworkOnlyShip())artworkLights().draw(ctx,state.ship.id,l,state.angle,state.time,cthiaOptions.lights);
+      if(repair){const source=emitter();repair.drawBeam(ctx,l,state.angle,state.time,source,Number($('repair-attack-target').value),cthiaOptions);state.droneBattle?.draw(ctx,state.time,Number($('repair-attack-target').value),cthiaOptions);drawNearbyShip(source);}
       label(artworkOnlyShip()?`INTACT SHIP - LIGHTS ${cthiaOptions.lights?'ON':'OFF'}`:state.ship.kind==='turret'?'EQUIPMENT ICON PREVIEW':'STRUCTURE ARTWORK PREVIEW',l.x,460,'center','#9fc6d8');
       return;
     }
@@ -1211,8 +1255,9 @@
     else if(!state.repair&&!state.repairSurface)label(state.evolution?`${state.evolution.phase.toUpperCase()} · ${state.evolution.phase==='hatching'?'EGG A':state.evolution.phase==='juvenile'||state.evolution.phase==='complete'?'JUVENILE A':'LARVA A'}`:state.ship.name.toUpperCase(),l.x,460);
     if(!state.destroyed){
       const shieldVisible=!state.cloaked&&!creature()&&!structure()&&state.shieldsEnabled&&!!state.flash;
-      if(shieldVisible)window.drawShowcaseShieldSurface(ctx,l.x,l.y,l.w,l.h,shieldColor(),Math.max(.08,state.shields/100),state.time,{refract:true,impact:state.flash});
-      ctx.save();if(state.cloaked)ctx.globalAlpha=.18;
+      if(shieldVisible)window.drawShowcaseShieldSurface(ctx,l.x,l.y,l.w,l.h,shieldColor(),Math.max(.08,state.shields/100),state.time,{refract:true,impact:state.flash,angle:state.angle,entity:state.ship});
+      const cloakMix=window.CinematicCloak?.mix(state,state.time)??(state.cloaked?1:0);
+      ctx.save();ctx.globalAlpha*=window.CinematicCloak?.opacity(cloakMix)??(state.cloaked?.18:1);
       if(state.repair||state.repairSurface)(state.repair||state.repairSurface).drawBody(ctx,l,state.angle);
       else if(droneShip())window.droneShowcase.draw(ctx,state.ship,l,state.angle,state.hull,state.time,cthiaOptions);
       else if(state.evolution)window.creatureEvolution.draw(ctx,{state,evolution:state.evolution,layout:l,assets:images,eggBiology:window.starterShips.get(67).biology,larvaBiology:window.starterShips.get(69).biology});
@@ -1220,7 +1265,8 @@
       if(tugDamageShip()&&!state.cloaked)window.tugClassIILights.draw(ctx,state.ship.id,l,state.angle,state.time,cthiaOptions.lights,stage());
       if(tugDamageShip())window.tugIIADamage.drawHull(ctx,l,state.angle,state.time,stage(),cthiaOptions.damage);
       if(enhancedShip()&&!state.repair&&!state.repairSurface&&!state.cloaked&&!state.eggHatch&&!state.evolution)shipEffects().draw(ctx,l,state.angle,stage(),state.time,cthiaOptions);if(animatedStructure())drawEarthStarbaseEffects(l);ctx.restore();
-      if(shieldVisible)window.drawShowcaseShieldSurface(ctx,l.x,l.y,l.w,l.h,shieldColor(),Math.max(.08,state.shields/100),state.time,{front:true,impact:state.flash});
+      if(shieldVisible)window.drawShowcaseShieldSurface(ctx,l.x,l.y,l.w,l.h,shieldColor(),Math.max(.08,state.shields/100),state.time,{front:true,impact:state.flash,angle:state.angle,entity:state.ship});
+      if(cloakMix>0&&cloakMix<1&&window.CinematicCloak){ctx.save();ctx.translate(l.x,l.y);ctx.rotate(state.angle);window.CinematicCloak.draw(ctx,images.get(state.ship.frames[stage()]),l.w,l.h,cloakMix,state.time);ctx.restore();}
       if(!state.repair&&!creature()&&!structure())drawCombatTargetFrame(l);
     }
     if(state.repair||state.repairSurface)(state.repair||state.repairSurface).drawBeam(ctx,l,state.angle,state.time,source,Number($('repair-attack-target').value),cthiaOptions);
@@ -1240,8 +1286,11 @@
     if(tugDamageShip())window.tugIIADamage.drawPieces(ctx,state.time);
     for(const p of state.particles){const age=state.time-p.born;if(age<0||age>p.ttl)continue;if(p.realistic){if(p.realistic.startsWith('bio-'))window.bioshipEffects.drawParticle(ctx,p,state.time);else window.cthiaDestruction.drawParticle(ctx,p,state.time);continue;}window.showcaseHullBurst.draw(ctx,p,state.time);}
     ctx.restore();ctx.globalAlpha=1;
+    if(shieldAim&&$('shield-hit-location')?.value==='pick'&&state.shields>0&&!state.destroyed&&!creature()&&!structure()){
+      const p=world(shieldAim);ctx.save();ctx.strokeStyle='#c4f4ff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.moveTo(p.x-9,p.y);ctx.lineTo(p.x-3,p.y);ctx.moveTo(p.x+3,p.y);ctx.lineTo(p.x+9,p.y);ctx.stroke();ctx.restore();
+    }
   }
-  function frame(now){const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;if(state.ready&&!state.paused)step(dt*(state.slow?.25:1));updateRecharge();if(state.repair||state.droneBattle?.isBusy())repairControls(true);draw();repairWorkshop.draw?.(state.time,cthiaOptions);requestAnimationFrame(frame);}
+  function frame(now){if(window.showcaseEffectLab?.active){last=now;requestAnimationFrame(frame);return;}const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;if(state.ready&&!state.paused)step(dt*(state.slow?.25:1));updateRecharge();if(state.repair||state.droneBattle?.isBusy())repairControls(true);window.showcaseShields?.begin(ctx);draw();if(state.hullFlash&&!state.destroyed&&state.time-state.hullFlash.born<260){const p=world(state.hullFlash.local);window.nativeEffectProfiles?.queueImpact?.(ctx,{...state.hullFlash,x:p.x,y:p.y,age:state.time-state.hullFlash.born});}window.showcaseShields?.end(ctx,state.time);repairWorkshop.draw?.(state.time,cthiaOptions);requestAnimationFrame(frame);}
   function resize(){const dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(900*dpr);canvas.height=Math.round(540*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
   window.addEventListener('resize',resize);resize();requestAnimationFrame(frame);
   const oreHit=(event)=>{const field=state.asteroidOreField||state.miningSplit;if(!asteroid()||!field?.minerals||field.collectionBorn!==undefined||field.born!==undefined&&state.time-field.born<700)return false;const rect=canvas.getBoundingClientRect(),scale=Math.min(rect.width/900,rect.height/540),drawW=900*scale,drawH=540*scale,offsetX=(rect.width-drawW)/2,offsetY=(rect.height-drawH)/2,x=(event.clientX-rect.left-offsetX)/scale,y=(event.clientY-rect.top-offsetY)/scale,l=layout();return field.minerals.some(m=>Math.hypot(x-(l.x+m.x),y-(l.y+m.y))<Math.max(m.size*.65,15));};
@@ -1251,6 +1300,15 @@
     const rect=canvas.getBoundingClientRect(),x=(event.clientX-rect.left)*900/rect.width,y=(event.clientY-rect.top)*540/rect.height;
     const hit=allDroneTargets().filter(d=>d.owner.target(d.id)&&Math.hypot(d.position.x-x,d.position.y-y)<19).sort((a,b)=>Math.hypot(a.position.x-x,a.position.y-y)-Math.hypot(b.position.x-x,b.position.y-y))[0];
     if(hit){$('repair-attack-target').value=String(hit.id);updateRecharge();}
+  });
+  canvas.addEventListener('click',event=>{
+    if(!state.ready||state.destroyed||!state.shieldsEnabled||state.shields<=0||creature()||structure()||state.repair||state.droneBattle?.isBusy()||window.showcaseEffectLab?.active)return;
+    const rect=canvas.getBoundingClientRect(),l=layout(),scale=Math.min(rect.width/900,rect.height/540);
+    const x=(event.clientX-rect.left-(rect.width-900*scale)/2)/scale-l.x,y=(event.clientY-rect.top-(rect.height-540*scale)/2)/scale-l.y;
+    const c=Math.cos(state.angle),s=Math.sin(state.angle),lx=x*c+y*s,ly=-x*s+y*c,r=window.showcaseShieldRadii(l.w,l.h),n=Math.hypot(lx/r.rx,ly/r.ry);
+    if(n>1.12)return;
+    const f=n>.96?.96/n:1;shieldAim={x:lx*f/l.w,y:ly*f/l.h};$('shield-hit-location').value='pick';
+    explain('Impact point selected on the bubble. Fire to test sparks and ripples here.');
   });
   canvas.addEventListener('pointerleave',()=>{canvas.style.cursor='';});
   canvas.addEventListener('click',event=>{const field=state.asteroidOreField||state.miningSplit;if(!oreHit(event))return;field.collectionBorn=state.time;canvas.style.cursor='';explain(field===state.miningSplit?'Ore selected. The shield is discharging; the minerals will dematerialize in place.':'Ore selected. The minerals will dematerialize in place.');});
@@ -1280,14 +1338,14 @@
   };
   document.querySelectorAll('[data-motion]').forEach(b=>b.onclick=()=>{if(!movingCreature()||state.destroyed||stage()===3||state.evolution)return;const m=window.larvaMotion;if(b.dataset.motion==='turn'){m.turnFromAngle=state.angle;state.rotate=false;$('rotate').setAttribute('aria-pressed','false');}if(b.dataset.motion==='forward'){m.startX=m.xOffset||0;m.startY=m.offset||0;}m.mode=b.dataset.motion;m.born=state.time;updateUI();});
   $('creature-max-health').onchange=()=>{const value=Number($('creature-max-health').value);if(!creature()||!Number.isFinite(value)||value<1||value>100000){updateUI();return;}healthOverrides[state.ship.id]=Math.round(value);try{localStorage.setItem('creatureHealth',JSON.stringify(healthOverrides));}catch{}reset(true);explain('Maximum health updated. Creature restored for a fresh weapon test.');};
-  $('hatch').onclick=()=>{if(!egg()||!state.ready||state.destroyed||stage()===3||state.eggHatch)return;reset(true);state.paused=false;$('pause').setAttribute('aria-pressed','false');$('pause').textContent='? Pause';state.eggHatch={born:state.time,complete:false};updateUI();explain('The living egg pulses as its baby pushes through the membrane. The shell peels back and wet strands stretch as the larva pulls free.');};
+  $('hatch').onclick=()=>{if(!egg()||!state.ready||state.destroyed||stage()===3||state.eggHatch)return;reset(true);state.paused=false;$('pause').setAttribute('aria-pressed','false');$('pause').textContent='Ⅱ Pause';state.eggHatch={born:state.time,complete:false};updateUI();explain('The living egg pulses as its baby pushes through the membrane. The shell peels back and wet strands stretch as the larva pulls free.');};
   $('evolve').onclick=()=>{if(!state.ready||![67,69].includes(state.ship.id)||state.destroyed||stage()===3||state.evolution)return;const origin=state.ship.id;reset(true);state.paused=false;state.slow=false;state.rotate=false;state.angle=0;$('pause').setAttribute('aria-pressed','false');$('slow').setAttribute('aria-pressed','false');$('rotate').setAttribute('aria-pressed','false');state.evolution={origin,born:state.time,phase:origin===67?'hatching':'crawling',done:false};updateUI();explain(origin===67?'Evolution started: Egg A hatches, Larva A crawls and turns, then molts into Juvenile A.':'Evolution started: Larva A crawls and turns, then molts into Juvenile A.');};
   $('repair-demo').onclick=()=>startSteamrunnerRepair(true);
   $('repair-attack-target').onchange=()=>updateRecharge();
   $('drone-test-fire').onclick=()=>$('fire-weapon').click();
   $('drone-light-demo').onclick=()=>{cthiaOptions.toolDemo=!cthiaOptions.toolDemo;updateUI();};
   $('drone-recall').onclick=()=>{const recalled=state.repair?.recall(state.time);state.droneBattle?.recall();if(recalled||state.droneBattle?.isBusy()){updateUI();explain('Recall ordered. Welding has stopped; completed repairs are preserved. Drones remain vulnerable until they reach the support ship.');}};
-  $('repair').onclick=()=>state.ship.id===1?startSteamrunnerRepair():reset(true);$('reset').onclick=()=>reset();$('destroy').onclick=()=>{stopSequence();destroy();};$('sequence').onclick=()=>{if(state.ready)sequence();};
+  $('repair').onclick=()=>repairableShip()?startSteamrunnerRepair():reset(true);$('reset').onclick=()=>reset();$('destroy').onclick=()=>{stopSequence();destroy();};$('sequence').onclick=()=>{if(state.ready)sequence();};
   for(const id of['pause','slow','rotate','compare'])$(id).onclick=()=>{const key=id==='pause'?'paused':id;state[key]=!state[key];$(id).setAttribute('aria-pressed',String(state[key]));if(id==='pause')$(id).textContent=state.paused?'▶ Resume':'Ⅱ Pause';if(id==='compare')explain(state.compare?'Original reference on the left; updated interactive art on the right. Fire a weapon or select a damage stage to inspect the upgrade.':'Live damage preview restored. The four thumbnails below let you inspect each stage directly.');};
   $('zoom').oninput=()=>state.zoom=Number($('zoom').value)/100;
   for(const [id,key] of [['ship-lights','lights'],['damage-effects','damage'],['effect-locations','anchors']])$(id).onclick=()=>{cthiaOptions[key]=!cthiaOptions[key];$(id).setAttribute('aria-pressed',String(cthiaOptions[key]));updateUI();explain(key==='anchors'?(state.ship.id===23?'Amber markers show damage locations on the sails and spars.':biological()?'Effect locations: cyan markers show living organs; amber markers show tissue wounds.':'Effect locations: cyan markers show lamps, windows and running lights; amber markers show breaches in the selected damage stage.'):state.ship.name+' '+(biological()?(key==='lights'?'living pulses':'wound activity'):(state.ship.id===23?(key==='lights'?'sail glints':'sail damage'):(key==='lights'?'ship lights':'damage effects')))+' '+(cthiaOptions[key]?'enabled.':'disabled.'));};
@@ -1298,7 +1356,7 @@
   window.showcaseEnvironment=()=>({nearbyAsteroids:nearbyAsteroids.map(rock=>({...rock})),...environmentalImpacts.snapshot()});
   (async()=>{
   try{
-      const responses=await Promise.all([fetch(base+'catalog.json?v=tug-ii-a-anim-3'),fetch(base+'combat-data.json?v=weapon-independent-1'),fetch(base+'asteroids.json?v=ore-types-2'),fetch(base+'structures.json?v=vulcan-halfbreak-1')]);if(responses.some(r=>!r.ok))throw Error('Could not load ship, asteroid, structure, or combat data');[catalog,combat,asteroidData,structureData]=await Promise.all(responses.map(r=>r.json()));catalog.weapons=combat.weapons;for(const entry of window.droneShowcase.entries()){if(catalog.ships.some(ship=>ship.id===entry.id))throw Error("Duplicate drone showcase ID");catalog.ships.push(entry);}catalog.ships.push(...asteroidData.map((rock,index)=>({id:100+index,name:rock.name,kind:'asteroid',origin:'Curated mining artwork',oreType:rock.oreType,oreLabel:rock.oreLabel,oreRole:rock.oreRole,oreImage:rock.oreImage,frames:rock.name==='Asteroid 01'?['asteroids/asteroid_01_intact.png','asteroids/asteroid_01_light.png','asteroids/asteroid_01_heavy.png','asteroids/asteroid_01_severe.png']:[rock.file,`${rock.file.slice(0,-4)}_light.png`,`${rock.file.slice(0,-4)}_heavy.png`,`${rock.file.slice(0,-4)}_severe.png`],original:rock.file,bounds:[0,rock.width,0,rock.height],previewSize:Math.min(235,Math.max(rock.width,rock.height)),debrisKind:1,mass:1})));catalog.ships.push(...structureData.map(item=>({id:item.id,name:item.name,kind:item.kind,origin:item.source,structureGroup:item.group,frames:item.damageFrames||[item.file,null,null,null],damageReady:!!item.damageFrames,original:item.file,bounds:[0,item.width,0,item.height],previewSize:item.kind==='turret'?155:260,artworkStatus:item.damageFrames?'damage-ready':'artwork-preview',debrisKind:1,mass:item.damageFrames?850:1,size:item.damageFrames?260:undefined})));shooter=catalog.ships.find(s=>s.id===6);
+      const responses=await Promise.all([fetch(base+'catalog.json?v=constitution-damage-1'),fetch(base+'combat-data.json?v=constitution-damage-1'),fetch(base+'asteroids.json?v=ore-types-2'),fetch(base+'structures.json?v=vulcan-halfbreak-1')]);if(responses.some(r=>!r.ok))throw Error('Could not load ship, asteroid, structure, or combat data');[catalog,combat,asteroidData,structureData]=await Promise.all(responses.map(r=>r.json()));catalog.weapons=combat.weapons;for(const entry of window.droneShowcase.entries()){if(catalog.ships.some(ship=>ship.id===entry.id))throw Error("Duplicate drone showcase ID");catalog.ships.push(entry);}catalog.ships.push(...asteroidData.map((rock,index)=>({id:100+index,name:rock.name,kind:'asteroid',origin:'Curated mining artwork',oreType:rock.oreType,oreLabel:rock.oreLabel,oreRole:rock.oreRole,oreImage:rock.oreImage,frames:rock.name==='Asteroid 01'?['asteroids/asteroid_01_intact.png','asteroids/asteroid_01_light.png','asteroids/asteroid_01_heavy.png','asteroids/asteroid_01_severe.png']:[rock.file,`${rock.file.slice(0,-4)}_light.png`,`${rock.file.slice(0,-4)}_heavy.png`,`${rock.file.slice(0,-4)}_severe.png`],original:rock.file,bounds:[0,rock.width,0,rock.height],previewSize:Math.min(235,Math.max(rock.width,rock.height)),debrisKind:1,mass:1})));catalog.ships.push(...structureData.map(item=>({id:item.id,name:item.name,kind:item.kind,origin:item.source,structureGroup:item.group,frames:item.damageFrames||[item.file,null,null,null],damageReady:!!item.damageFrames,original:item.file,bounds:[0,item.width,0,item.height],previewSize:item.kind==='turret'?155:260,artworkStatus:item.damageFrames?'damage-ready':'artwork-preview',debrisKind:1,mass:item.damageFrames?850:1,size:item.damageFrames?260:undefined})));shooter=catalog.ships.find(s=>s.id===6);
       shipPicker=window.createShipPicker(catalog.ships,id=>window.starterShips.has(id)&&window.starterShips.get(id).animationReady!==false||[56,57,58,59].includes(id)||!!catalog.ships.find(ship=>ship.id===id)?.damageReady,selectShip);
       for(const kind of['beam','torpedo','disruptor']){
         const group=document.createElement('optgroup');group.label={beam:'Phasers / beams',torpedo:'Torpedoes',disruptor:'Disruptors / pulses'}[kind];

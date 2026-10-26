@@ -1,0 +1,14 @@
+{
+  "id": "mirror-risa",
+  "file": "mirror-risa.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: final transparent orbital game sprite for Vexed Mirror, matching the high-detail realistic cinematic planet art already used in Sol. ONE complete subject centered in square composition; entire object and rings/debris comfortably within 78 percent of frame, 11 percent transparent margin all around. Realistic orbital distance, natural upper-left illumination, detailed believable surface and clean antialiased silhouette. Genuinely transparent background. No background stars, no labels, no text, no logo, no spaceships. Subject: Mirror Risa, a beautiful temperate alien world with turquoise blue seas, green and ochre continents, delicate white cloud patterns and a subtle atmosphere, surrounded by the distinctive elegant thin planetary RINGS seen in its Mirror depiction. Complete ring ellipse fully inside frame with correct front and back occlusion. Original geography inspired by the Mirror orbital appearance, not an exact map.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-3c58dd06-db4f-41ca-b678-4f9cc6a96261.png",
+  "sourceSha256": "e4618a472bc4ca9675845f66c69de2930a81eeeb5fa42b962a976b3a687ecc9f",
+  "sha256": "b68f53ade7f699d07731571c66c466f71d5bf09497e5b7481df3a2949df48d7c",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

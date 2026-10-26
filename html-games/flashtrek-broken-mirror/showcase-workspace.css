@@ -1,0 +1,215 @@
+/* The simulator retains a 900x540 canvas; only the surrounding workspace fits. */
+html:has(.showcase-workspace) { height:100%; overflow:hidden; }
+body.showcase-workspace { height:100dvh; margin:0; padding:10px; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
+.showcase-workspace * { box-sizing:border-box; }
+.showcase-workspace [hidden],.showcase-workspace .workspace-tier-hidden { display:none!important; }
+.showcase-workspace .site-header { width:100%; max-width:none; padding:5px 8px 10px; flex:none; gap:20px; }
+.showcase-workspace .insignia { font-size:28px; }
+.showcase-workspace .identity { font-size:11px; }
+.showcase-workspace .identity small { font-size:8px; }
+.showcase-workspace .back { font-size:11px; }
+.showcase-workspace main { width:100%; max-width:none; padding:0; margin:0; flex:1; min-height:0; display:flex; }
+.showcase-workspace .workbench { width:100%; height:100%; display:grid; grid-template-columns:minmax(0,1fr) 350px; grid-template-rows:auto minmax(0,1fr) 28px; grid-template-areas:'toolbar toolbar' 'viewer controls' 'status status'; border-radius:9px; }
+.showcase-workspace .workspace-toolbar { grid-area:toolbar; display:grid; grid-template-columns:180px 140px minmax(150px,1fr) auto auto; gap:12px; align-items:end; padding:10px 14px; margin:0; border-bottom:1px solid var(--edge); background:#111f2c; }
+.showcase-workspace .workspace-field { display:flex; flex-direction:column; gap:5px; min-width:0; color:#91a9bd; font-size:10px; }
+.showcase-workspace .workspace-toolbar select { min-width:0; height:33px; padding:6px 24px 6px 9px; font-size:12px; }
+.showcase-workspace .ship-nav { gap:5px; margin:0; }
+.showcase-workspace .ship-nav button,.showcase-workspace .workspace-toolbar>#reset { height:33px; padding:6px 11px; font-size:11px; white-space:nowrap; }
+.showcase-workspace .viewer { grid-area:viewer; display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; }
+.showcase-workspace .viewer-heading { flex:none; min-height:60px; padding:10px 15px; gap:20px; }
+.showcase-workspace .viewer-heading>div:first-child { min-width:0; }
+.showcase-workspace .viewer-heading h2 { margin-top:3px; font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.showcase-workspace .viewer-heading .eyebrow { font-size:8px; }
+.showcase-workspace .ship-role { margin-top:3px; padding:2px 5px; font-size:8px; }
+.showcase-workspace .combat-meters { grid-template-columns:1fr 1fr; flex:0 0 260px; gap:14px; margin:0; }
+.showcase-workspace .combat-meters .range-label,.showcase-workspace .combat-meters .shield-row { min-height:18px; font-size:10px; }
+.showcase-workspace .combat-meters output { font-size:10px; }
+.showcase-workspace .combat-meters .meter { height:4px; margin:4px 0 0; }
+.showcase-workspace .scene { flex:1; min-height:0; height:auto; aspect-ratio:auto; display:flex; align-items:center; justify-content:center; container-type:size; }
+.showcase-workspace #scene { flex:none; width:min(100cqw,calc(100cqh * 5 / 3)); height:auto; max-width:100%; max-height:100%; aspect-ratio:5/3; object-fit:contain; }
+.showcase-workspace .scene-label { left:14px; top:12px; font-size:8px; }
+.showcase-workspace .stage-badge { right:14px; top:10px; font-size:8px; }
+.showcase-workspace .workspace-preview-controls { flex:none; display:flex; flex-wrap:wrap; border-top:1px solid var(--edge); padding:6px 10px; gap:5px 12px; background:#111e2b; }
+.showcase-workspace .workspace-preview-controls .playback { padding:0; border:0; gap:5px; margin:0; }
+.showcase-workspace .workspace-preview-controls button { padding:6px 8px; font-size:10px; }
+.showcase-workspace .workspace-preview-controls .zoom { width:auto; margin-left:4px; }
+.showcase-workspace #cthia-controls { gap:5px; }
+.showcase-workspace .damage-strip { flex:none; padding:6px 10px; gap:6px; border-top:1px solid var(--edge); }
+.showcase-workspace .damage-card { flex-direction:row; justify-content:center; gap:7px; padding:4px 6px; border-radius:5px; }
+.showcase-workspace .damage-card img { width:36px; height:32px; flex:none; filter:none; }
+.showcase-workspace .damage-card span { width:auto; white-space:normal; text-align:left; }
+.showcase-workspace .damage-card b { font-size:10px; }
+.showcase-workspace .damage-card small { font-size:8px; margin-top:2px; }
+.showcase-workspace .workspace-status { grid-area:status; min-height:0; border-radius:0; border-top:1px solid var(--edge); padding:5px 12px; margin:0; align-items:center; font-size:10px; gap:8px; }
+.showcase-workspace .explanation-mark { font-size:13px; line-height:1; }
+.showcase-workspace .workspace-status p { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.showcase-workspace .control-panel { grid-area:controls; min-width:0; min-height:0; display:flex; flex-direction:column; border-left:1px solid var(--edge); border-top:0; overflow:hidden; container-type:size; container-name:workspace-controls; }
+.showcase-workspace .workspace-tabs { display:flex; flex:none; gap:4px; padding:8px; border-bottom:1px solid var(--edge); background:#0e1924; }
+.showcase-workspace .workspace-tabs button { flex:1; min-width:0; border-color:transparent; background:transparent; color:#8ea7be; font-size:11px; padding:9px 6px; border-radius:5px; }
+.showcase-workspace .workspace-tabs [aria-selected=true] { background:#1e3a43; border-color:#3b6970; color:#c3f5ef; }
+.showcase-workspace [data-workspace-tab="preview"] { display:none; }
+.showcase-workspace .workspace-tabs button:focus-visible,.showcase-workspace button:focus-visible { outline:2px solid var(--cyan); outline-offset:1px; }
+.showcase-workspace .workspace-subtabs { background:transparent; padding:6px 10px; gap:6px; }
+.showcase-workspace .workspace-subtabs button { font-size:10px; padding:6px 4px; }
+.showcase-workspace .workspace-tab-body { flex:1; min-height:0; min-width:0; display:flex; flex-direction:column; }
+.showcase-workspace .workspace-panel,.showcase-workspace .workspace-group { min-height:0; min-width:0; flex:1; display:flex; flex-direction:column; }
+.showcase-workspace .workspace-section { padding:12px; gap:10px; }
+.showcase-workspace .workspace-section h3 { font-size:14px; }
+.showcase-workspace .panel-block { padding:0; border:0!important; min-width:0; }
+.showcase-workspace .weapon-console,.showcase-workspace .health-panel { display:flex; flex-direction:column; gap:10px; }
+.showcase-workspace .panel-block .eyebrow { font-size:9px; margin:0; }
+.showcase-workspace .weapon-actions { gap:8px; align-items:stretch; }
+.showcase-workspace .weapon-choice>span { display:none; }
+.showcase-workspace .weapon-picker { margin:0; }
+.showcase-workspace .weapon-picker summary { min-height:42px; height:42px; gap:6px; padding:4px 7px; font-size:11px; }
+.showcase-workspace .weapon-picker summary img { width:28px; height:28px; }
+.showcase-workspace .weapon-actions .fire { min-width:65px; height:42px; padding:8px; font-size:12px; }
+.showcase-workspace .weapon-options { max-height:min(260px,40cqh); left:0; width:min(320px,calc(100cqw - 24px)); right:auto; }
+.showcase-workspace .weapon-recharge { margin:0; }
+.showcase-workspace .cloak-controls { margin:0; gap:8px; align-items:flex-start; }
+.showcase-workspace .cloak-controls button { padding:7px; font-size:10px; }
+.showcase-workspace .cloak-controls small { font-size:10px; line-height:1.5; }
+.showcase-workspace .hit-result { font-size:11px; padding:9px; line-height:1.6; margin:0; }
+.showcase-workspace .workspace-section>.picker-label { margin:0; }
+.showcase-workspace .workspace-section>select { padding:7px; font-size:11px; }
+.showcase-workspace .combat-note { font-size:10px; line-height:1.5; margin:0; }
+.showcase-workspace .weapon-rating { margin:0; gap:10px; }
+.showcase-workspace .weapon-rating img { width:42px; height:42px; }
+.showcase-workspace .workspace-details { margin:0; }
+.showcase-workspace .workspace-details>summary { display:none; }
+.showcase-workspace .workspace-details label { font-size:10px; margin:6px 0; }
+.showcase-workspace .equipment-item { margin:9px 0; font-size:10px; }
+.showcase-workspace .equipment-item img { width:36px; height:36px; }
+.showcase-workspace .workspace-pager { display:flex; gap:10px; align-items:center; justify-content:space-between; color:#9fb7c8; font-size:10px; }
+.showcase-workspace .workspace-pager button { font-size:10px; padding:6px 9px; }
+.showcase-workspace .health-panel .range-label { margin:0; }
+.showcase-workspace .health-panel .sequence { margin:0; }
+.showcase-workspace .health-panel .action-pair button { padding:9px; }
+.showcase-workspace #debris-controls { padding:10px; margin:0; border:1px solid var(--edge); border-radius:5px; font-size:11px; }
+.showcase-workspace #debris-controls small { font-size:10px; line-height:1.5; }
+.showcase-workspace #larva-motion-controls { padding:0; margin:6px 0; border:0; }
+.showcase-workspace #creature-health-controls { font-size:11px; }
+.showcase-workspace #creature-health-controls input { display:block; width:100%; padding:7px; margin:6px 0; background:#0c141e; color:var(--ink); border:1px solid var(--edge); }
+.showcase-workspace .workspace-info { padding:14px; gap:12px; font-size:11px; }
+.showcase-workspace .workspace-info h3 { font-size:14px; }
+.showcase-workspace .workspace-info .source-tag { align-self:flex-start; }
+.showcase-workspace .workspace-info .animation-status-card,.showcase-workspace .workspace-info .fleet-progress { margin:0; }
+.showcase-workspace .workspace-info #cthia-status { font-size:10px; line-height:1.5; color:var(--muted); }
+.showcase-workspace .workspace-info #animation-example { font-size:11px; color:var(--cyan); }
+
+.showcase-workspace .workspace-unavailable { margin:14px; padding:16px; color:#9eb6ca; font-size:12px; line-height:1.7; border:1px solid var(--edge); border-radius:6px; }
+.showcase-workspace #repair-workshop { flex:1; min-height:0; display:flex; flex-direction:column; gap:0; }
+.showcase-workspace .workspace-repair-summary { padding:12px 12px 4px; display:grid; grid-template-columns:1fr auto; gap:5px; }
+.showcase-workspace .workspace-repair-summary h3 { margin:0; font-size:13px; }
+.showcase-workspace .workspace-repair-summary .drone-budget { margin:0; font-size:11px; }
+.showcase-workspace .drone-fleet-summary { grid-column:1/-1; margin:0; font-size:10px; }
+.showcase-workspace #repair-workshop>.workspace-tab-body { flex:1; }
+.showcase-workspace .workspace-repair .workspace-section { gap:7px; padding:8px 12px; }
+.showcase-workspace .drone-role-tabs,.showcase-workspace .workspace-tier-tabs { display:flex; gap:5px; margin:0; flex:none; }
+.showcase-workspace .drone-role-tabs button,.showcase-workspace .workspace-tier-tabs button { min-width:0; flex:1; padding:6px 4px; font-size:10px; }
+.showcase-workspace .drone-role-panel { min-height:0; }
+.showcase-workspace .drone-role-note { font-size:10px; line-height:1.4; margin:0 0 6px; }
+.showcase-workspace .dot-preview-condition { margin:0 0 7px; gap:4px; font-size:10px; }
+.showcase-workspace .dot-preview-condition select { padding:6px; font-size:10px; }
+.showcase-workspace .drone-tier-list { display:block; }
+.showcase-workspace .drone-role-panel .drone-tier { grid-template-columns:64px minmax(0,1fr); gap:4px 8px; padding:8px; }
+.showcase-workspace .drone-role-panel .drone-preview { width:64px; height:64px; grid-row:1/5; }
+.showcase-workspace .drone-tier h4 { font-size:12px; }
+.showcase-workspace .drone-tier p { font-size:10px; }
+.showcase-workspace .drone-tier small { font-size:9px; }
+.showcase-workspace .drone-tier strong { grid-column:2; margin:0; }
+.showcase-workspace .drone-tier button { font-size:10px; padding:7px; }
+.showcase-workspace .drone-workshop-launch { width:calc(100% - 24px); margin:6px 12px 0; padding:9px; font-size:11px; flex:none; }
+.showcase-workspace .drone-shop-status { flex:none; font-size:9px; line-height:1.4; margin:6px 12px 10px; }
+.showcase-workspace .drone-combat-controls { margin:0; padding:8px; gap:6px; }
+.showcase-workspace .drone-auto-attack { font-size:10px; margin:0; }
+.showcase-workspace .drone-wave-summary,.showcase-workspace .drone-flight-note { font-size:10px; line-height:1.4; margin:0; }
+.showcase-workspace .drone-wave-launch,.showcase-workspace .drone-workshop-reset { margin:0; font-size:10px; padding:7px; }
+.showcase-workspace #repair-demo { margin:0; font-size:10px; padding:7px; }
+
+@container workspace-controls (max-height:600px) {
+  .showcase-workspace .workspace-info { padding:10px; gap:8px; }
+  .showcase-workspace .workspace-section { padding:9px; gap:7px; }
+  .showcase-workspace .workspace-repair-summary { padding:8px 10px 3px; gap:3px; }
+  .showcase-workspace .workspace-repair-summary h3 { font-size:12px; }
+  .showcase-workspace .workspace-repair .workspace-section { gap:3px; padding:6px 10px; }
+  .showcase-workspace .drone-role-panel .drone-preview { display:none; }
+  .showcase-workspace .drone-role-panel .drone-tier { grid-template-columns:minmax(0,1fr) minmax(0,1fr); padding:4px; gap:4px 7px; }
+  .showcase-workspace .drone-tier h4 { grid-column:1/-1; }
+  .showcase-workspace .drone-tier small { grid-column:1; font-size:8px; }
+  .showcase-workspace .drone-tier strong { grid-column:2; text-align:right; font-size:9px; }
+  .showcase-workspace .drone-tier p,.showcase-workspace .drone-role-note { display:none; }
+  .showcase-workspace .drone-tier button { grid-column:auto; padding:5px; text-align:center; }
+  .showcase-workspace .drone-role-tabs button,.showcase-workspace .workspace-tier-tabs button { padding:4px; }
+  .showcase-workspace .dot-preview-condition { display:block; font-size:0; margin-bottom:3px; }
+  .showcase-workspace .dot-preview-condition select { padding:4px; font-size:10px; }
+  .showcase-workspace .drone-workshop-launch { padding:7px; margin-top:3px; }
+  .showcase-workspace .drone-shop-status { font-size:8px; margin-top:4px; margin-bottom:6px; }
+  .showcase-workspace .drone-combat-controls { gap:4px; padding:6px; }
+  .showcase-workspace .drone-combat-controls small { font-size:8px; }
+  .showcase-workspace .drone-flight-note { font-size:8px; }
+}
+@media(max-width:1050px) {
+  .showcase-workspace .workbench { grid-template-columns:minmax(0,1fr) 320px; }
+  .showcase-workspace .workspace-toolbar { grid-template-columns:145px 115px minmax(120px,1fr) auto auto; gap:7px; padding:8px; }
+  .showcase-workspace .combat-meters { flex-basis:175px; gap:7px; }
+  .showcase-workspace .viewer-heading { padding:8px 10px; gap:10px; }
+  .showcase-workspace .viewer-heading h2 { font-size:15px; }
+  .showcase-workspace .damage-card img { display:none; }
+  .showcase-workspace .damage-card { padding:6px 4px; }
+}
+@media(max-width:700px) {
+  body.showcase-workspace { padding:6px; gap:5px; }
+  .showcase-workspace .site-header { padding:4px 3px 7px; gap:12px; }
+  .showcase-workspace .site-header .identity small { display:none; }
+  .showcase-workspace .site-header .identity { font-size:9px; gap:6px; }
+  .showcase-workspace .site-header .insignia { font-size:22px; }
+  .showcase-workspace .site-header .back { font-size:9px; }
+  .showcase-workspace .site-header .back span { margin-left:3px; }
+  .showcase-workspace .workbench { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(150px,.8fr) minmax(340px,1.2fr) 24px; grid-template-areas:'toolbar' 'viewer' 'controls' 'status'; }
+  .showcase-workspace .workspace-toolbar { grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; gap:6px; padding:7px; }
+  .showcase-workspace .workspace-field { font-size:9px; gap:3px; }
+  .showcase-workspace .workspace-toolbar>.workspace-field:nth-child(1) { grid-column:1; grid-row:1; }
+  .showcase-workspace .workspace-toolbar>.workspace-field:nth-child(2) { grid-column:2; grid-row:1; }
+  .showcase-workspace .workspace-field:nth-child(3) { grid-column:1/3; grid-row:2; }
+  .showcase-workspace .workspace-toolbar>.ship-nav { grid-column:3; grid-row:2; }
+  .showcase-workspace .workspace-toolbar select { height:28px; font-size:10px; padding:4px 19px 4px 5px; }
+  .showcase-workspace .workspace-toolbar>#reset { grid-column:3; grid-row:1; height:28px; padding:4px 8px; font-size:10px; }
+  .showcase-workspace .ship-nav button { padding:4px 7px; height:28px; font-size:0; }
+  .showcase-workspace #previous::after { content:'\2039'; font-size:16px; }
+  .showcase-workspace #next::after { content:'\203a'; font-size:16px; }
+  .showcase-workspace .viewer-heading { min-height:42px; padding:6px 8px; }
+  .showcase-workspace .viewer-heading h2 { font-size:13px; }
+  .showcase-workspace .viewer-heading .eyebrow,.showcase-workspace .ship-role { display:none; }
+  .showcase-workspace .combat-meters { flex-basis:170px; gap:8px; }
+  .showcase-workspace .combat-meters .range-label,.showcase-workspace .combat-meters .shield-row,.showcase-workspace .combat-meters output { font-size:8px; min-height:13px; }
+  .showcase-workspace .workspace-preview-controls { gap:4px; padding:4px 6px; }
+  .showcase-workspace .workspace-preview-controls button { font-size:9px; padding:4px 6px; }
+  .showcase-workspace .workspace-playback .zoom { font-size:8px; margin-left:0; gap:4px; }
+  .showcase-workspace .workspace-playback .zoom input { width:50px; }
+  .showcase-workspace .damage-strip { padding:4px 6px; gap:4px; }
+  .showcase-workspace .damage-card { padding:4px 2px; }
+  .showcase-workspace .damage-card b { font-size:9px; }
+  .showcase-workspace .damage-card small { display:none; }
+  .showcase-workspace .control-panel { border-left:0; border-top:1px solid var(--edge); }
+  .showcase-workspace .workspace-tabs { padding:5px 6px; }
+  .showcase-workspace .workspace-tabs button { padding:6px 4px; font-size:10px; }
+  .showcase-workspace .workspace-subtabs { padding:3px 7px; }
+  .showcase-workspace .workspace-subtabs button { font-size:9px; padding:4px; }
+  .showcase-workspace .workspace-status { padding:4px 7px; font-size:9px; }
+}
+@media(prefers-reduced-motion:reduce) { .showcase-workspace * { scroll-behavior:auto; } }
+/* Short phones switch between the full preview and full controls with one tap. */
+@media(max-width:700px) and (max-height:800px) {
+  .showcase-workspace .workbench { grid-template-rows:auto minmax(0,1fr) 40px 24px; }
+  .showcase-workspace .control-panel { grid-area:2 / 1 / 4 / 2; border:0; }
+  .showcase-workspace .workspace-main-tabs { order:2; min-height:40px; }
+  .showcase-workspace .control-panel>.workspace-tab-body { order:1; }
+  .showcase-workspace [data-workspace-tab="preview"] { display:block; }
+  .showcase-workspace .viewer { visibility:hidden; }
+  .showcase-workspace [data-workspace-focus="preview"] .viewer { visibility:visible; }
+  .showcase-workspace [data-workspace-focus="preview"] .control-panel { background:transparent; pointer-events:none; }
+  .showcase-workspace [data-workspace-focus="preview"] .control-panel>.workspace-tab-body { visibility:hidden; }
+  .showcase-workspace [data-workspace-focus="preview"] .workspace-main-tabs { pointer-events:auto; }
+}

@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "modules": [
+    "effect-candidates/cinematic-shields.js",
+    "effect-candidates/cinematic-primitives.js",
+    "effect-candidates/cinematic-combat.js",
+    "effect-candidates/cinematic-weapons.js",
+    "effect-candidates/battle-radiance.js",
+    "effect-candidates/cinematic-battle.js"
+  ],
+  "defaultPreview": "cinematic-battle-v2",
+  "profiles": [
+    {
+      "schema": 1,
+      "id": "candidate-v1",
+      "name": "Hybrid bubble shields",
+      "implementation": "cinematic-shields-v1",
+      "modules": [
+        "effect-candidates/cinematic-shields.js"
+      ],
+      "shield": {
+        "duration": 900,
+        "energy": 1
+      },
+      "weapon": {
+        "scale": 1
+      }
+    },
+    {
+      "schema": 1,
+      "id": "candidate-v1",
+      "name": "Hybrid cinematic combat",
+      "implementation": "cinematic-combat-v1",
+      "modules": [
+        "effect-candidates/cinematic-shields.js",
+        "effect-candidates/cinematic-primitives.js",
+        "effect-candidates/cinematic-combat.js"
+      ],
+      "shield": {
+        "duration": 900,
+        "energy": 1
+      },
+      "weapon": {
+        "scale": 1
+      }
+    },
+    {
+      "schema": 1,
+      "id": "weapons-candidate-v1",
+      "name": "Cinematic weapons + released shields",
+      "implementation": "cinematic-weapons-v1",
+      "modules": [
+        "effect-candidates/cinematic-shields.js",
+        "effect-candidates/cinematic-primitives.js",
+        "effect-candidates/cinematic-weapons.js"
+      ],
+      "shield": {
+        "duration": 900,
+        "energy": 1
+      },
+      "weapon": {
+        "scale": 1
+      }
+    },
+    {
+      "schema": 1,
+      "id": "battle-candidate-v2",
+      "name": "Weapon lighting, lens flares and hull sparks",
+      "implementation": "cinematic-battle-v2",
+      "modules": [
+        "effect-candidates/cinematic-shields.js",
+        "effect-candidates/cinematic-primitives.js",
+        "effect-candidates/cinematic-weapons.js",
+        "effect-candidates/battle-radiance.js",
+        "effect-candidates/cinematic-battle.js"
+      ],
+      "shield": {
+        "duration": 900,
+        "energy": 1
+      },
+      "weapon": {
+        "scale": 1
+      }
+    }
+  ]
+}

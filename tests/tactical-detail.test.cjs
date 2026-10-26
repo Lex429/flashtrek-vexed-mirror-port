@@ -1,7 +1,8 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {tacticalFixture}=require('./helpers/tactical-fixture.cjs');
 const plain=value=>JSON.parse(JSON.stringify(value));
-function near(f){f.state.x=1000000;f.state.y=0;assert.equal(f.window.nativeNpcLives.detail(f.state,f.ships[0]),'detailed');}
+// Observe locally without occupying the shooter's hull or its firing corridor.
+function near(f){f.state.x=1000000;f.state.y=-250;assert.equal(f.window.nativeNpcLives.detail(f.state,f.ships[0]),'detailed');}
 const quiet=f=>{assert.equal(f.calls.steering,0);assert.equal(f.calls.firing,0);assert.equal(f.calls.scenes,0);};
 
 test('same-system distance ends tactical contact before steering, firing or collecting a scene',async()=>{

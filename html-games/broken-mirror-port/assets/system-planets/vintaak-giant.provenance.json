@@ -1,0 +1,14 @@
+{
+  "id": "vintaak-giant",
+  "file": "vintaak-giant.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: final transparent orbital game sprite for Vexed Mirror, matching the high-detail realistic cinematic planet art already used in Sol. ONE complete subject centered in square composition; entire object and rings/debris comfortably within 78 percent of frame, 11 percent transparent margin all around. Realistic orbital distance, natural upper-left illumination, detailed believable surface and clean antialiased silhouette. Genuinely transparent background. No background stars, no labels, no text, no logo, no spaceships. Subject: The Vintaak system's enormous RINGED GAS GIANT, bands of muted pale blue-green, cream and dusty tan gas with intricate storm eddies; a broad elegant ring system with multiple thin concentric bands and proper front/back occlusion. No moons or facilities in this sprite: those are separate game objects. Detailed photographic gas atmosphere, not solid rock.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-ed8696a1-84be-4e10-9b1e-c9ef01bddeb9.png",
+  "sourceSha256": "fb279775ccebcf0132badff08d6f7625600c571d19c5fcb9cae1d122f1ff0cc1",
+  "sha256": "1768adaadfaa68ee245ee39fb26962358fe56f202dd5331fc275aec3580d4d19",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

@@ -14,7 +14,7 @@
     if(!neighborCache.has(id)){const origin=systems.find(system=>system.id===id),position=origin?.mapPosition||{x:0,y:0},distance=system=>{const point=system.mapPosition||{x:0,y:0};return Math.hypot(point.x-position.x,point.y-position.y)};neighborCache.set(id,systems.filter(system=>system.id!==id&&(Number(system.populationBillions)>0||system.asteroids)).sort((a,b)=>distance(a)-distance(b)).slice(0,6).map(system=>system.id));}
     return neighborCache.get(id);
   };
-  const density=system=>system.id===1?18:Number(system.populationBillions)>=8?4:Number(system.populationBillions)>=2?3:Number(system.populationBillions)>0||system.asteroids?2:1;
+  const density=system=>system.trafficSeedCount??(system.id===1?18:Number(system.populationBillions)>=8?4:Number(system.populationBillions)>=2?3:Number(system.populationBillions)>0||system.asteroids?2:1);
   const trafficType=(system,slot)=>{
     const owned={1:47,4:23,7:18,12:52}[Number(system.governmentId)];
     return slot===0&&owned?owned:types[(system.id+slot*3)%types.length];
@@ -281,7 +281,7 @@
         opponent.vx=Number(opponent.vx)||0;opponent.vy=Number(opponent.vy)||0;
         const attacker=traffic.clock<=ship.retaliationUntil&&scene.bystanders.find(candidate=>candidate.id===ship.retaliationTargetId&&candidate.hull>0&&tacticallyDetailed(state,candidate));
         combat.steer(ship,attacker||opponent,dispute,{...scene,dt,clock:traffic.clock,hull:stats(ship).hull,shields:stats(ship).shields});
-        window.nativeShipSystems.invalidate?.(state,dispute.system);window.nativeSimulationFrame?.count(state,'tacticalUpdates');
+        window.nativeShipSystems.refreshShip(state,ship,'civilian',dispute.system);window.nativeSimulationFrame?.count(state,'tacticalUpdates');
       }
       if(dispute.hails?.length&&traffic.clock>=(dispute.nextHailAt||0)){
         const entry=dispute.hails.find(message=>message.dueAt<=traffic.clock);
@@ -323,7 +323,7 @@
       ship.cruiseSpeed=stats(ship).movement.maxSpeed;ship.maxCombatHull=stats(ship).hull;
       ship.combatRadius=Math.max(7,Math.max(dimensions(ship).width,dimensions(ship).height)*.35);
       combat.steer(ship,attacker,retaliation,{...scene,dt,clock:traffic.clock,hull:stats(ship).hull,shields:stats(ship).shields});
-      window.nativeShipSystems.invalidate?.(state,retaliation.system);window.nativeSimulationFrame?.count(state,'tacticalUpdates');
+      window.nativeShipSystems.refreshShip(state,ship,'civilian',retaliation.system);window.nativeSimulationFrame?.count(state,'tacticalUpdates');
       scene=combatScene(state,retaliation);
       if(traffic.clock>=retaliation.nextShotAt)retaliation.nextShotAt=traffic.clock+fireDisputeShot(state,retaliation,ship,attacker,scene);
     }
@@ -496,7 +496,7 @@
       const x=cx+(warpEffect?.shipX??pose.x)-ship.x,y=cy+(warpEffect?.shipY??pose.y)-ship.y,d=dimensions(vessel),screenX=cx+(x-cx)*zoom,screenY=cy+(y-cy)*zoom;
       const drawRing=()=>{if(warpEffect?.ring)window.vexedFlightAssets.drawWarpRing(ctx,{...warpEffect.ring,x:cx+warpEffect.ring.x-ship.x,y:cy+warpEffect.ring.y-ship.y},d.width);};
       if(screenX< -120||screenX>w+120||screenY< -120||screenY>h+120){drawRing();continue;}
-      const descriptor={...window.nativeShipDefinitions.describe(state,vessel,{category:'civilian'}),x:pose.x,y:pose.y,heading:pose.heading,system:state.system};
+      const descriptor={...(window.nativeShipSystems?.presentation?.(state,vessel,'civilian')||window.nativeShipDefinitions.describe(state,vessel,{category:'civilian'})),x:pose.x,y:pose.y,heading:pose.heading,system:state.system};
       window.nativeShipEffects.paintShip(ctx,descriptor,{ship,cx,cy,x,y,warpEffect});
       drawRing();
       if(selected===vessel.id&&!warpEffect)window.nativeAsteroidCombat?.drawTargetFrame(ctx,{name:vessel.name,size:Math.hypot(d.width,d.height)/Math.SQRT2,kind:vessel.phase==='disabled'?'DISABLED CIVILIAN':'CIVILIAN',color:'#ffd66e',shield:vessel.shields/Math.max(1,stats(vessel.shipType).shields),hull:vessel.hull/Math.max(1,stats(vessel.shipType).hull),selectedAt},x,y,zoom,cx);
@@ -518,6 +518,8 @@
   function snapshot(state){const traffic=initialize(state);return {ships:traffic.ships.map(ship=>({id:ship.id,name:ship.name,system:ship.system,destinationSystem:ship.destinationSystem,phase:ship.phase,port:ship.port,cargo:[ship.cargo?`${ship.cargo.tons} t ${economy.goods[ship.cargo.good]}`:null,ship.oreHold?`${ship.oreHold} t mined ore`:null].filter(Boolean).join(', ')||'Empty hold',deliveries:ship.deliveries,mined:ship.mined,deals:ship.deals,stolenOre:ship.stolenOre||0,dispute:traffic.disputes.find(dispute=>dispute.id===ship.disputeId)?.reason||null})),disputes:traffic.disputes.map(({id,system,a,b,reason})=>({id,system,a,b,reason})),log:traffic.log.slice()};}
   // Explicit readiness clients (browser checks/showcase tools) may request the
   // representative artwork. Ordinary initialization and the galaxy map do not.
-  const effectsReady=()=>{for(const type of types)if(!window.nativeShipEffects.ready(type,'civilian'))window.nativeShipEffects.prepare(type,'civilian');return types.every(type=>window.nativeShipEffects.ready(type,'civilian'));};
+  // Explicit diagnostic warm-up, never ordinary visibility. A cached base plate
+  // is not proof that the optional damage effects are warm for a benchmark.
+  const effectsReady=()=>{const ready=type=>window.nativeShipEffects.optionalReady?.(type,'civilian')??window.nativeShipEffects.ready(type,'civilian');for(const type of types)if(!ready(type))window.nativeShipEffects.prepare(type,'civilian');return types.every(ready);};
   window.nativeCivilianTraffic={hail,initialize,advance,paint,paintMining,miningIds,isMiningRock,startMiningDemo,startOreDisputeDemo,select,clearTarget,target,hitTest,fire,hit,visualImpact,snapshot,localShips,combatScene,effectsReady};
 })();

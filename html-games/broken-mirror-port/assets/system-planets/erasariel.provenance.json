@@ -1,0 +1,14 @@
+{
+  "id": "erasariel",
+  "file": "erasariel.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Erasariel, very cold distant inhabited planet, blue-white ice, rugged frozen mountain chains and a thin pale atmospheric halo.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-6cf5c178-a36f-4a30-a0fb-3726ab63d8d6.png",
+  "sourceSha256": "1e704442972aae6bd2ec3285a6a23cff0ff55132352e690c650e05029b1ebc01",
+  "sha256": "59ecc65afcdc0cb16a7c7f2b5957e9ac60ea8688a8aa08758c88691162dc8ecb",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

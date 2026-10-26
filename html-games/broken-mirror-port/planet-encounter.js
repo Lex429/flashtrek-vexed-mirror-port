@@ -25,17 +25,17 @@
 
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const signed = value => `${value > 0 ? '+' : ''}${Math.floor(value)}`;
-  const currentPlace = state => state.system === 1
+  const currentPlace = state => window.nativeSystemCatalog ? window.nativeSystemCatalog.current(state) : state.system === 1
     ? window.nativeSystemHub.sol.find(node => node.id === Number(state.localBody ?? 3))
     : {id:0, name:world.systems.find(system => system.id === state.system)?.name || 'Unknown world', port:Number(state.planetPopulations?.[state.system]) > 0};
-  const planetImage = (state, place) => state.system === 1
+  const planetImage = (state, place) => place.art || (state.system === 1
     ? `../flashtrek-broken-mirror/art-review/sol-planets/${String(place.id).padStart(2, '0')} - ${encodeURIComponent(place.name)}.png`
-    : `assets/planets/planet-${world.systems.find(system => system.id === state.system)?.planetArtFrame || 1}.png`;
+    : `assets/planets/planet-${world.systems.find(system => system.id === state.system)?.planetArtFrame || 1}.png`);
   const prestige = state => {
     const value = Number(state.localPrestige?.[state.system]);
     return Number.isFinite(value) ? Math.floor(value) : 0;
   };
-  const population=(state,place)=>state.system===1?window.nativeSystemHub.population(state,place.id):Math.max(0,Math.round(Number(state.planetPopulationCounts?.[state.system]??Number(state.planetPopulations?.[state.system])*1e9))||0);
+  const population=(state,place)=>window.nativeSystemCatalog ? window.nativeSystemCatalog.population(state,place) : state.system===1?window.nativeSystemHub.population(state,place.id):Math.max(0,Math.round(Number(state.planetPopulationCounts?.[state.system]??Number(state.planetPopulations?.[state.system])*1e9))||0);
   const standing = value => value >= 100 ? 'Allied' : value < 0 ? 'Hostile' : 'Neutral';
 
   function cargoContents(state, place) {

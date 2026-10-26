@@ -1,0 +1,57 @@
+{
+  "policy": "Append-only destinations. Screen facts, production/reference names, game population estimates and authored regional geology remain distinct.",
+  "sources": {
+    "HALKA": "https://memory-alpha.fandom.com/wiki/Halka",
+    "HALKAN-OFFICIAL": "https://www.startrek.com/news/cadet-training-mirror-universe-episodes-mirror-mirror",
+    "THARN": "https://memory-alpha.fandom.com/wiki/Tharn",
+    "ANDOR-PRODUCTION": "https://memory-alpha.fandom.com/wiki/Andoria"
+  },
+  "systems": [{
+    "world": {
+      "id": 53,
+      "name": "Halka",
+      "legacyMapLabel": "Halka",
+      "mapPosition": {"x": -144, "y": 44},
+      "charted": true,
+      "governmentId": 12,
+      "government": "Independent",
+      "strength": 0,
+      "planetArtFrame": 2,
+      "surfaceArtFrame": 6,
+      "populationBillions": 0.3,
+      "populationEvidence": "Game estimate; no screen census is established.",
+      "priceAdjustmentParameter": 0,
+      "description": "Home of the peaceful Halkans. In Mirror, Mirror, their council refuses the Terran Empire's demands for dilithium because it could support violence. The homeworld's dilithium is established by the episode; the surrounding rich asteroid fields, neighboring worlds, population estimate and galaxy-chart placement are Vexed Mirror adaptations. The Halkans' refusal concerns their planetary deposits; the game's public mining fields are in uninhabited space.",
+      "planetScalePercent": 100,
+      "enemyGovernmentId": 0,
+      "planetShopItemIds": [],
+      "weaponShopItemIds": [],
+      "nebula": false,
+      "asteroids": true,
+      "trafficSeedCount": 0,
+      "geology": {
+        "key": "halka",
+        "name": "Halka dilithium province",
+        "weights": {"dilithium":75,"tritanium":12,"trellium":8,"gallicite":4.7,"benamite":0.3},
+        "count": 384,
+        "deposits": {"deuranium":12},
+        "beltNames": ["Halka inner dilithium belt","Halka outer dilithium belt"],
+        "evidence": "Authored regional extension of the Halkan homeworld's screen-established dilithium deposits."
+      }
+    },
+    "catalog": {
+      "id": 53,
+      "name": "Halka",
+      "legacyIds": [53],
+      "homeBodyByLegacy": {"53":0},
+      "notes": "The Halkan homeworld and its dilithium/pacifist history come from Mirror, Mirror. No complete named orbital roster is established. Serevan and Lethan are original game names; the moon Tharn is an original namesake honoring the episode's council leader, not a claimed screen moon. Regional ore abundance, orbital layout, population estimate and appearances are game adaptations.",
+      "bodies": [
+        {"id":0,"name":"Halkan homeworld","kind":"planet","asset":"halkan-homeworld","evidence":"screen","sourceRefs":["HALKA","HALKAN-OFFICIAL"],"x":0,"y":0,"size":180,"legacyWorldId":53,"port":true,"description":"The peaceful Halkans' inhabited homeworld. Their dilithium deposits are the focus of Mirror, Mirror; their council rejects mining that could enable violence. Its orbital artwork and population are game interpretations. Uninhabited regional asteroid fields are the game's mineable resource extension."},
+        {"id":100,"name":"Serevan","kind":"planet","asset":"copper-rock","evidence":"authored","sourceRefs":["HALKA","HALKAN-OFFICICIAL"],"x":-1700,"y":-1100,"size":85,"description":"Original Vexed Mirror survey world in Halka, a barren rocky inner neighbor. Its name and existence are game additions inspired by the system's dilithium story; no screen source establishes this planet."},
+        {"id":101,"name":"Tharn","kind":"moon","asset":"frontier-moon","evidence":"authored","sourceRefs":["THARN","HALKAN-OFFICIAL"],"parentId":0,"x":1050,"y":650,"size":65,"description":"Original Vexed Mirror moon named in honor of Tharn, the Halkan council leader in Mirror, Mirror. The character is established; this moon and its namesake are game fiction."},
+        {"id":102,"name":"Lethan","kind":"planet","asset":"outer-ice","evidence":"authored","sourceRefs":["HALKA"],"x":6500,"y":-2200,"size":105,"description":"Original Vexed Mirror icy survey world beyond Halka's public outer mining field. The system connection is an adaptation; its name, existence and geology are not screen facts."},
+        {"id":900,"name":"Halka primary","kind":"star","art":"../flashtrek-broken-mirror/art-review/sol-planets/00 - Sun.png","evidence":"authored_layout","sourceRefs":["HALKA"],"x":-3800,"y":-2600,"size":230,"description":"Illustrative primary placement. No unsupported spectral classification is asserted."}
+      ]
+    }
+  }]
+}

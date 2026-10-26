@@ -1,0 +1,14 @@
+{
+  "id": "nyoabek",
+  "file": "nyoabek.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Nyoabek, distant inhabited alien world, dusky purple-brown continental terrain and dark blue seas, soft pale cloud bands.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-7465e658-bd52-40cd-bbb1-08fbbbe6dfb1.png",
+  "sourceSha256": "cb41366d530e6afc09bc80d280fc852c39c734817efe72d7553a5da40ea12c86",
+  "sha256": "ad58d49afb34ad424790c2b52190d5d1871d5fb88e70b038a626ff4dfa2e0022",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

@@ -1,0 +1,21 @@
+{
+  "policy": "Original Vexed Mirror fiction only. These are deliberate game additions, not measured exoplanets or Star Trek canon. Systems absent from this list receive no invented neighboring worlds.",
+  "systems": {
+    "3": [{"id":100,"name":"Lik Secundus","kind":"planet","asset":"copper-rock","size":85,"x":-1700,"y":-1100,"description":"Original Vexed Mirror rocky survey world named in relation to Lik Prime. Its name and existence are game fiction; no Star Trek source establishes this neighbor."}],
+    "6": [{"id":100,"name":"Helvetia","kind":"moon","asset":"frontier-moon","size":68,"parentId":0,"x":1050,"y":-550,"description":"Original Vexed Mirror highland moon. Its human colonial name follows New Switzerland's cultural theme; this is not a claimed canonical Trek moon."}],
+    "7": [{"id":100,"name":"Trey Borealis","kind":"planet","asset":"outer-ice","size":110,"x":4100,"y":-1500,"description":"Original Vexed Mirror frozen outer survey world. The name fits the existing Trey region; neither the planet nor its location is established in screen canon."}],
+    "17": [
+      {"id":100,"name":"Skadi","kind":"gas_giant","asset":"jade-giant","size":230,"x":5000,"y":1900,"description":"Original Vexed Mirror gas giant with a Scandinavian mythological survey name fitting the Denmark region. Its name and system membership are game additions."},
+      {"id":101,"name":"Rime","kind":"moon","asset":"ice-moon","size":62,"parentId":100,"x":5950,"y":2450,"description":"Original Vexed Mirror icy moon orbiting Skadi. Its name, existence and orbit are game fiction rather than an established Trek location."}
+    ],
+    "21": [{"id":100,"name":"Kovath","kind":"planet","asset":"silver-rock","size":120,"x":-2000,"y":-850,"description":"Original Vexed Mirror iron-rich rocky neighbor in Klingon-controlled Koann. Its cultural naming is invented for this game, not an asserted Klingon translation or screen planet."}],
+    "23": [{"id":100,"name":"Delphara","kind":"moon","asset":"ice-moon","size":62,"parentId":0,"x":900,"y":650,"description":"Original Vexed Mirror tidal moon of the aquatic Delpi world. The name follows the game's Delpin naming theme; it has no established connection to Delphi Ardu."}],
+    "28": [{"id":100,"name":"Tepos Major","kind":"gas_giant","asset":"violet-giant","size":220,"x":4800,"y":-2100,"description":"Original Vexed Mirror outer gas giant with a regional survey name. Its name and membership in Tepos are game fiction."}],
+    "41": [
+      {"id":100,"name":"Anorez Borealis","kind":"planet","asset":"outer-ice","size":108,"x":3900,"y":2600,"description":"Original Vexed Mirror icy outer survey world. Its name, existence and local placement are game fiction."},
+      {"id":101,"name":"Vesh","kind":"moon","asset":"rust-moon","size":65,"parentId":0,"x":-950,"y":600,"description":"Original Vexed Mirror rocky moon of Anorez, with an invented local name. No screen or licensed source establishes this moon."}
+    ],
+    "45": [{"id":100,"name":"Khorat","kind":"moon","asset":"copper-rock","size":58,"parentId":0,"x":1000,"y":-500,"description":"Original Vexed Mirror cinder moon of Hos'Ichu. Its invented Klingon-inspired local name is not an asserted translation or canonical moon."}],
+    "49": [{"id":100,"name":"Erasariel Farpoint","kind":"ice_giant","asset":"outer-giant","size":185,"x":4300,"y":2200,"description":"Original Vexed Mirror distant ice giant. Farpoint is a local survey epithet here, not a claim that Deneb IV or Farpoint Station is in this system."}]
+  }
+}

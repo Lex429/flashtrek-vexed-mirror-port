@@ -23,5 +23,9 @@
     ctx.fillRect(x-(size>>1),y-(size>>1),size,size);
     if(p.core&&t<.45){ctx.fillStyle=`rgba(255,255,255,${.65*fade})`;ctx.fillRect(x,y,1,1);}
   }
-  window.showcaseHullBurst=Object.freeze({burst,update,draw});
+  window.showcaseHullBurst=Object.freeze({
+    burst:(...args)=>window.nativeEffectProfiles?.emitHullBurst?window.nativeEffectProfiles.emitHullBurst(burst,...args):burst(...args),
+    update:(...args)=>window.nativeEffectProfiles?.updateHullParticle?window.nativeEffectProfiles.updateHullParticle(update,...args):update(...args),
+    draw:(...args)=>window.nativeEffectProfiles?.drawHullParticle?window.nativeEffectProfiles.drawHullParticle(draw,...args):draw(...args)
+  });
 })();

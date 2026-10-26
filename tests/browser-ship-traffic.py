@@ -32,7 +32,8 @@ try:
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('response', lambda response: failed.append(response.url) if response.status >= 400 else None)
         page.goto(base+'/html-games/broken-mirror-port/index.html')
-        page.locator('[data-menu="dev"]').click(timeout=30000)
+        page.wait_for_function('()=>window.startNativeDevGame&&nativeCombatShots.isReady()&&document.querySelector("#startup").hidden',timeout=90000)
+        page.evaluate('startNativeDevGame()')
         page.wait_for_function('()=>nativeNpcDev.getState()&&nativeCombatShots.isReady()&&nativeSolAsteroids.placements.length')
         page.evaluate('''()=>{
           window.__trafficCalls={advance:0,collide:0};const api=nativeShipTraffic;
@@ -93,7 +94,7 @@ try:
           }
           // Actual task owner, real inventory and berth; no visual-only arrival.
           const s=fresh(),ship=copy(templates.civilian);Object.assign(ship,{system:1,port:3,phase:'docked',cargo:null,oreHold:0,credits:1200,timer:10000,deliveries:0});
-          for(const k of ['lifeVersion','task','localLeg','journey','nextActionAt','lifeScheduleToken','dockingVersion','motionKick'])delete ship[k];
+          for(const k of ['lifeVersion','task','localLeg','lifeLeg','journey','nextActionAt','lifeScheduleToken','dockingVersion','motionKick','motionSpin','dockingMove','dockIntent'])delete ship[k];
           s.civilianTraffic.ships=[ship];nativeNpcLives.initialize(s);
           const source=nativeNpcLives.market(s,1,3),buyer=nativeNpcLives.market(s,1,5),before={source:source.stock[5],buyer:buyer.stock[5],money:source.credits+buyer.credits+ship.credits};
           check(nativeNpcLives.startDelivery(s,ship.id,{fromSystem:1,fromPort:3,toSystem:1,toPort:5,good:5,tons:4}).ok,'Delivery reservation failed');
@@ -116,7 +117,36 @@ try:
           Object.assign(civilian,{lifeVersion:1,dockingVersion:1,phase:'cruise',cargo:null,task:{id:'traffic-test',kind:'idle',phase:'idle',status:'active',origin:{system:1,port:3},destination:{system:1,port:3}},localLeg:nativeShipMotion.planLeg(civilian,{x:-500,y:0},nativeShipMotion.profiles.civilian(nativeShipDefinitions.get(civilian.shipType,'civilian')),nativeSimulation.seconds(traffic))});civilian.nextActionAt=civilian.localLeg.startedAt+civilian.localLeg.duration;nativeNpcLives.initialize(traffic);
           let min=Infinity;for(let i=0;i<3600;i++){nativeSimulation.advance(traffic,1/60);nativeShipTraffic.advance(traffic,1/60);nativeShipMotion.sampleLeg(tug,tug.lifeLeg,nativeSimulation.seconds(traffic));nativeShipMotion.sampleLeg(civilian,civilian.localLeg,nativeSimulation.seconds(traffic));nativeShipTraffic.collide(traffic,1/60);min=Math.min(min,Math.hypot(tug.x-civilian.x,tug.y-civilian.y));}
           near(tug.x,500,'Tug destination');near(civilian.x,-500,'Civilian destination');check(nativeShipTraffic.snapshot(traffic).contacts.length===0,'Head-on traffic collided');
-          return {scenarios,delivery:{savedWhileYielding:true,settledOnce:true,moneyConserved:true,cargoConserved:true},headOn:{minimumSeparation:min,plans:nativeShipTraffic.snapshot(traffic).plans},liveFrameCalls};
+          const clearArrivals=[];
+          for(const devMode of [false,true])for(const offset of [70,90,110]){
+            const s=fresh();s.devMode=devMode;
+            const a=put(s,'civilian',1,1000000-500,0,true),b=put(s,'civilian',2,1000000,0,true);
+            Object.assign(a,{shipType:47,y:offset,previousY:offset,phase:'cruise',speed:0,vx:0,vy:0,
+              lifeVersion:1,dockingVersion:1,task:{id:'clear-arrival',kind:'idle',phase:'idle',status:'active'},nextActionAt:1e8});
+            Object.assign(b,{shipType:47,y:0,previousY:0,phase:'docked',speed:0,vx:0,vy:0});
+            for(const e of [a,b])Object.assign(e,{role:'freight',ownerGovernmentId:1,homeSystem:1,seedSystem:1,stationSystem:1,operatingBase:1,homeBase:{system:1,port:3},port:3});
+            nativeNpcLives.initialize(s);
+            check(s.civilianTraffic.ships.includes(a)&&s.civilianTraffic.ships.includes(b),'Arrival fixture must retain both actual NPCs');
+            // Initialization restores saved berth/mission state. Set the local
+            // travel fixture after that migration, as the real task owner does.
+            Object.assign(a,{system:1,x:1000000-500,y:offset,heading:0,speed:0,vx:0,vy:0,phase:'cruise'});
+            Object.assign(b,{system:1,x:1000000,y:0,heading:0,speed:0,vx:0,vy:0,phase:'docked'});
+            for(const e of [a,b])for(const field of ['journey','localLeg','lifeLeg','disputeId','retaliationId','scriptedDemo','dockingMove'])delete e[field];
+            const goal={x:1000000,y:offset},profile=nativeShipDefinitions.forEntity(s,a,{category:'civilian'}).movement;
+            a.localLeg=nativeShipMotion.planLeg(a,goal,profile,nativeSimulation.seconds(s));
+            a.nextActionAt=a.localLeg.startedAt+a.localLeg.duration;
+            const cargo=JSON.stringify(a.cargo),credits=a.credits;let separation=Infinity;
+            for(let i=0;i<3600;i++){
+              nativeSimulation.advance(s,1/60);nativeShipTraffic.advance(s,1/60);
+              nativeShipMotion.sampleLeg(a,a.localLeg,nativeSimulation.seconds(s));nativeShipTraffic.collide(s,1/60);
+              separation=Math.min(separation,Math.hypot(a.x-b.x,a.y-b.y));
+            }
+            near(a.x,goal.x,'Clear adjacent arrival x '+JSON.stringify({devMode,offset,clock:nativeSimulation.seconds(s),leg:a.localLeg,control:a.trafficControl}));near(a.y,goal.y,'Clear adjacent arrival y');
+            check(nativeShipTraffic.snapshot(s).contacts.length===0,'Clear approach hit the parked hull');
+            check(JSON.stringify(a.cargo)===cargo&&a.credits===credits,'Avoidance changed cargo or credits');
+            clearArrivals.push({devMode,offset,minimumSeparation:separation,plans:nativeShipTraffic.snapshot(s).plans});
+          }
+          return {scenarios,delivery:{savedWhileYielding:true,settledOnce:true,moneyConserved:true,cargoConserved:true},headOn:{minimumSeparation:min,plans:nativeShipTraffic.snapshot(traffic).plans},clearArrivals,liveFrameCalls};
         }''')
         page.screenshot(path=str(OUTPUT/'contacts.png'))
         assert not errors, errors

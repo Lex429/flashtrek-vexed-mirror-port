@@ -22,24 +22,31 @@
   const major={1:'earth',2:'klingon',3:'cardassian',5:'vulcan',6:'romulan',7:'ferengi'},profiles=new Map(),nearby=new Map();
   const position=id=>byId.get(Number(id))?.mapPosition||({51:{x:-250,y:-125},52:{x:-220,y:-160}}[id])||{x:0,y:0};
   const distance=(a,b)=>Math.hypot(position(a).x-position(b).x,position(a).y-position(b).y);
+  // Mining fields use their original chart seeds even after cartographic edits.
+  // Travel, trading and prospecting continue to use the current positions above.
+  const geologyPosition=id=>world.geologyMapPositions?.[Number(id)]||position(id);
+  const geologyDistance=(a,b)=>Math.hypot(geologyPosition(a).x-geologyPosition(b).x,geologyPosition(a).y-geologyPosition(b).y);
   function region(id){
     const s=byId.get(Number(id));if(!s)return 'frontier';
     if(major[s.governmentId])return major[s.governmentId];
-    if([0,13,14,15].includes(Number(s.governmentId))||!s.charted||s.governmentId===12&&distance(id,1)>180)return 'frontier';
-    if(s.governmentId===12&&distance(id,1)<=120)return 'earth';
-    const nearest=world.systems.filter(other=>major[other.governmentId]).sort((a,b)=>distance(id,a.id)-distance(id,b.id)||a.id-b.id)[0];
+    if([0,13,14,15].includes(Number(s.governmentId))||!s.charted||s.governmentId===12&&geologyDistance(id,1)>180)return 'frontier';
+    if(s.governmentId===12&&geologyDistance(id,1)<=120)return 'earth';
+    const nearest=world.systems.filter(other=>major[other.governmentId]&&(Number(id)>53||other.id<=53)).sort((a,b)=>geologyDistance(id,a.id)-geologyDistance(id,b.id)||a.id-b.id)[0];
     return major[nearest?.governmentId]||'earth';
   }
   function profile(id){
-    id=Number(id);if(!profiles.has(id)){const key=region(id),mix=mixes[key];profiles.set(id,Object.freeze({system:id,key,name:mix.name,weights:Object.freeze({...mix.weights}),count:id===1?360:144+(id*17%5)*24,
+    id=Number(id);if(!profiles.has(id)){const override=byId.get(id)?.geology,key=override?.key||region(id),mix=override||mixes[key];profiles.set(id,Object.freeze({system:id,key,name:mix.name,weights:Object.freeze({...mix.weights}),count:override?.count??(id===1?360:144+(id*17%5)*24),
       // Supplemental deposits never reshuffle an existing belt or its ore IDs.
-      deposits:Object.freeze({deuranium:({earth:16,klingon:12,vulcan:20,cardassian:16,romulan:16,ferengi:12,frontier:8})[key]})}));}
+      deposits:Object.freeze(override?.deposits||{deuranium:({earth:16,klingon:12,vulcan:20,cardassian:16,romulan:16,ferengi:12,frontier:8})[key]}),
+      beltNames:override?.beltNames?Object.freeze([...override.beltNames]):null}));}
     return profiles.get(id);
   }
   function neighbors(id,count=6){
     id=Number(id);if(!nearby.has(id))nearby.set(id,world.systems.filter(s=>s.id!==id).sort((a,b)=>distance(id,a.id)-distance(id,b.id)||a.id-b.id).map(s=>s.id));
     return nearby.get(id).slice(0,count);
   }
+  // Chart layout revisions must never reseed an existing system's rocks.
+  const beltNeighbors=(id,count=4)=>world.systems.filter(s=>s.id!==Number(id)&&(Number(id)>53||s.id<=(Number(id)===53?53:52))).sort((a,b)=>geologyDistance(id,a.id)-geologyDistance(id,b.id)||a.id-b.id).slice(0,count).map(s=>s.id);
   function seed(value){let n=value>>>0;return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;};}
   function oreSequence(id,count,existing=[]){
     const p=profile(id),total=count+existing.length,remaining=Object.fromEntries(Object.entries(p.weights).map(([ore,weight])=>[ore,Math.max(0,Math.floor(total*weight/100)-existing.filter(r=>r.oreType===ore).length)]));
@@ -70,5 +77,5 @@
     value.speedOrOtherStationValue*=1+.08*level(state,'engine');value.weaponDamageMultiplier=1+.08*level(state,'weapons');value.warpSpeedMultiplier=1+.15*level(state,'drive');value.antimatterUseOrPopulationEffect*=value.warpSpeedMultiplier;
     return value;
   }
-  window.nativeRegionalMinerals=Object.freeze({ores,profile,neighbors,position,distance,seed,oreSequence,orePrice,goodForOre,recipes,held,level,upgradeQuote,stats});
+  window.nativeRegionalMinerals=Object.freeze({ores,profile,neighbors,beltNeighbors,geologyPosition,position,distance,seed,oreSequence,orePrice,goodForOre,recipes,held,level,upgradeQuote,stats});
 })();

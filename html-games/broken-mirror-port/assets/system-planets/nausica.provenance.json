@@ -1,0 +1,14 @@
+{
+  "id": "nausica",
+  "file": "nausica.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Nausicaa, a harsh rugged grey-brown world with muted ochre atmosphere, rocky mountains and dark seas.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-b0b5b0b9-3196-477d-a89a-819ba51afd8c.png",
+  "sourceSha256": "413f943e4658b93fec5e49995aaf3a7abfdfb0c987f682762747c8484e7cdbb9",
+  "sha256": "7283d4b243eb2c9103c7d1157dc802fd052643f447193addc02d6438be3ba94f",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

@@ -1,0 +1,1084 @@
+{
+  "duration": 88.189375,
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 8.44,
+      "text": " The Earth Empire was founded in 2125. Its drive for power, expansion, and conquest",
+      "words": [
+        {
+          "start": 0.0,
+          "end": 0.26,
+          "word": " The",
+          "probability": 0.9399853944778442
+        },
+        {
+          "start": 0.26,
+          "end": 0.54,
+          "word": " Earth",
+          "probability": 0.9142317175865173
+        },
+        {
+          "start": 0.54,
+          "end": 1.08,
+          "word": " Empire",
+          "probability": 0.9308624863624573
+        },
+        {
+          "start": 1.08,
+          "end": 1.42,
+          "word": " was",
+          "probability": 0.9983274340629578
+        },
+        {
+          "start": 1.42,
+          "end": 1.84,
+          "word": " founded",
+          "probability": 0.9995786547660828
+        },
+        {
+          "start": 1.84,
+          "end": 2.14,
+          "word": " in",
+          "probability": 0.9985026121139526
+        },
+        {
+          "start": 2.14,
+          "end": 3.8,
+          "word": " 2125.",
+          "probability": 0.8073089420795441
+        },
+        {
+          "start": 4.88,
+          "end": 5.06,
+          "word": " Its",
+          "probability": 0.9284451603889465
+        },
+        {
+          "start": 5.06,
+          "end": 5.44,
+          "word": " drive",
+          "probability": 0.996529757976532
+        },
+        {
+          "start": 5.44,
+          "end": 5.78,
+          "word": " for",
+          "probability": 0.998435914516449
+        },
+        {
+          "start": 5.78,
+          "end": 6.22,
+          "word": " power,",
+          "probability": 0.9987851977348328
+        },
+        {
+          "start": 6.62,
+          "end": 7.14,
+          "word": " expansion,",
+          "probability": 0.9966807961463928
+        },
+        {
+          "start": 7.58,
+          "end": 7.8,
+          "word": " and",
+          "probability": 0.9997228980064392
+        },
+        {
+          "start": 7.8,
+          "end": 8.44,
+          "word": " conquest",
+          "probability": 0.9996157884597778
+        }
+      ]
+    },
+    {
+      "start": 9.06,
+      "end": 17.54,
+      "text": " would lead it on a 200-year campaign across the galaxy. Within 20 years of the Empire's birth,",
+      "words": [
+        {
+          "start": 9.06,
+          "end": 9.46,
+          "word": " would",
+          "probability": 0.9734034538269043
+        },
+        {
+          "start": 9.46,
+          "end": 9.72,
+          "word": " lead",
+          "probability": 0.9992875456809998
+        },
+        {
+          "start": 9.72,
+          "end": 9.96,
+          "word": " it",
+          "probability": 0.998062789440155
+        },
+        {
+          "start": 9.96,
+          "end": 10.1,
+          "word": " on",
+          "probability": 0.9969563484191895
+        },
+        {
+          "start": 10.1,
+          "end": 10.28,
+          "word": " a",
+          "probability": 0.9983528852462769
+        },
+        {
+          "start": 10.28,
+          "end": 10.7,
+          "word": " 200",
+          "probability": 0.9174768328666687
+        },
+        {
+          "start": 10.7,
+          "end": 11.12,
+          "word": "-year",
+          "probability": 0.9021869003772736
+        },
+        {
+          "start": 11.12,
+          "end": 11.86,
+          "word": " campaign",
+          "probability": 0.9975066781044006
+        },
+        {
+          "start": 11.86,
+          "end": 12.94,
+          "word": " across",
+          "probability": 0.9836789965629578
+        },
+        {
+          "start": 12.94,
+          "end": 13.36,
+          "word": " the",
+          "probability": 0.9994768500328064
+        },
+        {
+          "start": 13.36,
+          "end": 13.9,
+          "word": " galaxy.",
+          "probability": 0.9767057299613953
+        },
+        {
+          "start": 15.18,
+          "end": 15.44,
+          "word": " Within",
+          "probability": 0.9976605176925659
+        },
+        {
+          "start": 15.44,
+          "end": 15.88,
+          "word": " 20",
+          "probability": 0.7123523950576782
+        },
+        {
+          "start": 15.88,
+          "end": 16.22,
+          "word": " years",
+          "probability": 0.9981478452682495
+        },
+        {
+          "start": 16.22,
+          "end": 16.44,
+          "word": " of",
+          "probability": 0.9994052648544312
+        },
+        {
+          "start": 16.44,
+          "end": 16.58,
+          "word": " the",
+          "probability": 0.9982520937919617
+        },
+        {
+          "start": 16.58,
+          "end": 17.2,
+          "word": " Empire's",
+          "probability": 0.8286433815956116
+        },
+        {
+          "start": 17.2,
+          "end": 17.54,
+          "word": " birth,",
+          "probability": 0.9994713664054871
+        }
+      ]
+    },
+    {
+      "start": 18.06,
+      "end": 24.18,
+      "text": " more than a dozen races had been annexed and put to work building the imperial regime.",
+      "words": [
+        {
+          "start": 18.06,
+          "end": 18.38,
+          "word": " more",
+          "probability": 0.9992467164993286
+        },
+        {
+          "start": 18.38,
+          "end": 18.58,
+          "word": " than",
+          "probability": 0.9985128045082092
+        },
+        {
+          "start": 18.58,
+          "end": 18.76,
+          "word": " a",
+          "probability": 0.9967294931411743
+        },
+        {
+          "start": 18.76,
+          "end": 19.06,
+          "word": " dozen",
+          "probability": 0.9996829032897949
+        },
+        {
+          "start": 19.06,
+          "end": 19.54,
+          "word": " races",
+          "probability": 0.9953761100769043
+        },
+        {
+          "start": 19.54,
+          "end": 19.9,
+          "word": " had",
+          "probability": 0.9984112977981567
+        },
+        {
+          "start": 19.9,
+          "end": 20.12,
+          "word": " been",
+          "probability": 0.9996391534805298
+        },
+        {
+          "start": 20.12,
+          "end": 20.64,
+          "word": " annexed",
+          "probability": 0.9978522062301636
+        },
+        {
+          "start": 20.64,
+          "end": 21.36,
+          "word": " and",
+          "probability": 0.8664473295211792
+        },
+        {
+          "start": 21.36,
+          "end": 21.54,
+          "word": " put",
+          "probability": 0.9994226694107056
+        },
+        {
+          "start": 21.54,
+          "end": 21.76,
+          "word": " to",
+          "probability": 0.9996776580810547
+        },
+        {
+          "start": 21.76,
+          "end": 22.16,
+          "word": " work",
+          "probability": 0.9994584918022156
+        },
+        {
+          "start": 22.16,
+          "end": 22.7,
+          "word": " building",
+          "probability": 0.9763432145118713
+        },
+        {
+          "start": 22.7,
+          "end": 23.1,
+          "word": " the",
+          "probability": 0.9987710118293762
+        },
+        {
+          "start": 23.1,
+          "end": 23.66,
+          "word": " imperial",
+          "probability": 0.5724997520446777
+        },
+        {
+          "start": 23.66,
+          "end": 24.18,
+          "word": " regime.",
+          "probability": 0.9991381168365479
+        }
+      ]
+    },
+    {
+      "start": 25.08,
+      "end": 31.3,
+      "text": " But revolution would eventually bring the Empire to the brink of collapse, opening the way for",
+      "words": [
+        {
+          "start": 25.08,
+          "end": 25.5,
+          "word": " But",
+          "probability": 0.2552545666694641
+        },
+        {
+          "start": 25.5,
+          "end": 25.98,
+          "word": " revolution",
+          "probability": 0.897782027721405
+        },
+        {
+          "start": 25.98,
+          "end": 26.4,
+          "word": " would",
+          "probability": 0.9978954792022705
+        },
+        {
+          "start": 26.4,
+          "end": 26.8,
+          "word": " eventually",
+          "probability": 0.9976115226745605
+        },
+        {
+          "start": 26.8,
+          "end": 27.2,
+          "word": " bring",
+          "probability": 0.9976648092269897
+        },
+        {
+          "start": 27.2,
+          "end": 27.44,
+          "word": " the",
+          "probability": 0.9968215227127075
+        },
+        {
+          "start": 27.44,
+          "end": 27.86,
+          "word": " Empire",
+          "probability": 0.6467103362083435
+        },
+        {
+          "start": 27.86,
+          "end": 28.18,
+          "word": " to",
+          "probability": 0.9978812336921692
+        },
+        {
+          "start": 28.18,
+          "end": 28.38,
+          "word": " the",
+          "probability": 0.9976600408554077
+        },
+        {
+          "start": 28.38,
+          "end": 28.6,
+          "word": " brink",
+          "probability": 0.9976211190223694
+        },
+        {
+          "start": 28.6,
+          "end": 28.98,
+          "word": " of",
+          "probability": 0.9973854422569275
+        },
+        {
+          "start": 28.98,
+          "end": 29.48,
+          "word": " collapse,",
+          "probability": 0.9828886985778809
+        },
+        {
+          "start": 30.18,
+          "end": 30.48,
+          "word": " opening",
+          "probability": 0.9917300343513489
+        },
+        {
+          "start": 30.48,
+          "end": 30.72,
+          "word": " the",
+          "probability": 0.9964801669120789
+        },
+        {
+          "start": 30.72,
+          "end": 30.98,
+          "word": " way",
+          "probability": 0.9972938895225525
+        },
+        {
+          "start": 30.98,
+          "end": 31.3,
+          "word": " for",
+          "probability": 0.9983466863632202
+        }
+      ]
+    },
+    {
+      "start": 31.3,
+      "end": 39.18,
+      "text": " subject worlds to break away and reclaim their independence. Of those powers that emerged from",
+      "words": [
+        {
+          "start": 31.3,
+          "end": 31.66,
+          "word": " subject",
+          "probability": 0.982840895652771
+        },
+        {
+          "start": 31.66,
+          "end": 32.08,
+          "word": " worlds",
+          "probability": 0.8679690957069397
+        },
+        {
+          "start": 32.08,
+          "end": 32.48,
+          "word": " to",
+          "probability": 0.9987519979476929
+        },
+        {
+          "start": 32.48,
+          "end": 32.78,
+          "word": " break",
+          "probability": 0.9921563863754272
+        },
+        {
+          "start": 32.78,
+          "end": 33.22,
+          "word": " away",
+          "probability": 0.9868523478507996
+        },
+        {
+          "start": 33.22,
+          "end": 34.12,
+          "word": " and",
+          "probability": 0.9050615429878235
+        },
+        {
+          "start": 34.12,
+          "end": 34.7,
+          "word": " reclaim",
+          "probability": 0.9826762676239014
+        },
+        {
+          "start": 34.7,
+          "end": 35.16,
+          "word": " their",
+          "probability": 0.9985931515693665
+        },
+        {
+          "start": 35.16,
+          "end": 35.78,
+          "word": " independence.",
+          "probability": 0.9938377737998962
+        },
+        {
+          "start": 36.94,
+          "end": 37.26,
+          "word": " Of",
+          "probability": 0.9922035932540894
+        },
+        {
+          "start": 37.26,
+          "end": 37.54,
+          "word": " those",
+          "probability": 0.9980738162994385
+        },
+        {
+          "start": 37.54,
+          "end": 37.98,
+          "word": " powers",
+          "probability": 0.9900593161582947
+        },
+        {
+          "start": 37.98,
+          "end": 38.28,
+          "word": " that",
+          "probability": 0.9980727434158325
+        },
+        {
+          "start": 38.28,
+          "end": 38.72,
+          "word": " emerged",
+          "probability": 0.9980150461196899
+        },
+        {
+          "start": 38.72,
+          "end": 39.18,
+          "word": " from",
+          "probability": 0.9981946349143982
+        }
+      ]
+    },
+    {
+      "start": 39.18,
+      "end": 47.4,
+      "text": " the chaos, the Klingons built the strongest Empire, swiftly conquering more than half of former human",
+      "words": [
+        {
+          "start": 39.18,
+          "end": 39.36,
+          "word": " the",
+          "probability": 0.9965200424194336
+        },
+        {
+          "start": 39.36,
+          "end": 39.82,
+          "word": " chaos,",
+          "probability": 0.9240134358406067
+        },
+        {
+          "start": 40.6,
+          "end": 40.68,
+          "word": " the",
+          "probability": 0.9939636588096619
+        },
+        {
+          "start": 40.68,
+          "end": 41.18,
+          "word": " Klingons",
+          "probability": 0.9626870155334473
+        },
+        {
+          "start": 41.18,
+          "end": 41.68,
+          "word": " built",
+          "probability": 0.9958823919296265
+        },
+        {
+          "start": 41.68,
+          "end": 42.04,
+          "word": " the",
+          "probability": 0.9994170665740967
+        },
+        {
+          "start": 42.04,
+          "end": 42.62,
+          "word": " strongest",
+          "probability": 0.9670507311820984
+        },
+        {
+          "start": 42.62,
+          "end": 43.4,
+          "word": " Empire,",
+          "probability": 0.6781914234161377
+        },
+        {
+          "start": 44.26,
+          "end": 44.52,
+          "word": " swiftly",
+          "probability": 0.9954955577850342
+        },
+        {
+          "start": 44.52,
+          "end": 45.1,
+          "word": " conquering",
+          "probability": 0.9972561001777649
+        },
+        {
+          "start": 45.1,
+          "end": 45.54,
+          "word": " more",
+          "probability": 0.9989368319511414
+        },
+        {
+          "start": 45.54,
+          "end": 45.8,
+          "word": " than",
+          "probability": 0.9984627962112427
+        },
+        {
+          "start": 45.8,
+          "end": 46.18,
+          "word": " half",
+          "probability": 0.998196542263031
+        },
+        {
+          "start": 46.18,
+          "end": 46.54,
+          "word": " of",
+          "probability": 0.9638839960098267
+        },
+        {
+          "start": 46.54,
+          "end": 47.0,
+          "word": " former",
+          "probability": 0.9933165311813354
+        },
+        {
+          "start": 47.0,
+          "end": 47.4,
+          "word": " human",
+          "probability": 0.9914239048957825
+        }
+      ]
+    },
+    {
+      "start": 47.4,
+      "end": 55.52,
+      "text": " territory. Without the firm hand of the Earth Empire, the galaxy has since degenerated into anarchy.",
+      "words": [
+        {
+          "start": 47.4,
+          "end": 47.9,
+          "word": " territory.",
+          "probability": 0.7607665061950684
+        },
+        {
+          "start": 49.18,
+          "end": 49.48,
+          "word": " Without",
+          "probability": 0.9949313998222351
+        },
+        {
+          "start": 49.48,
+          "end": 49.74,
+          "word": " the",
+          "probability": 0.9990999698638916
+        },
+        {
+          "start": 49.74,
+          "end": 50.04,
+          "word": " firm",
+          "probability": 0.998862624168396
+        },
+        {
+          "start": 50.04,
+          "end": 50.44,
+          "word": " hand",
+          "probability": 0.9956645369529724
+        },
+        {
+          "start": 50.44,
+          "end": 50.68,
+          "word": " of",
+          "probability": 0.9987443685531616
+        },
+        {
+          "start": 50.68,
+          "end": 50.8,
+          "word": " the",
+          "probability": 0.9966975450515747
+        },
+        {
+          "start": 50.8,
+          "end": 51.12,
+          "word": " Earth",
+          "probability": 0.7040882110595703
+        },
+        {
+          "start": 51.12,
+          "end": 51.72,
+          "word": " Empire,",
+          "probability": 0.8848080635070801
+        },
+        {
+          "start": 52.48,
+          "end": 52.52,
+          "word": " the",
+          "probability": 0.9983692765235901
+        },
+        {
+          "start": 52.52,
+          "end": 52.94,
+          "word": " galaxy",
+          "probability": 0.9073086380958557
+        },
+        {
+          "start": 52.94,
+          "end": 53.28,
+          "word": " has",
+          "probability": 0.9977174997329712
+        },
+        {
+          "start": 53.28,
+          "end": 53.64,
+          "word": " since",
+          "probability": 0.9988850951194763
+        },
+        {
+          "start": 53.64,
+          "end": 54.66,
+          "word": " degenerated",
+          "probability": 0.9957964420318604
+        },
+        {
+          "start": 54.66,
+          "end": 54.96,
+          "word": " into",
+          "probability": 0.997847318649292
+        },
+        {
+          "start": 54.96,
+          "end": 55.52,
+          "word": " anarchy.",
+          "probability": 0.9959204196929932
+        }
+      ]
+    },
+    {
+      "start": 57.32,
+      "end": 64.48,
+      "text": " Empires rise and fall with alarming regularity. Humanity and the Klingons remain locked in a",
+      "words": [
+        {
+          "start": 57.32,
+          "end": 57.32,
+          "word": " Empires",
+          "probability": 0.9833632707595825
+        },
+        {
+          "start": 57.32,
+          "end": 57.8,
+          "word": " rise",
+          "probability": 0.9990795850753784
+        },
+        {
+          "start": 57.8,
+          "end": 58.22,
+          "word": " and",
+          "probability": 0.9988204836845398
+        },
+        {
+          "start": 58.22,
+          "end": 58.62,
+          "word": " fall",
+          "probability": 0.9989416003227234
+        },
+        {
+          "start": 58.62,
+          "end": 59.14,
+          "word": " with",
+          "probability": 0.9264293909072876
+        },
+        {
+          "start": 59.14,
+          "end": 59.7,
+          "word": " alarming",
+          "probability": 0.9958655834197998
+        },
+        {
+          "start": 59.7,
+          "end": 60.64,
+          "word": " regularity.",
+          "probability": 0.9957697093486786
+        },
+        {
+          "start": 61.64,
+          "end": 62.0,
+          "word": " Humanity",
+          "probability": 0.9923491477966309
+        },
+        {
+          "start": 62.0,
+          "end": 62.34,
+          "word": " and",
+          "probability": 0.9982120990753174
+        },
+        {
+          "start": 62.34,
+          "end": 62.54,
+          "word": " the",
+          "probability": 0.997986912727356
+        },
+        {
+          "start": 62.54,
+          "end": 62.94,
+          "word": " Klingons",
+          "probability": 0.9897813498973846
+        },
+        {
+          "start": 62.94,
+          "end": 63.38,
+          "word": " remain",
+          "probability": 0.994175374507904
+        },
+        {
+          "start": 63.38,
+          "end": 63.84,
+          "word": " locked",
+          "probability": 0.9979850053787231
+        },
+        {
+          "start": 63.84,
+          "end": 64.14,
+          "word": " in",
+          "probability": 0.9975171089172363
+        },
+        {
+          "start": 64.14,
+          "end": 64.48,
+          "word": " a",
+          "probability": 0.9983313679695129
+        }
+      ]
+    },
+    {
+      "start": 64.48,
+      "end": 70.7,
+      "text": " bloody interstellar war, while countless other governments struggle to hold what territory",
+      "words": [
+        {
+          "start": 64.48,
+          "end": 64.84,
+          "word": " bloody",
+          "probability": 0.999169111251831
+        },
+        {
+          "start": 64.84,
+          "end": 65.56,
+          "word": " interstellar",
+          "probability": 0.8921183943748474
+        },
+        {
+          "start": 65.56,
+          "end": 66.2,
+          "word": " war,",
+          "probability": 0.9981710910797119
+        },
+        {
+          "start": 66.64,
+          "end": 66.98,
+          "word": " while",
+          "probability": 0.9983476400375366
+        },
+        {
+          "start": 66.98,
+          "end": 67.44,
+          "word": " countless",
+          "probability": 0.9995927214622498
+        },
+        {
+          "start": 67.44,
+          "end": 67.8,
+          "word": " other",
+          "probability": 0.9990096092224121
+        },
+        {
+          "start": 67.8,
+          "end": 68.24,
+          "word": " governments",
+          "probability": 0.9774758815765381
+        },
+        {
+          "start": 68.24,
+          "end": 69.1,
+          "word": " struggle",
+          "probability": 0.9944421648979187
+        },
+        {
+          "start": 69.1,
+          "end": 69.54,
+          "word": " to",
+          "probability": 0.9992121458053589
+        },
+        {
+          "start": 69.54,
+          "end": 69.86,
+          "word": " hold",
+          "probability": 0.9997473359107971
+        },
+        {
+          "start": 69.86,
+          "end": 70.18,
+          "word": " what",
+          "probability": 0.999640941619873
+        },
+        {
+          "start": 70.18,
+          "end": 70.7,
+          "word": " territory",
+          "probability": 0.9987275004386902
+        }
+      ]
+    },
+    {
+      "start": 70.7,
+      "end": 80.68,
+      "text": " remains under their control. The galaxy now waits for a power strong enough to impose order once again,",
+      "words": [
+        {
+          "start": 70.7,
+          "end": 71.44,
+          "word": " remains",
+          "probability": 0.9505110383033752
+        },
+        {
+          "start": 71.44,
+          "end": 72.2,
+          "word": " under",
+          "probability": 0.9888168573379517
+        },
+        {
+          "start": 72.2,
+          "end": 72.48,
+          "word": " their",
+          "probability": 0.9979366064071655
+        },
+        {
+          "start": 72.48,
+          "end": 73.08,
+          "word": " control.",
+          "probability": 0.9991686344146729
+        },
+        {
+          "start": 74.42,
+          "end": 74.56,
+          "word": " The",
+          "probability": 0.9938759207725525
+        },
+        {
+          "start": 74.56,
+          "end": 75.0,
+          "word": " galaxy",
+          "probability": 0.9112185835838318
+        },
+        {
+          "start": 75.0,
+          "end": 75.46,
+          "word": " now",
+          "probability": 0.996117353439331
+        },
+        {
+          "start": 75.46,
+          "end": 75.82,
+          "word": " waits",
+          "probability": 0.9998199343681335
+        },
+        {
+          "start": 75.82,
+          "end": 76.2,
+          "word": " for",
+          "probability": 0.9983892440795898
+        },
+        {
+          "start": 76.2,
+          "end": 76.4,
+          "word": " a",
+          "probability": 0.9966501593589783
+        },
+        {
+          "start": 76.4,
+          "end": 76.8,
+          "word": " power",
+          "probability": 0.9899541139602661
+        },
+        {
+          "start": 76.8,
+          "end": 77.84,
+          "word": " strong",
+          "probability": 0.9869527816772461
+        },
+        {
+          "start": 77.84,
+          "end": 78.22,
+          "word": " enough",
+          "probability": 0.9998012185096741
+        },
+        {
+          "start": 78.22,
+          "end": 78.5,
+          "word": " to",
+          "probability": 0.9996383190155029
+        },
+        {
+          "start": 78.5,
+          "end": 79.14,
+          "word": " impose",
+          "probability": 0.9986557960510254
+        },
+        {
+          "start": 79.14,
+          "end": 79.66,
+          "word": " order",
+          "probability": 0.9965139031410217
+        },
+        {
+          "start": 79.66,
+          "end": 80.14,
+          "word": " once",
+          "probability": 0.9765927791595459
+        },
+        {
+          "start": 80.14,
+          "end": 80.68,
+          "word": " again,",
+          "probability": 0.9993332028388977
+        }
+      ]
+    },
+    {
+      "start": 81.78,
+      "end": 88.06,
+      "text": " for a firm hand to rise and restore law and order.",
+      "words": [
+        {
+          "start": 81.78,
+          "end": 81.98,
+          "word": " for",
+          "probability": 0.994929313659668
+        },
+        {
+          "start": 81.98,
+          "end": 82.16,
+          "word": " a",
+          "probability": 0.9985613226890564
+        },
+        {
+          "start": 82.16,
+          "end": 82.52,
+          "word": " firm",
+          "probability": 0.9976345300674438
+        },
+        {
+          "start": 82.52,
+          "end": 82.98,
+          "word": " hand",
+          "probability": 0.9991540908813477
+        },
+        {
+          "start": 82.98,
+          "end": 83.44,
+          "word": " to",
+          "probability": 0.9985404014587402
+        },
+        {
+          "start": 83.44,
+          "end": 83.92,
+          "word": " rise",
+          "probability": 0.997386634349823
+        },
+        {
+          "start": 83.92,
+          "end": 85.44,
+          "word": " and",
+          "probability": 0.8809371590614319
+        },
+        {
+          "start": 85.44,
+          "end": 86.08,
+          "word": " restore",
+          "probability": 0.9983174800872803
+        },
+        {
+          "start": 86.08,
+          "end": 86.96,
+          "word": " law",
+          "probability": 0.791560173034668
+        },
+        {
+          "start": 86.96,
+          "end": 87.62,
+          "word": " and",
+          "probability": 0.9988479614257812
+        },
+        {
+          "start": 87.62,
+          "end": 88.06,
+          "word": " order.",
+          "probability": 0.9997145533561707
+        }
+      ]
+    }
+  ]
+}

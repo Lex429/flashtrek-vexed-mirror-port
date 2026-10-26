@@ -2,10 +2,10 @@
 const menuSpace=(()=>{
  const canvas=document.getElementById('menu-space'),ctx=canvas.getContext('2d',{alpha:true});
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
- let raf=0,last=0,time=0,frames=0,px=0,py=0,aimX=0,aimY=0;
- const stars=Array.from({length:185},(_,i)=>({x:(Math.random()-.5)*6,y:(Math.random()-.5)*4.5,z:.6+Math.random()*3.4,size:i%13===0?1.25:.4+Math.random()*.45,speed:i%3===0?.045:.022,color:i%9===0?'#b4d7fa':i%17===0?'#eed8d4':'#d6dceb'}));
+ let raf=0,last=0,time=0,frames=0,px=0,py=0,aimX=0,aimY=0,projected=[];
+ const field=window.nativeMenuStarfield,stars=field.create(720);
  // Paint behind the opening screen so its fade never exposes the native grid.
- function visible(){return !menuArt.hidden&&!document.hidden;}
+ function visible(){return !menuArt.hidden&&!document.hidden&&!window.nativePause?.active&&!document.body.classList.contains('playing')&&!game.classList.contains('setup-open');}
  function cloud(x,y,rx,ry,color){
   ctx.save();ctx.translate(x,y);ctx.scale(rx,ry);
   const gradient=ctx.createRadialGradient(0,0,0,0,0,1);gradient.addColorStop(0,color);gradient.addColorStop(.45,color.replace(/,[\d.]+\)$/ ,',0.035)'));gradient.addColorStop(1,'rgba(0,0,0,0)');
@@ -19,13 +19,18 @@ const menuSpace=(()=>{
   cloud(ox+430+Math.sin(time*.018)*34+px*8,oy+170+Math.cos(time*.014)*20+py*6,290,205,'rgba(54,67,121,0.16)');
   cloud(ox+140+Math.cos(time*.012)*30+px*12,oy+320+Math.sin(time*.016)*18+py*9,250,185,'rgba(91,37,72,0.115)');
   cloud(ox+325+px*5,oy+245+py*4,210,155,'rgba(35,90,108,0.085)');
+  projected=[];const travel=time*field.speed;
   for(const star of stars){
-   star.z-=dt*star.speed;
-   let x=w/2+star.x/star.z*260+px*8/star.z,y=h/2+star.y/star.z*260+py*6/star.z;
-   if(star.z<.5||x<-12||x>w+12||y<-12||y>h+12){star.z=3.5+Math.random()*.5;star.x=(Math.random()-.5)*6;star.y=(Math.random()-.5)*4.5;x=w/2+star.x/star.z*260;y=h/2+star.y/star.z*260;}
-   const radius=Math.max(.28,star.size/star.z*.85);
-   ctx.globalAlpha=Math.min(.8,.16+(.95/star.z));ctx.fillStyle=star.color;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
-   if(star.size>1&&star.z<1.6){ctx.globalAlpha=.08;ctx.beginPath();ctx.arc(x,y,radius*3,0,Math.PI*2);ctx.fill();}
+   const point=field.project(star,travel,w,h,px,py);projected.push(point);
+   if(!point.visible)continue;
+   const {x,y,z,radius,opacity}=point;
+   const dx=x-point.trailX,dy=y-point.trailY,length=Math.hypot(dx,dy),shutter=Math.min(1,9/Math.max(.001,length));
+   if(z<1.8&&length>.5){
+    ctx.globalAlpha=opacity*.28;ctx.strokeStyle=star.color;ctx.lineWidth=Math.max(.35,radius*.6);ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x-dx*shutter,y-dy*shutter);ctx.lineTo(x,y);ctx.stroke();
+   }
+   ctx.globalAlpha=opacity;ctx.fillStyle=star.color;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
+   if(star.size>1&&z<1.6){ctx.globalAlpha=opacity*.08;ctx.beginPath();ctx.arc(x,y,radius*3,0,Math.PI*2);ctx.fill();}
   }
   ctx.globalAlpha=1;
   frames++;
@@ -42,6 +47,7 @@ const menuSpace=(()=>{
  new ResizeObserver(resize).observe(canvas);
  const observer=new MutationObserver(()=>{resize();sync();});
  observer.observe(menuArt,{attributes:true,attributeFilter:['hidden']});observer.observe(document.getElementById('startup'),{attributes:true,attributeFilter:['hidden']});
+ observer.observe(game,{attributes:true,attributeFilter:['class']});observer.observe(document.body,{attributes:true,attributeFilter:['class']});
  document.addEventListener('visibilitychange',sync);reduced.addEventListener('change',sync);
- return {prepare(){resize();sync();},get state(){return {frames,time,px,py,running:!!raf,reducedMotion:reduced.matches};}};
+ return {prepare(){resize();sync();},get state(){return {frames,time,travel:time*field.speed,px,py,running:!!raf,reducedMotion:reduced.matches,projected:projected.map(p=>({...p}))};}};
 })();

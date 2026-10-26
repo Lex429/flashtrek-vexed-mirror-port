@@ -1,0 +1,14 @@
+{
+  "id": "kardon",
+  "file": "kardon.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Kardon, a planet whose surface has been burned away by catastrophe, blackened charcoal crust with scarred copper fissures and no life.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-46c545b7-665b-4729-b4a3-38474b373076.png",
+  "sourceSha256": "9c818502a52c9632dee4bad0313e33ecd1f5d3ff42db7225a4073a5b9642c471",
+  "sha256": "7ecaa82546cc061532e7067141fd8543904c3559ffbc68c189ba7c14998b68e6",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

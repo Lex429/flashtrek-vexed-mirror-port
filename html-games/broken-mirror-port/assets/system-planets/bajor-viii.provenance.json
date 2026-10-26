@@ -1,0 +1,14 @@
+{
+  "id": "bajor-viii",
+  "file": "bajor-viii.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Bajor VIII, an outer planetary destination: muted blue-grey and tan cloud layers, subtle swirling storms; original visual interpretation because its full appearance is not established.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-49f66f1b-1ac2-42c9-8011-fa91a9f4d9a3.png",
+  "sourceSha256": "810e1771eecc13c71e98f00cfae68846e40a75390b03c27a729755a061dbc161",
+  "sha256": "d904bc3aa8d183aaf5c06ee61ebca5f533091b8de097ebd13bcdea5bad6a079e",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

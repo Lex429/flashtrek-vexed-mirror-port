@@ -15,6 +15,19 @@ sizes, aligned damage artwork, shared lighting and charge/recharge combat remain
 
 ## Saved equipment and fitting
 
+The Dev ship selector includes Kirk's I.S.S. Enterprise NCC-1701 (426) and the
+unmarked Constitution Class (427). `constitution-ships.js` registers their shared
+flight definitions: 200 hull, 200 shields, 150 t cargo, three weapon bays, two Dot
+bays and the normal ability, engine and shield slots. Their starting weapon data
+uses a Type X Phaser and Photon Torpedo. Equipping either hull transfers existing
+owned equipment through the ordinary hull-change boundary; empty bays stay empty.
+Both reuse their four showcase damage frames, lighting, fragments and wreckage.
+Flight prepares 384-by-576 copies with proportionally scaled light and breakup
+anchors so all four stages stay within the existing shared effects cache; the
+1024-by-1536 showcase masters remain unchanged.
+They are available in Dev tools; no normal shipyard stock or NPC population is
+added. Dev saves retain their stable IDs and fitting through Continue.
+
 `weapon-loadout.js` owns `nativeShipEquipment` and the existing
 `nativeWeaponLoadout` compatibility API. There is no second ownership registry.
 `shipEquipment.version:2` contains stable instances, a common locker and five
@@ -50,13 +63,65 @@ activation effects for the original utility catalog. There is no reactor/energy
 resource. Fitted weapons keep the existing model recharge times.
 
 Inventory shows every bay, installed item or Empty label, and cargo use/capacity.
-Select an item and its compatible destination, or drag it. Stow selected moves
-it to owned storage. At a port, Basic Dots and standard systems can be purchased
-into the locker and fitted. No free item appears merely because a slot exists.
+Drag an installed item into any inventory tile to unequip it, or drag stored
+equipment into a compatible bay to equip it. DOT bays show the original DOT
+artwork; mining lasers occupy removable ability bays. Click/select and keyboard
+activation use the same move operation. There are no stow or purchase controls
+inside Inventory. The port Shop's Equipment tab sells Basic Dots, mining lasers,
+engines and shield systems into inventory for manual fitting.
+
+`nativeShipEquipment.moveInventory` owns grid swaps and fitting through the same
+typed equipment boundary. Saved `inventoryLayout.version:1` cells reference owned
+equipment IDs, resource stacks, mineral stacks, freight goods and contract IDs.
+Gaps and exact positions survive reload. Reconciliation clears consumed items
+and places new purchases in available cells without reordering existing items.
+Same-type fitting swaps preserve both identities; unequipping onto other cargo
+keeps that cargo in an available tile. Quantities, contracts, upgrades and charge
+remain with their authoritative owners. Moves save immediately, and failed
+writes are reported by the inventory. No free item appears because a bay exists.
 A shieldless hull starts with an empty shield bay. Removing the shield system
-removes shielding; removing engineering removes powered thrust. Reinstallation
+removes shielding; removing engineering retains basic propulsion at the original
+Saber flight speed (20 rating / 90 world units per second), including thrust,
+steering, braking and shipyard departure. Reinstallation
 does not refill shield charge. A hull's existing mineral upgrades remain saved;
 an installed engine retains its owned Tug engine upgrade when moved or stored.
+
+Every hull starts with `standard-engine`: the original Intrepid rating of 95
+(427.5 world units per second). `upgraded-engine` costs 2,500 L and adds 10%
+(104.5 rating / 470.25 units per second); `advanced-engine` costs 5,000 L and adds
+20% (114 rating / 513 units per second). A replacement Standard costs 500 L.
+The engine model determines actual speed for every controller through the shared
+effective definition. Class turning, hull, shields, cargo and fuel efficiency
+retain their existing values. Existing hull mineral/refit tuning multiplies the
+fitted engine's rating; owned Tug Mk tuning adds its existing 15 points per level.
+Those bonuses do not boost an empty engineering bay. Local cruise keeps its
+original Intrepid/Saber benchmarks and scales beyond its former cap for upgraded
+engines. Saved equipment IDs, tuning and empty bays survive reload unchanged.
+No equipment/save version migration is needed: existing Standard instances read
+the updated model and definitions; new engines use the same version-2 schema.
+
+All three models use original generated PNG artwork in the equipment slot,
+inventory tiles and port Equipment shop. See `docs/engine-artwork.md` for assets
+and prompts. `tests/engine-equipment.test.cjs` checks all hulls, actual shared
+movement, tuning, ownership and reload; `tests/browser-engine-equipment.py`
+checks real purchases, I-key opening, mouse dragging, artwork, WASD flight,
+empty-bay reload and mobile fitting without inventory overflow.
+
+Engine-change verification (October 24, 2026): all 329 Node checks ran; 328
+passed. The remaining pre-existing `player-combat.test.cjs` contact assertion
+expects only x/y while the actual contact also includes its normal. Engine,
+equipment, inventory layout, traffic, repair, refit and conservation checks pass.
+Real Edge checks passed for engine equipment, unified equipment, inventory drag,
+visible drone launch/recovery, ship traffic and the restored Earth jam.
+
+A 172-ship save was measured before/after with the same Edge version and
+1280 x 850 viewport, six-second flight/map windows. The HTTP-served baseline
+reverses only this task's propulsion and recovery changes; other working-tree
+code and artwork are identical. Mean simulation time was 1.19 -> 1.59 ms in
+flight and 1.32 -> 1.57 ms on the Dev map. Frame interval p95 was 6.2 -> 12.2 ms
+in flight and 6.2 -> 6.4 ms on the map. These short measurements show additional
+cost, not a performance improvement. Raw timings, source hashes, save hash and
+screenshots are in ignored `test-results/engine-equipment/performance/`.
 
 Cargo accounting includes freight, sealed contracts, raw minerals and repair
 deuranium for both player and NPC storage adapters. Dev mode?s existing

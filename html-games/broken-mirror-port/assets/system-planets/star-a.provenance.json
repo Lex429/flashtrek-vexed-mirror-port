@@ -1,0 +1,14 @@
+{
+  "id": "star-a",
+  "file": "star-a.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: polished production stellar sprite for Vexed Mirror. Reference image is a NASA SDO/HMI continuum observation; use its fine photospheric texture, round silhouette and limb darkening as scientific reference ONLY. Its displayed orange color is assigned and must not be copied automatically. Render ONE complete self-luminous star, visible across its entire disk, no planet-like night-side terminator. Subtle finely resolved surface texture, restrained translucent corona and tiny realistic limb activity. No molten-rock cracks, no lava planet, no oversized fireball, no spiky sun icon. Square composition with entire glowing star and corona inside central 76 percent, at least 12 percent transparent padding all around. Genuine transparent background; no labels, text, logos, watermark, background stars, planets or ships. Premium realistic astronomical appearance, high detail, smooth antialiased limb. Subject: A/F-type hot main-sequence star like Vega or Procyon, brilliant WHITE photosphere with subtle icy BLUE tint at the limb, fine delicate texture and smooth subtle white-blue corona. Not pure blue and not an icy planet.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-5726d896-b7e3-4238-bbee-c05148539589.png",
+  "sourceSha256": "68027f661bf71e20e8fb08b3833dc076eddcffb6847d12249375510146d324f3",
+  "sha256": "bdae4682fd07f5f134c864eb462e96f74c9247de68030e03b484fb5c41ae14c3",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

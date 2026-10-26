@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-10-24",
+  "scope": "Historical candidate inventory; implementation and continuity decisions now live in tools/mirror-expansion.json.",
+  "policy": "Preserve existing worlds and IDs. Distinguish named planets, systems, facilities and regions. Episode events are era-specific; a mentioned world does not establish a complete orbital roster. Source classifications belong in the research/atlas, not intrusive gameplay badges.",
+  "existingDestinations": [
+    {
+      "world": "Earth / Terra",
+      "id": 1
+    },
+    {
+      "world": "Vulcan",
+      "id": 12
+    },
+    {
+      "world": "Andoria / Andor",
+      "id": 25,
+      "note": "Do not infer the moon/giant naming distinction solely from Georgiou's governorship or imperial title."
+    },
+    {
+      "world": "Qo'noS",
+      "id": 38
+    },
+    {
+      "world": "Bajor",
+      "id": 47
+    },
+    {
+      "world": "Halkan homeworld / Halka",
+      "id": 53
+    }
+  ],
+  "firstCandidates": [
+    {
+      "system": "Vintaak",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "ENT: In a Mirror, Darkly",
+      "knownContents": [
+        "Ringed gas giant",
+        "Several moons",
+        "Tholian facility associated with a moon"
+      ],
+      "notes": "Vintaak names the system, not a confirmed planet. Names, precise moon census and additional planets require their own sources or explicit game adaptation.",
+      "sources": [
+        "https://memory-alpha.fandom.com/wiki/Unnamed_Alpha_and_Beta_Quadrant_planets#Vintaak_system_gas_giant",
+        "https://memory-alpha.fandom.com/wiki/In_A_Mirror%2C_Darkly_%28episode%29"
+      ],
+      "sourceReview": "reviewed_source_index"
+    },
+    {
+      "system": "Epsilon Indi",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Terra Firma, Part 1",
+      "knownContents": [
+        "Epsilon Indi IV",
+        "Imperial Shipyard at IV"
+      ],
+      "continuity": "Guardian-revisited Mirror history",
+      "notes": "Add separately from existing game destination 8, Epsilon. Short-name resemblance does not establish identity. Other Indi planets and astronomical components need separate review.",
+      "sources": [
+        "https://memory-alpha.fandom.com/wiki/Epsilon_Indi_IV"
+      ],
+      "sourceReview": "reviewed_source_index"
+    },
+    {
+      "world": "Harlak",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: The Wolf Inside",
+      "knownContents": [
+        "Multi-species resistance headquarters",
+        "Surface bombardment by ISS Charon"
+      ],
+      "notes": "Destruction of a base does not establish physical destruction of the entire planet, zero surviving population or a complete named system.",
+      "sources": [
+        "https://www.startrek.com/news/talking-tellarites-with-harry-judge",
+        "https://memory-alpha.fandom.com/wiki/Terran_Empire"
+      ],
+      "sourceReview": "reviewed_source_index"
+    },
+    {
+      "system": "Vega",
+      "world": "Vega IX",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "TOS: Mirror, Mirror",
+      "knownContents": [
+        "Five thousand colonists executed by Mirror Kirk"
+      ],
+      "notes": "Do not turn the execution account into destruction of the planet or assume every other numbered Vega world is individually established.",
+      "sources": [
+        "https://www.chakoteya.net/StarTrek/39.htm"
+      ],
+      "sourceReview": "reviewed_transcript"
+    },
+    {
+      "system": "Kepler-174",
+      "world": "Kepler-174d",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Terra Firma, Part 1",
+      "continuity": "Guardian-revisited Mirror history",
+      "notes": "NASA establishes the astronomical exoplanet, not the episode's inhabitants, art, architecture or flora. Treat fictional cultural/environmental history separately from observed astronomy; review the episode wording before building the setting.",
+      "sources": [
+        "https://memory-alpha.fandom.com/wiki/Terra_Firma%2C_Part_1_%28episode%29",
+        "https://science.nasa.gov/exoplanet-catalog/kepler-174-d/"
+      ],
+      "sourceReview": "reviewed_episode_index_and_astronomy"
+    },
+    {
+      "world": "Risa",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Terra Firma, Part 2",
+      "continuity": "Guardian-revisited Mirror history",
+      "knownContents": [
+        "Planetary rings in the Mirror depiction"
+      ],
+      "notes": "Use the Mirror ringed depiction, not an automatic copy of Prime Risa's appearance or political history.",
+      "sources": [
+        "https://www.ex-astris-scientia.org/observations/captainsholiday.htm"
+      ],
+      "sourceReview": "reviewed_visual_index"
+    },
+    {
+      "world": "Gorlan homeworld",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "TOS: Mirror, Mirror",
+      "knownContents": [
+        "Rebel home planet destroyed by Mirror Kirk"
+      ],
+      "notes": "A post-event depiction should reflect the destruction. Do not fabricate an intact populated homeworld or equate Gorlan Station with this location without evidence.",
+      "sources": [
+        "https://www.chakoteya.net/StarTrek/39.htm"
+      ],
+      "sourceReview": "reviewed_transcript"
+    }
+  ],
+  "additionalLeads": [
+    {
+      "name": "Priors World",
+      "kind": "world",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: What's Past Is Prologue",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Tonnata VII",
+      "kind": "planet",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Vaulting Ambition",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Sorna Prime",
+      "kind": "world",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Despite Yourself",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Wurna Minor",
+      "kind": "location_identity_requires_review",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Despite Yourself",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Purmata VI",
+      "kind": "planet",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Despite Yourself",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Elpha",
+      "kind": "location_identity_requires_review",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Despite Yourself",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Quam",
+      "kind": "location_identity_requires_review",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Despite Yourself",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Mintaka III",
+      "kind": "planet",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Will You Take My Hand?",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Betazed",
+      "kind": "homeworld_inference_from_species",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Will You Take My Hand?",
+      "note": "Subjugating Betazoids does not by itself establish the planet's physical condition or orbital roster.",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Talos IV",
+      "kind": "planet",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: If Memory Serves",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Tau Ceti",
+      "kind": "system",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "ENT: In a Mirror, Darkly",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Gorlan Station",
+      "kind": "station",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "ENT: In a Mirror, Darkly",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Badlands",
+      "kind": "region",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DS9: Through the Looking Glass",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Fowla",
+      "kind": "system",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DS9: Crossover",
+      "sourceReview": "user_supplied_pending_source_review"
+    },
+    {
+      "name": "Porathia",
+      "kind": "location_with_asteroid_belts",
+      "status": "implemented_with_documented_continuity_and_survey_adaptations",
+      "episode": "DIS: Despite Yourself",
+      "sourceReview": "user_supplied_pending_source_review"
+    }
+  ],
+  "implementation": {
+    "status": "implemented",
+    "manifest": "../../../tools/mirror-expansion.json",
+    "dossier": "mirror-expansion.md",
+    "physicalSystems": 90,
+    "totalDestinations": 91,
+    "newDestinationsThisExpansion": 38,
+    "relatedWork": "Dev access, gameplay badge removal, Ferenginar/Hof-Maso neighbors, working yards and stellar artwork implemented."
+  },
+  "completedRelatedWork": [
+    "Restore visible Dev and Continue Dev menu access with existing separated saves.",
+    "Remove the Broken Mirror lore badge from clicked-planet gameplay panels.",
+    "Expand sparse Ferenginar and Hof-Maso catalogs using consistent reference choices and clearly documented adaptations.",
+    "Replace reused Sun art with NASA-informed stellar artwork appropriate to supported star classifications.",
+    "Use established primary names where sourced; preserve the distinction between a local designation and a canonical proper name."
+  ]
+}

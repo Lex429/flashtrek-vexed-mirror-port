@@ -1,0 +1,20 @@
+{
+  "id": "varruel-sol-v2",
+  "file": "varruel-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror. Input image 1 is the actual Sol Venus artwork, a REFERENCE ONLY for realistic orbital photography, fine planetary-scale detail, natural spherical volume and illumination. It is not an edit target or a surface to recolor. Generate ONE distinctive new world: Varruel, in the Iconia system. Appearance specification: Dense yellow-gray clouds. Photorealistic astronomical imagery at the visual quality of the supplied Sol artwork. Invent original geography, continent silhouettes and/or storm arrangements, distinct from the reference image. Fine natural geological or atmospheric structure, no painterly brushwork, flat texture or plastic finish. Upper-left sunlight, mostly illuminated globe, soft shaded lower-right limb and realistic terminator. Entire circular globe centered in a square image with 6 percent transparent padding on every side. Minimum 1280x1280 preferred. Genuine alpha transparency outside the subject. Clouds, coastlines, craters, mountains and any settlements must be appropriately small at planetary scale. Natural subdued atmospheric limb where appropriate, no excessive glow. No stars, black backdrop, scenery, labels, text, watermarks, borders, spacecraft or other planets. No added rings unless specified. The appearance and local planetary roster are original game interpretations, not claims of screen canon.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-c2e4291a-b0a1-4a05-b07b-a9a2a01ad046.png",
+  "sourceSha256": "0c54d643163705fce6d7de475c643b5999778af19a9e71a7d6b4516107ebeb91",
+  "sha256": "5df45b2e346a539664b4ea23e54eba0e2e16f5a6a7cce2f5a61932e72b1c59aa",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/02 - Venus.png",
+      "sha256": "791367d48ca4246c9792b20e48bc8424a8a817fb292568716f5e04e2e9b34a18"
+    }
+  ]
+}

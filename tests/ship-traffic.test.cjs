@@ -25,6 +25,38 @@ function tick(f,ships,dt=1/60){
   w.nativeShipTraffic.collide(s,dt);
 }
 
+test('ordinary steering escapes a stopped clearance margin instead of braking forever',async()=>{
+  const f=await setup(),m=f.window.nativeShipMotion;
+  const profile={maxSpeed:100,acceleration:60,braking:100,turnRate:2};
+  for(const kind of ['planet','parked ship'])for(const heading of [0,Math.PI]){
+    const ship=body({x:100,previousX:100,heading,radii:{rx:10,ry:10}});
+    const other=body({id:2,x:70,previousX:70,radii:{rx:10,ry:10}});
+    let minimum=Infinity,brakingFrames=0;
+    for(let i=0;i<1200;i++){
+      const command={goal:{x:500,y:0},throttle:1};
+      const advice=kind==='planet'?m.avoidBodies(ship,command,profile,[{x:0,y:0,radius:80}]):m.avoidShips(ship,[other],command,profile);
+      brakingFrames+=!!advice.brake;m.step(ship,advice,profile,1/60);
+      minimum=Math.min(minimum,kind==='planet'?Math.hypot(ship.x,ship.y)-80:Math.hypot(ship.x-other.x,ship.y-other.y)-10);
+    }
+    assert.ok(ship.x>490,`${kind}, heading ${heading}: stalled at ${ship.x}, ${ship.y}; braking ${brakingFrames} frames`);
+    assert.ok(minimum>=10-1e-6,`${kind}: crossed the physical hull at ${minimum}`);
+  }
+});
+
+test('ordinary obstacle avoidance brakes incoming momentum then resumes the original journey',async()=>{
+  const f=await setup(),m=f.window.nativeShipMotion;
+  const profile={maxSpeed:100,acceleration:60,braking:100,turnRate:2,inertial:true};
+  const ship=body({x:150,previousX:150,heading:Math.PI,vx:-80,speed:80,radii:{rx:10,ry:10}});
+  let minimum=Infinity,braked=false;
+  for(let i=0;i<1500;i++){
+    const command=m.avoidBodies(ship,{goal:{x:500,y:0},throttle:1},profile,[{x:0,y:0,radius:80}]);
+    braked||=!!command.brake;m.step(ship,command,profile,1/60);minimum=Math.min(minimum,Math.hypot(ship.x,ship.y));
+  }
+  assert.ok(braked,'The incoming ship must brake before accelerating away');
+  assert.ok(minimum>=90,`Physical clearance ${minimum}`);
+  assert.ok(ship.x>490,`Original journey did not resume: ${ship.x}, ${ship.y}`);
+});
+
 test('swept ship contacts conserve momentum, dissipate energy and respond to relative mass and glancing angles',async()=>{
   const f=await setup(),m=f.window.nativeShipMotion;
   const a=body({x:100,previousX:-100,vx:200}),b=body({id:2,x:30,previousX:30});
@@ -41,9 +73,26 @@ test('ship collection shares a physics-step view and refreshes after physical di
   const f=await setup(),w=f.window,s=f.state,e=add(f,{x:0,moving:false});
   w.nativeSimulationFrame.begin(s);w.nativeSimulationFrame.step(s);
   const first=w.nativeShipSystems.collectShips(s),same=w.nativeShipSystems.collectShips(s);assert.equal(first,same);
-  const ship=first.find(d=>d.entity===e);w.nativeShipSystems.applyContact(s,ship,{x:20,y:10,vx:30,vy:0});
+  const ship=first.find(d=>d.entity===e);assert.equal(w.nativeShipSystems.presentation(s,e,'civilian'),ship);
+  w.nativeShipSystems.applyContact(s,ship,{x:20,y:10,vx:30,vy:0});
   const moved=w.nativeShipSystems.collectShips(s);assert.notEqual(moved,first);near(moved.find(d=>d.entity===e).x,20);near(ship.x,0);
+  near(w.nativeShipSystems.presentation(s,e,'civilian').x,20);
   e.shields=0;w.nativeSimulationFrame.step(s);const next=w.nativeShipSystems.collectShips(s);assert.equal(next.find(d=>d.entity===e).shields,0);
+  assert.equal(w.nativeShipSystems.presentation(s,e,'civilian').shields,0);
+  w.nativeSimulationFrame.end(s);
+});
+
+test('combat steering refreshes the moved hull and firing pose while depletion still invalidates the whole scene',async()=>{
+  const f=await setup(),w=f.window,s=f.state,e=add(f,{x:0,moving:false});
+  w.nativeSimulationFrame.begin(s);w.nativeSimulationFrame.step(s);
+  const before=w.nativeShipSystems.scene(s),original=before.bystanders.find(d=>d.entity===e);
+  e.x=75;e.vx=30;e.heading=1;
+  w.nativeShipSystems.refreshShip(s,e,'civilian',2);
+  const after=w.nativeShipSystems.scene(s),moved=after.bystanders.find(d=>d.entity===e);
+  near(original.x,0);near(moved.x,75);near(moved.vx,30);near(moved.heading,1);
+  near(w.nativeShipSystems.resolve(s,e.id,2).x,75);
+  assert.equal(after.rocks,before.rocks,'Unchanged rock geometry is reusable within a physics step');
+  w.nativeShipSystems.invalidate(s,2);assert.notEqual(w.nativeShipSystems.scene(s),after);
   w.nativeSimulationFrame.end(s);
 });
 
@@ -68,6 +117,15 @@ test('crossing traffic yields predictably and both ships keep making progress',a
   assert.ok(yielded);assert.ok(min>60,`clearance ${min}`);near(a.x,500);near(b.y,500);
 });
 
+test('a legacy straight route is repaired around a planet without changing its saved purpose',async()=>{
+  const f=await setup(),a=add(f,{x:-650,y:75,goal:{x:350,y:75}}),task=copy(a.task);
+  assert.equal(a.localLeg.version,2);
+  tick(f,[a]);assert.equal(a.localLeg.version,3);
+  const m=f.window.nativeShipMotion,body=m.navigationBodies(2);
+  for(const part of a.localLeg.segments)assert.ok(m.clearSegment(part.start,part.goal,body,m.shipRadius(f.window.nativeShipDefinitions.describe(f.state,a,{category:'civilian'}))+24));
+  for(let i=0;i<2400;i++)tick(f,[a]);near(a.x,350);near(a.y,75);assert.deepEqual(copy(a.task),task);
+});
+
 test('a civilian detours around a parked player without steering the player or losing its job/cargo',async()=>{
   const f=await setup();Object.assign(f.state,{x:0,y:0,angle:0,speed:0,vx:0,vy:0});
   const a=add(f);a.cargo={good:5,tons:4};const job=copy(a.task),deadline=a.nextActionAt,player=copy({x:f.state.x,y:f.state.y,angle:f.state.angle});let min=Infinity;
@@ -83,6 +141,20 @@ test('blocked arrival waits, retains cargo and resumes once the obstacle clears'
   for(let i=0;i<16800;i++)tick(f,[a]);near(a.x,stopped);
   assert.ok(a.x<-60);assert.ok(a.nextActionAt>deadline);assert.equal(a.cargo.tons,4);assert.equal(a.trafficControl.mode,'yielding');
   obstacle.x=10000;for(let i=0;i<1200;i++)tick(f,[a]);near(a.x,0);near(a.y,0);
+});
+
+test('normal NPC travel can finish beside a parked hull without yielding forever at a clear destination',async()=>{
+  for(const offset of [70,90,110]){
+    const f=await setup(),w=f.window,s=f.state,a=add(f,{y:offset,goal:{x:0,y:offset}}),other=add(f,{id:2,x:0,moving:false});
+    const profile=w.nativeShipDefinitions.forEntity(s,a,{category:'civilian'}).movement;
+    a.localLeg=w.nativeShipMotion.planLeg(a,{x:0,y:offset},profile,w.nativeSimulation.seconds(s));
+    a.nextActionAt=a.localLeg.startedAt+a.localLeg.duration;a.cargo={good:5,tons:4};
+    const task=copy(a.task),money=a.credits;let minimum=Infinity;
+    for(let i=0;i<3600;i++){tick(f,[a,other]);minimum=Math.min(minimum,Math.hypot(a.x-other.x,a.y-other.y));}
+    near(a.x,0);near(a.y,offset);assert.ok(minimum>=60,`Hull clearance ${minimum}`);
+    assert.deepEqual(copy(a.task),task);assert.deepEqual(copy(a.cargo),{good:5,tons:4});assert.equal(a.credits,money);
+    assert.equal(w.nativeShipTraffic.snapshot(s).contacts.length,0);
+  }
 });
 
 test('yield commands brake at the configured rate before holding, rather than freezing a moving ship',async()=>{
@@ -126,6 +198,18 @@ test('actual contacts push every role, preserve health and cargo, and do not rep
 test('offscreen traffic uses the same avoidance and contacts without creating art or changing population',async()=>{
   const f=await setup();f.state.system=4;const a=add(f),b=add(f,{id:2,x:0,moving:false});const count=f.state.civilianTraffic.ships.length,loads=f.window.nativeShipEffects.metrics().loads;
   for(let i=0;i<2400;i++)tick(f,[a,b]);near(a.x,500);assert.equal(f.state.civilianTraffic.ships.length,count);assert.equal(f.window.nativeShipEffects.metrics().loads,loads);
+});
+
+test('adaptive contact cells retain a fast swept hit across a spatial boundary',async()=>{
+  const f=await setup(),s=f.state,w=f.window;
+  Object.assign(s,{x:96,y:0,previousX:-96,previousY:0,angle:0,vx:192,vy:0,speed:192});
+  const other=add(f,{id:2,x:-40,moving:false}),before={hull:other.hull,shields:other.shields};
+  const expected=w.nativeShipMotion.shipPairContact(w.nativeShipDefinitions.describe(s,s,{category:'player'}),w.nativeShipDefinitions.describe(s,other,{category:'civilian'}),1);
+  assert.ok(expected,'canonical swept contact crosses the boundary');
+  w.nativeShipTraffic.collide(s,1);
+  near(other.x,expected.b.x);near(other.y,expected.b.y);near(other.vx,expected.b.vx);near(other.vy,expected.b.vy);
+  assert.deepEqual({hull:other.hull,shields:other.shields},before);
+  assert.equal(w.nativeShipTraffic.snapshot(s).contacts.length,1);
 });
 
 test('a funded delivery cannot unload through a parked player; restored traffic resumes and settles once at the real berth',async()=>{

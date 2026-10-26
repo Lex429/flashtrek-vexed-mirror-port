@@ -41,7 +41,7 @@ HELPERS = r"""() => {
     cargo:null,oreHold:0,credits:1200,deliveries:0,legs:0,taskSequence:0});
   const body=nativeSystemHub.sol.find(body=>body.id===3);
   ship.x=body.x+180+(ship.id%4)*35;ship.y=body.y-130+(ship.id%3)*35;
-  for(const field of ['lifeVersion','task','localLeg','journey','lastJourney','nextActionAt','lifeScheduleToken','lifeDemoName','recentEvents','miningReservation','miningRockSlot'])delete ship[field];
+  for(const field of ['lifeVersion','task','localLeg','journey','lastJourney','nextActionAt','lifeScheduleToken','lifeDemoName','recentEvents','miningReservation','miningRockSlot','dockingMove','motionKick','motionSpin'])delete ship[field];
   t.fixture=copy(state);
   t.activate=value=>{nativeSaveStorage.write(value);resumeNativeGame();return nativeNpcDev.getState();};
   t.activate(state);
@@ -89,7 +89,9 @@ def main():
         with sync_playwright() as playwright:
             channel=os.environ.get('BROWSER_CHANNEL','msedge')
             browser=playwright.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
-            page=browser.new_page(viewport={'width':1280,'height':850})
+            # This suite deliberately freezes RAF for exact saved-life samples;
+            # reduced motion lets Continue activate without a cinematic RAF.
+            page=browser.new_page(viewport={'width':1280,'height':850},reduced_motion='reduce')
             page.add_init_script("""(()=>{const raf=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=callback=>{if(callback.name==='draw')window.__lifeDraw=callback;return raf(timestamp=>{if(callback.name==='draw'){if(window.__freezeLifeFrames)return;window.__lifeFrameTime=timestamp;}return callback(timestamp);});};})()""")
             page.on('pageerror',lambda error:errors.append(str(error)))
             page.on('response',lambda response:failed.append(response.url) if response.status>=400 else None)

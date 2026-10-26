@@ -23,6 +23,14 @@ async function loadCombatRenderer() {
   return window;
 }
 
+test('a separate firing runtime uses an isolated scene and clock while sharing the actual visual catalog',async()=>{
+ const w=await loadCombatRenderer(),live=w.nativeCombatShots,scene={bystanders:[],rocks:[]},film=live.fork({isolated:true,scene:()=>scene,seconds:()=>4,resolve:()=>null,blocked:()=>false});
+ live.configureScene(()=>({live:true}));assert.equal(film.scene({system:1}),scene);assert.equal(live.scene({system:1}).live,true);
+ const weapon={id:1,name:'Phaser',damage:8};assert.deepEqual(film.weaponVisual(weapon),live.weaponVisual(weapon));
+ const state={system:1},other={system:2};film.advance(state,.1);live.advance(other,.1);
+ film.reset();assert.equal(other.weaponCombat.version,2);assert.notEqual(state.weaponCombat,other.weaponCombat);
+});
+
 // Record the effective canvas output: transformed geometry, color, opacity,
 // widths and gradient stops. This exercises the real two render paths, without
 // depending on a particular browser's antialiasing or a screenshot's backdrop.

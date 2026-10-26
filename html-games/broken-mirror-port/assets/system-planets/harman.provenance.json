@@ -1,0 +1,14 @@
+{
+  "id": "harman",
+  "file": "harman.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Harman, an abandoned frozen wasteland planet, grey-white ice fields, dark frozen mountain chains and a very thin pale atmosphere.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-473319da-0de7-4256-b5ae-a1b257cd0bb6.png",
+  "sourceSha256": "9448195a18307d5c30f5189fb5a94b58a5a252983dddd490edda02afd17a04f5",
+  "sha256": "0926e7f8b0a91900f37ba9e2a75192e1d8617e0fdd25e9a819519e264941feb8",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

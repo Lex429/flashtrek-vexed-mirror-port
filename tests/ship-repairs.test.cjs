@@ -92,7 +92,7 @@ test('calendar catch-up and small frames integrate the same simultaneous welders
 test('player damage disables at a quarter hull and common weapons stay offline until recovery',async()=>{
  const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),f=await small();
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/player-combat.js'),'utf8'),f.context);
- Object.assign(f.state,{system:1,hull:50,shields:0,phase:'flight',deuranium:20,x:500,y:500});
+ Object.assign(f.state,{system:1,hull:50,shields:0,phase:'flight',deuranium:20,repairDroneMode:'auto',x:500,y:500});
  const hit=f.window.nativePlayerCombat.hit(f.state,40,{from:{x:400,y:500}});assert.equal(hit.disabled,true);assert.equal(f.state.phase,'disabled');
  const fired=f.window.nativeCombatShots.fireFor({state:f.state,shooter:f.window.nativeShipDefinitions.describe(f.state),target:f.window.nativeShipDefinitions.describe(f.state,f.ship,{category:'civilian'})});
  assert.equal(fired.ok,false);assert.match(fired.error,/disabled/);until(f,()=>f.state.phase==='flight');near(f.state.hull,50,'player hull');near(f.state.deuranium,12,'player reserves');
@@ -119,7 +119,7 @@ test('disabled Sol freight retains loaded cargo and resumes its owning route aft
 
 test('claimed medical rescue into an excluded system survives reload and returns without creating a market',async()=>{
  let f=await fixture({full:false,economic:false,repairs:true,regional:true,access:true});
- const target=32;Object.assign(f.state,{system:target,hull:10,phase:'disabled',deuranium:0,landed:false,x:900,y:500});
+ const target=32;Object.assign(f.state,{system:target,hull:10,phase:'disabled',deuranium:0,repairDroneMode:'auto',landed:false,x:900,y:500});
  const medic=f.state.civilianTraffic.ships.find(e=>e.shipType===58),id=medic.id;
  for(const e of f.state.civilianTraffic.ships){e.nextActionAt=null;e.lifeScheduleToken++;e.repairDeuranium=0;}medic.repairDeuranium=100;
  f.step(.25);assert.equal(medic.task.kind,'medical');until(f,()=>medic.system===target);

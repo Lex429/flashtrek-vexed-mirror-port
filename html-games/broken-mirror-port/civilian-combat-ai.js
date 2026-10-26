@@ -72,7 +72,9 @@
     const length=Math.hypot(desired.x,desired.y)||1;desired.x/=length;desired.y/=length;
     const look={x:ship.x+(ship.vx||0)*.65+desired.x*45,y:ship.y+(ship.vy||0)*.65+desired.y*45};
     const avoid=(other,radius)=>{
-      const ox=look.x-other.x,oy=look.y-other.y,d=Math.hypot(ox,oy)||1;
+      const ox=look.x-other.x,oy=look.y-other.y;
+      if(Math.abs(ox)>=radius||Math.abs(oy)>=radius)return;
+      const d=Math.hypot(ox,oy)||1;
       if(d<radius){const strength=(1-d/radius)*2.8;desired.x+=ox/d*strength;desired.y+=oy/d*strength;}
     };
     for(const rock of rocks)avoid(rock,rock.size*.5+ship.combatRadius+38);
@@ -88,7 +90,10 @@
     let command=decide(ship,target,dispute,scene);
     const definition=window.nativeShipDefinitions?.forEntity(scene.state||null,ship,{category:'civilian'});
     const movement=definition?.movement||window.nativeShipMotion.profiles.manual(definition);
-    if(window.nativeShipDefinitions){const descriptor=window.nativeShipDefinitions.describe(scene.state||{},ship,{category:'civilian'});command=window.nativeShipMotion.avoidShips(descriptor,scene.bystanders||[],command,movement);}
+    const descriptor=window.nativeShipDefinitions?window.nativeShipDefinitions.describe(scene.state||{},ship,{category:'civilian'}):ship;
+    command=window.nativeShipMotion.avoidShips(descriptor,scene.bystanders||[],command,movement);
+    const obstacles=[...window.nativeShipMotion.navigationBodies(ship.system),...(scene.bodies||[]),...(scene.rocks||[]).map(r=>({x:r.x,y:r.y,radius:r.radius??r.size*.43}))];
+    command=window.nativeShipMotion.avoidBodies(descriptor,command,movement,obstacles);
     ship.motionTime=scene.clock;
     window.nativeShipMotion.step(ship,command,movement,scene.dt);
     return ship.combatAI;

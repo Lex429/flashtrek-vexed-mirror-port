@@ -17,7 +17,7 @@ async function fixture({saved,full=true,economic=true,revision,regional=false,ac
  window.nativeSimulation.ensure(state);window.nativeSolEconomy.initialize(state);window.nativeCivilianTraffic.initialize(state);
  if(physics)window.nativeAsteroidMotion.ensure(state);
  if(!saved&&!full){const ship=state.civilianTraffic.ships.find(s=>s.id===2);state.civilianTraffic.ships=[ship];Object.assign(ship,{system:1,port:3,x:250,y:-60,phase:'docked',timer:1000,cargo:null,credits:5000});}
- if(repairs)window.nativeShipRepairs.initialize(state);
+  if(repairs){for(const file of ['../flashtrek-broken-mirror/repair-hull-work.js','ship-repair-sites.js'])vm.runInContext(source(file),context,{filename:file});window.nativeShipRepairs.initialize(state);}
  const lives=window.nativeNpcLives; lives.initialize(state);if(!economic)lives.initialize(state).config.economyEnabled=false;
  const step=(dt=1/60)=>{window.nativeSimulation.advance(state,dt);if(physics)window.nativeAsteroidMotion.advance(state,dt);if(traffic)window.nativeShipTraffic?.advance(state,dt);if(economic)window.nativeSolEconomy.advance(state,dt);window.nativeCivilianTraffic.advance(state,dt);window.nativeCombatShots.advance(state,dt);window.nativeAsteroidCombat.advance(state,dt);window.nativeShipEffects.advance(state,dt);if(physics)window.nativeAsteroidMotion.collide(state,dt);if(traffic)window.nativeShipTraffic?.collide(state,dt);};
  return {window,context,state,lives,step,ship:state.civilianTraffic.ships[0]};

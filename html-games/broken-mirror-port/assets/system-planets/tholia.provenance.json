@@ -1,0 +1,14 @@
+{
+  "id": "tholia",
+  "file": "tholia.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Tholia, an extremely hot hostile world: deep amber-red atmosphere, volcanic rock glimpsed under orange cloud layers. No Earth-like oceans.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-1a1a1f71-1cdd-4243-98af-9d123fdf6eee.png",
+  "sourceSha256": "0eff2cea49885a0c9e6b128e2478eb733b1f0f2c931c7865ee7fdd3b45766c06",
+  "sha256": "4312af0852055f82a209911bdf4128f029758268096f6506fd1fbe39a0b948c6",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

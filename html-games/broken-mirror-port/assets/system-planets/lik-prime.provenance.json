@@ -1,0 +1,14 @@
+{
+  "id": "lik-prime",
+  "file": "lik-prime.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Lik Prime, mostly ochre desert, small tropical regions, polluted turquoise inland seas and vast strip-mining scars.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-0cbf8330-c2e5-4aad-915f-7120670e2288.png",
+  "sourceSha256": "fe7a460dbc07822712bb257d14db59538a83e20170f452052d208f019ccb20f9",
+  "sha256": "6334d857e4e96e1601d01b648e0b169700c19b540163a3b0dd8d4595ae1c4d8d",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

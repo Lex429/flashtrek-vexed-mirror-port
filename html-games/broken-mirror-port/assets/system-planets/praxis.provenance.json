@@ -1,0 +1,14 @@
+{
+  "id": "praxis",
+  "file": "praxis.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Praxis, Klingon moon after its catastrophic mining explosion, a round grey-brown moon with a very large missing wedge and jagged broken exposed interior, drifting small rubble close to broken edge, no explosion or glow. Entire object contained in frame.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-ff2c455b-1e6d-473b-a470-63754c632879.png",
+  "sourceSha256": "186615a98d5a26bc53964f510a8d968ee746b9963c1745f4953ce2ccfe1a48c2",
+  "sha256": "7099bb6b0420d02759c54f0c8fd68f6f1cc3e845b6c78d5e140b70aa238fa4a6",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

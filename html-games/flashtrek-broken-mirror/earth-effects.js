@@ -73,22 +73,29 @@
     }
     const unlitFrame=image=>complete(unlighting(image));
     function unlitFrameAsync(image){if(!unlit.has(image)){const promise=deferred(unlighting(image));unlit.set(image,promise);promise.catch(()=>unlit.delete(image));}return unlit.get(image);}
+    function forEachLamp(stage,time,paint){
+      const s=Math.max(0,Math.min(3,stage)),t=time/1000;
+      if(s>=3)return;
+      for(let i=0;i<d.lights.length;i++){
+        const p=d.lights[i],textures=lampFrames[s]?.[i];if(!textures)continue;
+        let pulse=p.kind==='running'?(Math.sin(t*4.2+i*.9)>.7?.9:.04):.18+.82*(.5+.5*Math.sin(t*2.1+(p.phase||0)));
+        if(s>0&&d.damage[s].some(b=>Math.hypot(b.x-p.x,b.y-p.y)<b.r+17))pulse*=Math.sin(t*9+i*2)>.3?.55:.02;
+        paint(textures,p,pulse);
+      }
+    }
     function draw(ctx,layout,angle,stage,time,options){
       base.draw(ctx,layout,angle,stage,time,{...options,lights:false,anchors:false});
       const s=Math.max(0,Math.min(3,stage)),t=time/1000;
       ctx.save();ctx.translate(layout.x,layout.y);ctx.rotate(angle);
       ctx.scale(layout.w/d.width,layout.h/d.height);ctx.translate(-d.width/2,-d.height/2);
-      if(options.lights&&s<3)for(const [i,p] of d.lights.entries()){
-        const textures=lampFrames[s]?.[i];if(!textures)continue;
-        let pulse=p.kind==='running'?(Math.sin(t*4.2+i*.9)>.7?.9:.04):.18+.82*(.5+.5*Math.sin(t*2.1+(p.phase||0)));
-        if(s>0&&d.damage[s].some(b=>Math.hypot(b.x-p.x,b.y-p.y)<b.r+17))pulse*=Math.sin(t*9+i*2)>.3?.55:.02;
-        if(window.nativeShipSpriteCache?.drawLamp(ctx,textures,p,pulse,options))continue;
+      if(options.lights)forEachLamp(stage,time,(textures,p,pulse)=>{
+        if(options.cacheLamps!==false&&window.nativeShipSpriteCache?.drawLamp(ctx,textures,p,pulse,options))return;
         ctx.drawImage(textures.dim,p.left,p.top);
         const gain=options.lightGain||1,bloom=options.lightBloom||1;
         ctx.save();ctx.globalCompositeOperation='screen';ctx.filter=`brightness(${gain})`;ctx.globalAlpha=pulse;ctx.drawImage(textures.lit,p.left,p.top);
         // Blur the same masked lamp, preserving curved strips and split cores.
         ctx.filter=`brightness(${gain}) blur(${(2+2*pulse)*bloom}px)`;ctx.globalAlpha=Math.min(1,pulse*.65*bloom);ctx.drawImage(textures.lit,p.left,p.top);ctx.restore();
-      }
+      });
       if(options.anchors){
         ctx.lineWidth=2;
         for(const [points,color] of [[d.lights,'#70e7ff'],[d.damage[s],'#ffbe68']]){
@@ -111,7 +118,7 @@
       c.referenceAligned=true;return c;
     }
     const preparationMetrics=()=>({frames:lampFrames.filter(Boolean).length,maxFrames:4,bytes:lampFrames.reduce((sum,stage)=>sum+stage.reduce((n,p)=>n+(p.lit.width*p.lit.height+p.dim.width*p.dim.height)*4,0),0)});
-    window.starterShips.set(Number(key),{...d,align,alignAsync,alignReference,effects:Object.freeze({draw,snapshot:base.snapshot,unlitFrame,unlitFrameAsync,preparationMetrics}),
+    window.starterShips.set(Number(key),{...d,align,alignAsync,alignReference,effects:Object.freeze({draw,forEachLamp,snapshot:base.snapshot,unlitFrame,unlitFrameAsync,preparationMetrics}),
       breakAnchors:d.damage[3].map(p=>[p.x,p.y]),
       destruction:{sites:d.sites,core:d.core,energyColor:d.energyColor,coreEnabled:d.coreEnabled,sail:d.sail,
         coreIndex:d.coreEnabled===false?-1:d.sites.findIndex(p=>p[0]==='reactor housing')}});

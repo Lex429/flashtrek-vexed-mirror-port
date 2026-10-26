@@ -1,0 +1,14 @@
+{
+  "id": "blender",
+  "file": "blender.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Blender, a war-scarred alien world with blasted brown-grey continents, impact scars, remnants of green land and a smoky thin atmosphere.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-f6674ffb-4672-486b-a54d-234faf3d8bc2.png",
+  "sourceSha256": "d88586b4c4d877772d9f3ef1fb237cd7d7920ee737b2edbb9f8e8aa6b47bb1fb",
+  "sha256": "6219ac32a5c1858463c1bd51749ecdd11d581eeb5d5b59e44371a3840c775080",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

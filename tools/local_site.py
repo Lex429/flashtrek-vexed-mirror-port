@@ -181,6 +181,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = unquote(urlsplit(self.path).path)
+        if path.startswith('/__vexed/effect-lab/'):
+            from effect_lab import handle
+            return handle(self, path.rsplit('/', 1)[-1])
         if path == '/':
             self.send_response(302); self.send_header('Location', ENTRY); self.end_headers()
             return
@@ -199,6 +202,13 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if self.command == 'HEAD': super().do_HEAD()
         else: super().do_GET()
+
+    def do_POST(self):
+        path = unquote(urlsplit(self.path).path)
+        if path.startswith('/__vexed/effect-lab/'):
+            from effect_lab import handle
+            return handle(self, path.rsplit('/', 1)[-1], post=True)
+        self.send_error(404)
 
 
 @contextmanager

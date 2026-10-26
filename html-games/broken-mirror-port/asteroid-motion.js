@@ -32,16 +32,21 @@
   }
   function advance(state,dt){
     if(!state||!(dt>0)||window.nativeSimulation.blocked())return;
-    ensure(state);const at=time(state);stepStarts=new Map();
+    ensure(state);const at=time(state);stepStarts=new Map();let moved=false;
     for(const {rock,pose} of active.values()){
       stepStarts.set(rock.slotId,{x:rock.x,y:rock.y});
       const elapsed=Math.max(0,at-pose.at);
       if(!elapsed)continue;
-      if(!gone(state,rock.slotId)){pose.x+=pose.vx*elapsed;pose.y+=pose.vy*elapsed;pose.angle=window.nativeShipMotion.wrap(pose.angle+pose.spin*elapsed);}
-      pose.at=at;window.nativeSolAsteroids.relocate(rock,pose);
+      if(!gone(state,rock.slotId)&&(pose.vx||pose.vy||pose.spin)){
+        const drift=window.nativeShipMotion.settleVelocity(pose.vx,pose.vy,elapsed,2,.05),spin=window.nativeShipMotion.settleVelocity(pose.spin,0,elapsed,2,.0001);
+        pose.x+=drift.x;pose.y+=drift.y;pose.vx=drift.vx;pose.vy=drift.vy;
+        pose.angle=window.nativeShipMotion.wrap(pose.angle+spin.x);pose.spin=spin.vx;
+        window.nativeSolAsteroids.relocate(rock,pose);moved=true;
+      }
+      pose.at=at;
     }
     collideRocks(state,dt);
-    if(active.size)window.nativeShipSystems?.invalidate(state);
+    if(moved)window.nativeShipSystems?.invalidate(state);
   }
   function physical(rock,dt){
     const pose=active.get(rock.slotId)?.pose,start=stepStarts.get(rock.slotId),vx=pose?.vx||0,vy=pose?.vy||0;

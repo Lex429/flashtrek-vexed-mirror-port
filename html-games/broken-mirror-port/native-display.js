@@ -3,13 +3,14 @@
   'use strict';
   const stage=document.getElementById('game');
   let mode=localStorage.getItem('vexed-display-view')==='classic'?'classic':'widescreen';
-  function measure(element=stage){
-    const rect=element.getBoundingClientRect(),scale=Math.max(.001,Math.min(rect.width/600,rect.height/450));
+  function fromRect(rect){
+    const scale=Math.max(.001,Math.min(rect.width/600,rect.height/450));
     const toolbar=document.querySelector('body > footer')?.getBoundingClientRect();
     return {w:rect.width/scale,h:rect.height/scale,scale,safeBottom:toolbar?Math.max(0,Math.min(toolbar.height,rect.bottom-toolbar.top))/scale:0};
   }
+  function measure(element=stage){return fromRect(element.getBoundingClientRect());}
   function fit(canvas,ctx){
-    const view=measure(canvas),rect=canvas.getBoundingClientRect();
+    const rect=canvas.getBoundingClientRect(),view=fromRect(rect);
     const pixels=Math.max(1,rect.width*rect.height);
     const d=Math.min(devicePixelRatio||1,2,Math.sqrt(4000000/pixels));
     const width=Math.max(1,Math.round(rect.width*d)),height=Math.max(1,Math.round(rect.height*d));

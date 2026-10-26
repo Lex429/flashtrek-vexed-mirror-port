@@ -1,0 +1,14 @@
+{
+  "id": "trill",
+  "file": "trill.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Trill, a lush temperate world with green continents, blue oceans, mountain chains and intricate white weather patterns.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-9711c2f6-b452-42ff-b0ff-f24eaa306f3d.png",
+  "sourceSha256": "839d3985cdf3558b593a02f16530630ec580edf964693fb119816da248b96752",
+  "sha256": "49acaff873ac26f63a24f4e6bcfa85aa56dfe9def8721f03d8ff1d0d2d7cb5dd",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

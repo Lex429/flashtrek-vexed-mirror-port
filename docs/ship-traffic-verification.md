@@ -1,5 +1,88 @@
 # Ship contact and traffic avoidance
 
+October 25 recovery fix: stopped pilots can leave an extra clearance margin
+without requiring pre-existing outward velocity. Incoming momentum still brakes
+and the hull turns toward a clear exit before accelerating. The same physical
+contact owners continue to resolve actual hits.
+
+Normal scheduled traffic now distinguishes its broad cruising gap from the last
+braking segment into an adjacent clear destination. That segment must retain a
+six-unit gap outside the combined physical hull circles. Parked obstacles are
+included once in the fallback detour; the fallback uses the same clearance as
+the initial detour. Previously a duplicated, larger parked-hull obstacle could
+make a clear destination unreachable and repeatedly extend a yielding route.
+Genuinely blocked destinations still wait and retain their cargo/reservations.
+
+The regression places a normal NPC beside a planet and a parked ship, with
+70/90/110-unit clear destination offsets. Before the fix it repeatedly yielded
+without finishing; after the fix all three arrive without ship contact or
+changing their task, cargo or credits. Browser coverage repeats adjacent arrivals
+with both `devMode` values and checks blocked delivery/save/reload, ordinary
+head-on traffic, physical contact pixels and actual keyboard controls. The 7788
+installation now uses the same shared avoidance decisions, obstacle queries and
+scheduled detour recovery, while retaining its existing physical integration
+and surrounding game. Its broader AI remains a separate build.
+
+Verification for this recovery change: 44 Node regressions passed, including
+the simulated 30-minute economy; native browser traffic/contact and real-key
+impact-control checks passed. In the audited Earth jam, all 36 stuck ships moved
+and delivered during each 30-minute local/map replay, with zero scheduler
+backlog. `test-results/earth-jam-browser.json` retains those observations.
+The five-second headless performance windows reused the same saved population,
+browser and 1280x850 viewport. Mean simulation CPU was 4.11 to 4.45 ms in flight
+and 4.63 to 5.18 ms on the map; median simulation CPU was 2.20 to 2.10 ms and
+2.60 to 2.50 ms respectively. These short, noisy measurements are not an FPS
+improvement claim. Raw comparisons are in
+`test-results/ship-traffic/performance-avoidance.json`.
+
+October 20 follow-up: ordinary civilian jobs and company freight now build
+routes around planet and asteroid clearance, using bounded visibility planning.
+Every proposed passing segment is checked against the combined obstacles.
+Legacy straight legs are rechecked; displaced rock geometry invalidates that
+check. Berths exclude intact rocks. A blocked remote mining approach retains
+its resources and returns home through the task owner instead of idling at an
+empty world. Task rerouting keeps the real arrival deadline and economic escrow.
+
+New-player insertion uses the actual world viewport and a clear point beside
+existing continuing traffic. It does not move or create a crew. New-world
+history receives the real presentation metadata in its worker and checks all
+six active hull/category dimensions against the main definitions before use.
+Physical contact uses the definition-owned hull regardless of shield charge;
+weapon interception retains the powered shield boundary.
+
+Combat steering checks actual closing velocity as well as its desired heading,
+then applies shared planet/rock avoidance last. A safe desired heading cannot
+waive braking against existing momentum. Ordinary traffic gives the manual
+player additional clearance. Sudden player turns can still cause physical
+contact; avoidance does not make the player immune to collision.
+
+Controller ownership audited in this browser port:
+
+| Controller | Route or intent owner | Avoidance and contact |
+| --- | --- | --- |
+| Civilian freight, trade, mining, courier and patrol jobs | `npc-lives.js` | shared scheduled traffic |
+| Company freight | `sol-economy.js` | shared scheduled traffic |
+| Disputes and retaliation | `civilian-combat-ai.js` | shared velocity prediction, then body/rock steering |
+| Olympic response and repair drones | `npc-lives.js`, `ship-repairs.js` | shared scheduled traffic, physical service clearance |
+| Player | manual input | shared contact; AI yields around the player |
+
+This port has no independent follower/escort controller. The old Flash
+controller's individual follower stations are a useful reference, not an
+existing browser-port fleet to replace. Service craft already use distinct
+physical work points and the shared `serviceApproach` rule.
+
+The local Rebirth-derived `source/vexed-mirror/flight-controller.as` reference
+reduces thrust with closing clearance, passes consistently, remembers its
+passing obstacle and brakes toward a hull-sized target stand-off. This port
+uses its existing shared owners for those ideas. Its bounded spatial queries
+and fully checked saved detours avoid importing a second movement loop,
+global per-frame scans or overlap position nudges.
+
+Current regression additions live in `startup-navigation-recovery.test.cjs`
+and `ship-traffic.test.cjs`; real controls, economic settlement and actual
+Canvas contact checks remain in the existing browser suites. The Desktop
+October 20 checklist records the final device-specific measurements.
+
 Verified on 2026-10-17 against baseline `11b736a`.
 
 The existing player, civilian fleet and Sol company tugs now exchange momentum

@@ -1,0 +1,14 @@
+{
+  "id": "paso",
+  "file": "paso.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Paso, once habitable and now utterly lifeless from strip-mining: scorched rock, toxic rust and grey surface, dry basins and mining scars.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-3dede423-e07c-4343-ac47-dd52f5851b3c.png",
+  "sourceSha256": "05b410116fc1ce295480bc8da152f3f47d8f3a252d42cfee4d6a5495438af811",
+  "sha256": "8daa0163453630ef4c371df6548cea0b6bd41e55e89bab7f88456b961ecb544a",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

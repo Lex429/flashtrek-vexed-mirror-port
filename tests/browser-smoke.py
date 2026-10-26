@@ -136,6 +136,7 @@ try:
         results['saveContinuePreservesOwnedRecharge'] = True
         page.goto(base + '/html-games/flashtrek-broken-mirror/damage-showcase.html')
         page.wait_for_function('() => window.showcaseState?.().ready', timeout=120000)
+        page.locator('[data-workspace-tab="damage"]').click()
         page.locator('#ship-select').select_option('59')
         page.wait_for_function('() => window.showcaseState().ship===59 && window.showcaseState().ready')
         page.locator('#destroy').click()
@@ -145,7 +146,9 @@ try:
         assert shielded['nearbyShip']['hull'] == 100 and shielded['nearbyShip']['shields'] == 100
         page.screenshot(path=str(OUTPUT / 'showcase-shield-impact.png'))
         page.locator('#repair').click()
+        page.locator('[data-workspace-page="impacts"]:visible').click()
         page.locator('#debris-target-shields').uncheck()
+        page.locator('[data-workspace-page="hull"]:visible').click()
         page.locator('#destroy').click()
         page.wait_for_function('() => window.showcaseState().nearbyShip.impacts.some(event=>event.kind==="sparks")', timeout=30000)
         unshielded = page.evaluate('window.showcaseState()')

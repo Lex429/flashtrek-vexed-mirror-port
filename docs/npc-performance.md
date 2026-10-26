@@ -1,5 +1,36 @@
 > The current market/docking verification and Linux browser comparison are in [Earth traffic recovery](earth-traffic-recovery.md). Historical measurements below remain tied to their original revisions and device.
 
+October 20 startup recovery adds `browser-startup-recovery.py` for actual
+New/Launch and Continue in cold and cached isolated profiles. It records first
+5/15/60-second frame windows, real W-input response, population/task phases,
+long tasks, requests and artwork/scheduler diagnostics. New worlds use 45
+seconds of real, conserved economic history prepared in a worker; Continue
+retains its saved history. Normal ship visibility requests one current damage
+plate. Optional destruction/fragments can use the same pixel algorithms in an
+OffscreenCanvas worker, with the cooperative implementation as fallback.
+
+`browser-startup-trace.py` separately captures decoding, raster, GPU and JS
+diagnostics. Traced windows are excluded from the timing comparisons. The
+existing repeated `browser-stability.py --measure` and same-save NPC benchmark
+remain required to separate initial-world changes from CPU/frame-delivery
+changes. No population reduction or reduced artwork quality is a performance
+substitute. October 20 reports use `startup-ai-before`, `startup-ai-final` and
+`startup-ai-brave` labels in `test-results`; the before source is the immutable
+local archive described in the Desktop improvement notes.
+
+`startup-ai-edge-final` repeats the final buffered-input build. A 200 ms flight
+tap released during a stalled render is retained for one physics step; ordinary
+held input keeps its existing behavior, and pause/menu/blur resets clear pending
+edges. The real-key regression lives in `browser-impact-controls.py`. Base-plate
+readiness and optional-damage readiness are distinct; explicit diagnostic
+`effectsReady()` warm-up waits for the latter.
+
+The full 172-ship comparisons retain the same save hash, browser and viewport.
+Other checkout benchmarks overlapped some Windows frame measurements. Those raw
+frame intervals do not establish an all-scenario FPS improvement. The Desktop
+report separates repeated startup measurements, CPU sampling, cold first-frame
+limits and contended frame delivery.
+
 # Persistent life scheduling: measured verification
 
 The stabilization pass starts from exact `c41559c`, reproduces the economy and

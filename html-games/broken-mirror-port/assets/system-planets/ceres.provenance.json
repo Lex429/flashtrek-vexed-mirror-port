@@ -1,0 +1,14 @@
+{
+  "id": "ceres",
+  "file": "ceres.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Ceres, Solar System dwarf planet, realistically grey heavily cratered rock and subtle bright salt deposits, spherical full disk, no atmosphere.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-02e590e5-2128-4ff1-b5d5-668350ec7fce.png",
+  "sourceSha256": "7e6823f75cb3be3b2afea31a2584070a8c5b4ef52be4e6b1db1d965f5502a8eb",
+  "sha256": "bb4c027b4a6455a1c4a7fa7042481c4154b44853e5e473448d5d6e15cff37c36",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

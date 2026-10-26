@@ -3,6 +3,39 @@
   'use strict';
   let activeState=null,activeSystem=null,clock=0,ships=[],asteroids=[];
   let rockSource=null,rockTargets=[],targetsDirty=true;
+  const cell=160,shipGrid=new Map(),shipByKey=new Map(),rockById=new Map(),ranks=new WeakMap();let movingRocks=[],maxShipSpeed=0;
+  function indexShips(){
+    shipGrid.clear();shipByKey.clear();maxShipSpeed=0;
+    ships.forEach((target,i)=>{ranks.set(target,i);shipByKey.set('ship:'+target.id,target);});
+    for(const target of ships){const d=target.descriptor,r=d.hullRadii||d.radii;
+      const radius=Math.max(target.radius||0,r?.rx||0,r?.ry||0)+1;
+      maxShipSpeed=Math.max(maxShipSpeed,Math.abs(d.vx||0),Math.abs(d.vy||0));
+      const px=Number.isFinite(d.previousX)?d.previousX:target.x,py=Number.isFinite(d.previousY)?d.previousY:target.y;
+      const left=Math.floor((Math.min(target.x,px)-radius)/cell),right=Math.floor((Math.max(target.x,px)+radius)/cell);
+      const top=Math.floor((Math.min(target.y,py)-radius)/cell),bottom=Math.floor((Math.max(target.y,py)+radius)/cell);
+      // Teleport-sized histories use the conservative all-ships query below.
+      if((right-left+1)*(bottom-top+1)>256){shipGrid.clear();return;}
+      for(let x=left;x<=right;x++)for(let y=top;y<=bottom;y++){const key=x+':'+y,list=shipGrid.get(key)||[];list.push(target);shipGrid.set(key,list);}
+    }
+  }
+  function nearbyShips(query){
+    if(!query||!shipGrid.size)return ships;
+    const pad=query.padding+maxShipSpeed*query.dt;
+    const left=Math.floor((Math.min(query.from.x,query.to.x)-pad)/cell),right=Math.floor((Math.max(query.from.x,query.to.x)+pad)/cell);
+    const top=Math.floor((Math.min(query.from.y,query.to.y)-pad)/cell),bottom=Math.floor((Math.max(query.from.y,query.to.y)+pad)/cell);
+    if((right-left+1)*(bottom-top+1)>256)return ships;
+    const found=new Set(),parent=shipByKey.get(query.sourceKey);if(parent)found.add(parent);
+    for(let x=left;x<=right;x++)for(let y=top;y<=bottom;y++)for(const target of shipGrid.get(x+':'+y)||[])found.add(target);
+    return [...found].sort((a,b)=>ranks.get(a)-ranks.get(b));
+  }
+  function nearbyRocks(query){
+    if(!query||!window.nativeSolAsteroids?.sweptNearby)return asteroids;
+    const found=new Set(movingRocks);
+    if(query.sourceKey?.startsWith('asteroid:')){const parent=rockById.get(Number(query.sourceKey.slice(9)));if(parent)found.add(parent);}
+    for(const rock of window.nativeSolAsteroids.sweptNearby(activeSystem,query.from,query.to,query.padding)){
+      const target=rockById.get(rock.slotId);if(target)found.add(target);
+    }return [...found].sort((a,b)=>ranks.get(a)-ranks.get(b));
+  }
   function refreshTargets(state){
     activeState=state;activeSystem=state.system;
     window.nativeCivilianTraffic?.initialize(state);
@@ -12,13 +45,17 @@
     const source=window.nativeSolAsteroids?.forSystem?.(state.system)||(state.system===1?window.nativeSolAsteroids?.placements:[]);
     if(source!==rockSource){rockSource=source;rockTargets=(source||[]).map(rock=>({get x(){return rock.x;},get y(){return rock.y;},entity:rock,id:rock.slotId,slotId:rock.slotId,system:state.system,radius:rock.size*.45}));}
     asteroids=rockTargets.filter(rock=>!gone.has(rock.slotId));
+    indexShips();rockById.clear();movingRocks=[];
+    asteroids.forEach((target,i)=>ranks.set(target,i));
+    for(const target of asteroids){rockById.set(target.slotId,target);const r=target.entity;
+      if(r.vx||r.vy||Number.isFinite(r.previousX)&&r.previousX!==r.x||Number.isFinite(r.previousY)&&r.previousY!==r.y)movingRocks.push(target);}
     targetsDirty=false;
   }
   const impacts=window.createEnvironmentalImpacts({
-    getShips:()=>ships,
-    getAsteroids:()=>asteroids,
+    getShips:nearbyShips,
+    getAsteroids:nearbyRocks,
     debrisContact:(piece,from,target,type)=>window.nativeAsteroidMotion?.debrisContact(activeState,piece,from,target,type),
-    resolveDebris:(piece,target,type,result)=>window.nativeAsteroidMotion?.resolveDebris(activeState,piece,target,type,result),
+    resolveDebris:(piece,target,type,result)=>{window.nativeAsteroidMotion?.resolveDebris(activeState,piece,target,type,result);targetsDirty=true;},
     onShipImpact(target,event){
       const visual={...event,born:clock,visualOnly:true,physicalContact:event.kind==='debris'};
       if(window.nativeShipSystems)window.nativeShipSystems.visualImpact(activeState,target.descriptor,visual);
@@ -30,7 +67,7 @@
       if(event.kind==='debris'&&event.firstHit)window.nativeAsteroidCombat?.debrisHit(activeState,target.slotId,event);
     }
   });
-  function reset(){impacts.reset();activeState=null;activeSystem=null;clock=0;ships=[];asteroids=[];pieceIdentities=new WeakMap();rockSource=null;rockTargets=[];targetsDirty=true;}
+  function reset(){impacts.reset();activeState=null;activeSystem=null;clock=0;ships=[];asteroids=[];pieceIdentities=new WeakMap();rockSource=null;rockTargets=[];targetsDirty=true;shipGrid.clear();shipByKey.clear();rockById.clear();movingRocks=[];maxShipSpeed=0;}
   function ensureState(state){if(activeState!==state||activeSystem!==state.system){reset();activeState=state;activeSystem=state.system;clock=window.nativeSimulation?.now(state)||0;}}
   function explode(state,source,{radius,duration=850,sourceKey=null}={}){
     if(!state)return;ensureState(state);

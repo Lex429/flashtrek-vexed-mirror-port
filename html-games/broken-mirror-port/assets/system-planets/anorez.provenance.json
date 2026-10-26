@@ -1,0 +1,14 @@
+{
+  "id": "anorez",
+  "file": "anorez.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Anorez, biodiverse wilderness world, green forest continents and wetlands, rich blue ocean and delicate white cloud systems.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-14bc155a-bf32-42ea-b5ed-ff093812197c.png",
+  "sourceSha256": "729a897c1794138c207943ac95f7e968a8953c77091f8dc3ed2979f8f9c00379",
+  "sha256": "b9db92cfdeb4cc4a4decbd9f2707047410fc30196f19906afe2e4059161fd9f1",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

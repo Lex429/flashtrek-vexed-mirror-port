@@ -1,0 +1,14 @@
+{
+  "id": "lameu",
+  "file": "lameu.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Lameu, independent temperate colony world, blue water, patchy olive-green continents and thin white cloud systems.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-eb9d75ce-42a3-4198-a9fb-a0ad2cadc12f.png",
+  "sourceSha256": "0369e49ce60344495cda53a35ce46b3645f62b3c15297ef4cbe3118a3c4708ac",
+  "sha256": "4d4bd9d88c44628a34b0ffb5adf0945b820e7cb1759a89983adb772bdfc6a692",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

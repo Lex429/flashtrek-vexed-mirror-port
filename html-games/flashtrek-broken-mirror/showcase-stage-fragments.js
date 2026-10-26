@@ -4,11 +4,37 @@
   // One cooperative queue covers every live ship, rather than allowing each
   // class to spend a separate frame budget. Pixel loops yield between bounded
   // chunks; image readback and texture upload are the only indivisible calls.
-  const queue=[],statistics={completed:0,failed:0,workMs:0,maxSliceMs:0,slices:0,peakPending:0},limits={sliceMs:2,maxPending:64,maxSteps:64};
-  let scheduled=false;
+  const queue=[],statistics={completed:0,failed:0,workMs:0,maxSliceMs:0,slices:0,peakPending:0,workerWorkMs:0,workerJobs:0},limits={sliceMs:2,maxPending:64,maxSteps:64};
+  const workerURL=document.currentScript?.src?new URL('damage-art-worker.js?v=fast-start-2',document.currentScript.src):null,remoteJobs=new Map();
+  let worker=null,workerFailed=false,remoteSequence=0;
+  function offscreen(kind,frames,config){
+    if(!workerURL||workerFailed||typeof Worker!=='function'||typeof OffscreenCanvas!=='function'||typeof createImageBitmap!=='function'||remoteJobs.size>=8)return null;
+    // Known structural partitions travel as data; arbitrary custom functions
+    // retain the ordinary cooperative path without serializing executable code.
+    if(kind==='destruction'&&config.partition?.serialized?.kind==='torn-anchors-v1')config={...config,partition:{serialized:config.partition.serialized}};
+    try{if(typeof structuredClone==='function')structuredClone(config);else return null;}catch{return null;}
+    if(!worker){
+      try{worker=new Worker(workerURL);}catch{workerFailed=true;return null;}
+      worker.onmessage=event=>{const m=event.data,job=remoteJobs.get(m.id);if(!job)return;remoteJobs.delete(m.id);
+        if(m.error){statistics.failed++;job.reject(Error(m.error));}else{statistics.workerJobs++;statistics.workerWorkMs+=m.workMs;job.resolve(m.data);}};
+      worker.onerror=()=>{workerFailed=true;worker.terminate();worker=null;for(const job of remoteJobs.values())job.reject(Error('Damage artwork worker failed'));remoteJobs.clear();};
+    }
+    const id=++remoteSequence;
+    const promise=new Promise((resolve,reject)=>remoteJobs.set(id,{resolve,reject}));
+    (async()=>{
+      const bitmaps=[];
+      try{for(const frame of frames)bitmaps.push(await createImageBitmap(frame));worker.postMessage({id,kind,frames:bitmaps,config},bitmaps);}
+      catch(error){for(const bitmap of bitmaps)bitmap.close();remoteJobs.get(id)?.reject(error);remoteJobs.delete(id);}
+    })();
+    return promise;
+  }
+  let scheduled=false,suspended=false;
   const clock=()=>performance.now();
+  // Repeated zero-delay timers acquire a 4 ms clamp. Keep the same bounded
+  // slices at background priority without making cold drone preparation crawl.
+  const deferPump=()=>window.scheduler?.postTask?window.scheduler.postTask(pump,{priority:'background'}):setTimeout(pump,0);
   function pump(){
-    scheduled=false;const started=clock();let steps=0;
+    scheduled=false;if(suspended)return;const started=clock();let steps=0;
     do{
       const task=queue.shift();if(!task)break;
       try{const result=task.iterator.next();if(result.done){statistics.completed++;task.resolve(result.value);}else queue.push(task);}
@@ -16,15 +42,17 @@
       steps++;
     }while(queue.length&&steps<limits.maxSteps&&clock()-started<limits.sliceMs);
     const elapsed=clock()-started;statistics.workMs+=elapsed;statistics.maxSliceMs=Math.max(statistics.maxSliceMs,elapsed);statistics.slices++;
-    if(queue.length&&!scheduled){scheduled=true;setTimeout(pump,0);}
+    if(queue.length&&!scheduled){scheduled=true;deferPump();}
   }
   function run(iterator){
     if(queue.length>=limits.maxPending)return Promise.reject(Error('Optional damage-art preparation queue is full'));
     return new Promise((resolve,reject)=>{queue.push({iterator,resolve,reject});statistics.peakPending=Math.max(statistics.peakPending,queue.length);
-      if(!scheduled){scheduled=true;setTimeout(pump,0);}});
+      if(!scheduled&&!suspended){scheduled=true;deferPump();}});
   }
   const finish=iterator=>{let result;do{result=iterator.next();}while(!result.done);return result.value;};
-  window.nativeDamageArtPreparation=Object.freeze({run,finish,snapshot:()=>({...statistics,pending:queue.length,limits:{...limits}}),
+  window.nativeDamageArtPreparation=Object.freeze({run,finish,offscreen,
+    setPaused(value){suspended=!!value;if(!suspended&&queue.length&&!scheduled){scheduled=true;deferPump();}},
+    snapshot:()=>({...statistics,pending:queue.length+remoteJobs.size,workerPending:remoteJobs.size,suspended,limits:{...limits}}),
     resetMetrics(){for(const field of Object.keys(statistics))statistics[field]=0;statistics.peakPending=queue.length;}});
   function* preparation(frames,anchors) {
     const w=frames[0].width,h=frames[0].height;
@@ -61,7 +89,11 @@
     return fragments;
   }
   const prepare=(frames,anchors)=>finish(preparation(frames,anchors));
-  const prepareAsync=(frames,anchors)=>run(preparation(frames,anchors));
+  async function prepareAsync(frames,anchors){
+    const remote=offscreen('fragments',frames,anchors);
+    if(remote)try{const result=await remote;for(const stage of result)for(const piece of stage)if(piece.material)window.wreckageEffects?.adopt(piece.texture,piece.material);return result;}catch{}
+    return run(preparation(frames,anchors));
+  }
   function emit({debris,fragments,before,after,layout,world,angle,time,zoom,burst}) {
     for(let stage=before+1;stage<=after;stage++)for(const piece of fragments[stage]){
       const point=world(piece),direction=Math.atan2(point.y-layout.y,point.x-layout.x),speed=(55+stage*18)*zoom;

@@ -1,0 +1,14 @@
+{
+  "id": "violet-giant",
+  "file": "violet-giant.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: an alien gas giant with muted lavender, pearl grey and indigo cloud bands and delicate turbulent storms, no rings.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-2e9bf129-81be-4bf4-8863-9f623619b7dd.png",
+  "sourceSha256": "6b59a7c6ac06c396c1cfd27efa52adc3156c3fc523fd771cfc0c5df981eeb3a4",
+  "sha256": "5738be149c6f22decec9c508a4ed6f1379aedce8375a2f5c868415bb17890a79",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

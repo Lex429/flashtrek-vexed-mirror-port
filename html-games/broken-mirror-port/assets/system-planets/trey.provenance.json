@@ -1,0 +1,14 @@
+{
+  "id": "trey",
+  "file": "trey.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Trey, grim arid prison world with enormous deep canyon systems, eroded sandstone plateaus and sparse grey clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-cf78a584-d56c-42e0-b581-43d6f189dbea.png",
+  "sourceSha256": "0f77a275ef5b97e9c79a149f0ab9636992abf51378910f7c64bbdc6f0a22336a",
+  "sha256": "b1d1a6bb0da8d496f51a6358e06d4fbe0d269e18799a7c79334fd45c6003181d",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

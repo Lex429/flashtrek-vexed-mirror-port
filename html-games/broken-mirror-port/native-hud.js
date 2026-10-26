@@ -91,9 +91,10 @@
     ctx.translate(0, 4);
 
     const weapons = state.weapons || [1, null, null];
-    for (let i = 0; i < 3; i++) {
+    const weaponCount=Math.max(3,Math.min(8,weapons.length));
+    for (let i = 0; i < weaponCount; i++) {
       ctx.save();
-      ctx.translate(i * 26, 0);
+      ctx.translate(i * 78/weaponCount, 0);ctx.scale(3/weaponCount,1);
       const occupied = Number(weapons[i]) > 0;
       const color = '#91d4d1';
       cell(24, color, occupied ? .65 : .30, occupied ? .85 : .30);
@@ -147,10 +148,10 @@
       for (const id of value.weapons || []) if (Number(id) > 0 && !weaponIcons.has(Number(id))) {
         const icon = new Image();
         icon.onload = render;
-        icon.src = '../flashtrek-broken-mirror/showcase-assets/weapon-icon-remastered-' + Number(id) + '.png';
+        icon.src = '../flashtrek-broken-mirror/showcase-assets/weapon-icon-remastered-' + Number(window.nativeShipEquipment?.model(id)?.visualId??id) + '.png';
         weaponIcons.set(Number(id), icon);
       }
-      const weaponNames = (value.weapons || []).map((id, i) => 'Weapon ' + (i + 1) + ': ' + (window.VexedMirrorWeapons?.find(weapon => weapon.id === Number(id))?.name || 'Empty'));
+      const weaponNames = (value.weapons || []).map((id, i) => 'Weapon ' + (i + 1) + ': ' + (window.nativeShipEquipment?.model(id)?.name || window.VexedMirrorWeapons?.find(weapon => weapon.id === Number(id))?.name || 'Empty'));
       canvas.setAttribute('aria-label', [...weaponNames, ...keys.map((key, i) => names[i] + ': ' + (value.devMode ? 'unlimited' : formatAmount(value[key])))].join(', '));
       render();
     }

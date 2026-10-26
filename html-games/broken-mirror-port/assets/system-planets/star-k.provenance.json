@@ -1,0 +1,14 @@
+{
+  "id": "star-k",
+  "file": "star-k.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: polished production stellar sprite for Vexed Mirror. Reference image is a NASA SDO/HMI continuum observation; use its fine photospheric texture, round silhouette and limb darkening as scientific reference ONLY. Its displayed orange color is assigned and must not be copied automatically. Render ONE complete self-luminous star, visible across its entire disk, no planet-like night-side terminator. Subtle finely resolved surface texture, restrained translucent corona and tiny realistic limb activity. No molten-rock cracks, no lava planet, no oversized fireball, no spiky sun icon. Square composition with entire glowing star and corona inside central 76 percent, at least 12 percent transparent padding all around. Genuine transparent background; no labels, text, logos, watermark, background stars, planets or ships. Premium realistic astronomical appearance, high detail, smooth antialiased limb. Subject: K-type main-sequence star like Keid, warm pale GOLDEN ORANGE luminous photosphere, small dark starspots, granular plasma and a thin restrained amber corona. Clearly glowing rather than a rocky orange planet.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-0f21a9ce-38e6-4298-b614-f61138c58adb.png",
+  "sourceSha256": "874a832aa3a254b4505b77746454f52be28d7f4fd0c8fb5f3d530cb581807b84",
+  "sha256": "b999776ea8a3464318352c8120b8380793d436b5a8dcbda243389147adf00aad",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

@@ -1,0 +1,20 @@
+{
+  "id": "orion-iii-sol-v2",
+  "file": "orion-iii-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror, not a poster. Input image 1: actual Sol Earth artwork, a REFERENCE for realism, fine planetary-scale texture, natural spherical volume and sunlight only; not an edit target. Generate ONE new planet named Orion III. Appearance: Ochre upland continents, olive valleys and blue seas. Diverse dry ochre highland plates, fine mountain ranges and broad olive-green river valleys, small scattered white weather systems. Invent clearly different continent shapes from the reference Earth. Photorealistic high-detail orbital astronomical imagery matching the supplied Sol artwork, no painterly or plastic finish. Upper-left sunlight, softly shaded lower-right limb, mostly illuminated full globe. Centered complete circular globe occupies 88 percent of square image, 6 percent transparent padding on each side. 1280x1280 or higher, actual alpha transparency outside subject. No text, labels, stars, black background, nebula, frame, watermark, ships, other planets or giant ground-level mountains. Natural subtle atmospheric edge, no excessive bloom. Surface appearance is a game art interpretation.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-05582073-b892-4ddf-949c-82ad0c87a88a.png",
+  "sourceSha256": "bdb1579cd6b4d7c3425770b8d5193b3a4bf6338eba4b4f250e0696e14e5aed8f",
+  "sha256": "086200b779a5a2e668d801055f4fe005d10a3569b5ca15ba731f9eebf55f90c6",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/03 - Earth.png",
+      "sha256": "0802891f5ba0986ec2f343a5adbc9216ce6612f2f45d4cff77668272c4bed2ee"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vexed Mirror effect stress scene</title>
+<link rel="icon" href="data:,">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050b12;color:#c9dfe9;font:11px system-ui,sans-serif}#stage{position:absolute;inset:0}#space{display:block;width:100%;height:100%}#hud{position:absolute;top:10px;left:10px;right:10px;z-index:4;display:flex;justify-content:space-between;gap:12px;pointer-events:none;text-shadow:0 1px 3px #000}#hud span{padding:5px 8px;background:#07111cce;border:1px solid #2b4958;border-radius:4px}#status{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;z-index:5;background:#07111ce8}#status[hidden]{display:none}
+</style>
+<script src="../flashtrek-broken-mirror/effect-profiles.js" defer></script>
+<script src="world-data.js" defer></script><script src="flight-reference-data.js" defer></script>
+<script src="../flashtrek-broken-mirror/cthia-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/olympic-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/tug-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/constitution-tug-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/starter-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/earth-profiles.js" defer></script>
+<script src="../flashtrek-broken-mirror/klingon-profiles.js" defer></script>
+<script src="../flashtrek-broken-mirror/romulan-profiles.js" defer></script>
+<script src="../flashtrek-broken-mirror/vulcan-profiles.js" defer></script>
+<script src="../flashtrek-broken-mirror/cardassian-profiles.js" defer></script>
+<script src="../flashtrek-broken-mirror/ferengi-dominion-profiles.js" defer></script>
+<script src="../flashtrek-broken-mirror/independent-profiles.js" defer></script>
+<script src="../flashtrek-broken-mirror/earth-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/constitution-showcase-lights.js" defer></script>
+<script src="../flashtrek-broken-mirror/constitution-damage.js" defer></script>
+<script src="../flashtrek-broken-mirror/bioship-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/lifeform-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/wreckage-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/cthia-destruction.js" defer></script>
+<script src="../flashtrek-broken-mirror/showcase-stage-fragments.js" defer></script>
+<script src="../flashtrek-broken-mirror/showcase-hull-burst.js" defer></script>
+<script src="../flashtrek-broken-mirror/shield-flash.js" defer></script>
+<script src="../flashtrek-broken-mirror/weapon-effects.js" defer></script>
+<script src="simulation-clock.js" defer></script><script src="ship-sprite-cache.js" defer></script>
+<script src="ship-definitions.js" defer></script><script src="flight-assets.js" defer></script>
+<script src="constitution-ships.js" defer></script>
+<script src="weapon-rules.js" defer></script><script src="combat-shots.js" defer></script>
+<script src="ship-damage.js" defer></script><script src="effect-visibility.js" defer></script>
+<script src="ship-effects.js" defer></script>
+<script src="../flashtrek-broken-mirror/shield-gpu.js" defer></script>
+<script src="../flashtrek-broken-mirror/ship-lamps-gpu.js?v=1" defer></script>
+<script src="../flashtrek-broken-mirror/shield-gpu-live.js" defer></script>
+<script src="../flashtrek-broken-mirror/effect-lab-metrics.js" defer></script>
+<script src="../flashtrek-broken-mirror/effect-lab-fixture.js" defer></script>
+<script src="effect-lab-scene.js" defer></script>
+</head><body><div id="stage"><canvas id="space" aria-label="Game renderer stress-test fleet"></canvas></div>
+<div id="hud"><span id="load-label">Renderer test</span><span id="fps-label">Waiting</span></div><div id="status">Choose a scenario, then Preview or Measure.</div></body></html>

@@ -1,0 +1,14 @@
+{
+  "id": "t-khut",
+  "file": "t-khut.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: T'Khut, large volcanic orange-red planetary companion of Vulcan, rugged dark continents and bright rust deserts, subdued lava fissures and thin haze.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-ec354920-093c-4599-8ee7-3d8d42011aae.png",
+  "sourceSha256": "faca430ff450276887c66159e10ed8e484a516f97627cfaaf5a3760bdc782a5f",
+  "sha256": "cbe31883a6c81ec70f9e077528e09d038adffa1aba5e5a61554168471690c0ab",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

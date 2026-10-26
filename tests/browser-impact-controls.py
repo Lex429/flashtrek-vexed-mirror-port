@@ -82,6 +82,26 @@ try:
             return page.evaluate('__impactSnapshot()')
 
         report = {'keys': {}}
+        # Real key events while rendering is deliberately held: release the tap
+        # before any simulation step, then prove it is consumed once on resume.
+        page.evaluate('__impactActivate()')
+        host.keyboard.down('w');host.keyboard.up('w')
+        page.evaluate('__impactTick(1)')
+        tapped=page.evaluate('__impactSnapshot()')
+        assert tapped['speed']>0,tapped
+        page.evaluate('__impactTick(10)')
+        coasted=page.evaluate('__impactSnapshot()')
+        assert abs(coasted['speed']-tapped['speed'])<.001,(tapped,coasted)
+        angle=coasted['angle']
+        host.keyboard.down('a');host.keyboard.up('a')
+        page.evaluate('__impactTick(1)')
+        assert page.evaluate('__impactSnapshot().angle')<angle
+        page.evaluate('__impactActivate()')
+        host.keyboard.down('w');host.keyboard.up('w')
+        page.evaluate('()=>{dispatchEvent(new Event("blur"));__impactTick(1);}')
+        assert page.evaluate('__impactSnapshot().speed')==0
+        report['betweenFrameTaps']={'thrust':True,'turn':True,'consumedOnce':True,'blurClearsPending':True}
+        page.evaluate('__impactActivate()')
         page.locator('#devToolsBtn').click()
         page.locator('#galaxy-map-button').click()
         page.evaluate('__impactTick(1)')

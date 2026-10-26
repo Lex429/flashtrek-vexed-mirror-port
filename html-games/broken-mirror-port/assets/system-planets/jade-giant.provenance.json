@@ -1,0 +1,14 @@
+{
+  "id": "jade-giant",
+  "file": "jade-giant.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: an alien gas giant with subdued jade green, pale cream and slate blue cloud bands and intricate turbulent vortices, no rings.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-6010eabe-153f-47b7-83a6-533791233d7a.png",
+  "sourceSha256": "49e24f243b83080b985a54573ee5e43a980c8eab701a64e14f6224ed2122a982",
+  "sha256": "10a463376ff0d8b1d207a10d45f23b145d339af9bdfd1a32af77cd147ce0dd8e",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

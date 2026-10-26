@@ -1,12 +1,10 @@
 /* One saved firing lifecycle for every controller and physical target. */
 (() => {
   'use strict';
-  const styles=new Map(),states=new Set(),runtime=new WeakMap();
+  const styles=new Map();
   const rules=window.nativeWeaponRules;
-  let units=window.showcaseWeaponAppearance.units,sceneProvider=null;
-  const blocked=()=>window.nativeSimulation?.blocked?.()||document.hidden||window.nativePause?.active||window.nativeShipInventory?.active;
-  const now=state=>window.nativeSimulation?.seconds(state)??combatState(state).clock;
-  const duration=kind=>kind==='beam'?180:kind==='torpedo'?560:360;
+  let units=window.showcaseWeaponAppearance.units;
+  const duration=kind=>window.showcaseWeaponAppearance.durationMs?.(kind)??(kind==='beam'?180:kind==='torpedo'?560:360);
   const hitDelay=shot=>shot.kind==='beam'?70:shot.duration;
   function setVisualCatalog(data,catalog){
     if(!Object.values(data.weapons||{}).some(entries=>entries.length))return false;
@@ -17,10 +15,14 @@
   const ready=Promise.all(['combat-data.json?v=weapon-independent-1','catalog.json?v=tug-ii-a-anim-3'].map(file=>fetch('../flashtrek-broken-mirror/showcase-assets/'+file).then(response=>{if(response.ok===false)throw Error('Showcase weapon data unavailable');return response.json();})))
     .then(([data,catalog])=>setVisualCatalog(data,catalog)).catch(error=>{console.warn('Showcase weapon styles unavailable',error);return false;});
   function weaponVisual(weapon){
-    const style=styles.get(Number(weapon.id));
+    const style=styles.get(Number(weapon.visualId??weapon.id));
     const kind=style?.kind||(/torpedo|launcher/i.test(weapon.name)?'torpedo':/disruptor|cannon|turrent|turret|pulse/i.test(weapon.name)?'disruptor':'beam');
     return {kind,style:style||null,units};
   }
+  function fork(options={}){
+  const states=new Set(),runtime=new WeakMap();let sceneProvider=options.scene||null;
+  const blocked=()=>options.blocked?options.blocked():window.nativeSimulation?.blocked?.()||document.hidden||window.nativePause?.active||window.nativeShipInventory?.active;
+  const now=state=>options.seconds?options.seconds(state):window.nativeSimulation?.seconds(state)??combatState(state).clock;
   function combatState(state){
     if(!state.weaponCombat||![1,2].includes(state.weaponCombat.version))state.weaponCombat={version:2,clock:0,nextSlot:0,weaponReadyAt:{},events:[],nextEventId:1};
     const combat=state.weaponCombat;
@@ -43,6 +45,7 @@
     return sceneProvider?.(state,{system})||window.nativeShipSystems?.scene(state,{system})||window.nativeCivilianTraffic?.combatScene(state,{system})||{bystanders:[],rocks:[]};
   }
   function resolve(state,id,system){
+    if(options.resolve)return options.resolve(state,id,system);
     if(window.nativeShipSystems)return window.nativeShipSystems.resolve(state,id,system);
     if(id==='player')return state.system===system&&state.hull!==0?player(state):null;
     const scenery=scene(state,system);
@@ -88,6 +91,7 @@
     return {ok:false,error:!visible?'Weapon visuals are unavailable or still loading.':available?'Target is out of range, outside the firing arc, or blocked.':'All fitted weapons are recharging.'};
   }
   function applyHit(state,result,event,source){
+    if(options.applyHit)return options.applyHit(state,result,event,source);
     if(window.nativeShipSystems)return window.nativeShipSystems.applyHit(state,result,event,source);
     const target=result.target;if(!target)return {ok:false};
     const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,kind:event.kind,source:source.id==='player'?'player':'ai',sourceId:source.id};
@@ -193,11 +197,10 @@
         shot.lockedImpactLocal=result.contact?.local;
         if(entry?.onHit&&current&&String(result.target.id)===String(current.id))result.damage=entry.onHit(event.weapon,result.point,shot,result);
         else result.damage=applyHit(state,result,event,sourceShip);
-        window.nativeShipSystems?.invalidate?.(state,event.system);
+        if(!options.isolated)window.nativeShipSystems?.invalidate?.(state,event.system);
       }
       entry?.onResolved?.(result,event,visualFor(state,event,entry));
-      window.nativeShipSystems?.resolved?.(state,result,event);
-      window.nativeCombatShots.onResolved?.(state,result,event);
+      if(!options.isolated){window.nativeShipSystems?.resolved?.(state,result,event);window.nativeCombatShots.onResolved?.(state,result,event);}
     }
     combat.events=combat.events.filter(event=>{
       const visible=!event.cancelled&&(event.projectile?event.alive:now(state)<event.launchedAt+duration(event.kind)/1000);
@@ -241,6 +244,8 @@
   function paintAll(ctx,view){
     for(const event of combatState(view.state).events)if(event.system===view.state.system)paint(ctx,visualFor(view.state,event),view);
   }
-  window.nativeCombatShots={arm,fire,fireFor,advance,cancel,isVisible,create,source,paint,paintAll,hitDelay,weaponVisual,reset,contact,worldPoint,ready,setVisualCatalog,applyHit,
+  return {fork,arm,fire,fireFor,advance,cancel,isVisible,create,source,paint,paintAll,hitDelay,weaponVisual,reset,contact,worldPoint,ready,setVisualCatalog,applyHit,
     scene,configureScene:provider=>{sceneProvider=provider;},importEvent,migrate,restore:migrate,snapshot,isReady:()=>styles.size>0};
+  }
+  window.nativeCombatShots=fork();
 })();

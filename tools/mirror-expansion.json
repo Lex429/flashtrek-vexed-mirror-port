@@ -1,0 +1,4178 @@
+{
+  "version": 1,
+  "originalDestinations": 52,
+  "preExpansionDestinations": 53,
+  "sources": {
+    "NASA-STARS": "https://science.nasa.gov/universe/stars/types/",
+    "NASA-SUN": "https://science.nasa.gov/sun/facts/",
+    "NASA-HMI": "https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_HMIIC.jpg",
+    "FERENGINAR-REFERENCE": "https://memory-alpha.fandom.com/wiki/Ferenginar",
+    "ENT-ARCHIVE": "https://www.ex-astris-scientia.org/database/ent-characters-iamd.htm",
+    "MIRROR-MIRROR": "https://www.chakoteya.net/StarTrek/39.htm",
+    "TERRA-FIRMA": "https://www.startrek.com/news/recap-star-trek-discovery-terra-firma-part-2",
+    "VINTAAK-SYSTEM": "https://memory-alpha.fandom.com/wiki/Vintaak_system",
+    "EPSILON-INDI-IV": "https://memory-alpha.fandom.com/wiki/Epsilon_Indi_IV",
+    "HARLAK": "https://memory-alpha.fandom.com/wiki/Harlak",
+    "RISA": "https://memory-alpha.fandom.com/wiki/Risa",
+    "VEGA-IX": "https://memory-alpha.fandom.com/wiki/Vega_IX",
+    "GORLAN-HOMEWORLD-REMNANTS": "https://memory-alpha.fandom.com/wiki/Gorlan_homeworld",
+    "KEPLER-174D": "https://memory-alpha.fandom.com/wiki/Kepler-174d",
+    "PRIORS-WORLD": "https://memory-alpha.fandom.com/wiki/Priors_World",
+    "TONNATA-VII": "https://memory-alpha.fandom.com/wiki/Tonnata_VII",
+    "SORNA-PRIME": "https://memory-alpha.fandom.com/wiki/Sorna_Prime",
+    "WURNA-MINOR": "https://memory-alpha.fandom.com/wiki/Wurna_Minor",
+    "PURMATA-VI": "https://memory-alpha.fandom.com/wiki/Purmata_VI",
+    "ELPHA": "https://memory-alpha.fandom.com/wiki/Elpha",
+    "QUAM": "https://memory-alpha.fandom.com/wiki/Quam",
+    "MINTAKA-III": "https://memory-alpha.fandom.com/wiki/Mintaka_III",
+    "BETAZED": "https://memory-alpha.fandom.com/wiki/Betazed",
+    "TALOS-IV": "https://memory-alpha.fandom.com/wiki/Talos_IV",
+    "TAU-CETI-IV": "https://memory-alpha.fandom.com/wiki/Tau_Ceti_IV",
+    "GORLAN-STATION": "https://memory-alpha.fandom.com/wiki/Gorlan_Station",
+    "BADLANDS": "https://memory-alpha.fandom.com/wiki/Badlands",
+    "FOWLA": "https://memory-alpha.fandom.com/wiki/Fowla_system",
+    "PORATHIA-ASTEROID-BELTS": "https://memory-alpha.fandom.com/wiki/Porathia_asteroid_belts",
+    "VENTAR": "https://memory-alpha.fandom.com/wiki/Ventar_system",
+    "ORGANIA": "https://memory-alpha.fandom.com/wiki/Organia",
+    "DANNUS-V": "https://memory-alpha.fandom.com/wiki/Dannus_V",
+    "NEW-BAJOR": "https://memory-alpha.fandom.com/wiki/New_Bajor",
+    "PAHVO": "https://memory-alpha.fandom.com/wiki/Pahvo",
+    "KWEJIAN": "https://memory-alpha.fandom.com/wiki/Kwejian",
+    "ARCHER-IV": "https://memory-alpha.fandom.com/wiki/Archer_IV",
+    "ARCHER'S-PLANET": "https://memory-alpha.fandom.com/wiki/Archer%27s_Planet",
+    "BETA-III": "https://memory-alpha.fandom.com/wiki/Beta_III",
+    "EMINIAR-VII": "https://memory-alpha.fandom.com/wiki/Eminiar_VII",
+    "SHERMAN'S-PLANET": "https://memory-alpha.fandom.com/wiki/Sherman%27s_Planet",
+    "TELLAR-PRIME": "https://memory-alpha.fandom.com/wiki/Tellar_Prime",
+    "DENOBULA": "https://memory-alpha.fandom.com/wiki/Denobula",
+    "CORIDAN": "https://memory-alpha.fandom.com/wiki/Coridan",
+    "CLARUS-EXCHANGE": "https://memory-alpha.fandom.com/wiki/Clarus",
+    "IRTOK-EXCHANGE": "https://memory-alpha.fandom.com/wiki/Irtok",
+    "NASA-KEPLER": "https://science.nasa.gov/exoplanet-catalog/kepler-174-d/",
+    "ORION-(PLANET)": "https://memory-alpha.fandom.com/wiki/Orion_%28planet%29",
+    "ALPHA-CENTAURI": "https://memory-alpha.fandom.com/wiki/Alpha_Centauri",
+    "VULCAN-SYSTEM": "https://memory-alpha.fandom.com/wiki/Vulcan_system",
+    "ANDORIA": "https://memory-alpha.fandom.com/wiki/Andoria",
+    "ROMULUS-(STAR)": "https://memory-alpha.fandom.com/wiki/Romulus_%28star%29",
+    "QO'NOS": "https://memory-alpha.fandom.com/wiki/Qo%27noS",
+    "B'HAVA'EL": "https://memory-alpha.fandom.com/wiki/B%27hava%27el",
+    "CARDASSIA-(STAR)": "https://memory-alpha.fandom.com/wiki/Cardassia_%28star%29",
+    "EPSILON-INDI-SYSTEM": "https://memory-alpha.fandom.com/wiki/Epsilon_Indi_system",
+    "VEGA": "https://memory-alpha.fandom.com/wiki/Vega",
+    "MINTAKA": "https://memory-alpha.fandom.com/wiki/Mintaka",
+    "TAU-CETI": "https://memory-alpha.fandom.com/wiki/Tau_Ceti",
+    "NASA-KEPLER-B": "https://science.nasa.gov/exoplanet-catalog/kepler-174-b/",
+    "NASA-KEPLER-C": "https://science.nasa.gov/exoplanet-catalog/kepler-174-c/"
+  },
+  "policy": "Mirror historical references and Prime counterparts deliberately adapted into the existing Broken Mirror game era. Additional worlds are survey fiction, not a canonical complete orbital census. Unknown locations remain regions. Populations and present factions are game choices.",
+  "systems": [
+    {
+      "world": {
+        "id": 54,
+        "name": "Vintaak",
+        "legacyMapLabel": "Vintaak",
+        "charted": true,
+        "governmentId": 11,
+        "government": "Tholian Syndicate",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The ringed gas giant and its moons shelter the Tholian facility where the captured Defiant was held. The operating salvage yard is a game continuation of that historical facility.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 54,
+        "name": "Vintaak",
+        "legacyIds": [
+          54
+        ],
+        "homeBodyByLegacy": {
+          "54": 0
+        },
+        "continuity": "mirror",
+        "notes": "The ringed gas giant and its moons shelter the Tholian facility where the captured Defiant was held. The operating salvage yard is a game continuation of that historical facility. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Vintaak gas giant",
+            "kind": "gas_giant",
+            "art": "assets/system-planets/vintaak-giant.webp",
+            "x": 0,
+            "y": 0,
+            "size": 250,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "The ringed gas giant and its moons shelter the Tholian facility where the captured Defiant was held. The operating salvage yard is a game continuation of that historical facility.",
+            "legacyWorldId": 54,
+            "sourceRefs": [
+              "VINTAAK-SYSTEM"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Vintaak A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "One of the moons of the Vintaak gas giant. Its survey name, individual appearance and exact orbital placement are game choices.",
+            "parentId": 0,
+            "nameEvidence": "authored"
+          },
+          {
+            "id": 101,
+            "name": "Vintaak B",
+            "kind": "moon",
+            "art": "assets/system-planets/ice-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "One of the moons of the Vintaak gas giant. Its survey name, individual appearance and exact orbital placement are game choices.",
+            "parentId": 0,
+            "nameEvidence": "authored"
+          },
+          {
+            "id": 102,
+            "name": "Vintaak C",
+            "kind": "moon",
+            "art": "assets/system-planets/rust-moon.webp",
+            "x": 1430,
+            "y": -1010,
+            "size": 65,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "One of the moons of the Vintaak gas giant. Its survey name, individual appearance and exact orbital placement are game choices.",
+            "parentId": 0,
+            "nameEvidence": "authored"
+          },
+          {
+            "id": 900,
+            "name": "Vintaak A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 55,
+        "name": "Epsilon Indi",
+        "legacyMapLabel": "Epsilon Indi",
+        "charted": true,
+        "governmentId": 1,
+        "government": "Earth Empire",
+        "strength": 600,
+        "populationBillions": 0.7,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Imperial Shipyard world from Terra Firma. The functioning present-day yard and population are game adaptations of the cited historical location.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 55,
+        "name": "Epsilon Indi",
+        "legacyIds": [
+          55
+        ],
+        "homeBodyByLegacy": {
+          "55": 0
+        },
+        "continuity": "mirror",
+        "notes": "Imperial Shipyard world from Terra Firma. The functioning present-day yard and population are game adaptations of the cited historical location. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Epsilon Indi IV",
+            "kind": "planet",
+            "art": "assets/system-planets/alpha-centauri.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "Imperial Shipyard world from Terra Firma. The functioning present-day yard and population are game adaptations of the cited historical location.",
+            "legacyWorldId": 55,
+            "sourceRefs": [
+              "EPSILON-INDI-IV"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Epsilon Indi I",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -2850,
+            "y": -1950,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Epsilon Indi II",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1900,
+            "y": -1300,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 102,
+            "name": "Epsilon Indi III",
+            "kind": "planet",
+            "art": "assets/system-planets/silver-rock.webp",
+            "x": -950,
+            "y": -650,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Epsilon Indi A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 56,
+        "name": "Harlak",
+        "legacyMapLabel": "Harlak",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.02,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The resistance headquarters was bombarded by the Charon. This game depicts an intact scarred planet with a small recovering population, not proof of its surviving census.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 56,
+        "name": "Harlak",
+        "legacyIds": [
+          56
+        ],
+        "homeBodyByLegacy": {
+          "56": 0
+        },
+        "continuity": "mirror",
+        "notes": "The resistance headquarters was bombarded by the Charon. This game depicts an intact scarred planet with a small recovering population, not proof of its surviving census. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Harlak",
+            "kind": "planet",
+            "art": "assets/system-planets/harlak.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "The resistance headquarters was bombarded by the Charon. This game depicts an intact scarred planet with a small recovering population, not proof of its surviving census.",
+            "legacyWorldId": 56,
+            "sourceRefs": [
+              "HARLAK"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Firewolf",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Harlak A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 900,
+            "name": "Harlak A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 57,
+        "name": "Risa",
+        "legacyMapLabel": "Risa",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.6,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "A ringed Mirror Risa, following the orbital depiction in Terra Firma. Its current ports and population belong to this game continuity.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 57,
+        "name": "Risa",
+        "legacyIds": [
+          57
+        ],
+        "homeBodyByLegacy": {
+          "57": 0
+        },
+        "continuity": "guardian",
+        "notes": "A ringed Mirror Risa, following the orbital depiction in Terra Firma. Its current ports and population belong to this game continuity. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Risa",
+            "kind": "planet",
+            "art": "assets/system-planets/mirror-risa.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "A ringed Mirror Risa, following the orbital depiction in Terra Firma. Its current ports and population belong to this game continuity.",
+            "legacyWorldId": 57,
+            "sourceRefs": [
+              "RISA"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Risa A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 101,
+            "name": "Risa B",
+            "kind": "moon",
+            "art": "assets/system-planets/ice-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 102,
+            "name": "Risan Ember",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Risa A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 58,
+        "name": "Vega",
+        "legacyMapLabel": "Vega",
+        "charted": true,
+        "governmentId": 1,
+        "government": "Earth Empire",
+        "strength": 600,
+        "populationBillions": 0.25,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Mirror Kirk executed five thousand colonists on Vega IX. The planet itself was not established as destroyed; its current settlements are game estimates.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 58,
+        "name": "Vega",
+        "legacyIds": [
+          58
+        ],
+        "homeBodyByLegacy": {
+          "58": 0
+        },
+        "continuity": "mirror",
+        "notes": "Mirror Kirk executed five thousand colonists on Vega IX. The planet itself was not established as destroyed; its current settlements are game estimates. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Vega IX",
+            "kind": "planet",
+            "art": "assets/system-planets/new-switzerland.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "Mirror Kirk executed five thousand colonists on Vega IX. The planet itself was not established as destroyed; its current settlements are game estimates.",
+            "legacyWorldId": 58,
+            "sourceRefs": [
+              "VEGA-IX"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Vega I",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -3378,
+            "y": -2311,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Vega II",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -2956,
+            "y": -2022,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 102,
+            "name": "Vega III",
+            "kind": "planet",
+            "art": "assets/system-planets/silver-rock.webp",
+            "x": -2533,
+            "y": -1733,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 103,
+            "name": "Vega IV",
+            "kind": "gas_giant",
+            "art": "assets/system-planets/jade-giant.webp",
+            "x": -2111,
+            "y": -1444,
+            "size": 210,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 104,
+            "name": "Vega V",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1689,
+            "y": -1156,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 105,
+            "name": "Vega VI",
+            "kind": "gas_giant",
+            "art": "assets/system-planets/violet-giant.webp",
+            "x": -1267,
+            "y": -867,
+            "size": 210,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 106,
+            "name": "Vega VII",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -844,
+            "y": -578,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 107,
+            "name": "Vega VIII",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -422,
+            "y": -289,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Vega A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 59,
+        "name": "Gorlan",
+        "legacyMapLabel": "Gorlan",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Mirror Kirk destroyed the rebel home planet. Only lifeless shattered remnants are charted here. No intact populated planet or automatic association with Gorlan Station is asserted.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 59,
+        "name": "Gorlan",
+        "legacyIds": [
+          59
+        ],
+        "homeBodyByLegacy": {
+          "59": 0
+        },
+        "continuity": "mirror",
+        "notes": "Mirror Kirk destroyed the rebel home planet. Only lifeless shattered remnants are charted here. No intact populated planet or automatic association with Gorlan Station is asserted. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Gorlan homeworld remnants",
+            "kind": "debris_field",
+            "art": "assets/system-planets/gorlan-remnants.webp",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "Mirror Kirk destroyed the rebel home planet. Only lifeless shattered remnants are charted here. No intact populated planet or automatic association with Gorlan Station is asserted.",
+            "legacyWorldId": 59,
+            "sourceRefs": [
+              "GORLAN-HOMEWORLD-REMNANTS"
+            ]
+          },
+          {
+            "id": 900,
+            "name": "Gorlan A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 60,
+        "name": "Kepler-174",
+        "legacyMapLabel": "Kepler-174",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.1,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The Mirror account describes flora, architecture and artwork. Those are fictional cultural details, distinct from the observed astronomical exoplanet. This is an inhabited game interpretation.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 60,
+        "name": "Kepler-174",
+        "legacyIds": [
+          60
+        ],
+        "homeBodyByLegacy": {
+          "60": 0
+        },
+        "continuity": "guardian",
+        "notes": "The Mirror account describes flora, architecture and artwork. Those are fictional cultural details, distinct from the observed astronomical exoplanet. This is an inhabited game interpretation. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography. NASA classifies the real d as Neptune-like; the temperate inhabited illustration follows the fictional Mirror account, not a measured rocky surface. The displayed b/c/d order agrees with their measured periods.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Kepler-174d",
+            "kind": "planet",
+            "art": "assets/system-planets/biakisch.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "The Mirror account describes flora, architecture and artwork. Those are fictional cultural details, distinct from the observed astronomical exoplanet. This is an inhabited game interpretation. NASA reference: 2.19 Earth radii, 0.677 AU and a 247.4-day orbit; classified as Neptune-like. The fictional Mirror surface and culture are not observed astronomy.",
+            "legacyWorldId": 60,
+            "sourceRefs": [
+              "KEPLER-174D",
+              "NASA-KEPLER"
+            ],
+            "astronomy": {
+              "radiusEarth": 2.19,
+              "orbitalRadiusAU": 0.677,
+              "orbitalPeriodDays": 247.4,
+              "planetType": "Neptune-like",
+              "sourceRef": "NASA-KEPLER",
+              "checkedOn": "2026-10-24"
+            }
+          },
+          {
+            "id": 100,
+            "name": "Kepler-174 b",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -3239,
+            "y": -2216,
+            "size": 125,
+            "evidence": "astronomy",
+            "population": 0,
+            "port": false,
+            "description": "Observed astronomical exoplanet; its detailed orbital artwork is imagined. No real observation establishes Mirror inhabitants. NASA reference: 1.96 Earth radii, 0.1 AU and a 14-day orbit; classified as Super Earth. The fictional Mirror surface and culture are not observed astronomy.",
+            "sourceRefs": [
+              "NASA-KEPLER",
+              "NASA-KEPLER-B"
+            ],
+            "astronomy": {
+              "radiusEarth": 1.96,
+              "orbitalRadiusAU": 0.1,
+              "orbitalPeriodDays": 14,
+              "planetType": "Super Earth",
+              "sourceRef": "NASA-KEPLER-B",
+              "checkedOn": "2026-10-24"
+            }
+          },
+          {
+            "id": 101,
+            "name": "Kepler-174 c",
+            "kind": "planet",
+            "art": "assets/system-planets/silver-rock.webp",
+            "x": -2599,
+            "y": -1778,
+            "size": 125,
+            "evidence": "astronomy",
+            "population": 0,
+            "port": false,
+            "description": "Observed astronomical exoplanet; its detailed orbital artwork is imagined. No real observation establishes Mirror inhabitants. NASA reference: 1.49 Earth radii, 0.214 AU and a 44-day orbit; classified as Super Earth. The fictional Mirror surface and culture are not observed astronomy.",
+            "sourceRefs": [
+              "NASA-KEPLER",
+              "NASA-KEPLER-C"
+            ],
+            "astronomy": {
+              "radiusEarth": 1.49,
+              "orbitalRadiusAU": 0.214,
+              "orbitalPeriodDays": 44,
+              "planetType": "Super Earth",
+              "sourceRef": "NASA-KEPLER-C",
+              "checkedOn": "2026-10-24"
+            }
+          },
+          {
+            "id": 900,
+            "name": "Kepler-174 A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 61,
+        "name": "Priors World",
+        "legacyMapLabel": "Priors World",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.15,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Lorca recruited allies here before crossing universes. The current independent settlement and its census are game adaptations.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 61,
+        "name": "Priors World",
+        "legacyIds": [
+          61
+        ],
+        "homeBodyByLegacy": {
+          "61": 0
+        },
+        "continuity": "mirror",
+        "notes": "Lorca recruited allies here before crossing universes. The current independent settlement and its census are game adaptations. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Priors World",
+            "kind": "planet",
+            "art": "assets/system-planets/opusab.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "Lorca recruited allies here before crossing universes. The current independent settlement and its census are game adaptations.",
+            "legacyWorldId": 61,
+            "sourceRefs": [
+              "PRIORS-WORLD"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Priors A",
+            "kind": "moon",
+            "art": "assets/system-planets/rust-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 101,
+            "name": "Priors Outwatch",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Priors World A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 62,
+        "name": "Tonnata",
+        "legacyMapLabel": "Tonnata",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.06,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The Comtaxan parasite is associated with Tonnata VII. Habitats, trade services and other local worlds are game interpretations.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 62,
+        "name": "Tonnata",
+        "legacyIds": [
+          62
+        ],
+        "homeBodyByLegacy": {
+          "62": 0
+        },
+        "continuity": "mirror",
+        "notes": "The Comtaxan parasite is associated with Tonnata VII. Habitats, trade services and other local worlds are game interpretations. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Tonnata VII",
+            "kind": "planet",
+            "art": "assets/system-planets/ferenginar.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "The Comtaxan parasite is associated with Tonnata VII. Habitats, trade services and other local worlds are game interpretations.",
+            "legacyWorldId": 62,
+            "sourceRefs": [
+              "TONNATA-VII"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Tonnata II",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -2533,
+            "y": -1733,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Tonnata V",
+            "kind": "gas_giant",
+            "art": "assets/system-planets/jade-giant.webp",
+            "x": -1267,
+            "y": -867,
+            "size": 210,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 102,
+            "name": "Tonnata VIII",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": 8900,
+            "y": -2100,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Tonnata A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 63,
+        "name": "Sorna",
+        "legacyMapLabel": "Sorna",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.03,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Named in Captain Killy's title, Slayer of Sorna Prime. Exact geography and the present recovering population are game fiction.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 63,
+        "name": "Sorna",
+        "legacyIds": [
+          63
+        ],
+        "homeBodyByLegacy": {
+          "63": 0
+        },
+        "continuity": "mirror",
+        "notes": "Named in Captain Killy's title, Slayer of Sorna Prime. Exact geography and the present recovering population are game fiction. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Sorna Prime",
+            "kind": "planet",
+            "art": "assets/system-planets/harman.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "Named in Captain Killy's title, Slayer of Sorna Prime. Exact geography and the present recovering population are game fiction.",
+            "legacyWorldId": 63,
+            "sourceRefs": [
+              "SORNA-PRIME"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Severus",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Sorna A",
+            "kind": "moon",
+            "art": "assets/system-planets/ice-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 900,
+            "name": "Sorna A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 64,
+        "name": "Wurna Minor",
+        "legacyMapLabel": "Wurna Minor",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Named in Killy's title. The reference does not establish a planetary identity; this is a survey region, with no invented inhabited planet.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 64,
+        "name": "Wurna Minor",
+        "legacyIds": [
+          64
+        ],
+        "homeBodyByLegacy": {
+          "64": 0
+        },
+        "continuity": "uncertain",
+        "notes": "Named in Killy's title. The reference does not establish a planetary identity; this is a survey region, with no invented inhabited planet. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Wurna Minor survey region",
+            "kind": "region",
+            "art": "assets/system-planets/survey-region.webp",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "reference",
+            "population": 0,
+            "port": false,
+            "description": "Named in Killy's title. The reference does not establish a planetary identity; this is a survey region, with no invented inhabited planet.",
+            "legacyWorldId": 64,
+            "sourceRefs": [
+              "WURNA-MINOR"
+            ]
+          },
+          {
+            "id": 900,
+            "name": "Wurna Minor A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 65,
+        "name": "Purmata",
+        "legacyMapLabel": "Purmata",
+        "charted": true,
+        "governmentId": 1,
+        "government": "Earth Empire",
+        "strength": 600,
+        "populationBillions": 0.08,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "A location in Mirror Tilly's career records. Current geography and settlements are game adaptations.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 65,
+        "name": "Purmata",
+        "legacyIds": [
+          65
+        ],
+        "homeBodyByLegacy": {
+          "65": 0
+        },
+        "continuity": "mirror",
+        "notes": "A location in Mirror Tilly's career records. Current geography and settlements are game adaptations. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Purmata VI",
+            "kind": "planet",
+            "art": "assets/system-planets/batos.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "A location in Mirror Tilly's career records. Current geography and settlements are game adaptations.",
+            "legacyWorldId": 65,
+            "sourceRefs": [
+              "PURMATA-VI"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Alecto",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -1900,
+            "y": -1300,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Purmata A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 900,
+            "name": "Purmata A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 66,
+        "name": "Elpha",
+        "legacyMapLabel": "Elpha",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "A career-record location with unresolved physical identity. Charted as a region rather than falsely identifying a canonical planet.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 66,
+        "name": "Elpha",
+        "legacyIds": [
+          66
+        ],
+        "homeBodyByLegacy": {
+          "66": 0
+        },
+        "continuity": "uncertain",
+        "notes": "A career-record location with unresolved physical identity. Charted as a region rather than falsely identifying a canonical planet. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Elpha survey region",
+            "kind": "region",
+            "art": "assets/system-planets/survey-region.webp",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "reference",
+            "population": 0,
+            "port": false,
+            "description": "A career-record location with unresolved physical identity. Charted as a region rather than falsely identifying a canonical planet.",
+            "legacyWorldId": 66,
+            "sourceRefs": [
+              "ELPHA"
+            ]
+          },
+          {
+            "id": 900,
+            "name": "Elpha A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 67,
+        "name": "Quam",
+        "legacyMapLabel": "Quam",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "A briefly referenced location with unresolved physical identity. No populated planet is inferred from its name alone.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 67,
+        "name": "Quam",
+        "legacyIds": [
+          67
+        ],
+        "homeBodyByLegacy": {
+          "67": 0
+        },
+        "continuity": "uncertain",
+        "notes": "A briefly referenced location with unresolved physical identity. No populated planet is inferred from its name alone. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Quam survey region",
+            "kind": "region",
+            "art": "assets/system-planets/survey-region.webp",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "reference",
+            "population": 0,
+            "port": false,
+            "description": "A briefly referenced location with unresolved physical identity. No populated planet is inferred from its name alone.",
+            "legacyWorldId": 67,
+            "sourceRefs": [
+              "QUAM"
+            ]
+          },
+          {
+            "id": 900,
+            "name": "Quam A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 68,
+        "name": "Mintaka",
+        "legacyMapLabel": "Mintaka",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Georgiou recounts wiping out Mintaka III. This game depicts an abandoned, scarred world; its current appearance is an interpretation, not a claim of physical planetary disintegration.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 68,
+        "name": "Mintaka",
+        "legacyIds": [
+          68
+        ],
+        "homeBodyByLegacy": {
+          "68": 0
+        },
+        "continuity": "mirror",
+        "notes": "Georgiou recounts wiping out Mintaka III. This game depicts an abandoned, scarred world; its current appearance is an interpretation, not a claim of physical planetary disintegration. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Mintaka III",
+            "kind": "planet",
+            "art": "assets/system-planets/paso.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "Georgiou recounts wiping out Mintaka III. This game depicts an abandoned, scarred world; its current appearance is an interpretation, not a claim of physical planetary disintegration.",
+            "legacyWorldId": 68,
+            "sourceRefs": [
+              "MINTAKA-III"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Mintaka I",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -2533,
+            "y": -1733,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Mintaka II",
+            "kind": "planet",
+            "art": "assets/system-planets/silver-rock.webp",
+            "x": -1267,
+            "y": -867,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Mintaka A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 69,
+        "name": "Betazed",
+        "legacyMapLabel": "Betazed",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.6,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "A deliberate Mirror adaptation of the Betazoid homeworld. Dialogue about subjugating Betazoids does not by itself establish this planet's condition, census or orbital roster.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 69,
+        "name": "Betazed",
+        "legacyIds": [
+          69
+        ],
+        "homeBodyByLegacy": {
+          "69": 0
+        },
+        "continuity": "adapted",
+        "notes": "A deliberate Mirror adaptation of the Betazoid homeworld. Dialogue about subjugating Betazoids does not by itself establish this planet's condition, census or orbital roster. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Betazed",
+            "kind": "planet",
+            "art": "assets/system-planets/trill.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "A deliberate Mirror adaptation of the Betazoid homeworld. Dialogue about subjugating Betazoids does not by itself establish this planet's condition, census or orbital roster.",
+            "legacyWorldId": 69,
+            "sourceRefs": [
+              "BETAZED"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Betazed A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 101,
+            "name": "Rixara",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Betazed A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 70,
+        "name": "Talos",
+        "legacyMapLabel": "Talos",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Georgiou recounts exterminating the Mirror Talosians and their singing plants. The abandoned rocky world and its present surface are game interpretations.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 70,
+        "name": "Talos",
+        "legacyIds": [
+          70
+        ],
+        "homeBodyByLegacy": {
+          "70": 0
+        },
+        "continuity": "mirror",
+        "notes": "Georgiou recounts exterminating the Mirror Talosians and their singing plants. The abandoned rocky world and its present surface are game interpretations. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Talos IV",
+            "kind": "planet",
+            "art": "assets/system-planets/kardon.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "Georgiou recounts exterminating the Mirror Talosians and their singing plants. The abandoned rocky world and its present surface are game interpretations.",
+            "legacyWorldId": 70,
+            "sourceRefs": [
+              "TALOS-IV"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Talos I",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -2850,
+            "y": -1950,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Talos II",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1900,
+            "y": -1300,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 102,
+            "name": "Talos III",
+            "kind": "planet",
+            "art": "assets/system-planets/silver-rock.webp",
+            "x": -950,
+            "y": -650,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Talos A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 71,
+        "name": "Tau Ceti",
+        "legacyMapLabel": "Tau Ceti",
+        "charted": true,
+        "governmentId": 1,
+        "government": "Earth Empire",
+        "strength": 600,
+        "populationBillions": 0.2,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The system is mentioned in the Empire's battle history. Tau Ceti IV is used as a Prime-geography adaptation; the current colony is game fiction.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 71,
+        "name": "Tau Ceti",
+        "legacyIds": [
+          71
+        ],
+        "homeBodyByLegacy": {
+          "71": 0
+        },
+        "continuity": "adapted",
+        "notes": "The system is mentioned in the Empire's battle history. Tau Ceti IV is used as a Prime-geography adaptation; the current colony is game fiction. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Tau Ceti IV",
+            "kind": "planet",
+            "art": "assets/system-planets/epsilon.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "The system is mentioned in the Empire's battle history. Tau Ceti IV is used as a Prime-geography adaptation; the current colony is game fiction.",
+            "legacyWorldId": 71,
+            "sourceRefs": [
+              "TAU-CETI-IV"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Tau Ceti I",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -2850,
+            "y": -1950,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Tau Ceti II",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1900,
+            "y": -1300,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 102,
+            "name": "Tau Ceti III",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -950,
+            "y": -650,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Tau Ceti A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 72,
+        "name": "Gorlan Station",
+        "legacyMapLabel": "Gorlan Station",
+        "charted": true,
+        "governmentId": 1,
+        "government": "Earth Empire",
+        "strength": 600,
+        "populationBillions": 0.001,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The station is a separate facility destination. Its location is not automatically equated with the destroyed Gorlan homeworld. Present trade services are a game continuation.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 72,
+        "name": "Gorlan Station",
+        "legacyIds": [
+          72
+        ],
+        "homeBodyByLegacy": {
+          "72": 0
+        },
+        "continuity": "mirror",
+        "notes": "The station is a separate facility destination. Its location is not automatically equated with the destroyed Gorlan homeworld. Present trade services are a game continuation. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Gorlan Station",
+            "kind": "station",
+            "art": "../flashtrek-broken-mirror/showcase-assets/structures/274.png",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "The station is a separate facility destination. Its location is not automatically equated with the destroyed Gorlan homeworld. Present trade services are a game continuation.",
+            "legacyWorldId": 72,
+            "sourceRefs": [
+              "GORLAN-STATION"
+            ]
+          },
+          {
+            "id": 900,
+            "name": "Gorlan Station A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 73,
+        "name": "Badlands",
+        "legacyMapLabel": "Badlands",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "A dangerous plasma region associated with Terran rebel hiding places. It is a region, not a planet.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": true,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 73,
+        "name": "Badlands",
+        "legacyIds": [
+          73
+        ],
+        "homeBodyByLegacy": {
+          "73": 0
+        },
+        "continuity": "mirror",
+        "notes": "A dangerous plasma region associated with Terran rebel hiding places. It is a region, not a planet. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Badlands",
+            "kind": "region",
+            "art": "assets/system-planets/survey-region.webp",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "A dangerous plasma region associated with Terran rebel hiding places. It is a region, not a planet.",
+            "legacyWorldId": 73,
+            "sourceRefs": [
+              "BADLANDS"
+            ]
+          },
+          {
+            "id": 900,
+            "name": "Badlands A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 74,
+        "name": "Fowla",
+        "legacyMapLabel": "Fowla",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "A named Mirror operating system. No individual canonical planet was identified in the cited dialogue.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 74,
+        "name": "Fowla",
+        "legacyIds": [
+          74
+        ],
+        "homeBodyByLegacy": {
+          "74": 0
+        },
+        "continuity": "mirror",
+        "notes": "A named Mirror operating system. No individual canonical planet was identified in the cited dialogue. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Fowla survey region",
+            "kind": "region",
+            "art": "assets/system-planets/survey-region.webp",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "A named Mirror operating system. No individual canonical planet was identified in the cited dialogue.",
+            "legacyWorldId": 74,
+            "sourceRefs": [
+              "FOWLA"
+            ]
+          },
+          {
+            "id": 900,
+            "name": "Fowla A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 75,
+        "name": "Porathia",
+        "legacyMapLabel": "Porathia",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Asteroid belts associated with a rebel-hunting cover story. Regional mining uses finite game ore fields; their mineral mix is authored.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 75,
+        "name": "Porathia",
+        "legacyIds": [
+          75
+        ],
+        "homeBodyByLegacy": {
+          "75": 0
+        },
+        "continuity": "mirror",
+        "notes": "Asteroid belts associated with a rebel-hunting cover story. Regional mining uses finite game ore fields; their mineral mix is authored. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Porathia asteroid belts",
+            "kind": "belt",
+            "art": "../flashtrek-broken-mirror/art-review/sol-planets/06 - Asteroid Belt.png",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "screen",
+            "population": 0,
+            "port": false,
+            "description": "Asteroid belts associated with a rebel-hunting cover story. Regional mining uses finite game ore fields; their mineral mix is authored.",
+            "legacyWorldId": 75,
+            "sourceRefs": [
+              "PORATHIA-ASTEROID-BELTS"
+            ]
+          },
+          {
+            "id": 900,
+            "name": "Porathia A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 76,
+        "name": "Ventar",
+        "legacyMapLabel": "Ventar",
+        "charted": true,
+        "governmentId": 0,
+        "government": "None",
+        "strength": 0,
+        "populationBillions": 0,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Mirror Bareil mentions this system in an escape story he admits exaggerating. No individual planet or precise stellar properties are established.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 76,
+        "name": "Ventar",
+        "legacyIds": [
+          76
+        ],
+        "homeBodyByLegacy": {
+          "76": 0
+        },
+        "continuity": "uncertain",
+        "notes": "Mirror Bareil mentions this system in an escape story he admits exaggerating. No individual planet or precise stellar properties are established. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Ventar survey region",
+            "kind": "region",
+            "art": "assets/system-planets/survey-region.webp",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "reference",
+            "population": 0,
+            "port": false,
+            "description": "Mirror Bareil mentions this system in an escape story he admits exaggerating. No individual planet or precise stellar properties are established.",
+            "legacyWorldId": 76,
+            "sourceRefs": [
+              "VENTAR"
+            ]
+          },
+          {
+            "id": 900,
+            "name": "Ventar A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 77,
+        "name": "Organia",
+        "legacyMapLabel": "Organia",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.08,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Organia is mentioned in the Mirror arrival story. Its current landscape, settlement and neighboring worlds are game interpretations.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 77,
+        "name": "Organia",
+        "legacyIds": [
+          77
+        ],
+        "homeBodyByLegacy": {
+          "77": 0
+        },
+        "continuity": "mirror",
+        "notes": "Organia is mentioned in the Mirror arrival story. Its current landscape, settlement and neighboring worlds are game interpretations. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Organia",
+            "kind": "planet",
+            "art": "assets/system-planets/denmark.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "screen",
+            "population": 0,
+            "port": true,
+            "description": "Organia is mentioned in the Mirror arrival story. Its current landscape, settlement and neighboring worlds are game interpretations.",
+            "legacyWorldId": 77,
+            "sourceRefs": [
+              "ORGANIA"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Organia A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 101,
+            "name": "Ayel",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Organia A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 78,
+        "name": "Dannus",
+        "legacyMapLabel": "Dannus",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.002,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The snowy Dannus V visited by Georgiou is a Prime location. This destination is an explicitly adapted Mirror counterpart, with no claim that a Mirror Guardian was shown here.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 78,
+        "name": "Dannus",
+        "legacyIds": [
+          78
+        ],
+        "homeBodyByLegacy": {
+          "78": 0
+        },
+        "continuity": "adapted",
+        "notes": "The snowy Dannus V visited by Georgiou is a Prime location. This destination is an explicitly adapted Mirror counterpart, with no claim that a Mirror Guardian was shown here. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Dannus V",
+            "kind": "planet",
+            "art": "assets/system-planets/erasariel.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "The snowy Dannus V visited by Georgiou is a Prime location. This destination is an explicitly adapted Mirror counterpart, with no claim that a Mirror Guardian was shown here.",
+            "legacyWorldId": 78,
+            "sourceRefs": [
+              "DANNUS-V"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Aevum",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Dannus A",
+            "kind": "moon",
+            "art": "assets/system-planets/ice-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 900,
+            "name": "Dannus A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 79,
+        "name": "New Bajor",
+        "legacyMapLabel": "New Bajor",
+        "charted": true,
+        "governmentId": 4,
+        "government": "Bajoran",
+        "strength": 600,
+        "populationBillions": 0.04,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The hospital opening mentioned before Crossover concerns a Prime Gamma Quadrant colony. This is a separate adapted Mirror counterpart, not a planet placed in Bajor's home system.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 79,
+        "name": "New Bajor",
+        "legacyIds": [
+          79
+        ],
+        "homeBodyByLegacy": {
+          "79": 0
+        },
+        "continuity": "adapted",
+        "notes": "The hospital opening mentioned before Crossover concerns a Prime Gamma Quadrant colony. This is a separate adapted Mirror counterpart, not a planet placed in Bajor's home system. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "New Bajor",
+            "kind": "planet",
+            "art": "assets/system-planets/konae.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "The hospital opening mentioned before Crossover concerns a Prime Gamma Quadrant colony. This is a separate adapted Mirror counterpart, not a planet placed in Bajor's home system.",
+            "legacyWorldId": 79,
+            "sourceRefs": [
+              "NEW-BAJOR"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "New Bajor A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 101,
+            "name": "Taluno",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "New Bajor A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 80,
+        "name": "Pahvo",
+        "legacyMapLabel": "Pahvo",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.003,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The Pahvo protected before the Mirror crossing is Prime. This forested destination is a game Mirror adaptation; its political status and population are not screen measurements.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 80,
+        "name": "Pahvo",
+        "legacyIds": [
+          80
+        ],
+        "homeBodyByLegacy": {
+          "80": 0
+        },
+        "continuity": "adapted",
+        "notes": "The Pahvo protected before the Mirror crossing is Prime. This forested destination is a game Mirror adaptation; its political status and population are not screen measurements. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Pahvo",
+            "kind": "planet",
+            "art": "assets/system-planets/orion.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "The Pahvo protected before the Mirror crossing is Prime. This forested destination is a game Mirror adaptation; its political status and population are not screen measurements.",
+            "legacyWorldId": 80,
+            "sourceRefs": [
+              "PAHVO"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Pahvo A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 101,
+            "name": "Resona",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Pahvo A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 81,
+        "name": "Kwejian",
+        "legacyMapLabel": "Kwejian",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.05,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Adapted Mirror counterpart of Book's Prime forest homeworld. Its later Prime destruction is not automatically imported into this game.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 81,
+        "name": "Kwejian",
+        "legacyIds": [
+          81
+        ],
+        "homeBodyByLegacy": {
+          "81": 0
+        },
+        "continuity": "adapted",
+        "notes": "Adapted Mirror counterpart of Book's Prime forest homeworld. Its later Prime destruction is not automatically imported into this game. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Kwejian",
+            "kind": "planet",
+            "art": "assets/system-planets/biakisch.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "Adapted Mirror counterpart of Book's Prime forest homeworld. Its later Prime destruction is not automatically imported into this game.",
+            "legacyWorldId": 81,
+            "sourceRefs": [
+              "KWEJIAN"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Kwejian A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 101,
+            "name": "Kwejian B",
+            "kind": "moon",
+            "art": "assets/system-planets/rust-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 900,
+            "name": "Kwejian A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 82,
+        "name": "61 Ursae Majoris",
+        "legacyMapLabel": "61 Ursae Majoris",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.7,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Archer IV orbits 61 Ursae Majoris in the Prime biography. Toxic pollen and the later settlement are Prime archive facts; this world's current Mirror colony is an adaptation.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 82,
+        "name": "61 Ursae Majoris",
+        "legacyIds": [
+          82
+        ],
+        "homeBodyByLegacy": {
+          "82": 0
+        },
+        "continuity": "adapted",
+        "notes": "Archer IV orbits 61 Ursae Majoris in the Prime biography. Toxic pollen and the later settlement are Prime archive facts; this world's current Mirror colony is an adaptation. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Archer IV",
+            "kind": "planet",
+            "art": "assets/system-planets/new-switzerland.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "Archer IV orbits 61 Ursae Majoris in the Prime biography. Toxic pollen and the later settlement are Prime archive facts; this world's current Mirror colony is an adaptation.",
+            "legacyWorldId": 82,
+            "sourceRefs": [
+              "ARCHER-IV"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "61 Ursae Majoris I",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "61 Ursae Majoris II",
+            "kind": "planet",
+            "art": "assets/system-planets/silver-rock.webp",
+            "x": 6700,
+            "y": 1400,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 102,
+            "name": "61 Ursae Majoris III",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": 8900,
+            "y": -2100,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "61 Ursae Majoris A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 83,
+        "name": "Archer's Planet",
+        "legacyMapLabel": "Archer's Planet",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.05,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The Prime biography places Archer's Planet in the Gamma Trianguli sector. A sector is not proof that it orbits Gamma Trianguli; its primary is a game survey designation.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 83,
+        "name": "Archer's Planet",
+        "legacyIds": [
+          83
+        ],
+        "homeBodyByLegacy": {
+          "83": 0
+        },
+        "continuity": "adapted",
+        "notes": "The Prime biography places Archer's Planet in the Gamma Trianguli sector. A sector is not proof that it orbits Gamma Trianguli; its primary is a game survey designation. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Archer's Planet",
+            "kind": "planet",
+            "art": "assets/system-planets/lameu.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "The Prime biography places Archer's Planet in the Gamma Trianguli sector. A sector is not proof that it orbits Gamma Trianguli; its primary is a game survey designation.",
+            "legacyWorldId": 83,
+            "sourceRefs": [
+              "ARCHER'S-PLANET"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Archer's Planet A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 101,
+            "name": "Forrest",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Archer's Planet A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 84,
+        "name": "C-111",
+        "legacyMapLabel": "C-111",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.12,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Beta III is associated with C-111. This game adapts the Prime archive location into a separate Mirror counterpart; it is not two duplicate systems.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 84,
+        "name": "C-111",
+        "legacyIds": [
+          84
+        ],
+        "homeBodyByLegacy": {
+          "84": 0
+        },
+        "continuity": "adapted",
+        "notes": "Beta III is associated with C-111. This game adapts the Prime archive location into a separate Mirror counterpart; it is not two duplicate systems. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Beta III",
+            "kind": "planet",
+            "art": "assets/system-planets/quintus.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "Beta III is associated with C-111. This game adapts the Prime archive location into a separate Mirror counterpart; it is not two duplicate systems.",
+            "legacyWorldId": 84,
+            "sourceRefs": [
+              "BETA-III"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "C-111 I",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "C-111 II",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": 6700,
+            "y": 1400,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "C-111 A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 85,
+        "name": "Eminiar",
+        "legacyMapLabel": "Eminiar",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.5,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Eminiar VII and Vendikar belong to one Prime system. Their Mirror counterparts and current political state are game adaptations, not confirmed Mirror archive geography.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 85,
+        "name": "Eminiar",
+        "legacyIds": [
+          85
+        ],
+        "homeBodyByLegacy": {
+          "85": 0
+        },
+        "continuity": "adapted",
+        "notes": "Eminiar VII and Vendikar belong to one Prime system. Their Mirror counterparts and current political state are game adaptations, not confirmed Mirror archive geography. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Eminiar VII",
+            "kind": "planet",
+            "art": "assets/system-planets/alpha-centauri.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "Eminiar VII and Vendikar belong to one Prime system. Their Mirror counterparts and current political state are game adaptations, not confirmed Mirror archive geography.",
+            "legacyWorldId": 85,
+            "sourceRefs": [
+              "EMINIAR-VII"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Eminiar I",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -3257,
+            "y": -2229,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Eminiar II",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -2714,
+            "y": -1857,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 102,
+            "name": "Vendikar",
+            "kind": "planet",
+            "art": "assets/system-planets/silver-rock.webp",
+            "x": -2171,
+            "y": -1486,
+            "size": 125,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": false,
+            "description": "Vendikar, the Prime system's third planet, deliberately adapted into this Mirror setting. No new settlement or census is implied."
+          },
+          {
+            "id": 103,
+            "name": "Eminiar IV",
+            "kind": "gas_giant",
+            "art": "assets/system-planets/jade-giant.webp",
+            "x": -1629,
+            "y": -1114,
+            "size": 210,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 104,
+            "name": "Eminiar V",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1086,
+            "y": -743,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 105,
+            "name": "Eminiar VI",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -543,
+            "y": -371,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Eminiar A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 86,
+        "name": "Sherman",
+        "legacyMapLabel": "Sherman",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.08,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Adapted Mirror counterpart of the Prime agricultural colony. Current ownership and neighboring worlds are game choices.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 86,
+        "name": "Sherman",
+        "legacyIds": [
+          86
+        ],
+        "homeBodyByLegacy": {
+          "86": 0
+        },
+        "continuity": "adapted",
+        "notes": "Adapted Mirror counterpart of the Prime agricultural colony. Current ownership and neighboring worlds are game choices. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Sherman's Planet",
+            "kind": "planet",
+            "art": "assets/system-planets/denmark.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "Adapted Mirror counterpart of the Prime agricultural colony. Current ownership and neighboring worlds are game choices.",
+            "legacyWorldId": 86,
+            "sourceRefs": [
+              "SHERMAN'S-PLANET"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Baris",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Sherman Harvest Moon",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 900,
+            "name": "Sherman A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 87,
+        "name": "Tellar",
+        "legacyMapLabel": "Tellar",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.7,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "The coalition dialogue names Tellarites, not a surveyed home system. This is a deliberate Prime-geography adaptation of Tellar Prime.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 87,
+        "name": "Tellar",
+        "legacyIds": [
+          87
+        ],
+        "homeBodyByLegacy": {
+          "87": 0
+        },
+        "continuity": "adapted",
+        "notes": "The coalition dialogue names Tellarites, not a surveyed home system. This is a deliberate Prime-geography adaptation of Tellar Prime. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Tellar Prime",
+            "kind": "planet",
+            "art": "assets/system-planets/trey.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "The coalition dialogue names Tellarites, not a surveyed home system. This is a deliberate Prime-geography adaptation of Tellar Prime.",
+            "legacyWorldId": 87,
+            "sourceRefs": [
+              "TELLAR-PRIME"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Gral",
+            "kind": "planet",
+            "art": "assets/system-planets/inner-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Tellar A",
+            "kind": "moon",
+            "art": "assets/system-planets/frontier-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 900,
+            "name": "Tellar A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 88,
+        "name": "Denobula",
+        "legacyMapLabel": "Denobula",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.4,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Denobulans are mentioned as potential coalition members. This homeworld is a deliberate Mirror adaptation, not an inference of a complete Mirror orbital roster.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 88,
+        "name": "Denobula",
+        "legacyIds": [
+          88
+        ],
+        "homeBodyByLegacy": {
+          "88": 0
+        },
+        "continuity": "adapted",
+        "notes": "Denobulans are mentioned as potential coalition members. This homeworld is a deliberate Mirror adaptation, not an inference of a complete Mirror orbital roster. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Denobula",
+            "kind": "planet",
+            "art": "assets/system-planets/trill.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "Denobulans are mentioned as potential coalition members. This homeworld is a deliberate Mirror adaptation, not an inference of a complete Mirror orbital roster.",
+            "legacyWorldId": 88,
+            "sourceRefs": [
+              "DENOBULA"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Bexara",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Rellix",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": 6700,
+            "y": 1400,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Denobula A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 89,
+        "name": "Coridan",
+        "legacyMapLabel": "Coridan",
+        "charted": true,
+        "governmentId": 12,
+        "government": "Independent",
+        "strength": 0,
+        "populationBillions": 0.25,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Coridanites are mentioned as potential coalition members. Its current mining settlement and Mirror geography are adapted for this game.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 89,
+        "name": "Coridan",
+        "legacyIds": [
+          89
+        ],
+        "homeBodyByLegacy": {
+          "89": 0
+        },
+        "continuity": "adapted",
+        "notes": "Coridanites are mentioned as potential coalition members. Its current mining settlement and Mirror geography are adapted for this game. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Coridan",
+            "kind": "planet",
+            "art": "assets/system-planets/koann.webp",
+            "x": 0,
+            "y": 0,
+            "size": 180,
+            "evidence": "mirror_adaptation",
+            "population": 0,
+            "port": true,
+            "description": "Coridanites are mentioned as potential coalition members. Its current mining settlement and Mirror geography are adapted for this game.",
+            "legacyWorldId": 89,
+            "sourceRefs": [
+              "CORIDAN"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Traeg",
+            "kind": "planet",
+            "art": "assets/system-planets/silver-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Coridan A",
+            "kind": "moon",
+            "art": "assets/system-planets/rust-moon.webp",
+            "x": 1190,
+            "y": -830,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 900,
+            "name": "Coridan A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 90,
+        "name": "Clarus",
+        "legacyMapLabel": "Clarus",
+        "charted": true,
+        "governmentId": 7,
+        "government": "Ferengi Alliance",
+        "strength": 600,
+        "populationBillions": 0.001,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Clarus is a neighboring system mentioned around Ferenginar. This Ferengi-operated exchange and its neighboring survey worlds are game additions, not established colonies.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 90,
+        "name": "Clarus",
+        "legacyIds": [
+          90
+        ],
+        "homeBodyByLegacy": {
+          "90": 0
+        },
+        "continuity": "adapted",
+        "notes": "Clarus is a neighboring system mentioned around Ferenginar. This Ferengi-operated exchange and its neighboring survey worlds are game additions, not established colonies. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Clarus Exchange",
+            "kind": "station",
+            "art": "../flashtrek-broken-mirror/showcase-assets/structures/274.png",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "authored_facility",
+            "population": 0,
+            "port": true,
+            "description": "Clarus is a neighboring system mentioned around Ferenginar. This Ferengi-operated exchange and its neighboring survey worlds are game additions, not established colonies.",
+            "legacyWorldId": 90,
+            "sourceRefs": [
+              "CLARUS-EXCHANGE"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Gintar",
+            "kind": "planet",
+            "art": "assets/system-planets/copper-rock.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 101,
+            "name": "Zekron",
+            "kind": "gas_giant",
+            "art": "assets/system-planets/jade-giant.webp",
+            "x": 6700,
+            "y": 1400,
+            "size": 210,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Clarus A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    },
+    {
+      "world": {
+        "id": 91,
+        "name": "Irtok",
+        "legacyMapLabel": "Irtok",
+        "charted": true,
+        "governmentId": 7,
+        "government": "Ferengi Alliance",
+        "strength": 600,
+        "populationBillions": 0.001,
+        "populationEvidence": "Authored gameplay estimate, not a canonical census.",
+        "planetArtFrame": 2,
+        "surfaceArtFrame": 6,
+        "priceAdjustmentParameter": 0,
+        "description": "Irtok is a neighboring system mentioned around Ferenginar. Its exchange, Ferengi administration and survey worlds are game adaptations.",
+        "planetScalePercent": 100,
+        "enemyGovernmentId": 0,
+        "planetShopItemIds": [],
+        "weaponShopItemIds": [
+          1,
+          7,
+          10,
+          14,
+          15
+        ],
+        "nebula": false,
+        "asteroids": true,
+        "trafficSeedCount": 0
+      },
+      "catalog": {
+        "id": 91,
+        "name": "Irtok",
+        "legacyIds": [
+          91
+        ],
+        "homeBodyByLegacy": {
+          "91": 0
+        },
+        "continuity": "adapted",
+        "notes": "Irtok is a neighboring system mentioned around Ferenginar. Its exchange, Ferengi administration and survey worlds are game adaptations. Additional survey names, orbital spacing and unknown stellar properties are authored. Galaxy-chart placement is compressed game geography.",
+        "bodies": [
+          {
+            "id": 0,
+            "name": "Irtok Exchange",
+            "kind": "station",
+            "art": "../flashtrek-broken-mirror/showcase-assets/structures/274.png",
+            "x": 0,
+            "y": 0,
+            "size": 190,
+            "evidence": "authored_facility",
+            "population": 0,
+            "port": true,
+            "description": "Irtok is a neighboring system mentioned around Ferenginar. Its exchange, Ferengi administration and survey worlds are game adaptations.",
+            "legacyWorldId": 91,
+            "sourceRefs": [
+              "IRTOK-EXCHANGE"
+            ]
+          },
+          {
+            "id": 100,
+            "name": "Irtok A",
+            "kind": "moon",
+            "art": "assets/system-planets/ice-moon.webp",
+            "x": 950,
+            "y": -650,
+            "size": 65,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+            "parentId": 0
+          },
+          {
+            "id": 101,
+            "name": "Kraxx",
+            "kind": "planet",
+            "art": "assets/system-planets/outer-ice.webp",
+            "x": -1500,
+            "y": -900,
+            "size": 125,
+            "evidence": "authored",
+            "population": 0,
+            "port": false,
+            "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+          },
+          {
+            "id": 900,
+            "name": "Irtok A",
+            "kind": "star",
+            "art": "assets/system-planets/star-g.webp",
+            "x": -3800,
+            "y": -2600,
+            "size": 230,
+            "evidence": "authored_layout",
+            "population": 0,
+            "port": false,
+            "description": "Local stellar survey designation and G-type appearance are game interpretations where no stellar type or proper name is established."
+          }
+        ]
+      }
+    }
+  ],
+  "overlays": {
+    "14": {
+      "notes": "Ferenginar retained at its original ID and position. This game selects the licensed Ventarus Idrilon fourth-planet interpretation rather than mixing it with Alpha Krellek. The neighboring types, names, images and compressed ordering are game interpretations, not a screen census.",
+      "bodies": [
+        {
+          "id": 100,
+          "name": "Ventarus Idrilon I",
+          "kind": "planet",
+          "art": "assets/system-planets/inner-rock.webp",
+          "x": -2500,
+          "y": -1700,
+          "size": 125,
+          "evidence": "authored",
+          "population": 0,
+          "port": false,
+          "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+        },
+        {
+          "id": 101,
+          "name": "Ventarus Idrilon II",
+          "kind": "planet",
+          "art": "assets/system-planets/copper-rock.webp",
+          "x": -1600,
+          "y": -1100,
+          "size": 125,
+          "evidence": "authored",
+          "population": 0,
+          "port": false,
+          "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+        },
+        {
+          "id": 102,
+          "name": "Ventarus Idrilon III",
+          "kind": "planet",
+          "art": "assets/system-planets/silver-rock.webp",
+          "x": -700,
+          "y": -450,
+          "size": 125,
+          "evidence": "authored",
+          "population": 0,
+          "port": false,
+          "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+        },
+        {
+          "id": 103,
+          "name": "Ventarus Idrilon V",
+          "kind": "gas_giant",
+          "art": "assets/system-planets/jade-giant.webp",
+          "x": 2600,
+          "y": 1400,
+          "size": 210,
+          "evidence": "authored",
+          "population": 0,
+          "port": false,
+          "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+        },
+        {
+          "id": 104,
+          "name": "Ventarus Idrilon VI",
+          "kind": "planet",
+          "art": "assets/system-planets/outer-ice.webp",
+          "x": 5400,
+          "y": -1700,
+          "size": 125,
+          "evidence": "authored",
+          "population": 0,
+          "port": false,
+          "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+        }
+      ],
+      "homeDescription": "The rainy Ferengi homeworld, fourth in this game's chosen licensed Ventarus Idrilon interpretation. The Tower of Commerce and Sacred Marketplace inform its trade identity. Other planet types and current markets are game adaptations."
+    },
+    "43": {
+      "notes": "Hof-Maso retains its Klingon fleet-building identity. Korth Forge, Khor’Vak, Maso A and Mok’Tar are deliberate original neighbors, not claimed screen-canon Klingon planets. The working fleet yard uses the shared docking/refit owner.",
+      "bodies": [
+        {
+          "id": 100,
+          "name": "Korth Forge",
+          "kind": "planet",
+          "art": "assets/system-planets/inner-rock.webp",
+          "x": -1000,
+          "y": 850,
+          "size": 125,
+          "evidence": "authored",
+          "population": 0,
+          "port": false,
+          "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+        },
+        {
+          "id": 101,
+          "name": "Khor’Vak",
+          "kind": "planet",
+          "art": "assets/system-planets/silver-rock.webp",
+          "x": 6800,
+          "y": -1600,
+          "size": 125,
+          "evidence": "authored",
+          "population": 0,
+          "port": false,
+          "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+        },
+        {
+          "id": 102,
+          "name": "Maso A",
+          "kind": "moon",
+          "art": "assets/system-planets/frontier-moon.webp",
+          "x": 1000,
+          "y": -600,
+          "size": 65,
+          "evidence": "authored",
+          "population": 0,
+          "port": false,
+          "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations.",
+          "parentId": 0
+        },
+        {
+          "id": 103,
+          "name": "Mok’Tar",
+          "kind": "planet",
+          "art": "assets/system-planets/outer-ice.webp",
+          "x": 9200,
+          "y": 2000,
+          "size": 125,
+          "evidence": "authored",
+          "population": 0,
+          "port": false,
+          "description": "An uninhabited survey destination. Its local name, appearance and orbital placement are original game adaptations."
+        }
+      ],
+      "homeDescription": "A major Klingon fleet-building world. Its operating yard supports docking and refitting. Neighboring survey worlds and their local names are original additions to this game."
+    },
+    "47": {
+      "appendDescription": " Mirror Bajoran regional history includes Ilvia and mining camps in Dahkur Province; these are places on Bajor, not additional planets."
+    },
+    "1": {
+      "bodyDescriptions": {
+        "4": "Luna, Earth's Moon. The Mirror Enterprise opening credits show a Terran flag planted here. Existing lunar services, population and coordinates remain game data."
+      }
+    }
+  },
+  "stars": {
+    "1": {
+      "name": "Sol",
+      "asset": "star-g",
+      "spectralClass": "G2 V",
+      "evidence": "astronomy",
+      "source": "NASA-SUN"
+    },
+    "2": {
+      "name": "Tabit / Pi³ Orionis",
+      "asset": "star-a",
+      "spectralClass": "F6 V",
+      "evidence": "reference",
+      "source": "ORION-(PLANET)"
+    },
+    "4": {
+      "name": "Rigil Kentaurus / Alpha Centauri A",
+      "asset": "star-g",
+      "spectralClass": "G2 V",
+      "evidence": "astronomy",
+      "source": "ALPHA-CENTAURI"
+    },
+    "12": {
+      "name": "Keid / 40 Eridani A",
+      "asset": "star-k",
+      "spectralClass": "K1 V",
+      "evidence": "reference",
+      "source": "VULCAN-SYSTEM"
+    },
+    "14": {
+      "name": "Ventarus Idrilon",
+      "asset": "star-m",
+      "spectralClass": "M-type artwork is a game interpretation; primary name follows one licensed RPG scheme",
+      "evidence": "reference",
+      "source": "FERENGINAR-REFERENCE"
+    },
+    "25": {
+      "name": "Procyon A",
+      "asset": "star-a",
+      "spectralClass": "F5 IV-V",
+      "evidence": "reference",
+      "source": "ANDORIA"
+    },
+    "31": {
+      "name": "Romulus",
+      "asset": "star-g",
+      "spectralClass": "Unresolved; G-type game appearance",
+      "evidence": "reference",
+      "source": "ROMULUS-(STAR)"
+    },
+    "38": {
+      "name": "Qo'noS A",
+      "asset": "star-k",
+      "spectralClass": "K-type game interpretation",
+      "evidence": "authored_layout",
+      "source": "QO'NOS"
+    },
+    "47": {
+      "name": "B'hava'el",
+      "asset": "star-g",
+      "spectralClass": "G-type reference classification",
+      "evidence": "reference",
+      "source": "B'HAVA'EL"
+    },
+    "50": {
+      "name": "Cardassia",
+      "asset": "star-k",
+      "spectralClass": "K-type",
+      "evidence": "reference",
+      "source": "CARDASSIA-(STAR)"
+    },
+    "55": {
+      "name": "Epsilon Indi A",
+      "asset": "star-k",
+      "spectralClass": "K-type",
+      "evidence": "astronomy",
+      "source": "EPSILON-INDI-SYSTEM"
+    },
+    "58": {
+      "name": "Vega / Alpha Lyrae",
+      "asset": "star-a",
+      "spectralClass": "A0 V",
+      "evidence": "astronomy",
+      "source": "VEGA"
+    },
+    "60": {
+      "name": "Kepler-174",
+      "asset": "star-k",
+      "spectralClass": "K-type",
+      "evidence": "astronomy",
+      "source": "NASA-KEPLER"
+    },
+    "68": {
+      "name": "Mintaka / Delta Orionis",
+      "asset": "star-a",
+      "spectralClass": "Hot multiple-star system; compressed representative primary",
+      "evidence": "astronomy",
+      "source": "MINTAKA"
+    },
+    "71": {
+      "name": "Tau Ceti",
+      "asset": "star-g",
+      "spectralClass": "G8 V",
+      "evidence": "astronomy",
+      "source": "TAU-CETI"
+    },
+    "82": {
+      "name": "61 Ursae Majoris",
+      "asset": "star-g",
+      "spectralClass": "G-type",
+      "evidence": "astronomy",
+      "source": "ENT-ARCHIVE"
+    },
+    "90": {
+      "name": "Clarus",
+      "asset": "star-k",
+      "spectralClass": "K-type in licensed Star Charts; Mirror association adapted",
+      "evidence": "reference",
+      "source": "CLARUS-EXCHANGE"
+    },
+    "91": {
+      "name": "Irtok",
+      "asset": "star-g",
+      "spectralClass": "G-type in licensed Star Charts; Mirror association adapted",
+      "evidence": "reference",
+      "source": "IRTOK-EXCHANGE"
+    }
+  },
+  "shipyards": [
+    {
+      "id": "mars-earth-shipyard-01",
+      "name": "Mars Orbital Shipyard",
+      "system": 1,
+      "bodyId": 5,
+      "offsetX": 520,
+      "offsetY": -120,
+      "size": 220,
+      "artworkId": 280,
+      "faction": "Earth Empire",
+      "location": "Sol / Mars"
+    },
+    {
+      "id": "epsilon-indi-imperial-yard",
+      "name": "Imperial Shipyard",
+      "system": 55,
+      "bodyId": 0,
+      "offsetX": 780,
+      "offsetY": -550,
+      "size": 220,
+      "artworkId": 280,
+      "faction": "Terran Empire",
+      "location": "Epsilon Indi IV"
+    },
+    {
+      "id": "hof-maso-fleet-yard",
+      "name": "Hof-Maso Fleet Yard",
+      "system": 43,
+      "bodyId": 0,
+      "offsetX": 850,
+      "offsetY": -500,
+      "size": 220,
+      "artworkId": 280,
+      "faction": "Klingon Empire",
+      "location": "Hof-Maso"
+    },
+    {
+      "id": "ferenginar-exchange-yard",
+      "name": "Ferenginar Exchange Yard",
+      "system": 14,
+      "bodyId": 0,
+      "offsetX": 850,
+      "offsetY": -500,
+      "size": 220,
+      "artworkId": 280,
+      "faction": "Ferengi Alliance",
+      "location": "Ferenginar"
+    },
+    {
+      "id": "vintaak-tholian-yard",
+      "name": "Vintaak Tholian Salvage Yard",
+      "system": 54,
+      "bodyId": 100,
+      "offsetX": 500,
+      "offsetY": -450,
+      "size": 220,
+      "artworkId": 280,
+      "faction": "Tholian Syndicate",
+      "location": "Vintaak A"
+    }
+  ]
+}

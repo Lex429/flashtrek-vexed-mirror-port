@@ -1,0 +1,14 @@
+{
+  "id": "silver-rock",
+  "file": "silver-rock.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: a small airless rocky planet of silver-grey basalt, pale crater rays and dark ancient lava plains, no atmosphere or water.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-66b8f69b-d669-40b9-8091-104200753159.png",
+  "sourceSha256": "d7e763bb9b83b88a8e231f891d4042ec74a1922f19eff7ef682026dc630274db",
+  "sha256": "eae1b671e42c4500b43fd94bc40eb76144eaaf8038f863ebebd79d9589c85860",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

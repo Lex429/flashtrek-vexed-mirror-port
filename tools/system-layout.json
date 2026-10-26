@@ -1,0 +1,752 @@
+{
+  "version": 2,
+  "reviewedOn": "2026-10-25",
+  "policy": "Keep destinations 1–53 fixed. Hand-place 54–91 among existing systems with irregular spacing. Preserve supported regional relationships; unresolved positions are game interpretations. Do not treat the old Broken Mirror projection as an exact astronomical atlas.",
+  "sources": {
+    "VINTAAK": "https://memory-alpha.fandom.com/wiki/Vintaak_system",
+    "EPSILON-INDI": "https://memory-alpha.fandom.com/wiki/Epsilon_Indi_system",
+    "HARLAK": "https://memory-alpha.fandom.com/wiki/Harlak",
+    "RISA": "https://memory-alpha.fandom.com/wiki/Risa",
+    "VEGA": "https://memory-alpha.fandom.com/wiki/Vega",
+    "GORLAN": "https://memory-alpha.fandom.com/wiki/Gorlan_homeworld",
+    "KEPLER": "https://science.nasa.gov/exoplanet-catalog/kepler-174-d/",
+    "PRIORS": "https://memory-alpha.fandom.com/wiki/Priors_World",
+    "TONNATA": "https://memory-alpha.fandom.com/wiki/Tonnata_VII",
+    "SORNA": "https://memory-alpha.fandom.com/wiki/Sorna_Prime",
+    "WURNA": "https://memory-alpha.fandom.com/wiki/Wurna_Minor",
+    "PURMATA": "https://memory-alpha.fandom.com/wiki/Purmata_VI",
+    "ELPHA": "https://memory-alpha.fandom.com/wiki/Elpha",
+    "QUAM": "https://memory-alpha.fandom.com/wiki/Quam",
+    "MINTAKA": "https://memory-alpha.fandom.com/wiki/Mintaka",
+    "BETAZED": "https://memory-alpha.fandom.com/wiki/Betazed",
+    "TALOS": "https://memory-alpha.fandom.com/wiki/Talos_IV",
+    "TAU-CETI": "https://memory-alpha.fandom.com/wiki/Tau_Ceti",
+    "GORLAN-STATION": "https://memory-alpha.fandom.com/wiki/Gorlan_Station",
+    "BADLANDS": "https://memory-alpha.fandom.com/wiki/Badlands",
+    "FOWLA": "https://memory-alpha.fandom.com/wiki/Fowla_system",
+    "PORATHIA": "https://memory-alpha.fandom.com/wiki/Porathia_asteroid_belts",
+    "VENTAR": "https://memory-alpha.fandom.com/wiki/Ventar_system",
+    "ORGANIA": "https://memory-alpha.fandom.com/wiki/Organia",
+    "DANNUS": "https://memory-alpha.fandom.com/wiki/Dannus_V",
+    "NEW-BAJOR": "https://memory-alpha.fandom.com/wiki/New_Bajor",
+    "PAHVO": "https://memory-alpha.fandom.com/wiki/Pahvo",
+    "KWEJIAN": "https://memory-alpha.fandom.com/wiki/Kwejian",
+    "ARCHER-IV": "https://www.ex-astris-scientia.org/database/ent-characters-iamd.htm",
+    "ARCHERS-PLANET": "https://www.ex-astris-scientia.org/database/ent-characters-iamd.htm",
+    "BETA-III": "https://memory-alpha.fandom.com/wiki/Beta_III",
+    "EMINIAR": "https://memory-alpha.fandom.com/wiki/Eminiar_VII",
+    "SHERMAN": "https://memory-alpha.fandom.com/wiki/Sherman%27s_Planet",
+    "TELLAR": "https://memory-alpha.fandom.com/wiki/Tellar_Prime",
+    "DENOBULA": "https://memory-alpha.fandom.com/wiki/Denobula",
+    "CORIDAN": "https://memory-alpha.fandom.com/wiki/Coridan",
+    "FERENGI-NEIGHBORS": "https://memory-alpha.fandom.com/wiki/Clarus"
+  },
+  "geologyMapPositions": {
+    "54": {
+      "x": -198,
+      "y": -178
+    },
+    "55": {
+      "x": -155,
+      "y": -178
+    },
+    "56": {
+      "x": -112,
+      "y": -178
+    },
+    "57": {
+      "x": -69,
+      "y": -178
+    },
+    "58": {
+      "x": -26,
+      "y": -178
+    },
+    "59": {
+      "x": 17,
+      "y": -178
+    },
+    "60": {
+      "x": 60,
+      "y": -178
+    },
+    "61": {
+      "x": 103,
+      "y": -178
+    },
+    "62": {
+      "x": 146,
+      "y": -178
+    },
+    "63": {
+      "x": 189,
+      "y": -178
+    },
+    "64": {
+      "x": -198,
+      "y": -135
+    },
+    "65": {
+      "x": -155,
+      "y": -135
+    },
+    "66": {
+      "x": -112,
+      "y": -135
+    },
+    "67": {
+      "x": -69,
+      "y": -135
+    },
+    "68": {
+      "x": -26,
+      "y": -135
+    },
+    "69": {
+      "x": 17,
+      "y": -135
+    },
+    "70": {
+      "x": 60,
+      "y": -135
+    },
+    "71": {
+      "x": 103,
+      "y": -135
+    },
+    "72": {
+      "x": 146,
+      "y": -135
+    },
+    "73": {
+      "x": 189,
+      "y": -135
+    },
+    "74": {
+      "x": -198,
+      "y": -92
+    },
+    "75": {
+      "x": -155,
+      "y": -92
+    },
+    "76": {
+      "x": -112,
+      "y": -92
+    },
+    "77": {
+      "x": -69,
+      "y": -92
+    },
+    "78": {
+      "x": -26,
+      "y": -92
+    },
+    "79": {
+      "x": 17,
+      "y": -92
+    },
+    "80": {
+      "x": 60,
+      "y": -92
+    },
+    "81": {
+      "x": 103,
+      "y": -92
+    },
+    "82": {
+      "x": 146,
+      "y": -92
+    },
+    "83": {
+      "x": 189,
+      "y": -92
+    },
+    "84": {
+      "x": -198,
+      "y": -49
+    },
+    "85": {
+      "x": -155,
+      "y": -49
+    },
+    "86": {
+      "x": -112,
+      "y": -49
+    },
+    "87": {
+      "x": -69,
+      "y": -49
+    },
+    "88": {
+      "x": -26,
+      "y": -49
+    },
+    "89": {
+      "x": 17,
+      "y": -49
+    },
+    "90": {
+      "x": -95,
+      "y": 202
+    },
+    "91": {
+      "x": -22,
+      "y": 205
+    }
+  },
+  "positions": [
+    {
+      "id": 54,
+      "name": "Vintaak",
+      "x": 139.4,
+      "y": 93.8,
+      "anchors": [
+        18
+      ],
+      "evidence": "regional_reference",
+      "rationale": "Vintaak is in Tholian space; preserve its relationship to the existing Tholia anchor.",
+      "sourceRefs": [
+        "VINTAAK"
+      ]
+    },
+    {
+      "id": 55,
+      "name": "Epsilon Indi",
+      "x": -91.7,
+      "y": 101.4,
+      "anchors": [
+        1,
+        4
+      ],
+      "evidence": "nearby_stellar_reference",
+      "rationale": "Epsilon Indi is a nearby real stellar system; this projection blends it into the existing Sol / Alpha Centauri neighborhood. Exact screen chart coordinates are not claimed.",
+      "sourceRefs": [
+        "EPSILON-INDI"
+      ]
+    },
+    {
+      "id": 56,
+      "name": "Harlak",
+      "x": 34.8,
+      "y": 39.1,
+      "anchors": [
+        1,
+        38
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "The Mirror resistance history establishes Harlak, not a precise location. Place it in an open core/border gap without asserting canonical coordinates.",
+      "sourceRefs": [
+        "HARLAK"
+      ]
+    },
+    {
+      "id": 57,
+      "name": "Risa",
+      "x": -99.6,
+      "y": 37.6,
+      "anchors": [
+        1,
+        12
+      ],
+      "evidence": "reference_adaptation",
+      "rationale": "Use the inhabited core travel neighborhood; published Risa quadrant placements conflict, so do not assert an exact sky location.",
+      "sourceRefs": [
+        "RISA"
+      ]
+    },
+    {
+      "id": 58,
+      "name": "Vega",
+      "x": -98.2,
+      "y": 2.6,
+      "anchors": [
+        1
+      ],
+      "evidence": "nearby_stellar_reference",
+      "rationale": "Vega is a real nearby star; keep it inside the retained core projection rather than putting it beyond Romulus. This is not a calibrated sky projection.",
+      "sourceRefs": [
+        "VEGA"
+      ]
+    },
+    {
+      "id": 59,
+      "name": "Gorlan",
+      "x": -6.0,
+      "y": 35.4,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "The destruction account does not locate Gorlan precisely. Use a core-border gap and keep Gorlan Station a separate destination.",
+      "sourceRefs": [
+        "GORLAN"
+      ]
+    },
+    {
+      "id": 60,
+      "name": "Kepler-174",
+      "x": 150.3,
+      "y": 177.9,
+      "anchors": [
+        1
+      ],
+      "evidence": "astronomy_projection",
+      "rationale": "Kepler-174 is a more distant real stellar system. Use a peripheral chart position; the game map is not a common-distance astronomical scale.",
+      "sourceRefs": [
+        "KEPLER"
+      ]
+    },
+    {
+      "id": 61,
+      "name": "Priors World",
+      "x": -19.8,
+      "y": 169.2,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "No exact Mirror coordinates are established. Blend the world into an open colonial/core gap.",
+      "sourceRefs": [
+        "PRIORS"
+      ]
+    },
+    {
+      "id": 62,
+      "name": "Tonnata",
+      "x": 180.2,
+      "y": 29.7,
+      "anchors": [
+        18,
+        38
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "The parasite reference establishes Tonnata VII, not its chart coordinates. An open frontier position is a game choice.",
+      "sourceRefs": [
+        "TONNATA"
+      ]
+    },
+    {
+      "id": 63,
+      "name": "Sorna",
+      "x": 121.4,
+      "y": 142.8,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "The imperial epithet does not establish a coordinate. Place the system in an open outer-core gap.",
+      "sourceRefs": [
+        "SORNA"
+      ]
+    },
+    {
+      "id": 64,
+      "name": "Wurna Minor",
+      "x": 190.6,
+      "y": 115.3,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "Keep the ambiguous location as a region; its peripheral position is a game interpretation.",
+      "sourceRefs": [
+        "WURNA"
+      ]
+    },
+    {
+      "id": 65,
+      "name": "Purmata",
+      "x": -62.3,
+      "y": 225.8,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "Career-record geography is unresolved. Blend the entry into an open colonial arc.",
+      "sourceRefs": [
+        "PURMATA"
+      ]
+    },
+    {
+      "id": 66,
+      "name": "Elpha",
+      "x": 201.7,
+      "y": 191.4,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "The computer reference does not establish a solar-system position. Keep a distinct outer survey region.",
+      "sourceRefs": [
+        "ELPHA"
+      ]
+    },
+    {
+      "id": 67,
+      "name": "Quam",
+      "x": 216.3,
+      "y": 64.2,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "The computer reference does not establish a solar-system position. Keep a distinct outer survey region.",
+      "sourceRefs": [
+        "QUAM"
+      ]
+    },
+    {
+      "id": 68,
+      "name": "Mintaka",
+      "x": -173.2,
+      "y": 30.8,
+      "anchors": [
+        2,
+        11
+      ],
+      "evidence": "reference_adaptation",
+      "rationale": "Use the existing Orion-side exploration area for the Mintaka adaptation. This is a licensed-style regional interpretation, not a claim that constellation membership fixes 3D proximity.",
+      "sourceRefs": [
+        "MINTAKA"
+      ]
+    },
+    {
+      "id": 69,
+      "name": "Betazed",
+      "x": -99.9,
+      "y": 151.6,
+      "anchors": [
+        1,
+        12
+      ],
+      "evidence": "reference_adaptation",
+      "rationale": "Blend Betazed into the core-world neighborhood. Existing Broken Mirror anchors prevent a literal official-atlas projection.",
+      "sourceRefs": [
+        "BETAZED"
+      ]
+    },
+    {
+      "id": 70,
+      "name": "Talos",
+      "x": -268.4,
+      "y": 66.7,
+      "anchors": [
+        1
+      ],
+      "evidence": "reference_adaptation",
+      "rationale": "Retain Talos as a peripheral exploration destination; no exact canonical distance is asserted.",
+      "sourceRefs": [
+        "TALOS"
+      ]
+    },
+    {
+      "id": 71,
+      "name": "Tau Ceti",
+      "x": -63.3,
+      "y": 124.6,
+      "anchors": [
+        1,
+        4
+      ],
+      "evidence": "nearby_stellar_reference",
+      "rationale": "Tau Ceti is a nearby real star; keep it in the retained Sol / Alpha Centauri neighborhood.",
+      "sourceRefs": [
+        "TAU-CETI"
+      ]
+    },
+    {
+      "id": 72,
+      "name": "Gorlan Station",
+      "x": 26.4,
+      "y": 104.2,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "Gorlan Station is not established as orbiting the destroyed Gorlan world. Give the separate facility a navigable core location.",
+      "sourceRefs": [
+        "GORLAN-STATION"
+      ]
+    },
+    {
+      "id": 73,
+      "name": "Badlands",
+      "x": -139.8,
+      "y": -30.7,
+      "anchors": [
+        47,
+        50
+      ],
+      "evidence": "regional_reference",
+      "rationale": "The Badlands belong in the Bajoran / Cardassian border neighborhood, not the distant row previously used.",
+      "sourceRefs": [
+        "BADLANDS"
+      ]
+    },
+    {
+      "id": 74,
+      "name": "Fowla",
+      "x": -81.6,
+      "y": -92.3,
+      "anchors": [
+        47,
+        38
+      ],
+      "evidence": "mirror_regional_inference",
+      "rationale": "Mirror Sisko operated in Fowla. Place it on the Bajoran / Alliance side as a regional inference, not a surveyed coordinate.",
+      "sourceRefs": [
+        "FOWLA"
+      ]
+    },
+    {
+      "id": 75,
+      "name": "Porathia",
+      "x": 28.5,
+      "y": 217.4,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "Keep the asteroid-belt destination in a colonial frontier gap; the cover story does not fix an exact location.",
+      "sourceRefs": [
+        "PORATHIA"
+      ]
+    },
+    {
+      "id": 76,
+      "name": "Ventar",
+      "x": -115.9,
+      "y": -122.6,
+      "anchors": [
+        47,
+        38
+      ],
+      "evidence": "mirror_regional_inference",
+      "rationale": "Bareil describes a Klingon escape here but admits embellishment. A Bajoran / Alliance-edge position is approximate.",
+      "sourceRefs": [
+        "VENTAR"
+      ]
+    },
+    {
+      "id": 77,
+      "name": "Organia",
+      "x": 13.7,
+      "y": -19.2,
+      "anchors": [
+        1,
+        38
+      ],
+      "evidence": "regional_reference",
+      "rationale": "Organia is near the Federation / Klingon border; adapt that relationship to the retained core and Klingon anchors.",
+      "sourceRefs": [
+        "ORGANIA"
+      ]
+    },
+    {
+      "id": 78,
+      "name": "Dannus",
+      "x": -284.8,
+      "y": -110.6,
+      "anchors": [
+        1
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "Dannus V is a Prime location deliberately adapted into the game. Its remote placement is not a claim about a Mirror chart.",
+      "sourceRefs": [
+        "DANNUS"
+      ]
+    },
+    {
+      "id": 79,
+      "name": "New Bajor",
+      "x": -352.8,
+      "y": -249.6,
+      "anchors": [
+        47
+      ],
+      "evidence": "quadrant_reference_compressed",
+      "rationale": "The Prime colony is in the Gamma Quadrant. Give its adapted counterpart a separated outer projection rather than pretending it is a neighbor of Bajor. This is compressed game geography, not a 70,000-light-year scale map.",
+      "sourceRefs": [
+        "NEW-BAJOR"
+      ]
+    },
+    {
+      "id": 80,
+      "name": "Pahvo",
+      "x": 5.2,
+      "y": -51.6,
+      "anchors": [
+        38
+      ],
+      "evidence": "reference_adaptation",
+      "rationale": "Use the exploration / Klingon-border side for the Pahvo adaptation; exact placement remains illustrative.",
+      "sourceRefs": [
+        "PAHVO"
+      ]
+    },
+    {
+      "id": 81,
+      "name": "Kwejian",
+      "x": -254.9,
+      "y": 7.4,
+      "anchors": [
+        1
+      ],
+      "evidence": "reference_adaptation",
+      "rationale": "Use a distinct outer exploration region for Kwejian, preserving its adapted identity without asserting exact Mirror coordinates.",
+      "sourceRefs": [
+        "KWEJIAN"
+      ]
+    },
+    {
+      "id": 82,
+      "name": "61 Ursae Majoris",
+      "x": -9.6,
+      "y": 104.7,
+      "anchors": [
+        1,
+        4
+      ],
+      "evidence": "nearby_stellar_reference",
+      "rationale": "61 Ursae Majoris is the identified primary in Archer IV geography. Blend the early Earth colony into the nearby-core projection.",
+      "sourceRefs": [
+        "ARCHER-IV"
+      ]
+    },
+    {
+      "id": 83,
+      "name": "Archer's Planet",
+      "x": -244.8,
+      "y": 310.2,
+      "anchors": [
+        1
+      ],
+      "evidence": "reference_adaptation",
+      "rationale": "The archive gives Gamma Trianguli sector, which is not the Gamma Quadrant. Use an exploration frontier position and do not merge it with Archer IV.",
+      "sourceRefs": [
+        "ARCHERS-PLANET"
+      ]
+    },
+    {
+      "id": 84,
+      "name": "C-111",
+      "x": -168.4,
+      "y": -22.7,
+      "anchors": [
+        1,
+        47
+      ],
+      "evidence": "unresolved_game_placement",
+      "rationale": "C-111 / Beta III stays a single system. Its local chart placement is an open exploration gap, not verified screen coordinates.",
+      "sourceRefs": [
+        "BETA-III"
+      ]
+    },
+    {
+      "id": 85,
+      "name": "Eminiar",
+      "x": -250.6,
+      "y": 182.4,
+      "anchors": [
+        1,
+        12
+      ],
+      "evidence": "reference_adaptation",
+      "rationale": "Place the Eminiar / Vendikar system on the exploration edge; the conflict history does not supply a precise Mirror position.",
+      "sourceRefs": [
+        "EMINIAR"
+      ]
+    },
+    {
+      "id": 86,
+      "name": "Sherman",
+      "x": -30.8,
+      "y": -18.6,
+      "anchors": [
+        1,
+        38
+      ],
+      "evidence": "regional_reference",
+      "rationale": "Sherman's Planet is a disputed Federation / Klingon border destination. Place it along the same border neighborhood as Organia.",
+      "sourceRefs": [
+        "SHERMAN"
+      ]
+    },
+    {
+      "id": 87,
+      "name": "Tellar",
+      "x": -181.4,
+      "y": 84.3,
+      "anchors": [
+        1,
+        12,
+        25
+      ],
+      "evidence": "core_reference_adaptation",
+      "rationale": "Blend the Tellarite home system into the retained founding-world neighborhood. Do not overwrite the original Andorian or Vulcan positions.",
+      "sourceRefs": [
+        "TELLAR"
+      ]
+    },
+    {
+      "id": 88,
+      "name": "Denobula",
+      "x": -198.9,
+      "y": 132.6,
+      "anchors": [
+        1,
+        12,
+        25
+      ],
+      "evidence": "core_reference_adaptation",
+      "rationale": "Use the nearby Vulcan / Andorian exploration neighborhood for Denobula; this is approximate within the fixed legacy map.",
+      "sourceRefs": [
+        "DENOBULA"
+      ]
+    },
+    {
+      "id": 89,
+      "name": "Coridan",
+      "x": -131.6,
+      "y": 145.8,
+      "anchors": [
+        1,
+        12
+      ],
+      "evidence": "core_reference_adaptation",
+      "rationale": "Blend Coridan into the inhabited core neighborhood while retaining every existing anchor.",
+      "sourceRefs": [
+        "CORIDAN"
+      ]
+    },
+    {
+      "id": 90,
+      "name": "Clarus",
+      "x": -95.6,
+      "y": 194.3,
+      "anchors": [
+        14
+      ],
+      "evidence": "regional_reference",
+      "rationale": "Clarus is a neighboring system of Ferenginar; retain that relationship in the blended map.",
+      "sourceRefs": [
+        "FERENGI-NEIGHBORS"
+      ]
+    },
+    {
+      "id": 91,
+      "name": "Irtok",
+      "x": -24.5,
+      "y": 198.2,
+      "anchors": [
+        14
+      ],
+      "evidence": "regional_reference",
+      "rationale": "Irtok is a neighboring system of Ferenginar; retain that relationship in the blended map.",
+      "sourceRefs": [
+        "FERENGI-NEIGHBORS"
+      ]
+    }
+  ]
+}

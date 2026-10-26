@@ -88,10 +88,36 @@ SCENARIOS = r"""async () => {
   check(initial.some((n,i)=>n!==later[i]),'Animated lights stopped');
   const red=capture(1000,{...options('lighting',.4),light:{x:0,y:160,color:0xff0000}});
   check(initial.some((n,i)=>n!==red[i]),'Lighting cache ignored color/direction');
+  // Compare healthy, unlit caching against raw source artwork, bypassing the
+  // shared cache in the older renderer so this remains an independent check.
+  const unlit=[];window.nativeFlightLightingEnabled=false;
+  for(const type of [7,47,57,59]){
+    const asset=await vexedFlightAssets.loadShip(type,nativeShipDefinitions.get(type).hull);
+    check(asset.damageStage===0,'Unlit fixture must use the current hull capacity');
+    for(const height of [44,110])for(const angle of [0,.731,2.31]){
+      const width=height*asset.width/asset.height;
+      const a=canvas().getContext('2d',{willReadFrequently:true}),b=canvas().getContext('2d',{willReadFrequently:true});
+      a.save();a.imageSmoothingEnabled=true;a.imageSmoothingQuality='high';a.translate(160,160);a.rotate(angle);a.drawImage(asset.art,-width/2,-height/2,width,height);a.restore();
+      actual(b,asset,160,160,width,angle,1450,{height,lights:false,damage:false});
+      const before=a.getImageData(0,0,320,320).data,after=b.getImageData(0,0,320,320).data;
+      let pixels=0,error=0,significant=0;
+      // Compare visible colour over space, retaining occupied-pixel coverage
+      // and alpha error. Unpremultiplied RGB at nearly transparent edges is not
+      // the light that reaches the display.
+      for(let i=0;i<before.length;i+=4)if(before[i+3]>3||after[i+3]>3){
+        pixels++;const aa=before[i+3]/255,ab=after[i+3]/255;let e=Math.abs(before[i+3]-after[i+3]);
+        for(let c=0;c<3;c++){const bg=[3,8,17][c];e+=Math.abs((before[i+c]*aa+bg*(1-aa))-(after[i+c]*ab+bg*(1-ab)));}
+        error+=e;if(e>80)significant++;
+      }
+      const row={type,height,angle,meanError:error/Math.max(1,pixels*4),significantFraction:significant/Math.max(1,pixels)};unlit.push(row);
+      check(row.meanError<8&&row.significantFraction<.08,'Static hull artwork changed: '+JSON.stringify(row));
+    }
+  }
+  window.nativeFlightLightingEnabled=true;
   const cache=window.nativeShipSpriteCache?.snapshot?.()||null;
   if(cache){check(cache.bytes<=cache.limits.bytes,'Unbounded sprite memory');check(cache.entries<=cache.limits.entries,'Unbounded sprite entries');}
   gallery.style.cssText='position:absolute;left:0;top:0;z-index:100000';document.body.append(gallery);
-  return {visualScenarios:results,costs,cache,decodedCache:vexedFlightAssets.cacheSnapshot?.()||null};
+  return {visualScenarios:results,unlitScenarios:unlit,costs,cache,decodedCache:vexedFlightAssets.cacheSnapshot?.()||null};
 }"""
 
 
@@ -124,6 +150,7 @@ def main():
             page.evaluate('window.requestAnimationFrame=()=>0')
             page.wait_for_timeout(100)
             page.add_script_tag(content=(ROOT/'tests/fixtures/reference-flight-renderer.js').read_text())
+            page.evaluate('window.nativeFlightLightingEnabled=true')
             page.evaluate('(enabled)=>{window.__renderPathMicrobench=enabled;}', not args.visual_only)
             try:
                 report = page.evaluate(SCENARIOS)

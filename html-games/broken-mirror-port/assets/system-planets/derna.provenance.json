@@ -1,0 +1,14 @@
+{
+  "id": "derna",
+  "file": "derna.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Derna, a rocky moon of Bajor, pale grey-brown rugged craters and mineral highlands, no atmosphere or water.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-f1261581-5ae9-416f-a3e5-7e2bd06e535f.png",
+  "sourceSha256": "538deb6e216b347fb5286cd0941aa668435cbf44f16a4889ea379c99ca14c111",
+  "sha256": "2f46062587d73d9fa0e68e958e05e894e5c3d875c7984481843605dad86dba10",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

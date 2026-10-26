@@ -1,0 +1,14 @@
+{
+  "id": "vulcan",
+  "file": "vulcan.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Vulcan, hot arid rust-red desert planet, orange sandstone continents, volcanic mountains, sparse thin dusty clouds and no large blue oceans.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-8287d1dd-ec89-48f0-b8bb-f42ac8b3a2c1.png",
+  "sourceSha256": "c489a9f96de3db0ebaf5fcd612bf5df93c97fdbca9ca4dd06f63729fe4b7083f",
+  "sha256": "e45b85fdeae5c0c54eeecb118af596a674b72ad7b1cecae2cfad34081193e31d",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

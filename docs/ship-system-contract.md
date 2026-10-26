@@ -101,8 +101,10 @@ steering. Free spin integrates in shared motion and damps; scheduled spin is a
 pure critically damped offset sampled alongside the leg. Route replanning rebases
 it without replaying rotation, and lightweight inspector poses carry the same
 field. Stopping, pausing and JSON restoration use the existing common boundaries.
-Steering/thrust damp free collision drift at 2/s and spin at 4/s; braking uses
-4/s and 5/s respectively. Unpowered coasting preserves linear collision momentum.
+Free collision drift now settles at 2.6/s with released controls, 3/s under
+steering/thrust, 4/s under holding/goal control and 6/s under braking. A 0.05-unit/s
+cutoff gives finite travel and an exact rest state. Intended manual coasting
+retains its engine velocity. Spin retains 4/s input and 5/s braking recovery.
 The existing manual speed, acceleration, turn and braking profiles stay intact.
 See `impact-controls.test.cjs` and `browser-impact-controls.py` for the real-key,
 speed/offset, conservation, saved-spin and rotating shield-attachment regressions.
@@ -387,3 +389,10 @@ controllers execute the resulting travel through the existing scheduled motion
 owner. Per-role parking arithmetic and render-triggered handling are prohibited.
 The Earth recovery and market regressions join the required checks; see
 [traffic recovery](earth-traffic-recovery.md).
+
+Flight key-down edges belong to the host input layer. If a tap is released
+before rendering resumes, the next simulation advance consumes its pending edge
+once, in its first physics step. Held WASD/arrows continue through ordinary
+shared movement. All existing input resets discard pending edges too; drawing
+cannot replay input or advance movement. Verify real between-frame taps, their
+single consumption and blur clearing in `browser-impact-controls.py`.

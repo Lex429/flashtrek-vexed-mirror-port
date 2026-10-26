@@ -1,0 +1,54 @@
+{
+  "source": "Original downloaded BROKENMIRROR.swf",
+  "sourceSha256": "fbfad07023221f239a16718b3db7ca7bcbb1c353663eb67939dd4cb28f433031",
+  "extractor": "JPEXS Free Flash Decompiler 26.3.0, sound export, character IDs 24-26",
+  "encoding": "Original MP3 frames, no re-encoding",
+  "originalBindings": {
+    "mainMenuRelease": "comp1.start()",
+    "setupSelection": "comp2.start()",
+    "setupConfirmation": "comp3.start()"
+  },
+  "notes": "The quiet hover use of comp2 is a new mapping of an original game sound.",
+  "sounds": [
+    {
+      "characterId": 26,
+      "linkage": "comp1",
+      "file": "comp1.mp3",
+      "event": "press",
+      "bytes": 832,
+      "sha256": "f0e87ce916cac17a72bee9505605e011f3e377f51c8e87b1e54eb3902523e3c5",
+      "sampleRate": 11025,
+      "seekSamples": 1661,
+      "sampleCount": 2816
+    },
+    {
+      "characterId": 25,
+      "linkage": "comp2",
+      "file": "comp2.mp3",
+      "event": "hover",
+      "bytes": 624,
+      "sha256": "ac064ff97071e365d40c461fe72f3e4cb3679e42f816a31113d8e9de192b7d5e",
+      "sampleRate": 11025,
+      "seekSamples": 1661,
+      "sampleCount": 1612
+    },
+    {
+      "characterId": 24,
+      "linkage": "comp3",
+      "file": "comp3.mp3",
+      "event": "confirm",
+      "bytes": 2184,
+      "sha256": "9e0cc5825f6a21020143278168e0103064a92b8c1a1aa39faa160ba8a2160dca",
+      "sampleRate": 11025,
+      "seekSamples": 1661,
+      "sampleCount": 9312
+    }
+  ],
+  "playback": "Apply the original Flash seek/sample bounds at playback and balance gains for a quiet hover and stronger click/confirmation; preserve pitch and original sample data.",
+  "originalMainMenuButtonCharacterIds": [
+    1054,
+    1059,
+    1064,
+    1069
+  ]
+}

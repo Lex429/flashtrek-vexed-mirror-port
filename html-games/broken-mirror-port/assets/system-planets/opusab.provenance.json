@@ -1,0 +1,14 @@
+{
+  "id": "opusab",
+  "file": "opusab.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Opusab, a peaceful flowering alien world with subtle violet vegetation on green continents, blue seas and delicate clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-91ba8eab-3e82-4411-9c68-ed3c40aa64fd.png",
+  "sourceSha256": "f37dd9e93e4065003baf4764e574e3f49f0c28152690a2d6df1a59c122c071f0",
+  "sha256": "61ab991fbf5b5af11a9013b56f9ada411d0e605ec1111acd430376048eb68247",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

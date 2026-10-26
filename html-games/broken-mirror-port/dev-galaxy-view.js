@@ -2,8 +2,9 @@
 (() => {
   'use strict';
   const flight=window.nativeManualFlight;
-  const systems=flight.systems.map(system=>({system,position:flight.planetPosition(system.id)})).filter(entry=>entry.position);
-  const names=new Map(systems.map(({system})=>[Number(system.id),system.name]));
+  const physical=id=>window.nativeSystemCatalog?.physicalId(Number(id))??Number(id);
+  const systems=flight.systems.filter(system=>physical(system.id)===system.id).map(system=>({system:{...system,name:window.nativeSystemCatalog?.name(system.id)||system.name},position:flight.planetPosition(system.id)})).filter(entry=>entry.position);
+  const names=new Map(flight.systems.map(system=>[Number(system.id),system.name]));
   const factions=new Map((window.VexedMirrorWorld?.governments||[]).map(faction=>[String(faction.id),faction.name]));
   const stage=document.getElementById('game'),canvas=stage.querySelector('#space'),panel=document.createElement('aside');
   panel.id='dev-galaxy-ships';panel.hidden=true;
@@ -210,7 +211,7 @@
     if(!active||!state)return;collect(state,force);const stamp=now();if(!force&&stamp-lastPanel<500)return;lastPanel=stamp;stats.domRefreshes++;
     const query=search.value.trim().toLowerCase(),system=filter.value;
     controls.querySelector('[data-total]').textContent=records.length+' ships';
-    const filtered=records.filter(ship=>(system==='all'||String(ship.system)===system||String(ship.journey?.destination?.system??ship.journey?.destination??ship.entity.destinationSystem)===system)&&(!query||[ship.id,ship.name,ship.category,ship.role,ship.faction,factions.get(String(ship.faction))].join(' ').toLowerCase().includes(query)));
+    const filtered=records.filter(ship=>(system==='all'||String(physical(ship.system))===system||String(physical(ship.journey?.destination?.system??ship.journey?.destination??ship.entity.destinationSystem))===system)&&(!query||[ship.id,ship.name,ship.category,ship.role,ship.faction,factions.get(String(ship.faction))].join(' ').toLowerCase().includes(query)));
     filtered.sort((a,b)=>num(a.system)-num(b.system)||a.name.localeCompare(b.name));count.textContent=filtered.length+' / '+records.length;
     const signature=JSON.stringify([query,system,selectedId,filtered.map(ship=>[ship.id,ship.system,taskName(ship.task),ship.entity.phase])]);
     if(finder.open&&signature!==lastList){lastList=signature;const fragment=document.createDocumentFragment();
@@ -296,7 +297,7 @@
     for(let x=((origin.x%spacing)+spacing)%spacing;x<mapW;x+=spacing){ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,top+mapH);ctx.stroke();}
     for(let y=top+(((origin.y-top)%spacing)+spacing)%spacing;y<top+mapH;y+=spacing){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(mapW,y);ctx.stroke();}
     hits=[];
-    for(const {system,position} of systems){const p=screen(position);if(p.x<0||p.x>mapW||p.y<top||p.y>top+mapH)continue;ctx.beginPath();ctx.arc(p.x,p.y,(system.id===state.system?5:3.5)*unit,0,Math.PI*2);ctx.fillStyle=system.id===state.system?'#9af3dc':'#88bfd2';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,9*unit,0,Math.PI*2);ctx.strokeStyle='#88bfd240';ctx.stroke();hits.push({...p,system:system.id});}
+    for(const {system,position} of systems){const p=screen(position);if(p.x<0||p.x>mapW||p.y<top||p.y>top+mapH)continue;ctx.beginPath();ctx.arc(p.x,p.y,(system.id===physical(state.system)?5:3.5)*unit,0,Math.PI*2);ctx.fillStyle=system.id===physical(state.system)?'#9af3dc':'#88bfd2';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,9*unit,0,Math.PI*2);ctx.strokeStyle='#88bfd240';ctx.stroke();hits.push({...p,system:system.id});}
     const selected=find(selectedId),route=routePoints(selected?.journey||{route:selected?.route});
     if(route.length>1){ctx.strokeStyle='#f8d778bb';ctx.lineWidth=2*unit;ctx.setLineDash([7*unit,5*unit]);ctx.beginPath();route.forEach((point,index)=>{const p=screen(point);if(index===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);});ctx.stroke();ctx.setLineDash([]);}
     const groups=new Map();
@@ -324,10 +325,10 @@
       stats.markerCount+=members.length;
     }
     ctx.font=(12*unit)+'px system-ui';const occupied=[];
-    for(const {system,position} of [...systems].sort((a,b)=>Number(b.system.id===state.system)-Number(a.system.id===state.system))){
+    for(const {system,position} of [...systems].sort((a,b)=>Number(b.system.id===physical(state.system))-Number(a.system.id===physical(state.system)))){
       const p=screen(position),width=ctx.measureText(system.name).width,x=p.x+10*unit,y=p.y-13*unit;
       if(x<0||x+width>mapW||y<top+14*unit||y>top+mapH-8*unit||occupied.some(box=>x<box.x+box.w&&x+width>box.x&&Math.abs(y-box.y)<16*unit))continue;
-      occupied.push({x,y,w:width});ctx.strokeStyle='#061522';ctx.lineWidth=4*unit;ctx.strokeText(system.name,x,y);ctx.fillStyle=system.id===state.system?'#b7ffeb':'#9eb9ca';ctx.fillText(system.name,x,y);
+      occupied.push({x,y,w:width});ctx.strokeStyle='#061522';ctx.lineWidth=4*unit;ctx.strokeText(system.name,x,y);ctx.fillStyle=system.id===physical(state.system)?'#b7ffeb':'#9eb9ca';ctx.fillText(system.name,x,y);
     }
     const p=screen(player);ctx.fillStyle='#d4fff4';ctx.font='700 '+(11*unit)+'px system-ui';ctx.fillText('YOU',p.x+12*unit,p.y-14*unit);ctx.restore();
     const footer=tracked?'Following '+tracked.name+' · Drag to stop following':selected?'Selected: '+selected.name:cameraStatus||'Live ship activity';

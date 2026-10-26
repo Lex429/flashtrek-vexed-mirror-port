@@ -25,7 +25,7 @@
   const images=new Map();
   let placements=[];
   let catalogData=null,ready;
-  const systems=new Map(),indexes=new Map(),grids=new Map(),beltData=new Map(),cellSize=700;
+  const systems=new Map(),indexes=new Map(),grids=new Map(),beltData=new Map(),geometryRevisions=new Map(),cellSize=700;
   let seed=61357;
   const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   function shuffle(values){for(let i=values.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}return values;}
@@ -113,14 +113,14 @@
       if(!geology)return system===1?placements:[];
       const profile=geology.profile(system),random=geology.seed(system*811+413977),legacy=system===1?placements:[],rocks=[...legacy],types=geology.oreSequence(system,profile.count,legacy),belts=[];
       const origin=system===1?{x:-6220,y:-925}:{x:-220,y:75};
-      const neighbors=geology.neighbors(system,4),position=geology.position(system);
-      const lanes=neighbors.map(id=>{const p=geology.position(id);return Math.atan2(p.y-position.y,p.x-position.x);});
+      const neighbors=geology.beltNeighbors(system,4),seedPosition=geology.geologyPosition||geology.position,position=seedPosition(system);
+      const lanes=neighbors.map(id=>{const p=seedPosition(id);return Math.atan2(p.y-position.y,p.x-position.x);});
       const localLanes=system===1?routes.map(([a,b])=>{const from=regions.find(r=>r.name===a),to=regions.find(r=>r.name===b);return {a:{x:from.x-220,y:from.y+75},b:{x:to.x-220,y:to.y+75}};}):[];
       const lineDistance=(p,a,b)=>{const dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy)));return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);};
       const clear=p=>system===1?clearOfPlanets(p.x,p.y)&&localLanes.every(l=>lineDistance(p,l.a,l.b)>230):Math.hypot(p.x+220,p.y-75)>850&&lanes.every(angle=>Math.abs(Math.atan2(Math.sin(p.angle-angle),Math.cos(p.angle-angle)))>.11);
       for(let belt=0;belt<2;belt++){
         const radius=system===1?[14200,21000][belt]:[2100+(system%6)*220,4400+(system%5)*260][belt],width=system===1?500:280+(system%4)*65;
-        const name=(system===1?'Sol':window.VexedMirrorWorld.systems.find(s=>s.id===system)?.name||'Frontier')+' '+(belt===0?'inner':'outer')+' belt';
+        const name=profile.beltNames?.[belt]||(system===1?'Sol':window.VexedMirrorWorld.systems.find(s=>s.id===system)?.name||'Frontier')+' '+(belt===0?'inner':'outer')+' belt';
         belts.push({name,system,x:origin.x,y:origin.y,radius,width,mainOres:Object.entries(profile.weights).filter(([,n])=>n>=30).map(([ore])=>ore)});
         const count=belt===0?Math.ceil(profile.count*.6):Math.floor(profile.count*.4);
         for(let slot=0;slot<count;slot++){
@@ -161,6 +161,7 @@
   // Keep the spatial index authoritative when a saved physical rock moves.
   // Seeded IDs, sizes and ore geology never change.
   function relocate(rock,pose){
+    if(rock.x!==pose.x||rock.y!==pose.y){const system=Number(rock.system??1);geometryRevisions.set(system,(geometryRevisions.get(system)||0)+1);}
     const grid=grids.get(Number(rock.system??1)),key=p=>Math.floor(p.x/cellSize)+':'+Math.floor(p.y/cellSize),before=key(rock),after=key(pose);
     if(grid&&before!==after){const bucket=grid.get(before),index=bucket?.indexOf(rock)??-1;if(index>=0){bucket.splice(index,1);if(!bucket.length)grid.delete(before);}const next=grid.get(after)||[];if(!next.includes(rock))next.push(rock);grid.set(after,next);}
     Object.assign(rock,{previousX:pose.previousX??rock.x,previousY:pose.previousY??rock.y,x:pose.x,y:pose.y,angle:pose.angle,vx:pose.vx||0,vy:pose.vy||0,spin:pose.spin||0});
@@ -231,7 +232,7 @@
       ctx.drawImage(art,-size/2,-size/2,size,size);ctx.restore();
     }
   }
-  window.nativeSolAsteroids={paint,hitTest,frame,image,peekImage:file=>images.get(file)||null,forSystem,find,nearby,sweptNearby,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size};},get ready(){return ready;},get placements(){return placements;},abundance};
+  window.nativeSolAsteroids={paint,hitTest,frame,image,peekImage:file=>images.get(file)||null,forSystem,find,nearby,sweptNearby,relocate,geometryRevision:system=>geometryRevisions.get(Number(system))||0,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size};},get ready(){return ready;},get placements(){return placements;},abundance};
   ready=fetch(catalogUrl).then(response=>{if(!response.ok)throw new Error('Asteroid catalog unavailable');return response.json();})
     .then(populate).catch(error=>console.warn('Sol asteroid artwork unavailable',error));
 })();

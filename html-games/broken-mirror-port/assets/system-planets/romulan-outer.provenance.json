@@ -1,0 +1,14 @@
+{
+  "id": "romulan-outer",
+  "file": "romulan-outer.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: unnamed outer planet in the Romulan home system, a cold blue-grey planet with subtle white icy cloud bands and storms; original visual interpretation.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-f21dad35-eb2a-4e56-9b6f-e3fbf9ce7ee7.png",
+  "sourceSha256": "dc523e8a23afb354938ca207e34295625c487d1f8b027b20a0461345727f9b98",
+  "sha256": "2ffce13de4953c6fb770b3f59c5f3286bfcefe962a6cb2da1d361eb2c1e3e222",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

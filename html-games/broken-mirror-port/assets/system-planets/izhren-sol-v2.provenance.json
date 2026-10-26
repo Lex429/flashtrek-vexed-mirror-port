@@ -1,0 +1,20 @@
+{
+  "id": "izhren-sol-v2",
+  "file": "izhren-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror. Input image 1 is the actual Sol Neptune artwork, a REFERENCE ONLY for realistic orbital photography, fine planetary-scale detail, natural spherical volume and illumination. It is not an edit target or a surface to recolor. Generate ONE distinctive new world: Izhren, in the Nyoabek system. Appearance specification: Blue-violet ice giant with faint rings. Photorealistic astronomical imagery at the visual quality of the supplied Sol artwork. Invent original geography, continent silhouettes and/or storm arrangements, distinct from the reference image. Fine natural geological or atmospheric structure, no painterly brushwork, flat texture or plastic finish. Upper-left sunlight, mostly illuminated globe, soft shaded lower-right limb and realistic terminator. Entire circular globe and complete correctly occluded ring ellipse inside the image with comfortable transparent margins. Never squash the globe to fit the rings. Minimum 1280x1280 preferred. Genuine alpha transparency outside the subject. Clouds, coastlines, craters, mountains and any settlements must be appropriately small at planetary scale. Natural subdued atmospheric limb where appropriate, no excessive glow. No stars, black backdrop, scenery, labels, text, watermarks, borders, spacecraft or other planets. No added rings unless specified. The appearance and local planetary roster are original game interpretations, not claims of screen canon.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-8a3535c5-e857-4535-bbb8-20578ff023ed.png",
+  "sourceSha256": "e9b4aa1af2a4af79f836ba6941d88bd9d84cd199e3774db23f7fb15dd670fc18",
+  "sha256": "8770ba1410d0ed488d072b11590ffb4059229e60e77ae23bd0283c05492f7590",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/10 - Neptune.png",
+      "sha256": "43b419309a1fa13a8168c9c387352fc73deee5c31fa9a8eeccc570c5353c0aae"
+    }
+  ]
+}

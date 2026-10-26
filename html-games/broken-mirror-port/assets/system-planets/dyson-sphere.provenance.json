@@ -1,0 +1,14 @@
+{
+  "id": "dyson-sphere",
+  "file": "dyson-sphere.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: transparent production game sprite matching the cinematic realistic Sol planet artwork. Show ONE entire immense spherical Dyson shell megastructure from exterior orbital distance, isolated on genuinely transparent background. A star is fully enclosed INSIDE the sphere and is not visible separately. The shell is dark steel and blue-grey titanium with extraordinarily intricate tiny interlocking geometric engineering panels and restrained cyan habitation lights, softly lit from upper left with a dark terminator on lower right. A complete spherical disk occupies 88 percent of a square frame. No orbiting objects, no rings, no Earth continents, no clouds, no text, no labels, no stars or background. This is The Sphere in the Broken Mirror Dyson system, not a Borg cube and not a planet.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-352986a1-7a7f-47d5-8016-1bf1716a1902.png",
+  "sourceSha256": "5b3bedd316d3dda786a76121368fa86e8db297e421edf9b26130b3e9f0e6b477",
+  "sha256": "0a097402886d8417c04f9560a1aab71431f604076be79256278fca003376b0a4",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}
