@@ -65,9 +65,9 @@ try:
             angle=page.evaluate('__equipmentState.angle')
             page.keyboard.down('d');page.wait_for_timeout(250);page.keyboard.up('d')
             assert abs(page.evaluate('__equipmentState.angle')-angle)>.05
-            page.keyboard.down('s')
+            page.keyboard.down('x')
             page.wait_for_function('()=>__equipmentState.speed<.05',timeout=20000)
-            page.keyboard.up('s')
+            page.keyboard.up('x')
             page.evaluate('window.nativeSimulation={...nativeSimulation,blocked:()=>true}')
             open_inventory()
             return observed

@@ -3,6 +3,7 @@
   const stage=document.getElementById('game'),overlay=document.createElement('section');
   overlay.id='pause-menu';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Pause menu');
   overlay.innerHTML=`<div class="pause-card"><span class="pause-kicker">COMMAND</span><h2 data-pause-title>Paused</h2>
+    <p style="max-width:420px;color:#a9c5d3;font-size:13px;line-height:1.7">W / &uarr; Forward &middot; S / &darr; Brake, then reverse &middot; A/D Turn<br>X Full stop &middot; Q Quick turnaround<br>Shift Smart target &middot; Quick taps Cycle &middot; Hold Clear<br>Space Fire at the locked target</p>
     <div class="pause-home"><button data-resume>Resume</button><button data-options>Options</button><button data-save>Save game</button><button data-hub>Return to games</button></div>
     <div class="pause-options" hidden><p>Choose how the game fills your screen.</p><div class="display-choices">
       <button data-display="fullscreen"><strong>Full screen</strong><span>Fill your monitor.</span></button>

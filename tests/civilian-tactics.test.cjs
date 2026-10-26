@@ -80,7 +80,7 @@ test('maneuver distance follows fitted weapon range, while crew differences surv
   assert.ok(ranges.disruptor<ranges.beam&&ranges.beam<ranges.torpedo,JSON.stringify(ranges));
   const traits=plain(f.ship.crewTraits),restored=await tacticalFixture({state:plain(f.state)});
   assert.deepEqual(plain(restored.ships[0].crewTraits),traits);assert.notDeepEqual(plain(f.target.crewTraits),traits);
-  assert.equal(ai.combatRange(f.state,f.ship).range,650);
+  assert.equal(ai.combatRange(f.state,f.ship).range,1500);
 });
 test('old periodic combat records migrate once without replacing crew traits or owned equipment',async()=>{
   const f=await tactical(),traits=plain(f.ship.crewTraits),equipment=plain(f.ship.shipEquipment);

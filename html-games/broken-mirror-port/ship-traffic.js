@@ -78,11 +78,14 @@
       }
       const goal=leg.goal,dx=goal.x-ship.x,dy=goal.y-ship.y,distance=Math.hypot(dx,dy);if(distance<.01)continue;
       bodies=motion().navigationObstacles(state,ship.system,ship,goal,bodyPadding);
-      const ux=dx/distance,uy=dy/distance,side={x:-uy,y:ux},other=advice.other,clearance=advice.clearance*1.45;
+      const ux=dx/distance,uy=dy/distance,side={x:-uy,y:ux},other=advice.other,clearance=profile.serviceApproach?advice.clearance*1.45:motion().shipRadius(ship)+motion().shipRadius(other)+18;
       // A clear berth can be closer than the margin used while cruising.
       // Judge its final physical corridor separately from passing at speed.
       const arrivalClearance=motion().shipRadius(ship)+motion().shipRadius(other)+6;
       const blockedGoal=Math.hypot(goal.x-other.x,goal.y-other.y)<arrivalClearance&&advice.stationary;
+      // A distant prediction or soft passing margin does not justify stopping
+      // ordinary travel. Respond locally to a real crossing corridor instead.
+      if(!profile.serviceApproach&&!blockedGoal&&(advice.t>1.5||advice.miss>=clearance&&advice.distance>clearance))continue;
       if(blockedGoal&&advice.distance>advice.clearance+ship.speed**2/(2*Math.max(1,profile.braking||225))+(profile.maxSpeed||100)*.5)continue;
       // A service craft whose clear docking point is behind its assigned hull
       // needs a physical bypass. Repeatedly yielding can never expose that goal.
@@ -90,7 +93,7 @@
       const serviceGoalClear=service&&!motion().shipPairContact({...ship,x:goal.x,y:goal.y,previousX:goal.x,previousY:goal.y},{...other,previousX:other.x,previousY:other.y},1);
       // A parked hull cannot move aside to repay a right-of-way yield. Build a
       // physical bypass unless it actually occupies the destination corridor.
-      let waiting=!serviceGoalClear&&(blockedGoal||advice.yield&&!advice.stationary);const points=[];
+      let waiting=!serviceGoalClear&&(blockedGoal||profile.serviceApproach&&advice.yield&&!advice.stationary);const points=[];
       if(!waiting){
         const projection=(other.x-ship.x)*ux+(other.y-ship.y)*uy;
         const entry={x:other.x-ux*clearance+side.x*clearance,y:other.y-uy*clearance+side.y*clearance};
@@ -112,7 +115,7 @@
         if(bypass===null){waiting=true;break;}
         safePoints.push(...bypass,to);from=to;
       }
-      if(waiting&&!blockedGoal&&(!advice.yield||advice.stationary)){
+      if(waiting&&!blockedGoal&&(!profile.serviceApproach||!advice.yield||advice.stationary)){
         // A proposed passing waypoint may itself be blocked. Find a complete
         // alternative around the combined obstacles rather than yielding forever.
         // Parked hulls are already in obstacles, including the approach margin.

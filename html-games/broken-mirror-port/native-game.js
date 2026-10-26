@@ -1,6 +1,7 @@
 (()=>{'use strict';
 const canvas=document.querySelector('#space'),ctx=canvas.getContext('2d'),modal=document.querySelector('#modal'),dialog=document.querySelector('#dialog'),navigation=window.nativeNavigation;
 const asteroidMineButton=document.createElement('button');asteroidMineButton.id='asteroid-mine-action';asteroidMineButton.type='button';asteroidMineButton.hidden=true;document.querySelector('#game').append(asteroidMineButton);
+canvas.title='W / Up: forward | S / Down: brake then reverse | A/D: turn | X: full stop | Q: quick turnaround | Shift: smart target | Space: fire';
 const world=window.VexedMirrorWorld;
 const localCatalog=window.nativeSystemCatalog;
 const localBodies=()=>localCatalog.bodies(game.system);
@@ -24,6 +25,7 @@ function unlockDev(value){
 }
 let game=null,keys={},pressed={},last=performance.now(),toastTimer,flightShip=null,visualGeneration=0,spaceCamera=null,planetHit=null,planetHits=[],marketFromPlanet=false;
 let inputFrame=0;
+const flightControls=window.nativePlayerCombatControls.flightControls(),smartTargets=window.nativePlayerCombatControls.smartTargeting();
 const heldFire=window.nativePlayerCombatControls.heldFire({targetKey:currentTargetKey,allowed:()=>targetInputAllowed()&&game.hull>0&&game.phase!=='disabled'&&!document.hidden&&!!selectedCombatTarget(),request:()=>fireLockedTarget(false)});
 const combatFeedback=document.createElement('div');combatFeedback.id='combat-target-status';combatFeedback.hidden=true;combatFeedback.setAttribute('role','status');
 Object.assign(combatFeedback.style,{position:'absolute',left:'50%',top:'calc(var(--hud-height,43px) + 54px)',transform:'translateX(-50%)',maxWidth:'min(640px,85%)',padding:'6px 10px',background:'rgba(3,14,23,.82)',border:'1px solid #477988',borderRadius:'4px',color:'#c8e9ee',font:'12px Arial,sans-serif',textAlign:'center',pointerEvents:'none',zIndex:'5'});document.querySelector('#game').append(combatFeedback);
@@ -58,12 +60,13 @@ function save(silent=false){
 function reportSaveResult(result){if(result&&!result.ok){toast(result.error);message(result.error);}return result;}
 function scheduleCombatSave(){if(game)reportSaveResult(window.nativeSaveStorage.schedule(game,{delay:.25,maxWait:1}));}
 function flushCombatSave(){if(game)reportSaveResult(window.nativeSaveStorage.flush(game));}
-function clearFlightInput(){keys={};pressed={};heldFire.stop();cancelTargetPress();flushCombatSave();}
+function clearFlightInput(){keys={};pressed={};flightControls.reset();heldFire.stop();cancelTargetPress();flushCombatSave();}
 function savedGame(mode){const value=window.nativeSaveStorage.read(mode);return value&&navigation.system(value.system)&&Number.isFinite(Number(value.antimatter))?value:null;}
 function updateVisuals(){window.nativeShipSystems?.refreshShip(game,game,'player');const token=++visualGeneration;if(flightShip?.type!==Number(game.shipType))flightShip=null;window.vexedFlightAssets.loadShip(game.shipType,game.hull*window.nativeShipDefinitions.get(game.shipType).hull/Math.max(1,shipStats(game).hull)).then(asset=>{if(token===visualGeneration)flightShip=asset}).catch(()=>{});window.vexedFlightAssets.loadPlanet(game.system).catch(()=>{});window.vexedSolFlight.art(localCurrent(),game.system)}
 window.nativeCombatShots.onPlayerImpact=impact=>window.nativePlayerCombat.visualImpact(game,impact);
 window.nativeCombatShots.onPlayerHit=(state,damage,impact)=>{
  const before=state.hull,result=window.nativePlayerCombat.hit(state,damage,impact);
+ if(state===game&&impact?.sourceId!=null&&impact.sourceId!=='player'){const id=String(impact.sourceId);smartTargets.incoming(id.startsWith('tug:')||id.startsWith('civilian:')?id:`civilian:${id}`,window.nativeSimulation.seconds(state));}
  if(state===game&&result.ok){
   if(state.hull!==before)updateVisuals();
   if(result.destroyed||result.disabled){clearFlightInput();message('Hull disabled. Repair your ship to resume flight.');}
@@ -71,7 +74,7 @@ window.nativeCombatShots.onPlayerHit=(state,damage,impact)=>{
  }
  return result;
 };
-function activateState(value){clearFlightInput();window.nativePlayerCombat.reset();window.nativeEnvironmentalImpacts?.reset();cancelTargetPress();window.nativeShipInventory?.close();window.nativePause.close();window.vexedWarp.reset();window.nativeGalaxyMap?.close(false);window.nativePlanetEncounter?.close(false);window.nativeAsteroidCombat?.clear();window.nativeSolEconomy?.clearTarget();window.nativeCivilianTraffic?.clearTarget();game=navigation.initialize(value);window.nativeSimulation.ensure(game);window.nativeAsteroidMotion?.ensure(game);setDevGalaxyView(false);if(game.vitalsVersion!==2){const ship=shipStats(game);game.hull=Math.round(Math.max(0,Math.min(100,Number(game.hull)||0))*ship.hull/100);game.shields=Math.round(Math.max(0,Math.min(100,Number(game.shields)||0))*ship.shields/100);game.vitalsVersion=2;}game.localBody=Number.isInteger(Number(game.localBody))?Number(game.localBody):3;game.localContracts=Array.isArray(game.localContracts)?game.localContracts:[];game.weaponInventory=Array.isArray(game.weaponInventory)?game.weaponInventory.map(Number).filter(id=>Number.isInteger(id)&&id>0&&window.VexedMirrorWeapons?.some(item=>item.id===id)):[];window.nativeShipEquipment.ensure(game);window.nativeSolEconomy.initialize(game);window.nativeCivilianTraffic.initialize(game);window.nativeShipRepairs?.initialize(game);window.nativeNpcLives?.initialize(game);window.vexedSolFlight?.setTarget(game.localCruise?.to??game.localNavTarget??game.localBody,game.system);if(game.devMode)unlockDev(game);window.nativeWeaponLoadout.ensure(game);window.nativeCombatShots.restore?.(game);window.vexedSpace.enterSystem(game.system,true);spaceCamera=null;clearFlightInput();modal.hidden=true;menuArt.hidden=true;document.body.classList.add('playing');document.getElementById('save').disabled=false;devButton.hidden=!game.devMode;window.nativeShipyardServices?.restore();updateVisuals();refresh()}
+function activateState(value){clearFlightInput();smartTargets.reset();window.nativePlayerCombat.reset();window.nativeEnvironmentalImpacts?.reset();cancelTargetPress();window.nativeShipInventory?.close();window.nativePause.close();window.vexedWarp.reset();window.nativeGalaxyMap?.close(false);window.nativePlanetEncounter?.close(false);window.nativeAsteroidCombat?.clear();window.nativeSolEconomy?.clearTarget();window.nativeCivilianTraffic?.clearTarget();game=navigation.initialize(value);window.nativeSimulation.ensure(game);window.nativeAsteroidMotion?.ensure(game);setDevGalaxyView(false);if(game.vitalsVersion!==2){const ship=shipStats(game);game.hull=Math.round(Math.max(0,Math.min(100,Number(game.hull)||0))*ship.hull/100);game.shields=Math.round(Math.max(0,Math.min(100,Number(game.shields)||0))*ship.shields/100);game.vitalsVersion=2;}game.localBody=Number.isInteger(Number(game.localBody))?Number(game.localBody):3;game.localContracts=Array.isArray(game.localContracts)?game.localContracts:[];game.weaponInventory=Array.isArray(game.weaponInventory)?game.weaponInventory.map(Number).filter(id=>Number.isInteger(id)&&id>0&&window.VexedMirrorWeapons?.some(item=>item.id===id)):[];window.nativeShipEquipment.ensure(game);window.nativeSolEconomy.initialize(game);window.nativeCivilianTraffic.initialize(game);window.nativeShipRepairs?.initialize(game);window.nativeNpcLives?.initialize(game);window.vexedSolFlight?.setTarget(game.localCruise?.to??game.localNavTarget??game.localBody,game.system);if(game.devMode)unlockDev(game);window.nativeWeaponLoadout.ensure(game);window.nativeCombatShots.restore?.(game);window.vexedSpace.enterSystem(game.system,true);spaceCamera=null;clearFlightInput();modal.hidden=true;menuArt.hidden=true;document.body.classList.add('playing');document.getElementById('save').disabled=false;devButton.hidden=!game.devMode;window.nativeShipyardServices?.restore();updateVisuals();refresh()}
 
 function activate(value){hostTime.checkpoint();simulationService.cancel();preparingTravel=false;activateState(value);simulationService.cancel();hostTime.reset();}
 function begin(){const state={...fresh(),devMode:true};window.nativeWorldBootstrap?.apply(state);activate(state);window.nativeShipTraffic?.clearSpawn(state);const demo=window.nativeDevRepairDemo?.start(game);message(demo?.ok?'Dev command ready. Nearby disabled cruiser: Olympic response underway.':'Dev command ready. All systems, ships, and supplies are available.');save()}
@@ -158,8 +161,7 @@ function advanceSimulation(dt,now){
   window.nativeAsteroidCombat.advance(game,step);
   if(modal.hidden&&game.phase!=='disabled'&&game.hull>0&&!game.landed&&!window.nativeGalaxyMap?.isOpen&&!window.nativeSystemHub?.active&&!window.nativePlanetEncounter?.active&&!game.localCruise&&!game.arrivalApproach&&!busy()){
    const held=code=>keys[code]||pressed[code];
-   const turn=(held('KeyA')||held('ArrowLeft')?-1:0)+(held('KeyD')||held('ArrowRight')?1:0);
-   window.nativeShipSystems.move(game,game,'player',{turn,throttle:held('KeyW')||held('ArrowUp')?1:0,brake:!!(held('KeyS')||held('ArrowDown'))},undefined,step);
+   window.nativeShipSystems.move(game,game,'player',flightControls.command(game,held),undefined,step);
    pressed={};
    updateManualFlight(now);
   }
@@ -485,7 +487,7 @@ function syncAsteroidMineButton(ship,{w,h,cx,cy,zoom}){
 }
 function nearbyTargets(ship){
  const status=window.nativeCombatShots.firingStatus(game,window.nativeShipDefinitions.describe(game,game,{category:'player'}),null);
- const selectionRange=Math.max(650,status.maxRange||0),inRange=entry=>Math.hypot(entry.x-ship.x,entry.y-ship.y)<=selectionRange;
+ const selectionRange=Math.max(1800,status.maxRange||0),inRange=entry=>Math.hypot(entry.x-ship.x,entry.y-ship.y)<=selectionRange;
  const excluded=new Set([...(game.minedAsteroids||[]),...(game.destroyedAsteroids||[])]);
  const targets=(window.nativeSolAsteroids?.forSystem?.(game.system)||(game.system===1?window.nativeSolAsteroids?.placements:[])||[])
   .filter(rock=>!excluded.has(rock.slotId)&&!window.nativeCivilianTraffic.isMiningRock(game,rock.slotId)&&inRange(rock))
@@ -494,16 +496,13 @@ function nearbyTargets(ship){
   if(tug.phase!=='destroyed'&&inRange(tug))targets.push({key:`tug:${tug.id}`,kind:'tug',entry:tug});
  for(const vessel of window.nativeCivilianTraffic.localShips(game))
   if(inRange(vessel))targets.push({key:`civilian:${vessel.id}`,kind:'civilian',entry:vessel});
- const view=window.nativeView.measure(canvas),visible=item=>{
-  const x=view.w/2+item.entry.x-ship.x,y=view.h/2+item.entry.y-ship.y;
-  return x>=0&&x<=view.w&&y>=0&&y<=view.h;
- };
  const threats=new Set();
- for(const entry of targets)if(entry.kind!=='asteroid'&&entry.entry.retaliationTargetId==='player'&&(entry.entry.retaliationUntil||0)>=window.nativeSimulation.seconds(game))threats.add(entry.key);
- for(const attack of game.weaponCombat?.events||[])if(!attack.cancelled&&!attack.resolved&&attack.targetId==='player'){
+ for(const entry of targets)if(entry.kind!=='asteroid'&&entry.entry.retaliationTargetId==='player'&&!entry.entry.combatAI?.disengaging&&(entry.entry.retaliationUntil||0)>=window.nativeSimulation.seconds(game))threats.add(entry.key);
+ for(const attack of game.weaponCombat?.events||[])if(!attack.cancelled&&attack.targetId==='player'&&window.nativeSimulation.seconds(game)-(attack.launchedAt||0)<3){
   const id=String(attack.sourceId);threats.add(id.startsWith('tug:')?id:`civilian:${id}`);
  }
- return window.nativePlayerCombatControls.rankTargets(targets,{threats,visible,distance:item=>Math.hypot(item.entry.x-ship.x,item.entry.y-ship.y)});
+ const remembered=smartTargets.threats(window.nativeSimulation.seconds(game),threats),miningId=window.nativeAsteroidCombat.miningId;
+ return window.nativePlayerCombatControls.rankTargets(targets,{threats:remembered,miningKey:miningId!=null?`asteroid:${miningId}`:null,distance:item=>Math.hypot(item.entry.x-ship.x,item.entry.y-ship.y)});
 }
 function currentTargetKey(){
  const tug=game.system===1?window.nativeSolEconomy.target(game):null,rock=window.nativeAsteroidCombat.target,civilian=window.nativeCivilianTraffic.target(game);
@@ -523,7 +522,7 @@ function updateCombatFeedback(){
  if(combatFeedback.hidden)return;
  const status=selectedFiringStatus(),name=target.entity?.name||target.name||(target.category==='asteroid'?'Asteroid':target.category==='tug'?`Tug II #${target.entity.id+1}`:'Target');
  const labels=status.weapons.map(row=>`${row.weapon.name}: ${Math.round(row.spec.range)} u${!row.inRange?' (out of range)':!row.inArc?' (turn to aim)':!row.ready?` (recharge ${row.remaining.toFixed(1)}s)`:row.reason==='blocked'?' (blocked)':row.reason==='visuals'?' (loading)':' (ready)'}`);
- const text=`${name} · ${Math.round(status.distance)} u · ${status.ok?'Ready — hold Space to fire':status.message} · ${labels.join(' · ')} · Shift cycles all targets`;
+ const text=`${name} · ${Math.round(status.distance)} u · ${status.ok?'Ready — hold Space to fire':status.message} · ${labels.join(' · ')} · Shift smart-locks; quick taps cycle`;
  if(combatFeedback.textContent!==text)combatFeedback.textContent=text;
  combatFeedback.dataset.reason=status.reason||'ready';
  combatFeedback.dataset.target=String(target.id);
@@ -590,13 +589,13 @@ function cycleTarget(){
  const ship=game.system===1?window.vexedSolFlight.shipPosition(game):game,targets=nearbyTargets(ship);
  if(!targets.length){toast('No targets in selection range. Fly closer.');return;}
  const current=currentTargetKey();
- const index=targets.findIndex(item=>item.key===current),next=targets[(index+1)%targets.length];
+ const next=smartTargets.choose(targets,{at:window.nativeSimulation.seconds(game),current,threats:smartTargets.threats(window.nativeSimulation.seconds(game))});
  heldFire.stop();
  window.nativeSolEconomy.select(null);window.nativeCivilianTraffic.select(null);window.nativeAsteroidCombat.deselect();
  if(next.kind==='tug')window.nativeSolEconomy.select(next.entry.id);
  else if(next.kind==='civilian')window.nativeCivilianTraffic.select(next.entry.id);
  else window.nativeAsteroidCombat.select(next.entry);
- const notice=`Target ${index<0?1:(index+1)%targets.length+1}/${targets.length}: ${next.kind==='tug'?`Tug II #${next.entry.id+1}`:next.entry.name}. Space fires; tap Shift to switch, hold to clear.`;
+ const notice=`${smartTargets.threats(window.nativeSimulation.seconds(game)).has(next.key)?'Combat':'Target'} lock: ${next.kind==='tug'?`Tug II #${next.entry.id+1}`:next.entry.name}. Space fires; tap Shift for smart targeting, double-tap to cycle, hold to clear.`;
  message(notice);toast(notice);refresh();
 }
 function fireLockedTarget(notify=true){

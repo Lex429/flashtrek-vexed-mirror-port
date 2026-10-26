@@ -117,18 +117,18 @@ try:
         start = page.evaluate('__impactSnapshot()')
         up = drive('w', 60)
         right = drive('d', 30)
-        stop = drive('s', 120)
+        stop = drive('x', 120)
         arrow_up = drive('ArrowUp', 60)
         left = drive('ArrowLeft', 30)
         arrow_right = drive('ArrowRight', 15)
-        arrow_stop = drive('ArrowDown', 120)
+        arrow_stop = drive('x', 120)
         assert up['speed'] > 0 and up['x'] > start['x']
         assert right['angle'] > up['angle']+.2
         assert stop['speed'] == 0
         assert arrow_up['speed'] > 0 and left['angle'] < arrow_up['angle']-.2
         assert arrow_right['angle'] > left['angle']+.2
         assert arrow_stop['speed'] == 0
-        report['keys'] = {'W': up, 'D': right, 'S': stop, 'ArrowUp': arrow_up, 'ArrowLeft': left, 'ArrowRight': arrow_right, 'ArrowDown': arrow_stop}
+        report['keys'] = {'W': up, 'D': right, 'X': stop, 'ArrowUp': arrow_up, 'ArrowLeft': left, 'ArrowRight': arrow_right, 'XAfterArrows': arrow_stop}
 
         page.evaluate('''()=>{
           const s=__impactActivate(40),t=s.solEconomy.freighters[0];
@@ -200,7 +200,7 @@ try:
         before = page.evaluate('__impactSnapshot()')
         thrust = drive('w', 30)
         steer = drive('a', 30)
-        stopped = drive('s', 180)
+        stopped = drive('x', 180)
         wrap = lambda angle: math.atan2(math.sin(angle), math.cos(angle))
         assert wrap(steer['angle']-thrust['angle']) < -.2
         kick_size = lambda sample: sum(abs(v) for k, v in (sample.get('kick') or {}).items() if k in ('vx', 'vy'))

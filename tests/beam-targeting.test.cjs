@@ -30,6 +30,7 @@ async function fixture() {
     paintShowcaseWeaponShot: (_, shot, geometry) => draws.push({ kind: shot.kind, ...geometry }),
     nativeSolAsteroids: { placements: [] }, nativePause: { active: false }, nativeShipInventory: { active: false },
   };
+  for(const weapon of window.VexedMirrorWeapons)weapon.aimSpread=0;
   const context = vm.createContext({ window, document, console, performance: { now: () => 1000 },
     fetch: async () => ({ ok: true, json: async () => ({ weapons: {} }) }) });
   for (const file of ['simulation-clock.js', 'ship-motion.js', 'ship-definitions.js', 'ship-damage.js', 'weapon-loadout.js', 'weapon-rules.js', 'combat-shots.js', 'ship-systems.js', 'civilian-combat-ai.js']) {
@@ -158,7 +159,7 @@ test('off-axis interception preserves the selected firing line and exact damage 
   }
 });
 
-test('all beam models support rear fire while projectile arcs, flight and torpedo homing remain model-specific', async () => {
+test('all weapon models support rear fire while projectile flight and torpedo homing remain model-specific', async () => {
   const f = await fixture(), rules = f.window.nativeWeaponRules, source = f.describe('player');
   const target = { ...source, id: 5, x: -200, y: 0, vx: 0, vy: 120 };
   for (const weapon of [f.window.VexedMirrorWeapons[0], f.window.VexedMirrorWeapons[3]]) {
@@ -166,7 +167,7 @@ test('all beam models support rear fire while projectile arcs, flight and torped
   }
   for (const kind of ['disruptor', 'torpedo']) {
     const spec = rules.weaponSpec(f.window.VexedMirrorWeapons[kind === 'torpedo' ? 2 : 1], kind);
-    assert.equal(rules.firingSolution(source, target, spec, kind, { bystanders: [], rocks: [] }), false, `${kind} retains its forward arc`);
+    assert.equal(rules.firingSolution(source, target, spec, kind, { bystanders: [], rocks: [] }), true, `${kind} supports independent targeting`);
     const ahead = { ...target, x: 300, y: 0 }, event = rules.startShot({ damage: 12 }, kind, source, ahead, 0, 0);
     assert.equal(event.projectile, true); assert.ok(event.vy > 0, 'projectile launch still leads a moving target');
     const heading = Math.atan2(event.vy, event.vx), speed = Math.hypot(event.vx, event.vy);
@@ -313,21 +314,21 @@ test('objects that have left the firing line cannot intercept a current instanta
 test('visual tracking can stop at a new obstruction after resolution without applying more damage', async () => {
   const f = await fixture(), targetId = f.npc(320), blockerId = f.npc(145, 100), firing = f.fire('player', targetId);
   f.step(.08); assert.equal(f.hits.length, 1); assert.equal(f.hits[0].id, targetId);
-  Object.assign(f.describe(blockerId).entity, { y: 0, heading: .7 });
+  Object.assign(f.describe(blockerId).entity, { y: 0, heading: .7 });f.window.nativeShipSystems.invalidate(f.state);
   for (let i = 0; i < 8; i++) nearSurface(f, f.paint(firing.shot), blockerId, true, targetId);
   f.step(.02); assert.equal(f.hits.length, 1); assert.equal(f.describe(blockerId).shields, 80);
   assert.equal(f.describe(targetId).shields, 68);
 });
 
 test('range limits reject rear targets outside range without spending owned charge, and still cap the resolving ray', async () => {
-  const f = await fixture(), targetId = f.npc(-521), loadouts = f.window.nativeWeaponLoadout;
+  const f = await fixture(), range=f.window.nativeWeaponRules.weaponSpec(f.window.VexedMirrorWeapons[0],'beam').range,targetId = f.npc(-range-1), loadouts = f.window.nativeWeaponLoadout;
   const instance = loadouts.equipped(f.state)[0].instance;
   assert.equal(f.fire('player', targetId).ok, false); assert.equal(instance.readyAt, 0);
   f.describe(targetId).entity.x = -420;
   const firing = f.fire('player', targetId); assert.equal(firing.ok, true);
-  f.describe(targetId).entity.x = -800; f.step(.08);
+  f.describe(targetId).entity.x = -range-100;f.window.nativeShipSystems.invalidate(f.state); f.step(.08);
   assert.equal(f.hits.length, 0); assert.equal(firing.event.resolved, true);
-  close(Math.hypot(firing.event.beamEnd.x - firing.event.from.x, firing.event.beamEnd.y - firing.event.from.y), 520);
+  close(Math.hypot(firing.event.beamEnd.x - firing.event.from.x, firing.event.beamEnd.y - firing.event.from.y), range);
 });
 
 test('pause, inventory and hidden tabs freeze an in-progress beam and its owned recharge before JSON restoration', async () => {
@@ -437,7 +438,7 @@ test('shield-effects contact queries match the rendered current surface and neve
   }
   // The struck target's flash must not remain at an old shield point when a
   // different physical surface now stops the visible beam.
-  f.describe(blockerId).entity.y = 15;
+  f.describe(blockerId).entity.y = 15;f.window.nativeShipSystems.invalidate(f.state);
   assert.equal(query(f.state, firing.event.id, targetId), null);
   assert.equal(f.hits.length, 1);
   f.step(.11); assert.equal(query(f.state, firing.event.id, targetId), null, 'expired beams have no tracked surface');

@@ -183,17 +183,17 @@ try:
             result['cycleMovement'] = {'before': before_cycle, 'after': after_cycle}
 
             # Keep selection at 650 while explaining each fitted weapon's actual reach.
-            page.evaluate('__controls.fixture({distance:600,weapons:[__controls.weapon.id]})')
+            page.evaluate('__controls.fixture({distance:1200,weapons:[__controls.weapon.id]})')
             page.evaluate('__controls.step()')
             range_text = page.locator('#combat-target-status').inner_text()
-            assert '600 u' in range_text and '520 u' in range_text and 'Out of range' in range_text, range_text
+            assert '1200 u' in range_text and '1100 u' in range_text and 'Out of range' in range_text, range_text
             page.screenshot(path=str(OUTPUT / 'fitted-phaser-out-of-range.png'))
             page.evaluate('nativeCivilianTraffic.clearTarget()')
             page.keyboard.press('Shift')
             assert page.evaluate('nativeCivilianTraffic.target(__controls.state)?.id') == 98501
-            page.evaluate('__controls.fixture({distance:600,weapons:[__controls.weapon.id,__controls.torpedo.id]});__controls.step()')
+            page.evaluate('__controls.fixture({distance:1200,weapons:[__controls.weapon.id,__controls.torpedo.id]});__controls.step()')
             mixed_text = page.locator('#combat-target-status').inner_text()
-            assert '650 u (ready)' in mixed_text and '520 u (out of range)' in mixed_text, mixed_text
+            assert '1500 u (ready)' in mixed_text and '1100 u (out of range)' in mixed_text, mixed_text
             page.keyboard.down('Space')
             assert page.evaluate('__controls.accepted.length') == 1
             page.evaluate('__controls.frames(.1)')
@@ -207,10 +207,12 @@ try:
               Object.assign(__controls.state.civilianTraffic.ships[1],{x:origin.x+300,y:origin.y});nativeShipSystems.invalidate(__controls.state);__controls.step();
             }""")
             blocked_text = page.locator('#combat-target-status').inner_text()
-            assert 'Projectile firing line is blocked' in blocked_text and '650 u (blocked)' in blocked_text, blocked_text
+            assert 'Ready' in blocked_text and '1500 u (ready)' in blocked_text, blocked_text
             page.keyboard.down('Space')
-            assert page.evaluate('__controls.accepted.length') == 0
+            assert page.evaluate('__controls.accepted.length') == 1
             page.keyboard.up('Space')
+            page.evaluate('__controls.frames(.1)')
+            assert page.evaluate('__controls.state.weaponCombat.events.some(e=>e.hitTargetId===98502)'), 'Intervening ship did not take the physical beam'
             result['feedback']['blocked'] = blocked_text
 
             # A saved attack preserves charge/cargo, and held input never becomes save data.

@@ -397,13 +397,13 @@
     if(!(dt>0)||window.nativeSimulation.blocked())return {arrived:false,moved:0};
     const descriptor=window.nativeShipDefinitions.describe(state,entity,{category});
     const pose={x:descriptor.x,y:descriptor.y,heading:descriptor.heading,speed:entity.speed||0,
-      vx:entity.vx,vy:entity.vy,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionSpin:entity.motionSpin,motionTime:window.nativeSimulation.seconds(state)};
+      vx:entity.vx,vy:entity.vy,motionReverse:entity.motionReverse,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionSpin:entity.motionSpin,motionTime:window.nativeSimulation.seconds(state)};
     const origin={x:descriptor.x-entity.x,y:descriptor.y-entity.y};
     profile||=descriptor.definition.movement;
     if(entity.phase==='disabled'){command={coast:true};profile={maxSpeed:Infinity,turnRate:0,damping:0,inertial:true};}
     command=window.nativeShipTraffic?.steer(state,descriptor,command,profile)||command;
     const result=window.nativeShipMotion.step(pose,command,profile,dt);
-    Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionAngularVelocity:pose.motionAngularVelocity,
+    Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionReverse:pose.motionReverse,motionAngularVelocity:pose.motionAngularVelocity,
       previousX:pose.previousX,previousY:pose.previousY,motionKick:pose.motionKick,motionSpin:pose.motionSpin});
     if(category==='player')entity.angle=pose.heading;else entity.heading=pose.heading;
     refreshShip(state,entity,category,descriptor.system);

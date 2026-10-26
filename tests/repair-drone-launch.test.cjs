@@ -62,6 +62,18 @@ test('bay passage permits only the equipped DOT and its actual carrier inside th
  drone.entity.bayTransit.endsAt=-1;assert.equal(f.repairs.bayPassage(drone,carrier),false);
 });
 
+test('staggered hatch departures do not create a mutual future-path yield while physical contact stays active',async()=>{
+ const f=await setup(),s=f.state,w=f.window;f.repairs.deployPlayer(s);
+ const base=f.repairs.drones(s,s.system)[0],movement=base.definition.movement;
+ const a={...base,x:0,y:0,previousX:0,previousY:0,vx:85,vy:0,heading:0,at:0,
+  entity:{...base.entity,phase:'launching',missionId:'departure',bayTransit:null,localLeg:{version:2,goal:{x:100,y:0}}}};
+ const b={...base,id:'next',x:25,y:0,previousX:25,previousY:0,vx:0,vy:0,
+  entity:{...base.entity,id:'next',phase:'launching',missionId:'departure',bayTransit:null,localLeg:{version:2,goal:{x:100,y:10}}}};
+ assert.equal(w.nativeShipMotion.trafficAdvice(a,[b],movement),null,'staggered clear departures keep moving');
+ assert.ok(w.nativeShipMotion.shipPairContact({...a,x:50},b,1),'future physical contact is still detected by the shared contact owner');
+ assert.ok(w.nativeShipMotion.trafficAdvice(a,[{...b,entity:{...b.entity,localLeg:null}}],movement),'a parked craft retains actual crossing avoidance');
+});
+
 test('Olympic DOTs depart in sequence from their carrier rather than appearing around the casualty',async()=>{
  const f=await setup(),s=f.state,w=f.window,medic=s.civilianTraffic.ships.find(e=>e.shipType===58);
  Object.assign(medic,{system:47,x:9300,y:9000,heading:-.4,phase:'docked',repairDeuranium:100,journey:null});

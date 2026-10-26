@@ -90,25 +90,25 @@ test('awareness includes surface entry within its horizon and rejects cancelled 
 });
 
 test('firing feedback distinguishes reachable recharge from range and preserves owned charges',async()=>{
-  const f=await combat(),beam=f.model('beam');f.fit(beam);f.ship.x=f.s.x+550;
+  const f=await combat(),beam=f.model('beam');f.fit(beam);f.ship.x=f.s.x+1200;
   const inspect=()=>f.w.nativeCombatShots.firingStatus(f.s,f.source(),f.target());
   const instance=f.w.nativeWeaponLoadout.equipped(f.s)[0].instance;
-  assert.equal(inspect().reason,'range');assert.equal(inspect().maxRange,520);assert.equal(instance.readyAt,0);
+  assert.equal(inspect().reason,'range');assert.equal(inspect().maxRange,1100);assert.equal(instance.readyAt,0);
   f.ship.x=f.s.x+200;assert.equal(inspect().reason,'ready');assert.equal(instance.readyAt,0);
   const fired=f.fire();assert.equal(fired.ok,true);const readyAt=instance.readyAt;
   assert.equal(inspect().reason,'recharge');assert.equal(instance.readyAt,readyAt);
-  f.ship.x=f.s.x+600;assert.equal(inspect().reason,'range','cooling short weapon cannot masquerade as reachable');
-  const missing=f.w.nativeCombatShots.firingStatus(f.s,f.source(),null);assert.equal(missing.maxRange,520);assert.equal(missing.reason,'unavailable');
+  f.ship.x=f.s.x+1300;assert.equal(inspect().reason,'range','cooling short weapon cannot masquerade as reachable');
+  const missing=f.w.nativeCombatShots.firingStatus(f.s,f.source(),null);assert.equal(missing.maxRange,1100);assert.equal(missing.reason,'unavailable');
 });
 
-test('mixed fitted weapons retain long-range reach and projectile arc/obstruction feedback',async()=>{
-  const f=await combat();f.fit(f.model('beam'),f.model('torpedo'));f.ship.x=f.s.x+600;
+test('mixed fitted weapons retain long-range reach and independent physical aim',async()=>{
+  const f=await combat();f.fit(f.model('beam'),f.model('torpedo'));f.ship.x=f.s.x+1300;
   const inspect=()=>f.w.nativeCombatShots.firingStatus(f.s,f.source(),f.target());
-  assert.equal(inspect().reason,'ready');assert.equal(inspect().maxRange,650);
+  assert.equal(inspect().reason,'ready');assert.equal(inspect().maxRange,1500);
   assert.equal(inspect().weapons.filter(item=>item.canReach).length,1);
-  f.s.angle=Math.PI;assert.equal(inspect().reason,'arc');
+  f.s.angle=Math.PI;assert.equal(inspect().reason,'ready');
   f.s.angle=0;
   f.w.nativeCombatShots.configureScene(()=>({bystanders:[],rocks:[{slotId:999,x:f.s.x+100,y:f.s.y,size:45}]}));
-  assert.equal(inspect().reason,'blocked');
+  assert.equal(inspect().reason,'ready','physical interception owns obstructed shots');
   f.ship.x=f.s.x+200;assert.equal(inspect().reason,'ready','beam physically intercepts instead of being rejected');
 });

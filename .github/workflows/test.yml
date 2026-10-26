@@ -54,6 +54,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-combat-controls.py
+      - name: Reverse, exact stop, turnaround and contextual long-range targeting
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-flight-feel.py
       - name: Reused lighting surfaces, animation cadence and turning damage states
         env:
           BROWSER_CHANNEL: ''

@@ -15,10 +15,10 @@
   }
   // All shooters resolve the same model data. Arc is a half-angle in radians.
   function weaponSpec(weapon,kind,{damageMultiplier=1}={}){
-    const turret=/turrent|turret/i.test(weapon.name||'');
     return {kind,damage:Math.max(0,Number(weapon.damage)||0)*damageMultiplier,
-      range:Math.max(1,Number(weapon.range)||(kind==='beam'?520:kind==='torpedo'?650:430)),
-      arc:(turret||kind==='beam'?180:50)*Math.PI/180,
+      range:Math.max(1,Number(weapon.range)||(kind==='beam'?1100:kind==='torpedo'?1500:900)),
+      arc:Math.PI,
+      spread:Math.max(0,Number.isFinite(weapon.aimSpread)?weapon.aimSpread:(kind==='beam'?.04:kind==='torpedo'?.055:.045)),
       speed:kind==='torpedo'?225:340,turn:kind==='torpedo'?.85:0,
       radius:kind==='torpedo'?3:1.4,recharge:Math.max(0,Number(weapon.recharge)||0)/13};
   }
@@ -55,16 +55,13 @@
     const inRange=distance<=spec.range,inArc=Math.abs(wrap(Math.atan2(dy,dx)-(ship.heading||0)))<=spec.arc;
     if(!inRange)return {ok:false,reason:'range',distance,inRange,inArc};
     if(!inArc)return {ok:false,reason:'arc',distance,inRange,inArc};
-    // A beam may be fired at an obstructed lock: the first physical surface
-    // receives it. Projectile launch/leading and avoidance retain their rules.
-    if(spec.kind==='beam')return {ok:true,reason:'ready',distance,inRange,inArc};
-    if(obstacleHit(ship,aim,rocks))return {ok:false,reason:'blocked',distance,inRange,inArc};
-    const blocked=bystanders.some(other=>other.id!==ship.id&&other.id!==target.id&&circleSweep(ship,aim,other,Math.max(10,other.radius||15))!=null);
-    return {ok:!blocked,reason:blocked?'blocked':'ready',distance,inRange,inArc};
+    // Fire at the lock even when another surface occupies the line. The shared
+    // swept contact owner decides what the actual shot reaches first.
+    return {ok:true,reason:'ready',distance,inRange,inArc};
   }
-  function launch(ship,target,spec,kind,clock){
+  function launch(ship,target,spec,kind,clock,aimError=0){
     const aim=intercept(ship,target,spec.speed);
-    const angle=Math.atan2(aim.y-ship.y,aim.x-ship.x);
+    const angle=Math.atan2(aim.y-ship.y,aim.x-ship.x)+aimError;
     return {x:ship.x+Math.cos(ship.heading)*spec.muzzle,y:ship.y+Math.sin(ship.heading)*spec.muzzle,
       vx:Math.cos(angle)*spec.speed,vy:Math.sin(angle)*spec.speed,age:0,ttl:spec.range/spec.speed+.25,
       projectile:true,alive:true,turn:spec.turn,radius:spec.radius,speed:spec.speed,launchedAt:clock,kind};
@@ -135,7 +132,7 @@
     const from={x:event.x,y:event.y};
     event.previousX=event.x;event.previousY=event.y;
     if(event.turn&&target&&target.targetable!==false){
-      const angle=Math.atan2(event.vy,event.vx),desired=Math.atan2(target.y-event.y,target.x-event.x);
+      const angle=Math.atan2(event.vy,event.vx),desired=Math.atan2(target.y-event.y,target.x-event.x)+(event.aimError||0)*clamp(Math.hypot(target.x-event.x,target.y-event.y)/(event.spec?.range||Infinity),0,1);
       const next=angle+clamp(wrap(desired-angle),-event.turn*dt,event.turn*dt);
       event.vx=Math.cos(next)*event.speed;event.vy=Math.sin(next)*event.speed;
     }
@@ -181,13 +178,18 @@
   }
   function startShot(weapon,kind,source,target,clock,muzzle,spec=weaponSpec(weapon,kind)){
     const event={kind,damage:spec.damage,spec,muzzle,sourceId:source.id,targetId:target.id,launchedAt:clock,alive:true};
+    // Saved, deterministic aim error changes the physical path. Point-blank
+    // shots stay precise; distant shots can actually pass beside a small hull.
+    let seed=2166136261;for(const c of `${source.id}:${target.id}:${(Number(clock)||0).toFixed(6)}`)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;
+    const distance=Math.hypot(target.x-source.x,target.y-source.y),falloff=clamp((distance/spec.range-.3)/.7,0,1);
+    event.aimError=((seed/4294967296)*2-1)*(spec.spread||0)*falloff*falloff;
     if(kind==='beam'){
       event.dueAt=clock+.07;
       event.from={x:source.x+Math.cos(source.heading)*muzzle,y:source.y+Math.sin(source.heading)*muzzle};
       const angle=Math.atan2(target.y-event.from.y,target.x-event.from.x);
       event.beamEnd={x:event.from.x+Math.cos(angle)*spec.range,y:event.from.y+Math.sin(angle)*spec.range};
     }
-    else Object.assign(event,launch(source,target,{...spec,muzzle},kind,clock));
+    else Object.assign(event,launch(source,target,{...spec,muzzle},kind,clock,event.aimError));
     return event;
   }
   function stepShot(event,source,target,scene,clock,dt,radii,dimensions){
@@ -203,7 +205,7 @@
   // with its shooter. This query also supplies preview and lingering visuals.
   function beamTrace(event,source,target,scene,radii=target?.radii,dimensions=target?.dimensions){
     const from=emitter(source,event),aim=[target,event.targetSnapshot,event.beamEnd].find(point=>Number.isFinite(point?.x)&&Number.isFinite(point?.y));
-    const angle=aim?Math.atan2(aim.y-from.y,aim.x-from.x):event.sourceSnapshot?.heading??source.heading??0;
+    const angle=(aim?Math.atan2(aim.y-from.y,aim.x-from.x):event.sourceSnapshot?.heading??source.heading??0)+(event.aimError||0);
     const to={x:from.x+Math.cos(angle)*event.spec.range,y:from.y+Math.sin(angle)*event.spec.range};
     return firstContact(from,to,source,target,scene,radii,dimensions,0,{instant:true})||{kind:'miss',point:to,from};
   }

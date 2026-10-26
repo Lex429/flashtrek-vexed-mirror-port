@@ -32,12 +32,12 @@ test('a short shot exact-tests nearby geometry instead of every distant ship and
   assert.ok(scene.bystanders.length>1000,'the population remains present');
 });
 
-test('projectile launch eligibility retains the existing clearance around a very small blocker',async()=>{
+test('projectile locks permit firing toward a small blocker so physical contact owns interception',async()=>{
   const {window:w,state:s}=await setup();npc(s,2,200,0);
   w.nativeShipSystems.register('tiny',{collect:()=>[{id:'tiny-blocker',system:43,x:80,y:9,radius:1}],hit:()=>({ok:true})});
   w.nativeSimulationFrame.begin(s);const source=w.nativeShipSystems.resolve(s,'player'),target=w.nativeShipSystems.resolve(s,2),scene=w.nativeShipSystems.collisionScene(s);
   const spec=w.nativeWeaponRules.weaponSpec({name:'Disruptor',damage:1,recharge:2},'disruptor');
-  assert.equal(w.nativeWeaponRules.firingStatus(source,target,spec,'disruptor',scene).reason,'blocked');
+  assert.equal(w.nativeWeaponRules.firingStatus(source,target,spec,'disruptor',scene).reason,'ready');
 });
 
 test('swept searches retain fast intervening ships whose final positions lie outside the firing line',async()=>{

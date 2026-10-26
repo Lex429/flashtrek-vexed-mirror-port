@@ -23,7 +23,7 @@ test('catch-up reuses crew intent, integrates every substep and reacts immediate
   w.nativeWeaponLoadout.refit(state,[weapon.id],{holder:ship});
   w.nativeCivilianCombatAI.steer(ship,target,{b:target.id},scene());
   assert.equal(w.nativeSimulationFrame.snapshot(state).counters.tacticalDecisions,before+2);
-  assert.equal(ship.combatAI.weaponRange,650);
+  assert.equal(ship.combatAI.weaponRange,1500);
   w.nativeSimulationFrame.end(state);
 });
 
@@ -73,7 +73,7 @@ test('prepared tactical actors are reused for perception and avoidance while pos
 
   w.nativeWeaponLoadout.refit(state,[torpedo.id],{holder:ship});
   const fitted=prepare(state),beforeFit=descriptions;steer(fitted);
-  assert.equal(descriptions,beforeFit);assert.equal(ship.combatAI.weaponRange,650);
+  assert.equal(descriptions,beforeFit);assert.equal(ship.combatAI.weaponRange,1500);
   assert.equal(w.nativeSimulationFrame.snapshot(state).counters.tacticalDecisions,firstDecisions+1,'fitting changes bypass the cadence deadline');
   const equipment=ship.shipEquipment,engine=equipment.slots.engineering[0];equipment.slots.engineering[0]=null;
   const unpowered=prepare(state);steer(unpowered);

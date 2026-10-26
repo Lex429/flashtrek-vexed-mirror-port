@@ -33,7 +33,7 @@
     if(resetAngular)entity.motionAngularVelocity=0;
     return entity;
   }
-  function stop(entity,{preserveImpulse=false}={}){entity.speed=0;entity.vx=0;entity.vy=0;if(!preserveImpulse){delete entity.motionKick;delete entity.motionSpin;}return entity;}
+  function stop(entity,{preserveImpulse=false}={}){entity.speed=0;entity.vx=0;entity.vy=0;delete entity.motionReverse;if(!preserveImpulse){delete entity.motionKick;delete entity.motionSpin;}return entity;}
   function integrate(entity,command={},profile={},dt){
     const idle={arrived:false,distance:null,headingError:0,moved:false};
     if(!entity||!validPoint(entity)||!Number.isFinite(dt)||dt<=0)return idle;
@@ -47,7 +47,7 @@
     const engine=Math.max(0,finite(command.engineFactor,1));
     const top=Math.max(0,finite(profile.maxSpeed,Infinity))*engine;
     const acceleration=Math.max(0,finite(profile.acceleration,Infinity))*engine;
-    const braking=Math.max(0,finite(profile.braking,acceleration));
+    const braking=Math.max(0,finite(profile.braking,acceleration))*Math.max(0,finite(command.brakeFactor,1));
     const turnRate=Math.max(0,finite(profile.turnRate,Infinity))*Math.max(0,finite(command.turnFactor,1));
     let desiredHeading=goal?Math.atan2(dy,dx):command.heading;
     if(goal&&distance<=radius&&entity.speed<=arrivalSpeed){
@@ -74,8 +74,15 @@
       entity.vx*=damping;entity.vy*=damping;entity.speed=Math.hypot(entity.vx,entity.vy);
       return {arrived:false,distance,headingError:error,moved:entity.x!==oldX||entity.y!==oldY};
     }
-    let speed=entity.speed;
-    if(goal||Number.isFinite(command.heading)||Number.isFinite(command.speed)){
+    let speed=entity.speed,reversing=!!entity.motionReverse;
+    if(!goal&&!Number.isFinite(command.speed)&&(command.reverse||reversing)){
+      let signed=reversing?-speed:speed;
+      if(command.brake)signed+=clamp(-signed,-braking*dt,braking*dt);
+      else if(command.reverse){const wanted=-top*.45;signed+=clamp(wanted-signed,-(signed>0?braking:acceleration*.7)*dt,acceleration*dt);}
+      else if(command.throttle)signed+=acceleration*clamp(finite(command.throttle),0,1)*dt;
+      signed=clamp(signed,-top*.45,top);reversing=signed<0;speed=Math.abs(signed);
+    }else if(goal||Number.isFinite(command.heading)||Number.isFinite(command.speed)){
+      reversing=false;
       const alignment=clamp(1-Math.abs(error)/Math.max(.0001,finite(profile.alignmentDivisor,Math.PI)),finite(profile.alignmentFloor,1),1);
       let wanted=Math.min(top,Number.isFinite(command.speed)?Math.max(0,command.speed):top*clamp(finite(command.throttle,1),0,1)*alignment);
       if(goal&&command.braking!==false){
@@ -89,19 +96,20 @@
       if(command.brake)speed-=braking*clamp(finite(command.brake,1),0,1)*dt;
     }
     speed=clamp(speed,0,top);
+    entity.motionReverse=reversing&&speed>0;
     if(profile.inertial){
-      const wantedX=Math.cos(entity[key])*speed,wantedY=Math.sin(entity[key])*speed;
+      const wantedX=Math.cos(entity[key])*speed*(reversing?-1:1),wantedY=Math.sin(entity[key])*speed*(reversing?-1:1);
       const ax=wantedX-entity.vx,ay=wantedY-entity.vy,length=Math.hypot(ax,ay);
       const ratio=length>0?Math.min(1,(command.brake?braking:acceleration)*dt/length):0;
       entity.vx+=ax*ratio;entity.vy+=ay*ratio;
       const magnitude=Math.hypot(entity.vx,entity.vy);
       if(magnitude>top){entity.vx*=top/magnitude;entity.vy*=top/magnitude;}
     }else{
-      const direction=goal&&profile.directGoal&&distance>0?Math.atan2(dy,dx):entity[key];
+      const direction=(goal&&profile.directGoal&&distance>0?Math.atan2(dy,dx):entity[key])+(reversing?Math.PI:0);
       // A free angular impact turns the hull, not the engine command. Reusing
       // the nose direction while coasting would bend existing world momentum
       // every frame, even though the pilot has supplied no steering or thrust.
-      const keepCourse=!goal&&!Number.isFinite(command.heading)&&!Number.isFinite(command.speed)&&!command.turn&&!command.throttle;
+      const keepCourse=!goal&&!Number.isFinite(command.heading)&&!Number.isFinite(command.speed)&&!command.turn&&!command.throttle&&!command.reverse;
       const previousSpeed=Math.hypot(entity.vx,entity.vy);
       if(keepCourse&&previousSpeed>0){entity.vx*=speed/previousSpeed;entity.vy*=speed/previousSpeed;}
       else{entity.vx=Math.cos(direction)*speed;entity.vy=Math.sin(direction)*speed;}
@@ -342,10 +350,21 @@
       // passing traffic. The same swept physical ellipses must still be clear;
       // this cannot waive actual contact or another ship's right of way.
       const service=profile.serviceApproach&&ship.entity?.approachTarget;
+      const carrier=ship.entity?.carrier;
+      if(service&&ship.entity?.phase==='launching'&&carrier?.category===other.category&&String(carrier.id)===String(other.id)&&target){
+        const dx=ship.x-other.x,dy=ship.y-other.y;
+        // A craft already outside its carrier's physical hull may finish its
+        // outward exit even while inside the wider cruising clearance circle.
+        if((target.x-ship.x)*dx+(target.y-ship.y)*dy>0&&!shipPairContact({...ship,previousX:ship.x,previousY:ship.y,x:target.x,y:target.y},{...other,previousX:other.x,previousY:other.y},1))continue;
+      }
       // Small maintenance craft sharing a mission can queue near the hatch.
       // Use swept hull clearance there; ordinary traffic's much wider passing
       // buffer can otherwise make every returning craft wait for every other.
       if(service&&other.definition?.movement?.serviceApproach&&ship.entity?.missionId&&ship.entity.missionId===other.entity?.missionId){
+        // Hatch launches are already staggered by the repair owner. Separated
+        // members of that departing column must not repeatedly yield to each
+        // other's future paths; real contacts still use the physical owner.
+        if(ship.entity.phase==='launching'&&other.entity?.phase==='launching'&&ship.entity.localLeg&&other.entity.localLeg&&Math.hypot(other.x-ship.x,other.y-ship.y)>shipRadius(ship)+shipRadius(other)+1)continue;
         const duration=Math.max(.001,Math.min(horizon,distance/Math.max(1,planned)));
         if(!shipPairContact({...ship,previousX:ship.x,previousY:ship.y,x:ship.x+vx*duration,y:ship.y+vy*duration},
           {...other,previousX:other.x,previousY:other.y,x:other.x+other.vx*duration,y:other.y+other.vy*duration},duration))continue;
@@ -376,7 +395,43 @@
     }
     return threat;
   }
+  // Rebirth's combat flight blends the goal vector with normalized nearby
+  // separation at strength .55, then uses 85% thrust. Keep that local intent
+  // here; shared swept hull contacts remain the sole physical response owner.
+  function separationHeading(ship,neighbors,heading){
+    let x=0,y=0;
+    for(const other of neighbors){
+      if(other.id===ship.id&&other.category===ship.category||other.system!==ship.system)continue;
+      const dx=ship.x-other.x,dy=ship.y-other.y,d=Math.hypot(dx,dy),radius=Math.max((shipRadius(ship)+42)*2.2,shipRadius(ship)+shipRadius(other)+18);
+      if(d>radius||d<.000001)continue;
+      const weight=1-d/radius;x+=dx/d*weight;y+=dy/d*weight;
+    }
+    const length=Math.hypot(x,y);if(!length)return heading;
+    return Math.atan2(Math.sin(heading)+y/length*.55,Math.cos(heading)+x/length*.55);
+  }
   function avoidShips(ship,neighbors,command,profile){
+    if(profile.serviceApproach)return avoidServiceShips(ship,neighbors,command,profile);
+    if(command.hold||command.coast)return command;
+    const heading=Number.isFinite(command.heading)?command.heading:command.goal?Math.atan2(command.goal.y-ship.y,command.goal.x-ship.x):ship.heading;
+    const advice=trafficAdvice(ship,neighbors,profile),blend=separationHeading(ship,neighbors,heading);
+    if(!advice&&Math.abs(wrap(blend-heading))<.001)return command;
+    if(advice){
+      const other=advice.other,dx=ship.x-other.x,dy=ship.y-other.y,d=Math.hypot(dx,dy),clearance=shipRadius(ship)+shipRadius(other)+6;
+      if(d<clearance){
+        const away=d>.001?Math.atan2(dy,dx):heading+Math.PI/2,inward=(ship.vx-other.vx)*dx+(ship.vy-other.vy)*dy<-Math.max(1,d)*.1;
+        const brake=!!command.brake||inward||Math.cos(wrap(away-ship.heading))<.1;
+        return {...command,goal:undefined,heading:away,brake,throttle:brake?0:.55,speed:undefined};
+      }
+      if(advice.t<1.25&&advice.miss<clearance){
+        const dx=advice.other.x-ship.x,dy=advice.other.y-ship.y,d=Math.hypot(dx,dy)||1,closing=Math.max(0,((ship.vx-advice.other.vx)*dx+(ship.vy-advice.other.vy)*dy)/d);
+        const stopping=closing*closing/(2*Math.max(1,profile.braking||profile.acceleration||100))+closing*.1;
+        const passing=wrap(heading+.55),brake=!!command.brake||advice.distance<clearance+stopping;
+        return {...command,goal:undefined,heading:passing,brake,throttle:brake?0:Math.max(.35,(command.throttle??1)*.85),speed:brake?0:command.speed};
+      }
+    }
+    return {...command,goal:undefined,heading:blend,throttle:(command.throttle??1)*.85};
+  }
+  function avoidServiceShips(ship,neighbors,command,profile){
     if(command.hold||command.coast)return command;
     const facing=Number.isFinite(command.heading)?command.heading:command.goal?Math.atan2(command.goal.y-ship.y,command.goal.x-ship.x):ship.heading;
     const speed=Math.min(profile.maxSpeed||100,command.speed??(profile.maxSpeed||100)*(command.throttle??1));
@@ -595,5 +650,5 @@
     }
     const result=asteroidPairContact(target,body,dt);return result?{...result,targetPose:result.a,debrisPose:result.b}:null;
   }
-  window.nativeShipMotion={step,followPath,followCommand,attachmentGoal,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,avoidShips,avoidBodies,navigationBodies,navigationObstacles,clearSegment,obstaclePoints,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,settleVelocity,collisionDamageFraction,debrisContact};
+  window.nativeShipMotion={step,followPath,followCommand,attachmentGoal,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,separationHeading,avoidShips,avoidBodies,navigationBodies,navigationObstacles,clearSegment,obstaclePoints,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,settleVelocity,collisionDamageFraction,debrisContact};
 })();

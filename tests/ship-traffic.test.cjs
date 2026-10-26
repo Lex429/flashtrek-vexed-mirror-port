@@ -136,10 +136,10 @@ test('head-on traffic passes consistently, avoids contact and reaches both origi
   assert.ok(f.window.nativeShipTraffic.snapshot(f.state).plans>=2);assert.equal(f.window.nativeShipTraffic.snapshot(f.state).contacts.length,0);
 });
 
-test('crossing traffic yields predictably and both ships keep making progress',async()=>{
+test('crossing traffic keeps moving through a physical passing route without a yield queue',async()=>{
   const f=await setup(),a=add(f),b=add(f,{id:2,x:0,y:-500,goal:{x:0,y:500}});let min=Infinity,yielded=false;
   for(let i=0;i<2400;i++){tick(f,[a,b]);yielded||=a.trafficControl?.mode==='yielding'||b.trafficControl?.mode==='yielding';min=Math.min(min,Math.hypot(a.x-b.x,a.y-b.y));}
-  assert.ok(yielded);assert.ok(min>60,`clearance ${min}`);near(a.x,500);near(b.y,500);
+  assert.equal(yielded,false);assert.ok(min>60,`clearance ${min}`);near(a.x,500);near(b.y,500);
 });
 
 test('a legacy straight route is repaired around a planet without changing its saved purpose',async()=>{
