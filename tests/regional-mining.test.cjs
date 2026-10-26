@@ -4,6 +4,22 @@ const copy=value=>JSON.parse(JSON.stringify(value));
 function tick(f,seconds,dt=.25){for(let i=0;i<Math.ceil(seconds/dt);i++)f.step(dt);}
 function money(f){return Object.values(f.lives.initialize(f.state).markets).reduce((n,m)=>n+m.credits,0)+f.state.civilianTraffic.ships.reduce((n,s)=>n+s.credits,0)+(f.state.latinum||0);}
 
+test('Halka has abundant finite dilithium in both fields without reseeding any original system or creating a new civilian fleet',async()=>{
+ const fs=require('node:fs'),path=require('node:path'),f=await fixture({regional:true,access:true,full:false,economic:false});
+ const baseline=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/system-geology-v1.json'),'utf8'));
+ for(const [id,hash]of Object.entries(baseline))assert.equal(crypto.createHash('sha256').update(JSON.stringify(f.window.nativeSolAsteroids.forSystem(+id).map(r=>r.slotId<262?(({width,height,...rock})=>rock)(r):r))).digest('hex'),hash,`Original field ${id} must keep all geometry, ore and IDs`);
+ const rocks=f.window.nativeSolAsteroids.forSystem(53),dilithium=rocks.filter(r=>r.oreType==='dilithium');
+ assert.equal(rocks.length,396);assert.ok(dilithium.length>=288);assert.ok(dilithium.length/rocks.length>.7);
+ for(const belt of f.window.nativeSolAsteroids.belts(53)){
+  const field=rocks.filter(r=>r.region===belt.name);assert.ok(field.filter(r=>r.oreType==='dilithium').length/field.length>.7);
+  assert.deepEqual(copy(belt.mainOres),['dilithium']);
+ }
+ assert.ok(rocks.every(r=>r.slotId>=5300000&&r.slotId<5400000));assert.equal(new Set(rocks.map(r=>r.slotId)).size,rocks.length);
+ assert.equal(f.window.nativeSolAsteroids.metrics().images,0);assert.ok(f.lives.initialize(f.state).config.connectedSystems.includes(53));
+ const claim=dilithium[0];f.state.minedAsteroids=[claim.slotId];f.state.asteroidOreDrops={[claim.slotId]:0};
+ const restored=await fixture({regional:true,access:true,saved:copy(f.state),economic:false});assert.ok(restored.state.minedAsteroids.includes(claim.slotId));assert.equal(restored.window.nativeAsteroidCombat.completeMining(restored.state,claim.slotId).ok,false);
+});
+
 test('regional belts preserve the exact old Sol slots and generate stable unique IDs in every system',async()=>{
  const f=await fixture({regional:true}),rocks=f.window.nativeSolAsteroids,geo=f.window.nativeRegionalMinerals;
  const hash=crypto.createHash('sha256').update(JSON.stringify(rocks.placements.map(r=>[r.slotId,r.x,r.y,r.oreType,r.file,r.angle,r.size]))).digest('hex');
@@ -40,7 +56,7 @@ test('regional migration retains original tasks, cargo, poses, balances and depl
  const old=await fixture();tick(old,30);const saved=copy(old.state),before=copy(saved.civilianTraffic.ships.map(original));
  saved.minedAsteroids=[0,35,100];const f=await fixture({regional:true,saved});
  assert.deepEqual(copy(f.state.civilianTraffic.ships.map(original)),before);
- assert.deepEqual(f.state.minedAsteroids,[0,35,100]);assert.equal(f.state.civilianTraffic.ships.length,159);assert.equal(f.lives.initialize(f.state).config.connectedSystems.length,52);
+ assert.deepEqual(f.state.minedAsteroids,[0,35,100]);assert.equal(f.state.civilianTraffic.ships.length,159);assert.equal(f.lives.initialize(f.state).config.connectedSystems.length,f.window.VexedMirrorWorld.systems.length);
  assert.equal(f.lives.initialize(f.state).regionalVersion,1);assert.equal(new Set(f.state.civilianTraffic.ships.filter(s=>s.regionalResident).map(s=>s.operatingBase)).size,52);
 });
 

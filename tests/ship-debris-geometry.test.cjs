@@ -7,13 +7,13 @@ const vm=require('node:vm');
 const root=path.join(__dirname,'..'),port=path.join(root,'html-games/broken-mirror-port');
 const window={};
 const context=vm.createContext({window});
-for(const file of ['world-data.js','ship-debris-geometry.js'])vm.runInContext(fs.readFileSync(path.join(port,file),'utf8'),context,{filename:file});
+for(const file of ['world-data.js','ship-debris-geometry.js','ship-definitions.js','constitution-ships.js'])vm.runInContext(fs.readFileSync(path.join(port,file),'utf8'),context,{filename:file});
 const geometry=window.VexedMirrorDebrisGeometry;
 const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 
 test('all built-in artwork hulls have immutable, conserved physical debris before loading images',()=>{
   assert.equal(geometry.version,1);
-  const ids=window.VexedMirrorWorld.ships.map(ship=>String(ship.id)).sort((a,b)=>Number(a)-Number(b));
+  const ids=window.nativeShipDefinitions.registered().filter(ship=>!ship.renderer).map(ship=>String(ship.id)).sort((a,b)=>Number(a)-Number(b));
   assert.deepEqual(Object.keys(geometry.ships).sort((a,b)=>Number(a)-Number(b)),Array.from(ids),'New hull artwork requires rebuilding its physical metadata');
   assert.ok(ids.length>=66,'The full installed hull catalog must be covered');
   const nativeFields=new Set(['texture','lit','edge','hot','side','material']);

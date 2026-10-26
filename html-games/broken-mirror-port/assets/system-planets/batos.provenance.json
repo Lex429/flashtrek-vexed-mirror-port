@@ -1,0 +1,14 @@
+{
+  "id": "batos",
+  "file": "batos.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Batos, a dry frontier outpost planet with orange-brown land, modest dark seas and thin haze.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-2a38b8e1-121b-4d4f-8867-2556884ec28a.png",
+  "sourceSha256": "8957ac9a51682bc167037d10a10840bb531f8f969a3235bef38af52626c3b514",
+  "sha256": "dc693ab1c3df481c4aebed436613ebc6343deaa5e76462912d2a52ee520a6cc9",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

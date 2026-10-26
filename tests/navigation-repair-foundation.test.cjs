@@ -108,7 +108,7 @@ test('a repair craft catches a fast drifting casualty instead of braking forever
 
 test('self-repair inherits real carrier momentum while keeping ordinary drone thrust and physical contacts',async()=>{
   let f=await repairFixture(undefined,true),{window:w,state:s,ship:e,repair:r}=f,m=w.nativeShipMotion;
-  Object.assign(s,{x:10050,y:10300});Object.assign(e,{vx:135,vy:0,speed:135,motionKick:{version:1,mode:'free',vx:135,vy:0}});
+  Object.assign(s,{x:10050,y:10300});Object.assign(e,{vx:135,vy:0,speed:135,motionKick:{version:1,mode:'free',vx:135,vy:0,inherited:true}});
   w.nativeShipSystems.refreshShip(s,e,'civilian',47);
   const start=e.x,mission=r.launch(s,r.ref('civilian',e),r.ref('civilian',e));assert.ok(mission);
   const dotProfile=w.nativeShipDefinitions.get(r.rules.basicType,'repair-drone').movement;

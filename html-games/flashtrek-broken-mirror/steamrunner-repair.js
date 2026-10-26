@@ -37,11 +37,7 @@
   }
   function drawDrone(ctx,d,time=0){
     if(window.droneSprites?.draw(ctx,d.tier,{role:d.role||'repair',health:d.health??100,maxHealth:d.maxHealth??100,time,lights:d.lights!==false,effects:d.effects!==false,thrust:d.thrust||0,activity:d.phase==='welding'?1:d.weaponFlash||0,barrel:d.firedBarrel||0})){
-      if(d.thrust&&d.lights!==false&&(d.health??100)>0){
-        ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle=d.role==='attack'?'#ffb16a':'#8defff';ctx.shadowColor=d.role==='attack'?'#ff5930':'#54bbff';ctx.shadowBlur=5;
-        const jet=d.braking?1:-1,length=4+8*d.thrust;
-        for(const side of [-1,1]){ctx.beginPath();ctx.moveTo(jet*12,side*5-1.5);ctx.lineTo(jet*(12+length),side*5);ctx.lineTo(jet*12,side*5+1.5);ctx.fill();}ctx.restore();
-      }
+      window.nativeRepairWork.drawThrusters(ctx,d);
       return;
     }
     const upgraded=d.tier!=='basic',advanced=d.tier==='advanced',size=advanced?1.22:upgraded?1.1:.85;
@@ -72,43 +68,9 @@
     const body=surface(w,h),mask=surface(w,h),paint=surface(w,h),patch=surface(w,h);
     const reflection=surface(w,h),light=reflection.getContext('2d');
     const g=body.getContext('2d'),m=mask.getContext('2d'),brush=paint.getContext('2d'),p=patch.getContext('2d');
-    g.drawImage(damaged,0,0,w,h);const before=g.getImageData(0,0,w,h).data;
-    g.clearRect(0,0,w,h);g.drawImage(intact,0,0);const after=g.getImageData(0,0,w,h).data;
-    const delta=m.createImageData(w,h),groups=Array.from({length:5},()=>new Map());
-    let changedPixels=0,missingPixels=0;
-    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-      const i=(y*w+x)*4;
-      if(!before[i+3]&&!after[i+3])continue;
-      if(![0,1,2,3].some(c=>before[i+c]!==after[i+c]))continue;
-      delta.data.set([255,255,255,255],i);changedPixels++;
-      if(before[i+3]<40&&after[i+3]>100)missingPixels++;
-      const region=y>h*.47&&x<w*.29?0:y>h*.47&&x>w*.71?1:y<h*.48?(x>w*.5?2:3):4;
-      const col=Math.floor(x/tile),row=Math.floor(y/tile),key=row*Math.ceil(w/tile)+col;
-      let cell=groups[region].get(key);
-      if(!cell){cell={col,row,x:0,y:0,count:0,region};groups[region].set(key,cell);}
-      cell.x+=x;cell.y+=y;cell.count++;
-    }
-    m.putImageData(delta,0,0);
-    // Integrity above the first painted damage threshold still needs a short
-    // maintenance pass. Its artwork remains intact while actual hull recovers.
-    if(groups.every(group=>group.size===0)&&initialGeometry?.damageScale>0){
-      for(let y=20;y<h;y+=24)for(let x=20;x<w;x+=24)if(after[(y*w+x)*4+3]>150){
-        const col=Math.floor(x/tile),row=Math.floor(y/tile),region=x<w*.5?0:1;
-        groups[region].set(row*Math.ceil(w/tile)+col,{col,row,x,y,count:1,region});
-      }
-    }
-    const score=(x,y)=>{
-      x=Math.max(0,Math.min(w-1,Math.round(x)));y=Math.max(0,Math.min(h-1,Math.round(y)));
-      const i=(y*w+x)*4;
-      return Math.abs(before[i+3]-after[i+3])+Math.abs(before[i]-after[i])*.3+Math.abs(before[i+1]-after[i+1])*.5+Math.abs(before[i+2]-after[i+2])*.2;
-    };
-    const regions=groups.map(group=>[...group.values()].sort((a,b)=>a.row-b.row||(a.row%2?b.col-a.col:a.col-b.col)).map(cell=>{
-      const x=cell.x/cell.count,y=cell.y/cell.count;
-      let nx=score(x+6,y)-score(x-6,y),ny=score(x,y+6)-score(x,y-6);
-      if(Math.hypot(nx,ny)<8){nx=x/w-.5;ny=y/h-.5;}
-      const length=Math.hypot(nx,ny)||1;
-      return {...cell,x,y,nx:nx/length,ny:ny/length};
-    }));
+    const analysis=window.nativeRepairWork.analyze(damaged,intact,initialGeometry?.damageScale>0);
+    const {before,after,regions,changedPixels,missingPixels}=analysis;
+    m.putImageData(analysis.delta,0,0);
     const damageScale=Math.max(.02,Math.min(1.2,initialGeometry?.damageScale??1));
     const mission=plan(regions,initialGeometry?.fleet,damageScale,{launchDelay:initialGeometry?.launchDelay||0}),{drones}=mission;
     let {duration,weldEnd}=mission;
@@ -133,7 +95,7 @@
       if(drone.dead)return {id:drone.id,tier:drone.tier,phase:'destroyed',position:drone.deathPoint,hit:drone.deathPoint,nozzle:drone.deathPoint,normal:{x:0,y:-1},target:sample(drone,at),visible:false};
       const target=sample(drone,Math.min(at,drone.returnAt)),hit=point(target.x,target.y,l,angle);
       const slot=[Math.PI,0,-2.35,-.79,2.35,.79,-Math.PI/2,Math.PI/2][drone.id];
-      const station=point(w*(.5+Math.cos(slot)*.74),h*(.5+Math.sin(slot)*.65),l,angle);
+      const stationLocal=window.nativeRepairWork.station(w,h,drone.id),station=point(w/2+stationLocal.x,h/2+stationLocal.y,l,angle);
       const home=hangar(source),back=drone.returnAt,job=drone.jobs.find(j=>at>=j.start&&at<j.end);
       let phase=at<drone.launch?'waiting':at<drone.launch+drone.approach?'approach':at<drone.start?'stabilizing':job?'welding':at<drone.end?'relocating':at<back?'holding':at<drone.dockAt?'returning':'docked';
       let position=station,heading=Math.atan2(hit.y-station.y,hit.x-station.x),thrust=0,braking=false;
@@ -223,16 +185,7 @@
           // attraction: each hot metal fragment keeps its launch momentum.
           if(elapsed-at>950)continue;
           const contact=pose(drone,geometry.layout,geometry.angle,geometry.source,at);
-          const baseAngle=Math.atan2(contact.normal.y,contact.normal.x),scale=geometry.layout.h/353;
-          const count=7+Math.floor(noise(seed+2)*7);
-          for(let i=0;i<count;i++){
-            const key=seed+i*13,droplet=i===0&&drone.bursts%4===0;
-            const a=baseAngle+(noise(key+3)-.5)*2.65;
-            const speed=(droplet?25+noise(key+4)*48:50+noise(key+4)*145)*scale;
-            sparks.push({droneId:drone.id,born:born+at,ttl:droplet?650+noise(key+5)*260:170+noise(key+5)*350,
-              x:contact.hit.x,y:contact.hit.y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,droplet,size:droplet?1.5:mix(.85,1.4,noise(key+6)),
-              normal:contact.normal});
-          }
+          sparks.push(...window.nativeRepairWork.burst(contact.hit,contact.normal,born+at,seed,0,drone.bursts,geometry.layout.h/353,drone.id));
         }
         }
       }
@@ -309,14 +262,8 @@
       ctx.save();ctx.translate(l.x,l.y);ctx.rotate(angle);ctx.drawImage(texture,-l.w/2,-l.h/2,l.w,l.h);ctx.restore();
     }
     function drawBeam(ctx,l,angle,time,source=geometry.source,selectedId=-1,options={}){
-      light.clearRect(0,0,w,h);light.globalCompositeOperation='source-over';
-      for(const drone of drones){
-        const d=pose(drone,l,angle,source);if(d.phase!=='welding')continue;
-        const glow=light.createRadialGradient(d.target.x,d.target.y,0,d.target.x,d.target.y,42);
-        glow.addColorStop(0,'#efffffdd');glow.addColorStop(.25,'#b2dcff77');glow.addColorStop(.6,'#5acfff25');glow.addColorStop(1,'#5acfff00');
-        light.fillStyle=glow;light.fillRect(d.target.x-42,d.target.y-42,84,84);
-      }
-      light.globalCompositeOperation='destination-in';light.drawImage(finished?intact:drones.every(d=>d.cursor===0)?damaged:body,0,0,w,h);light.globalCompositeOperation='source-over';
+      const contacts=drones.map(drone=>pose(drone,l,angle,source)).filter(d=>d.phase==='welding').map(d=>d.target);
+      window.nativeRepairWork.reflection(light,finished?intact:drones.every(d=>d.cursor===0)?damaged:body,contacts);
       ctx.save();ctx.globalCompositeOperation='lighter';ctx.translate(l.x,l.y);ctx.rotate(angle);ctx.drawImage(reflection,-l.w/2,-l.h/2,l.w,l.h);ctx.restore();
       for(const drone of drones){
         const d=pose(drone,l,angle,source);if(!d.visible)continue;
@@ -328,34 +275,10 @@
         if(drone.id===selectedId){ctx.strokeStyle='#ff967d';ctx.lineWidth=1;ctx.strokeRect(d.position.x-28,d.position.y-28,60,58);}
         ctx.restore();
         if(d.phase!=='welding')continue;
-        const pulse=.84+Math.sin(time*.039+drone.id)*.08+Math.sin(time*.093)*.08;
-        ctx.save();ctx.globalCompositeOperation='lighter';
-        const nx=-Math.sin(d.heading),ny=Math.cos(d.heading),twin=d.tier==='advanced';
-        for(const [width,color,alpha] of [[7,'#26ed77',.08],[3,'#42ff95',.25],[.9,'#a6ffcb',.95]]){
-          ctx.strokeStyle=color;ctx.lineWidth=width;ctx.globalAlpha=alpha*pulse;
-          ctx.beginPath();ctx.moveTo(d.nozzle.x-(twin?nx*5:0),d.nozzle.y-(twin?ny*5:0));ctx.lineTo(d.hit.x-(twin?nx*1.8:0),d.hit.y-(twin?ny*1.8:0));ctx.stroke();
-          if(twin){
-            ctx.beginPath();ctx.moveTo(d.nozzle.x+nx*5,d.nozzle.y+ny*5);ctx.lineTo(d.hit.x+nx*1.8,d.hit.y+ny*1.8);ctx.stroke();
-          }
-        }
-        const brightness=.75+noise(Math.floor(time/32)+drone.id)*.25;
-        const glow=ctx.createRadialGradient(d.hit.x,d.hit.y,0,d.hit.x,d.hit.y,23);
-        glow.addColorStop(0,'#ffffff');glow.addColorStop(.12,'#eaffff');glow.addColorStop(.27,'#c3dfffbb');glow.addColorStop(.58,'#80c8ff44');glow.addColorStop(1,'#63baff00');
-        ctx.globalAlpha=brightness;ctx.fillStyle=glow;ctx.fillRect(d.hit.x-23,d.hit.y-23,46,46);
-        ctx.strokeStyle='#e8ffff';ctx.lineWidth=.8;ctx.globalAlpha=brightness*.7;
-        ctx.beginPath();ctx.moveTo(d.hit.x-9,d.hit.y);ctx.lineTo(d.hit.x+9,d.hit.y);ctx.moveTo(d.hit.x,d.hit.y-6);ctx.lineTo(d.hit.x,d.hit.y+6);ctx.stroke();
-        ctx.globalAlpha=1;ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(d.hit.x,d.hit.y,2.1,0,Math.PI*2);ctx.fill();ctx.restore();
+        window.nativeRepairWork.drawWeld(ctx,d,time,drone.id);
       }
       ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
-      for(const spark of sparks){
-        const age=(time-spark.born)/1000,q=clamp(age*1000/spark.ttl);
-        if(age<0||q>=1)continue;
-        const x=spark.x+spark.vx*age,y=spark.y+spark.vy*age;
-        const color=q<.18?'#fffbea':q<.42?'#ffe89b':q<.72?'#ff9b36':'#dc3b16';
-        ctx.globalAlpha=clamp((1-q)*2);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=spark.size*(1-q*.35);
-        if(spark.droplet){ctx.beginPath();ctx.arc(x,y,spark.size*(1-q*.45),0,Math.PI*2);ctx.fill();}
-        else{ctx.beginPath();ctx.moveTo(x-spark.vx*.028,y-spark.vy*.028);ctx.lineTo(x,y);ctx.stroke();}
-      }
+      window.nativeRepairWork.drawSparks(ctx,sparks,time);
       for(const piece of wrecks){
         const age=(time-piece.born)/1000,q=age*1000/piece.ttl;if(q<0||q>=1)continue;
         ctx.save();ctx.globalAlpha=1-q;ctx.translate(piece.x+piece.vx*age,piece.y+piece.vy*age);ctx.rotate(piece.angle+piece.spin*age);

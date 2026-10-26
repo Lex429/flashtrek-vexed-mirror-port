@@ -48,4 +48,21 @@ function context(){
   state.system=2;w.nativeEnvironmentalImpacts.advance(state,.1);assert.equal(w.nativeEnvironmentalImpacts.snapshot().waves,0,'old system effects are cleared');
   const stoppedClock=w.nativeEnvironmentalImpacts.snapshot().clock,queriesBeforeWarp=sceneQueries;w.vexedWarp={active:true};w.nativeEnvironmentalImpacts.advance(state,1);w.nativeEnvironmentalImpacts.debris(state,{x:100,y:0,radius:3},0,0);assert.equal(w.nativeEnvironmentalImpacts.snapshot().clock,stoppedClock);assert.equal(sceneQueries,queriesBeforeWarp);
 }
-console.log('Environmental impacts: blast reach, swept collisions, shield/hull visuals, no ship damage, pause, and bounded asteroid destruction passed.');
+{
+  const c=context(),w=c.window,state={system:1},visited=[];
+  const ship=(id,x)=>({id,x,y:0,previousX:x,previousY:0,radius:10,radii:{rx:10,ry:10},entity:{hull:100,phase:'cruising'},system:1});
+  const targets=[ship(0,20),ship(1,-20),...Array.from({length:100},(_,i)=>ship(i+2,1000+i*500))];
+  const rocks=[{slotId:1,x:5000,y:0,size:20,vx:100000,previousX:-5000}];
+  w.nativeCivilianTraffic={initialize(){}};w.nativeShipSystems={scene:()=>({bystanders:targets})};
+  w.nativeSolAsteroids={placements:rocks,sweptNearby:()=>[]};
+  w.nativeAsteroidMotion={debrisContact:(_,p,f,t,type)=>{visited.push(type+':'+t.id);return null;}};
+  load(c,'html-games/broken-mirror-port/explosion-impacts.js');
+  w.nativeEnvironmentalImpacts.debris(state,{x:30,y:0,size:2,vx:600,vy:0},-30,0,{dt:.1});
+  assert.deepEqual(visited,['ship:civilian:0','ship:civilian:1','asteroid:1'],'Grid preserves target order, includes moving rocks, and skips distant static ships');
+  visited.length=0;
+  const piece={x:10000,y:0,size:2};
+  w.nativeEnvironmentalImpacts.debris(state,piece,9999,0,{sourceKey:'ship:civilian:2',dt:.1});
+  piece.x=1000;w.nativeEnvironmentalImpacts.debris(state,piece,10000,0,{sourceKey:'ship:civilian:2',dt:.1});
+  assert.ok(visited.includes('ship:civilian:2'),'Parent immunity ends even when its fragment first moves outside indexed cells');
+}
+console.log('Environmental impacts: blast reach, swept collisions, shield/hull visuals, no ship damage, pause, bounded asteroid destruction and spatial candidate order passed.');

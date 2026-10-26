@@ -100,6 +100,7 @@ try:
               // Startup can leave a real collision impulse in the captured game.
               // A controlled attachment fixture starts at rest for every actor;
               // otherwise its inherited drift can cancel the commanded movement.
+              for(const key of ['localLeg','lifeLeg','journey','dockingMove'])delete entity[key];
               nativeShipMotion.stop(entity);entity.motionAngularVelocity=0;
               if(isSource){delete entity.shipEquipment;delete entity.weaponLoadout;entity.weapons=[models[kind].id,null,null];}
               return {entity,category};
@@ -122,7 +123,7 @@ try:
             const x=emitter.x*source.dimensions.width,y=emitter.y*source.dimensions.height,angle=source.heading+Math.PI/2;
             return {x:source.x+x*Math.cos(angle)-y*Math.sin(angle),y:source.y+x*Math.sin(angle)+y*Math.cos(angle)};
           }
-          function draw(test,fired){clear();painted.length=0;nativeCombatShots.paint(ctx,fired.shot,test.view());check(painted.length===1,'Shot did not reach the actual showcase renderer');return painted[0];}
+          function draw(test,fired){clear();painted.length=0;nativeCombatShots.paint(ctx,fired.shot,test.view());check(painted.length===1,'Shot did not reach the actual showcase renderer '+JSON.stringify({source:test.source.category,target:test.target.category,clock:nativeSimulation.seconds(test.state),event:fired.event,visible:nativeCombatShots.isVisible(fired.shot)}));return painted[0];}
           const attachment=[];
           const roster=categories.map((category,index)=>[category,categories[(index+1)%categories.length],false]);
           roster.push(['civilian','tug',true]);

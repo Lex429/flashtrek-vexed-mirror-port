@@ -1,0 +1,20 @@
+{
+  "id": "grazzek-sol-v2",
+  "file": "grazzek-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror. Input image 1 is the actual Sol Mars artwork, a REFERENCE ONLY for realistic orbital photography, fine planetary-scale detail, natural spherical volume and illumination. It is not an edit target or a surface to recolor. Generate ONE distinctive new world: Grazzek, in the Nausicaa system. Appearance specification: Dark basalt and localized orange fissures. Photorealistic astronomical imagery at the visual quality of the supplied Sol artwork. Invent original geography, continent silhouettes and/or storm arrangements, distinct from the reference image. Fine natural geological or atmospheric structure, no painterly brushwork, flat texture or plastic finish. Upper-left sunlight, mostly illuminated globe, soft shaded lower-right limb and realistic terminator. Entire circular globe centered in a square image with 6 percent transparent padding on every side. Minimum 1280x1280 preferred. Genuine alpha transparency outside the subject. Clouds, coastlines, craters, mountains and any settlements must be appropriately small at planetary scale. Natural subdued atmospheric limb where appropriate, no excessive glow. No stars, black backdrop, scenery, labels, text, watermarks, borders, spacecraft or other planets. No added rings unless specified. The appearance and local planetary roster are original game interpretations, not claims of screen canon.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-801c71af-3aa9-4c5b-8a2c-3b9740b2d0f5.png",
+  "sourceSha256": "3331f69520d38d19cf8af6f8c2179311b8142d9f5cd81e70657574b1b565efa0",
+  "sha256": "6103f873fa3ea1787471cccfc1a77a52d43f8ccfc3835f32c4225a6311fceeba",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/05 - Mars.png",
+      "sha256": "3b8ca14309c978a5291f4a940e9ecbbbf2d17aa95aee3b1ecdefbe35085c26bb"
+    }
+  ]
+}

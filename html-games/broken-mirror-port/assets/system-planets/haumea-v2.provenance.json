@@ -1,0 +1,14 @@
+{
+  "id": "haumea-v2",
+  "file": "haumea-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: precise-object-edit. Edit target: generated Haumea sprite. Keep Haumea scientifically elongated but improve the depiction's apparent three-dimensional thickness so it reads as a rounded icy ellipsoid, not flattened pasted artwork. Preserve realistic grey-white surface, upper-left illumination and thin ring with proper near/far occlusion. Repair the outer edge and ring: absolutely no ragged white pixels, white outlines or detached pixels. Fit the COMPLETE planet and COMPLETE ring inside a centered bounding box at most 76 percent of a square canvas with at least 12 percent genuinely transparent padding at every edge. All ring arcs fully within frame. Smooth clean antialiased silhouette, delicate realistic ring, no stars, no text, no extra moons, no background. Genuinely transparent alpha.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-28a72531-656e-48dc-904d-1b8c20298f11.png",
+  "sourceSha256": "a7d57c284dbae8cffa1b4deda9eea13fd017964744019d2360f5fbefd5f2fee4",
+  "sha256": "2349279a0fbea3c3db87487674a4675c33f7c0b5a1c808384a09fb24c525357f",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

@@ -1,0 +1,20 @@
+{
+  "id": "qo-nos-sol-v2",
+  "file": "qo-nos-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror. Input image 1 is the actual Sol Earth artwork, a REFERENCE ONLY for realistic orbital photography, fine planetary-scale detail, natural spherical volume and illumination. It is not an edit target or a surface to recolor. Generate ONE distinctive new world: Qo'noS, in the Qo'noS system. Appearance specification: Rugged brown-green land, dark seas, heavy weather and localized volcanic districts. Photorealistic astronomical imagery at the visual quality of the supplied Sol artwork. Invent original geography, continent silhouettes and/or storm arrangements, distinct from the reference image. Fine natural geological or atmospheric structure, no painterly brushwork, flat texture or plastic finish. Upper-left sunlight, mostly illuminated globe, soft shaded lower-right limb and realistic terminator. Entire circular globe centered in a square image with 6 percent transparent padding on every side. Minimum 1280x1280 preferred. Genuine alpha transparency outside the subject. Clouds, coastlines, craters, mountains and any settlements must be appropriately small at planetary scale. Natural subdued atmospheric limb where appropriate, no excessive glow. No stars, black backdrop, scenery, labels, text, watermarks, borders, spacecraft or other planets. No added rings unless specified. The appearance and local planetary roster are original game interpretations, not claims of screen canon.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-dbe8352b-b105-43a0-80a6-7d581134e8d9.png",
+  "sourceSha256": "e70fe7b805c2ec33e7f7e46e3aaf305146260546b0c0f285cde274537ce40ec1",
+  "sha256": "72793d655a967cbf01feb55b91453105e7a6953131c13821af0c4988e98346cd",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/03 - Earth.png",
+      "sha256": "0802891f5ba0986ec2f343a5adbc9216ce6612f2f45d4cff77668272c4bed2ee"
+    }
+  ]
+}

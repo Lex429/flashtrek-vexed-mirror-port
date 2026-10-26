@@ -5,9 +5,9 @@ const test=require('node:test');
 const vm=require('node:vm');
 
 function fixture({legacyPhaseCap=false}={}){
-  const effects=[],canvases=[],drawCalls=[],clipRects=[];let time=0;
+  const effects=[],canvases=[],drawCalls=[],drawn=[],clipRects=[];let time=0;
   const context=()=>({getTransform:()=>({a:1,b:0,c:0,d:1}),save(){},restore(){},translate(){},scale(){},
-    setTransform(){},clearRect(){},drawImage(...args){drawCalls.push({context:this,args});},beginPath(){},rect(...args){clipRects.push({context:this,args});},clip(){},fillRect(){},createLinearGradient:()=>({addColorStop(){}})});
+    setTransform(){},clearRect(){},drawImage(...args){drawCalls.push({context:this,args});drawn.push(args);},beginPath(){},rect(...args){clipRects.push({context:this,args});},clip(){},fillRect(){},createLinearGradient:()=>({addColorStop(){}})});
   const document={createElement:()=>{const canvas={width:0,height:0,getContext:context};canvases.push(canvas);return canvas;}};
   const window={};
   let source=fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/ship-sprite-cache.js'),'utf8');
@@ -15,8 +15,23 @@ function fixture({legacyPhaseCap=false}={}){
   vm.runInNewContext(source,
     {window,document,performance:{now:()=>time}});
   const asset={art:{width:315,height:512},width:315,height:512,damageStage:0,profile:{effects:{draw:(...args)=>effects.push(args)}}};
-  return {cache:window.nativeShipSpriteCache,ctx:context(),asset,effects,canvases,drawCalls,clipRects,time:value=>{time=value;}};
+  return {window,drawn,cache:window.nativeShipSpriteCache,ctx:context(),asset,effects,canvases,drawCalls,clipRects,time:value=>{time=value;}};
 }
+
+test('unlit healthy fleets share immutable display-sized artwork; art and size invalidate it within the existing budget',()=>{
+  const {cache,ctx,asset,window,effects,drawn}=fixture();window.nativeFlightLightingEnabled=false;
+  for(let frame=0;frame<3;frame++)for(let ship=0;ship<200;ship++)cache.draw(ctx,asset,24,40,frame*50);
+  assert.equal(cache.snapshot().counters.spriteMisses,1);
+  assert.equal(cache.snapshot().counters.spriteRebuilds,0);
+  assert.equal(effects.length,0,'healthy unlit artwork must not acquire animated effects');
+  const raster=drawn.at(-1)[0];assert.equal(raster.width,48);assert.equal(raster.height,80);
+  asset.art={width:315,height:512};cache.draw(ctx,asset,24,40,200);cache.draw(ctx,asset,30,40,200);
+  assert.equal(cache.snapshot().counters.spriteMisses,3);
+  for(let size=50;size<150;size++)cache.draw(ctx,asset,size,size*2,300);
+  const stats=cache.snapshot();assert.ok(stats.counters.evictions>0);assert.ok(stats.bytes<=stats.limits.bytes);assert.ok(stats.sprites.entries<=64);
+  window.nativeFlightLightingEnabled=true;cache.draw(ctx,asset,24,40,350);
+  assert.equal(effects.length,1,'reenabling lights restores the animated presentation');
+});
 
 test('lighting and warp use bounded screen-sized rasters and freeze at simulation time',()=>{
   const {cache,ctx,asset,effects,canvases}=fixture();
@@ -27,7 +42,7 @@ test('lighting and warp use bounded screen-sized rasters and freeze at simulatio
   assert.equal(cache.draw(ctx,asset,68,110,1000,options),true);
   assert.equal(cache.snapshot().counters.spriteRebuilds,1,'pause does not rerender shaders');
   assert.equal(effects.length,1);
-  assert.ok(canvases.every(c=>c.height<asset.height),'lighting never allocates original artwork height');
+  assert.ok(canvases.filter(c=>c.width!==2048).every(c=>c.height<asset.height),'individual sprites stay screen-sized; directional shades share one bounded atlas');
   cache.draw(ctx,asset,68,110,1100,{...options,kind:'departure'});
   assert.equal(effects.length,2);
   assert.equal(effects[1][1].h,asset.height,'warp keeps original effect-space geometry');

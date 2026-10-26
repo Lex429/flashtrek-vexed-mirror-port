@@ -79,13 +79,13 @@ test('shared wreck emission and trails preserve physical trajectories and the re
 test('menu star construction, motion, resizing, hiding and reduced motion do not advance later gameplay RNG',()=>{
   const ctx=canvas(),handlers=new Map(),rafs=new Map(),view={w:600,h:450};let nextRaf=0;
   const canvasElement={getContext:()=>ctx,getBoundingClientRect:()=>({left:0,top:0,width:view.w,height:view.h})};
-  const reduced={matches:false,addEventListener(){}},menuArt={hidden:false},game={getBoundingClientRect:canvasElement.getBoundingClientRect,addEventListener:(name,handler)=>handlers.set(name,handler)};
-  const env=environment({document:{hidden:false,getElementById:id=>id==='menu-space'?canvasElement:{},addEventListener(){}},
+  const reduced={matches:false,addEventListener(){}},menuArt={hidden:false},game={classList:{contains:()=>false},getBoundingClientRect:canvasElement.getBoundingClientRect,addEventListener:(name,handler)=>handlers.set(name,handler)};
+  const env=environment({document:{hidden:false,body:{classList:{contains:()=>false}},getElementById:id=>id==='menu-space'?canvasElement:{},addEventListener(){}},
     menuArt,game,devicePixelRatio:1,matchMedia:()=>reduced,
     ResizeObserver:class{observe(){}},MutationObserver:class{observe(){}},
     requestAnimationFrame:callback=>{rafs.set(++nextRaf,callback);return nextRaf;},cancelAnimationFrame:id=>rafs.delete(id)});
   env.window.nativeView={fit:()=>view};env.window.nativePause={active:false};
-  env.load(path.join(root,'html-games/broken-mirror-port/menu-space.js'));
+  env.load(path.join(root,'html-games/broken-mirror-port/menu-starfield.js'));env.load(path.join(root,'html-games/broken-mirror-port/menu-space.js'));
   const menu=vm.runInContext('menuSpace',env.context);menu.prepare();
   for(let frame=0;frame<80;frame++){
     if(frame%10===0){view.w=600+frame*3;handlers.get('pointermove')({clientX:frame*12,clientY:frame*4});menu.prepare();}

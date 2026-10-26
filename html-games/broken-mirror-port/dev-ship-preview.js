@@ -21,7 +21,9 @@
       if (!ship) return;
       name.textContent = ship.name;
       canvas.setAttribute('aria-label', `Animated, illuminated preview of ${ship.name}`);
-      placeholder.src = `../flashtrek-broken-mirror/showcase-assets/ship-${ship.id}-0.png`;
+      const frames=window.nativeShipDefinitions.get(ship.id).artwork.frames;
+      placeholder.src = '../flashtrek-broken-mirror/showcase-assets/' +
+        (Array.isArray(frames)?frames[0]:`ship-${ship.id}-0.png`);
       stats.replaceChildren();
       for (const [label, value] of [['Hull', ship.hull], ['Shields', ship.shields], ['Speed', ship.speedOrOtherStationValue], ['Cargo', `${ship.cargo} t`]]) {
         const cell = document.createElement('div');

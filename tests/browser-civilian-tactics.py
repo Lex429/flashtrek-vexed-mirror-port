@@ -71,9 +71,9 @@ try:
               h.fixture=(policy='civilian')=>{
                 nativeCombatShots.reset();nativeShipEffects.reset();const s=copy(h.base),ship=copy(s.civilianTraffic.ships.find(e=>e.shipType===47));
                 const type={civilian:47,cargo:56,medical:58}[policy],definition=nativeShipDefinitions.get(type,'civilian');
-                delete s.weaponCombat;delete s.civilianTraffic.life;s.civilianTraffic.ships=[ship];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.civilianTraffic.strayShots=[];s.civilianTraffic.clock=0;s.civilianTraffic.timingVersion=1;s.civilianTraffic.nextAwarenessAt=0;s.civilianTraffic.awarenessCursor=0;s.solEconomy.freighters=[];
+                delete s.weaponCombat;delete s.shipRepairs;delete s.civilianTraffic.life;s.civilianTraffic.ships=[ship];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.civilianTraffic.strayShots=[];s.civilianTraffic.clock=0;s.civilianTraffic.timingVersion=1;s.civilianTraffic.nextAwarenessAt=0;s.civilianTraffic.awarenessCursor=0;s.solEconomy.freighters=[];
                 s.shipSimulation.seconds=0;Object.assign(s,{system:1,localBody:3,x:100000,y:100000,angle:0,speed:0,landed:false,hull:100000,shields:100000});nativeShipMotion.stop(s);
-                for(const key of ['shipEquipment','weaponLoadout','localLeg','task','journey','lastJourney','lifeVersion','combatAI','combatInterruption','combatReturn','disputeId','retaliationId','projectileEvade','projectileWatch','nextActionAt','needsDockRecovery','motionKick','motionSpin'])delete ship[key];
+                for(const key of ['dockingMove','repairBay','shipEquipment','weaponLoadout','localLeg','task','journey','lastJourney','lifeVersion','combatAI','combatInterruption','combatReturn','disputeId','retaliationId','projectileEvade','projectileWatch','nextActionAt','needsDockRecovery','motionKick','motionSpin'])delete ship[key];
                 Object.assign(ship,{shipType:type,system:1,stationSystem:1,homeSystem:1,operatingBase:1,port:3,x:100000,y:100000,heading:0,vx:0,vy:0,speed:0,hull:definition.hull,shields:definition.shields,phase:'docked',cargo:null,oreHold:0,repairDeuranium:policy==='medical'?100:0,credits:10000,timer:10000,deliveries:0,lifeScheduleToken:1,taskSequence:0});
                 check(nativeSaveStorage.write(s).ok,'Fixture write failed');resumeNativeGame();nativeNpcLives.initialize(h.state()).config.economyEnabled=false;
                 return h.ship();
@@ -137,7 +137,7 @@ try:
             for policy in ['cargo', 'medical']:
                 midway = page.evaluate("""async policy => {
                   const h=__tactics,ship=h.fixture(policy),s=h.state();ship.x=250;ship.y=-150;h.putPlayer(550,-150);
-                  h.check(nativeNpcLives.startDelivery(s,ship.id,{fromSystem:1,fromPort:3,toSystem:1,toPort:5,good:5,tons:4}).ok,'Funded local job failed');
+                  const delivery=nativeNpcLives.startDelivery(s,ship.id,{fromSystem:1,fromPort:3,toSystem:1,toPort:5,good:5,tons:4});h.check(delivery.ok,'Funded local job failed '+JSON.stringify({delivery,ship:{id:ship.id,phase:ship.phase,journey:ship.journey,dockingMove:ship.dockingMove,cargo:ship.cargo,oreHold:ship.oreHold},found:nativeNpcLives.find(s,ship.id)===ship}));
                   for(let elapsed=0;elapsed<100&&!ship.cargo;elapsed+=.25)h.tick(.25);h.check(ship.cargo,'Cargo was not physically loaded');
                   h.putPlayer(ship.x+300,ship.y);const before={id:ship.task.id,cargo:h.copy(ship.cargo),escrow:h.copy(nativeNpcLives.initialize(s).reservations[ship.task.id]),supplies:ship.repairDeuranium,origin:{x:ship.x,y:ship.y},traits:h.copy(ship.crewTraits)};
                   nativeCivilianTraffic.hit(s,ship.id,1,{source:'player',sourceId:'player',from:vexedSolFlight.shipPosition(s)});h.tick(2);
@@ -158,8 +158,10 @@ try:
                 # A real page reload and Continue Dev exercises the production save boundary.
                 page.reload()
                 page.wait_for_function('() => nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
-                page.evaluate('()=>{window.__freezeTactics=true;window.requestAnimationFrame=()=>0;}')
+                page.evaluate('()=>{window.__freezeTactics=true;}')
                 page.locator('[data-menu="continue-dev"]').click()
+                page.wait_for_function('()=>!!nativeNpcDev.getState()',timeout=30000)
+                page.evaluate('()=>{window.requestAnimationFrame=()=>0;}')
                 resumed = page.evaluate("""before => {
                   const s=nativeNpcDev.getState(),ship=s.civilianTraffic.ships[0],check=(value,message)=>{if(!value)throw Error(message);};
                   check(ship.task.id===before.id&&ship.combatAI.disengaging,'Reload lost committed escape or job');check(JSON.stringify(ship.crewTraits)===JSON.stringify(before.traits),'Reload changed crew traits');
@@ -187,8 +189,10 @@ try:
             }""")
             page.reload()
             page.wait_for_function('() => nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
-            page.evaluate('()=>{window.__freezeTactics=true;window.requestAnimationFrame=()=>0;}')
+            page.evaluate('()=>{window.__freezeTactics=true;}')
             page.locator('[data-menu="continue-dev"]').click()
+            page.wait_for_function('()=>!!nativeNpcDev.getState()',timeout=30000)
+            page.evaluate('()=>{window.requestAnimationFrame=()=>0;}')
             repair = page.evaluate("""before => {
               const s=nativeNpcDev.getState(),ship=s.civilianTraffic.ships[0],check=(value,message)=>{if(!value)throw Error(message);};
               check(ship.phase==='disabled'&&ship.task.id===before.id,'Reload lost disabled job');

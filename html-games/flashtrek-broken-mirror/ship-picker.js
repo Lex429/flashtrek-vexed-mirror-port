@@ -6,7 +6,7 @@
   const civilianShips=new Set([17,18,23,47,52]);
   const workShips=new Set([10,47,56,57,...Array.from({length:12},(_,index)=>414+index)]);
   const fleets=[
-    {id:'earth',name:'Earth / Federation',ships:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,33,34,35,36,37,38,45,46,47,49,56,57,58,60,414,415,416,417,418,419,420,421,422,423,424,425]},
+    {id:'earth',name:'Earth / Federation',ships:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,33,34,35,36,37,38,45,46,47,49,56,57,58,60,414,415,416,417,418,419,420,421,422,423,424,425,426,427]},
     {id:'klingon',name:'Klingon',ships:[39,40,41,42,43,61]},
     {id:'romulan',name:'Romulan / Reman',ships:[27,28,29,53,64]},
     {id:'vulcan',name:'Vulcan',ships:[25,26,59,63]},

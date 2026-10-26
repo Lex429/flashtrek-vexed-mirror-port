@@ -1,0 +1,14 @@
+{
+  "id": "pirates-haven",
+  "file": "pirates-haven.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Pirates Haven, a lawless harsh frontier world with battered rocky brown continents, deep blue-black ocean and turbulent pale clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-59e93f82-080d-45f6-b5ad-b6c91a620086.png",
+  "sourceSha256": "e7abc3a2257116339aa4f3e701533d5960d2ef612f4cb332c3045d5f7fb251db",
+  "sha256": "cb7d7174740a7dca0286cb51f807a9a05804422ca82a624f9bb3150ee8d2da0f",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

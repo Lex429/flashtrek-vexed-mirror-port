@@ -1,0 +1,14 @@
+{
+  "id": "denmark",
+  "file": "denmark.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Denmark, a pristine rich blue-green planet with intricate river systems, lush continents, snow peaks and white cloud swirls.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-062b338f-633f-48d4-a6d0-f877801923db.png",
+  "sourceSha256": "286e39612fe8cbb582b97fcba2d5ed4c061a9f039a3f9637c88cf2b0b5dd0eb9",
+  "sha256": "707fb813319f2e054b2534bedc8285e87022a216bfb3937d983cd3ec1d56d549",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

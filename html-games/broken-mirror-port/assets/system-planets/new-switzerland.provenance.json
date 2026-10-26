@@ -1,0 +1,14 @@
+{
+  "id": "new-switzerland",
+  "file": "new-switzerland.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: New Switzerland, a beautiful temperate human refuge, snowy mountain ranges, green continental valleys and deep blue seas.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-9bde3a79-1f1e-46c1-9693-6c2248e76086.png",
+  "sourceSha256": "967ecf3fec8f8a61e3e0d2b32b13ab2cb7c94c2e1c0063041f774f235b984368",
+  "sha256": "182f4d747ffaaa5cf9d8ab24fda2d2f67ef15637ca6e41ee4f77105140213bb0",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

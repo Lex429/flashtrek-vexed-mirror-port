@@ -1,11 +1,14 @@
 /* Shared ship artwork, impacts and destruction. All mutation happens in hit/advance. */
 (() => {
   'use strict';
+  function fork(options={}){
+  const gpu=()=>options.gpu?options.gpu():window.vexedShieldGPU;
+  const environment=()=>options.environment||window.nativeEnvironmentalImpacts;
   const prepared=new Map(),pending=new Map(),loading=new Map(),stagePending=new Map(),background=new Map(),visuals=new Map(),bursts=[],fragments=[],wrecks=[],deferredStages=[];
-  const limits={entries:12,bytes:64*1024*1024,pending:8,deferredStages:48,backgroundDelayMs:120};
+  const limits={entries:12,bytes:64*1024*1024,pending:8,deferredStages:48,backgroundDelayMs:120,...options.limits};
   const counters={loads:0,stageLoads:0,backgroundStages:0,foregroundStages:0,evictions:0,failures:0,optionalWallMs:0,stageGeometryEmissions:0,wreckGeometryEmissions:0,materialBindings:0};
   let backgroundScheduled=false,backgroundActive=false;
-  const now=state=>window.nativeSimulation?.now(state)??performance.now();
+  const now=state=>options.now?options.now(state):window.nativeSimulation?.now(state)??performance.now();
   const key=type=>`${Number(type)}:shared`;
   const units=()=>window.showcaseWeaponAppearance?.units??.91976;
   const fragmentBytes=value=>(value||[]).reduce((total,stage)=>total+stage.reduce((sum,piece)=>sum+(piece.texture?.width||0)*(piece.texture?.height||0)*4+(window.wreckageEffects?.memoryBytes(piece.texture)||0),0),0);
@@ -109,7 +112,7 @@
     value.descriptor=descriptor;return value;
   }
   function burst(state,descriptor,point,strength=1,sparksOnly=false){
-    const first=bursts.length;window.showcaseHullBurst?.burst(bursts,point,now(state),units(),1,strength,sparksOnly);
+    const first=bursts.length;window.showcaseHullBurst?.burst(bursts,{...point,normal:point.normal||{x:point.x-descriptor.x,y:point.y-descriptor.y}},now(state),units(),1,strength,sparksOnly);
     for(let i=first;i<bursts.length;i++)Object.assign(bursts[i],{state,system:descriptor.system,entity:descriptor.entity});
   }
   function flash(state,descriptor,contact,event={},absorbed=0){
@@ -117,6 +120,11 @@
     const charge=Math.max(0,descriptor.entity.shields)/Math.max(1,descriptor.definition.shields);
     visual(state,descriptor).flash={born:now(state),x:contact.local.x,y:contact.local.y,dx:contact.dx,dy:contact.dy,
       kind:event.kind||'beam',weaponEventId:event.weaponEventId,energy:event.energy??1+Math.min(.55,absorbed/Math.max(1,absorbed+descriptor.entity.shields)*.7),charge,color:'#50d5ff'};
+  }
+  function hullFlash(state,descriptor,contact,event,damage){
+    if(!['beam','torpedo','disruptor'].includes(event.kind)||!contact?.local)return;
+    visual(state,descriptor).hullFlash={born:now(state),x:contact.local.x,y:contact.local.y,kind:event.kind,color:event.weaponColor,
+      strength:Math.min(1.8,.55+1.25*Math.sqrt(Math.max(0,damage)/Math.max(1,descriptor.definition.hull)))};
   }
   function visualImpact(state,descriptor,event={}){
     if(!descriptor?.entity||descriptor.entity.hull<=0||descriptor.entity.phase==='destroyed'||descriptor.system!==state.system)return;
@@ -128,7 +136,9 @@
     }
     const shielded=descriptor.entity.shields>0,contact=window.nativeShipDamage.collision(descriptor,event,shielded);
     if(shielded)flash(state,descriptor,contact,{...event,kind:event.kind||'debris'});
-    else burst(state,descriptor,contact.world,event.energy||.65,true);
+    else{const weapon=['beam','torpedo','disruptor'].includes(event.kind);
+      burst(state,descriptor,{...contact.world,damage:event.damage,capacity:descriptor.definition.hull,kind:event.kind},event.energy||.65,!weapon);
+      if(weapon)hullFlash(state,descriptor,contact,event,event.damage||1);}
     return {ok:true,shields:descriptor.entity.shields,hull:descriptor.entity.hull,contact};
   }
   function emitWreck(wreck){
@@ -213,12 +223,13 @@
   }
   function hit(state,descriptor,result,event={}){
     if(!result?.ok||!(result.amount>0))return result;
-    if(result.destroyed)window.nativeShipRepairs?.destroyed(state,descriptor.entity,descriptor.category);
+    if(result.destroyed&&!options.isolated)window.nativeShipRepairs?.destroyed(state,descriptor.entity,descriptor.category);
     if(descriptor.definition.renderer){descriptor.definition.renderer.hit?.(state,descriptor,result,event);return result;}
     if(descriptor.system===state.system){
       if(result.absorbed>0)flash(state,descriptor,result.contacts.shield,event,result.absorbed);
       if(result.hullDamage>0){
-        burst(state,descriptor,result.contacts.hull.world);
+        burst(state,descriptor,{...result.contacts.hull.world,damage:result.hullDamage,capacity:descriptor.definition.hull,kind:event.kind});
+        hullFlash(state,descriptor,result.contacts.hull,event,result.hullDamage);
         const ready=data(descriptor);
         if(!result.destroyed&&result.afterStage>result.beforeStage){
           const event={state,descriptor:{...descriptor,dimensions:{...descriptor.dimensions}},geometry:descriptor.definition.debrisGeometry,artwork:ready,before:result.beforeStage,after:result.afterStage,time:now(state)};
@@ -234,18 +245,18 @@
         angle:descriptor.heading+Math.PI/2,stage:result.beforeStage,time:0,debris:[],particles:[],prepared:false,sourceKey,geometry:descriptor.definition.debrisGeometry,artwork:data(descriptor)};
       if(!wreck.geometry)requestArtwork(wreck);
       wrecks.push(wreck);if(wrecks.length>36)wrecks.shift();emitWreck(wreck);
-      window.nativeEnvironmentalImpacts?.explode(state,{...descriptor.entity,x:descriptor.x,y:descriptor.y,system:descriptor.system,size:Math.max(descriptor.dimensions.width,descriptor.dimensions.height)},{sourceKey});
+      environment()?.explode(state,{...descriptor.entity,x:descriptor.x,y:descriptor.y,system:descriptor.system,size:Math.max(descriptor.dimensions.width,descriptor.dimensions.height)},{sourceKey});
     }
     return result;
   }
   function advance(state,dt){
-    if(!(dt>0)||window.nativeSimulation?.blocked?.())return;
+    if(!(dt>0)||(options.blocked?options.blocked():window.nativeSimulation?.blocked?.()))return;
     const time=now(state);
     retryArtwork(state,dt,time);
     for(let i=deferredStages.length-1;i>=0;i--){const event=deferredStages[i];if(event.state===state&&(time-event.time>=4200||emitStage(event)))deferredStages.splice(i,1);}
     for(const piece of fragments)if(piece.state===state&&time>=piece.born){
       const oldX=piece.pendingSweep?.x??piece.x,oldY=piece.pendingSweep?.y??piece.y,elapsed=Math.min(dt,Math.max(0,time-(piece.updatedAt??time-dt*1000))/1000);window.showcaseStageFragments?.update(piece,elapsed);piece.updatedAt=time;delete piece.pendingSweep;
-      if(piece.system===state.system)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:piece.sourceKey,dt:elapsed});
+      if(piece.system===state.system)environment()?.debris(state,piece,oldX,oldY,{sourceKey:piece.sourceKey,dt:elapsed});
     }
     for(let i=fragments.length-1;i>=0;i--)if(fragments[i].state===state&&time-fragments[i].born>=fragments[i].ttl)fragments.splice(i,1);
     for(const particle of bursts)if(particle.state===state&&time>=particle.born)window.showcaseHullBurst?.update(particle,dt);
@@ -253,16 +264,18 @@
     for(let i=wrecks.length-1;i>=0;i--){
       const wreck=wrecks[i];if(wreck.state!==state)continue;wreck.time+=dt*1000;const elapsed=emitWreck(wreck)?0:dt;
       for(const piece of wreck.debris){const oldX=piece.pendingSweep?.x??piece.x,oldY=piece.pendingSweep?.y??piece.y;delete piece.pendingSweep;piece.x+=piece.vx*elapsed;piece.y+=piece.vy*elapsed;piece.angle+=piece.spin*elapsed;
-        if(wreck.system===state.system)window.nativeEnvironmentalImpacts?.debris(state,piece,oldX,oldY,{sourceKey:wreck.sourceKey,dt:elapsed});}
+        if(wreck.system===state.system)environment()?.debris(state,piece,oldX,oldY,{sourceKey:wreck.sourceKey,dt:elapsed});}
       for(const particle of wreck.particles)if(wreck.time>=particle.born){particle.x+=(particle.vx||0)*elapsed;particle.y+=(particle.vy||0)*elapsed;}
       ((wreck.artwork||prepared.get(wreck.assetKey))?.destruction||(wreck.geometry?window.cthiaDestruction:null))?.updateTrails(wreck);
       wreck.debris=wreck.debris.filter(piece=>wreck.time-piece.born<piece.ttl);wreck.particles=wreck.particles.filter(particle=>wreck.time-particle.born<particle.ttl);
       if(wreck.time>17000)wrecks.splice(i,1);
     }
     for(const [entity,value] of visuals)if(value.state===state){
-      if(value.flash&&time-value.flash.born>=(window.vexedShieldGPU?.available?900:620))value.flash=null;
+      if(value.flash&&time-value.flash.born>=(gpu()?.available?900:620))value.flash=null;
       if(value.contact&&time-value.contact.born>=180)value.contact=null;
-      if(!value.flash&&!value.contact)visuals.delete(entity);
+      if(value.hullFlash&&time-value.hullFlash.born>=260)value.hullFlash=null;
+      if(value.hullFlash&&time-value.hullFlash.born>=260)value.hullFlash=null;
+      if(!value.flash&&!value.contact&&!value.hullFlash)visuals.delete(entity);
     }
   }
   function position(descriptor,view){const zoom=view.zoom??1;return {x:view.x??view.cx+(descriptor.x-view.ship.x)*zoom,y:view.y??view.cy+(descriptor.y-view.ship.y)*zoom};}
@@ -276,9 +289,13 @@
       const current=window.nativeCombatShots.beamContactFor?.(descriptor.state,impact.weaponEventId,descriptor.id,{render:true});
       if(current?.shielded)impact={...impact,x:current.local.x,y:current.local.y,dx:current.dx,dy:current.dy};
     }
-    const shield=impact&&time-impact.born<(impact.charge===0?430:window.vexedShieldGPU?.available?900:620),touch=front&&contact&&time-contact.born<180;
+    const hull=value?.hullFlash;
+    if(front&&hull&&time-hull.born<260&&!view.warpEffect){const p=position(descriptor,view),a=descriptor.heading+Math.PI/2,c=Math.cos(a),sn=Math.sin(a),z=view.zoom??1;
+      window.nativeEffectProfiles?.queueImpact?.(ctx,{...hull,x:p.x+(c*hull.x-sn*hull.y)*z,y:p.y+(sn*hull.x+c*hull.y)*z,age:time-hull.born,shield:false});}
+    const shield=impact&&time-impact.born<(impact.charge===0?430:gpu()?.available?900:620),touch=front&&contact&&time-contact.born<180;
     if((!shield&&!touch)||view.warpEffect)return;
-    const gpuShield=shield&&window.vexedShieldGPU?.submit(ctx,descriptor,view,impact,time,{front});
+    const gpuShield=shield&&gpu()?.submit(ctx,descriptor,view,impact,time,{front});
+    if(gpuShield&&!touch)return;
     const p=position(descriptor,view);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(descriptor.heading+Math.PI/2);if(view.zoom!==undefined&&view.zoom!==1)ctx.scale(view.zoom,view.zoom);
     if(shield&&!gpuShield){
       const art=view.asset||asset(descriptor),surfaceRadii=window.nativeShipDefinitions.surfaceRadii(d,true,descriptor.definition);
@@ -335,11 +352,11 @@
         else{destruction.drawWreckSurface(ctx,piece,wreck.time);destruction.drawWreckGlow(ctx,piece,wreck.time);}}ctx.restore();}
       for(const particle of wreck.particles)if(onScreen(particle,particle.size*4+12))destruction.drawParticle(ctx,particle,wreck.time);
     }
-    for(const particle of bursts)if(visible(particle)&&onScreen(particle,(particle.size||0)+2)&&(!view.entity||particle.entity===view.entity))window.showcaseHullBurst?.draw(ctx,particle,time);
+    for(const particle of bursts)if(visible(particle)&&onScreen(particle,(particle.size||0)*(particle.kind==='spark'||particle.kind==='chip'?26:6)+12)&&(!view.entity||particle.entity===view.entity))window.showcaseHullBurst?.draw(ctx,particle,time);
     ctx.restore();
   }
   function snapshot(descriptor){const value=descriptor?visuals.get(descriptor.entity):null;return {flash:value?.flash?{...value.flash}:null,contact:value?.contact?{...value.contact}:null,particles:bursts.filter(p=>!descriptor||p.entity===descriptor.entity).length};}
-  function reset(){visuals.clear();bursts.length=0;fragments.length=0;wrecks.length=0;deferredStages.length=0;window.vexedShieldGPU?.reset();}
+  function reset(){visuals.clear();bursts.length=0;fragments.length=0;wrecks.length=0;deferredStages.length=0;gpu()?.reset();}
   function metrics(){const values=new Set([...prepared.values(),...wrecks.map(wreck=>wreck.artwork).filter(Boolean),...deferredStages.map(event=>event.artwork).filter(Boolean),...fragments.map(piece=>piece.artworkSource?.artwork).filter(Boolean)]);
     let bytes=0;for(const value of values)bytes+=assetBytes(value);
     const countedTextures=new Set();for(const value of values)for(const stage of value.fragments||[])for(const piece of stage)if(piece.texture)countedTextures.add(piece.texture);
@@ -349,8 +366,11 @@
       backgroundPending:background.size,backgroundActive,bytes,liveFragmentBytes,cacheBytes:[...prepared.values()].reduce((n,value)=>n+assetBytes(value),0),
       optionalReady:[...prepared.values()].filter(value=>value.optionalReady).length,deferredStages:deferredStages.length,physicalFragments:fragments.length,wrecks:wrecks.length,wreckPieces:wrecks.reduce((n,wreck)=>n+wreck.debris.length,0),limits:{...limits},
       profileLamps:{registeredProfiles:profiles.length,frames:profiles.reduce((n,p)=>n+p.frames,0),maxFramesPerProfile:4,bytes:profiles.reduce((n,p)=>n+p.bytes,0)},
+      sharedLightTextures:window.showcaseLightPrimitiveMetrics?.()||null,
       preparation:window.nativeDamageArtPreparation?.snapshot?.()||null};}
   const ready=(type,category='player')=>Boolean(prepared.get(key(type,category))?.assets.some(Boolean));
   const optionalReady=(type,category='player')=>Boolean(prepared.get(key(type,category))?.optionalReady);
-  window.nativeShipEffects=Object.freeze({prepare,request,ready,optionalReady,asset,hit,visualImpact,advance,paintShip,paintSurface,paint,reset,snapshot,metrics});
+  return Object.freeze({fork,prepare,request,ready,optionalReady,asset,hit,visualImpact,advance,paintShip,paintSurface,paint,reset,snapshot,metrics});
+  }
+  window.nativeShipEffects=fork();
 })();

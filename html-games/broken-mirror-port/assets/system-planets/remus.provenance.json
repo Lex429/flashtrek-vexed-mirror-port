@@ -1,0 +1,14 @@
+{
+  "id": "remus",
+  "file": "remus.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Remus, a tidally locked rocky mining world, austere dark grey mountains and deep scarred mineral basins, heavily scorched ochre sunward side, shadowed cold hemisphere. No blue oceans.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-55fa8e75-a732-43b3-af6f-4dd8039bfc3f.png",
+  "sourceSha256": "0048b0faf51f9834ba523979e7b263ce28fdbd133803beb1e5b2708ec9e5e2eb",
+  "sha256": "8c5f8f30ca0f016f089aa7a506206739814deb5becd7d3cb62279584c3aea9a0",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

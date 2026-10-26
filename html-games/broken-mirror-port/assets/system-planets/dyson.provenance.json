@@ -1,0 +1,14 @@
+{
+  "id": "dyson",
+  "file": "dyson.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Dyson, abandoned advanced civilization home planet, dusty brown terrain and silent ancient city traces. Render only this spherical planet, NOT a Dyson sphere megastructure.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-4c9d944d-b84e-48e1-8672-ca049e6a6462.png",
+  "sourceSha256": "e9fa2267769d2247db69f31ed8670fecb2b17008bd8ae9e291700b992f973769",
+  "sha256": "cd8974400d620af8529e7c19b3f44ffe07fd8ef481c531ee4fa2a141285106dd",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

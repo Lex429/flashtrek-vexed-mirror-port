@@ -5,6 +5,8 @@ const reference=fs.readFileSync(path.join(__dirname,'fixtures/port-docking-d68a0
 
 async function world(rows,reservations={},legacy=false){
  const f=await fixture({full:false,economic:false}),template=f.ship;
+ // Compare the index with the historical allocator in the same obstacle-free fixture.
+ f.window.nativeSolAsteroids={...f.window.nativeSolAsteroids,sweptNearby:()=>[],nearby:()=>[]};
  f.state.civilianTraffic.ships=rows.map(row=>({...template,id:row.id,name:'Port fixture '+row.id,system:2,port:0,
   x:1e6+row.id*1000,y:1e6,previousX:undefined,previousY:undefined,speed:0,vx:0,vy:0,localLeg:null,journey:null,
   lifeVersion:1,dockingVersion:1,task:null,nextActionAt:1e9,phase:'docked',dimensions:{width:40,height:80},

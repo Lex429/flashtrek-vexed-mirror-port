@@ -25,7 +25,7 @@ async function fixture(){
 test('default installation is idempotent and leaves shared gameplay owners intact',async()=>{
   const f=await fixture();assert.equal(await f.window.installVexedShieldGPU(),f.api);
   assert.equal(f.calls.creates,1);assert.equal(f.window.nativeShipEffects,f.effects);assert.equal(f.window.nativeShipSpriteCache,f.cache);
-  assert.equal(f.calls.fleet.length,128);assert.equal(f.overlay.hidden,true);
+  assert.equal(f.calls.fleet.length,256);assert.equal(f.overlay.hidden,true);
 });
 
 test('GPU contacts retain rotation, zoom, display scale and the simulation clock without mutation',async()=>{
@@ -48,7 +48,7 @@ test('repeated hits refresh one bounded slot and unseen ships, menus and disable
   const f=await fixture();f.api.beginFrame(f.ctx);
   for(let i=0;i<500;i++)f.api.submit(f.ctx,f.descriptor,f.view,{...f.flash,born:1000+i},1500,{front:true});
   assert.equal(f.api.snapshot().slots,1);assert.equal(f.api.snapshot().events,500);
-  f.api.endFrame(f.ctx,1500);f.api.beginFrame(f.ctx);assert.equal(f.overlay.hidden,true);
+  f.api.endFrame(f.ctx,1500);f.api.beginFrame(f.ctx);
   f.api.endFrame(f.ctx,1600);assert.deepEqual(f.calls.hidden,[0]);
   f.api.setEnabled(false);f.api.beginFrame(f.ctx);
   assert.equal(f.api.submit(f.ctx,f.descriptor,f.view,f.flash,1600,{front:true}),true);
@@ -60,7 +60,7 @@ test('visual overflow remains bounded without touching any entity',async()=>{
   const f=await fixture(),entities=Array.from({length:300},(_,id)=>({id,hull:100,shields:100}));
   const before=JSON.stringify(entities);f.api.beginFrame(f.ctx);
   for(const entity of entities)f.api.submit(f.ctx,{...f.descriptor,entity,id:entity.id},f.view,f.flash,1100,{front:true});
-  assert.equal(f.api.snapshot().slots,128);assert.equal(f.api.snapshot().overBudget,172);
+  assert.equal(f.api.snapshot().slots,256);assert.equal(f.api.snapshot().overBudget,44);
   assert.equal(JSON.stringify(entities),before);
 });
 

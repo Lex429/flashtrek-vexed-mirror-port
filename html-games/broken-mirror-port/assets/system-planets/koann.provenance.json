@@ -1,0 +1,14 @@
+{
+  "id": "koann",
+  "file": "koann.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Koann, a militarized industrial world with grey-brown continents, dark ocean and tiny subtle orbital-era city lights on the night side.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-c0ecafc3-3983-4ca6-bdae-29fa64072748.png",
+  "sourceSha256": "54d702104295cbe9d401ccec5328749202ad0c722032d8640340befed36d4243",
+  "sha256": "dd625ee02253d70fb251d766199ae60251e69d542d171f037fb30e03415c3b5d",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

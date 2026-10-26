@@ -51,7 +51,16 @@ try:
         })();""")
         page.goto(base + '/html-games/flashtrek-broken-mirror/damage-showcase.html?ship=1')
         page.wait_for_function('window.showcaseState && showcaseState().ready', polling=50)
+        page.locator('[data-workspace-tab="repair"]').click()
+        page.locator('[data-workspace-page="mission"]:visible').click()
+        def repair_hull():
+            page.locator('[data-workspace-tab="damage"]').click()
+            page.locator('[data-workspace-page="hull"]:visible').click()
+            page.locator('#repair').click()
+            page.locator('[data-workspace-tab="repair"]').click()
+            page.locator('[data-workspace-page="tools"]:visible').click()
         page.locator('#drone-auto-attack').uncheck()
+        page.locator('[data-workspace-page="tools"]:visible').click()
         page.locator('button[data-stage="3"]').click()
         page.locator('#repair-demo').click()
         page.evaluate('advanceShowcase(.05)')
@@ -147,12 +156,12 @@ try:
         page.evaluate('advanceShowcase(.1)')
         assert page.evaluate('showcaseState().repair === null && showcaseState().stage === 2')
         assert page.locator('#repair').is_enabled()
-        page.locator('#repair').click()
+        repair_hull()
         assert page.evaluate('showcaseState().repair !== null')
         page.locator('#reset').click()
         assert page.evaluate('showcaseState().repair === null && showcaseState().hull === 100')
         page.evaluate("document.getElementById('hull').value=80;document.getElementById('hull').dispatchEvent(new Event('input'))")
-        page.locator('#repair').click()
+        repair_hull()
         page.evaluate('advanceShowcase(showcaseState().repair.duration/1000+.1)')
         assert page.evaluate('showcaseState().hull === 100'), 'minor damage below the artwork threshold still repairs'
         page.locator('#firing-ship').select_option('1', force=True)
@@ -211,16 +220,16 @@ try:
         except Exception:
             print(json.dumps(page.evaluate('({state:showcaseState(),loading:document.getElementById("loading").textContent})')))
             raise
-        assert page.locator('#repair-demo').is_hidden()
+        assert page.locator('#repair-demo').is_visible()
         assert page.locator('#destroy').is_enabled()
         page.locator('button[data-stage="2"]').click()
-        page.locator('#repair').click()
-        assert page.evaluate('showcaseState().hull===100 && showcaseState().repair===null')
+        repair_hull()
+        assert page.evaluate('showcaseState().repair!==null && showcaseState().repair.progress===0')
         assert not errors, errors
         assert not failed, failed
         result = {'browserErrors': errors, 'failedRequests': failed, 'pixels': pixels,
                   'pause': True, 'slowMotion': True, 'rotationAndZoomAlignment': True, 'cancelAndReset': True,
-                  'otherShipsUnchanged': True, 'missingPixels': start['repair']['missingPixels'],
+                  'otherShipsRepairEnabled': True, 'missingPixels': start['repair']['missingPixels'],
                   'staggeredLaunch': True, 'ballisticWeldingSparks': ballistic, 'returnFlight': True, 'utf8Labels': True}
         (OUTPUT / 'report.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
         print(json.dumps(result))

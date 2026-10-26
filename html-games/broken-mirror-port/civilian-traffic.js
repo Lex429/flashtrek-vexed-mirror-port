@@ -16,7 +16,7 @@
     if(!neighborCache.has(id)){const origin=systems.find(system=>system.id===id),position=origin?.mapPosition||{x:0,y:0},distance=system=>{const point=system.mapPosition||{x:0,y:0};return Math.hypot(point.x-position.x,point.y-position.y)};neighborCache.set(id,systems.filter(system=>system.id!==id&&(Number(system.populationBillions)>0||system.asteroids)).sort((a,b)=>distance(a)-distance(b)).slice(0,6).map(system=>system.id));}
     return neighborCache.get(id);
   };
-  const density=system=>system.id===1?18:Number(system.populationBillions)>=8?4:Number(system.populationBillions)>=2?3:Number(system.populationBillions)>0||system.asteroids?2:1;
+  const density=system=>system.trafficSeedCount??(system.id===1?18:Number(system.populationBillions)>=8?4:Number(system.populationBillions)>=2?3:Number(system.populationBillions)>0||system.asteroids?2:1);
   const trafficType=(system,slot)=>{
     const owned={1:47,4:23,7:18,12:52}[Number(system.governmentId)];
     return slot===0&&owned?owned:types[(system.id+slot*3)%types.length];
@@ -573,6 +573,8 @@
   function snapshot(state){const traffic=initialize(state);return {ships:traffic.ships.map(ship=>({id:ship.id,name:ship.name,system:ship.system,destinationSystem:ship.destinationSystem,phase:ship.phase,port:ship.port,cargo:[ship.cargo?`${ship.cargo.tons} t ${economy.goods[ship.cargo.good]}`:null,ship.oreHold?`${ship.oreHold} t mined ore`:null].filter(Boolean).join(', ')||'Empty hold',deliveries:ship.deliveries,mined:ship.mined,deals:ship.deals,stolenOre:ship.stolenOre||0,dispute:traffic.disputes.find(dispute=>dispute.id===ship.disputeId)?.reason||null})),disputes:traffic.disputes.map(({id,system,a,b,reason})=>({id,system,a,b,reason})),log:traffic.log.slice()};}
   // Explicit readiness clients (browser checks/showcase tools) may request the
   // representative artwork. Ordinary initialization and the galaxy map do not.
-  const effectsReady=()=>{for(const type of types)if(!window.nativeShipEffects.ready(type,'civilian'))window.nativeShipEffects.prepare(type,'civilian');return types.every(type=>window.nativeShipEffects.ready(type,'civilian'));};
+  // Explicit diagnostic warm-up, never ordinary visibility. A cached base plate
+  // is not proof that the optional damage effects are warm for a benchmark.
+  const effectsReady=()=>{const ready=type=>window.nativeShipEffects.optionalReady?.(type,'civilian')??window.nativeShipEffects.ready(type,'civilian');for(const type of types)if(!ready(type))window.nativeShipEffects.prepare(type,'civilian');return types.every(ready);};
   window.nativeCivilianTraffic={hail,initialize,advance,paint,paintMining,miningIds,isMiningRock,startMiningDemo,startOreDisputeDemo,select,clearTarget,target,hitTest,fire,hit,visualImpact,snapshot,localShips,combatScene,effectsReady};
 })();

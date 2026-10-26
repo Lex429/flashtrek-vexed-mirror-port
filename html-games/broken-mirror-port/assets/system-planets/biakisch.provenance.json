@@ -1,0 +1,14 @@
+{
+  "id": "biakisch",
+  "file": "biakisch.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Biakisch, pristine preindustrial alien world with large green forests, warm shallow turquoise seas and delicate white clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-ad8d9431-0370-49dc-8ab7-f20c5d37b491.png",
+  "sourceSha256": "42743fcdff818e68b26f73e1bc8cb6e59a3f06de41793b01829c7a706a9ffe05",
+  "sha256": "8998275162f656a323e3f00165e13b6a850632e08b5fff78365d631598a4f68f",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

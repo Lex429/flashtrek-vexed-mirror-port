@@ -16,14 +16,26 @@
   function querySource(sourceKey){
     const state=activeState,asteroid=sourceKey.startsWith('asteroid:'),ship=sourceKey.startsWith('ship:');
     if(!asteroid&&!ship)return null;
-    const id=asteroid?'rock:'+sourceKey.slice(9):sourceKey.slice(5).replace(/^civilian:/,''),target=window.nativeShipSystems?.resolve(state,id,state.system);
-    return target?(asteroid?rockTarget(target,state):shipTarget(target,state)):null;
+    const id=asteroid?'rock:'+sourceKey.slice(9):sourceKey.slice(5).replace(/^civilian:/,''),target=window.nativeShipSystems?.resolve?.(state,id,state.system);
+    if(target)return asteroid?rockTarget(target,state):shipTarget(target,state);
+    if(!window.nativeShipSystems?.resolve){const all=queryTargets(null,{swept:false});return (asteroid?all.asteroids:all.ships).find(value=>(asteroid?'asteroid:':'ship:')+value.id===sourceKey)||null;}
+    return null;
   }
   function queryTargets(bounds,{swept=true}={}){
     const state=activeState,scene=(bounds&&window.nativeShipSystems?.query?.(state,{system:state.system,...bounds,swept}))||
       window.nativeShipSystems?.scene(state,{system:state.system})||window.nativeCivilianTraffic?.combatScene(state,{system:state.system});
-    const ships=(scene?.bystanders||[]).map(target=>shipTarget(target,state));
-    const asteroids=(scene?.rocks||[]).map(target=>rockTarget(target,state));
+    const near=target=>{
+      if(!bounds)return true;
+      const radius=target.radius||target.size*.45||Math.max(target.hullRadii?.rx||target.radii?.rx||0,target.hullRadii?.ry||target.radii?.ry||0);
+      // Unknown velocity-only history stays conservative; explicit swept poses
+      // and static hulls can be narrowed without dropping a physical contact.
+      if(swept&&target.previousX==null&&(target.vx||target.vy))return true;
+      const x=swept?(target.previousX??target.x):target.x,y=swept?(target.previousY??target.y):target.y;
+      return Math.max(x,target.x)+radius>=bounds.minX&&Math.min(x,target.x)-radius<=bounds.maxX&&Math.max(y,target.y)+radius>=bounds.minY&&Math.min(y,target.y)-radius<=bounds.maxY;
+    };
+    const ships=(scene?.bystanders||[]).filter(near).map(target=>shipTarget(target,state));
+    const rocks=scene?.rocks||window.nativeSolAsteroids?.forSystem?.(state.system)||window.nativeSolAsteroids?.placements||[];
+    const asteroids=rocks.filter(near).map(target=>rockTarget(target,state));
     return {ships,asteroids};
   }
   const impacts=window.createEnvironmentalImpacts({

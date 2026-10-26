@@ -1,0 +1,14 @@
+{
+  "id": "rust-moon",
+  "file": "rust-moon.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: an airless alien moon with rust-brown mineral highlands, silver-grey impact craters and long dark ridges, no clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-c7bc732e-99f5-4030-b4cb-17fde16a5405.png",
+  "sourceSha256": "8c914f43836c36f9aeeb671ae6fca51e5ef597a49e9a6ead787160a142f156d3",
+  "sha256": "c7d11e3baa88898194404c2b8e99a331249e999db0e718733adab49e96501d0e",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

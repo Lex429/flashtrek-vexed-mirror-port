@@ -17,7 +17,7 @@
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const number = value => Math.round(value).toLocaleString();
   const call = (action, value = 0) => window.nativeNavigation.call(action, value);
-  const systemName = node => node?.id === 1 && node.known ? 'Sol' : node?.name || 'Unknown system';
+  const systemName = node => node?.known && window.nativeSystemCatalog ? window.nativeSystemCatalog.name(node.id) : node?.id === 1 && node.known ? 'Sol' : node?.name || 'Unknown system';
   const populationNumber = new Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1});
   const labelMeasure=document.createElement('canvas').getContext('2d');
   const mapColors={Allied:'#4ab3ff',Hostile:'#ff0000','Your territory':'#0fff0f',Neutral:'#cacaca',Forbidden:'#ffed15',Uninhabited:'#eda91d',Unknown:'#858585'};
@@ -33,6 +33,7 @@
   const markerKey = 'broken-mirror-map-markers';
   let markers = {};
   try { const saved = JSON.parse(localStorage.getItem(markerKey)); if (saved && typeof saved === 'object' && !Array.isArray(saved)) markers = saved; } catch {}
+  if(markers['system:30'])markers['body:31:1']=true;
   let state, selected, timer, returnFocus, drag, frame = 0, followShip = true, message = '';
   let camera = {x:0, y:0, span:6}, goal = {...camera};
   let lastFrame=0, overviewFollow=true, shipArt=null, shipArtKey='', shipArtToken=0;
@@ -74,24 +75,24 @@
 
   function solAnchor() { return state.nodes.find(node => node.id === 1) || window.nativeManualFlight.chartPosition(1); }
   function systemArea(system){
-    if(system.id===1)return {x:system.x+10.5,y:system.y,rx:19,ry:8};
-    const nearest=Math.min(...state.nodes.filter(other=>other.id!==system.id).map(other=>Math.hypot(other.x-system.x,other.y-system.y)));
-    const radius=clamp(nearest*.38,4,14);
-    return {x:system.x-.22,y:system.y+.075,rx:radius,ry:radius*.65};
+    const bounds=window.nativeSystemCatalog.boundary(system.id);
+    return {x:system.x+bounds.x/1000,y:system.y+bounds.y/1000,rx:bounds.rx/1000,ry:bounds.ry/1000};
   }
   function systemAreaView(system){
     const area=systemArea(system),availableHeight=Math.max(120,viewport.clientHeight-root.querySelector('.map-legend').clientHeight-50);
     return {x:area.x,y:area.y,span:Math.max(area.rx*2.7,area.ry*2.7*viewport.clientWidth/availableHeight)};
   }
-  function solBodies() {
-    const anchor = solAnchor();
-    return window.nativeSystemHub.sol.map(body => {
+  function solBodies(system=1) {
+    const anchor = window.nativeManualFlight.chartPosition(system);
+    return (window.nativeSystemCatalog?.bodies(system)||window.nativeSystemHub.sol).filter(body=>!body.occludedBy).map(body => {
       const position = window.vexedSolFlight.bodyPosition(body);
-      return {...body, system:1, x:anchor.x + position.x/1000, y:anchor.y + position.y/1000};
+      const residents=state?.selected?.id===system?state.selected.localPopulations?.[body.id]:undefined;
+      const port=Number.isFinite(residents)?(body.port||!!body.legacyWorldId)&&residents>0:body.port;
+      return {...body, port, system, x:anchor.x + position.x/1000, y:anchor.y + position.y/1000};
     });
   }
   function selectedNode() {
-    if (selected.body !== undefined) return solBodies().find(body => body.id === selected.body);
+    if (selected.body !== undefined) return solBodies(selected.system).find(body => body.id === selected.body);
     return state.nodes.find(node => node.id === selected.system) || state.selected;
   }
   function markerID() { return selected.body !== undefined ? `body:${selected.system}:${selected.body}` : `system:${selected.system}`; }
@@ -110,7 +111,7 @@
     returnFocus = document.activeElement;
     state = call('state');
     if (!state?.ok) return;
-    selected = state.current === 1 ? {system:1, body:state.localBody} : {system:state.current};
+    selected = {system:state.current, body:state.localBody};
     const ship = state.shipPosition || state.nodes.find(node => node.current);
     camera = {x:ship.x, y:ship.y, span:6}; goal = {...camera};
     followShip = true; overviewFollow=true;lastFrame=0; message = ''; drag = null; root.hidden = false;
@@ -157,9 +158,9 @@
     root.querySelector('.map-destination-info h3').textContent = selected.body !== undefined ? node.name : `${systemName(node)} system`;
     const distance = selected.body !== undefined ? Math.hypot(node.x-state.shipPosition.x, node.y-state.shipPosition.y)*1000 : state.selected.manualDistance;
     root.querySelector('.map-destination-meta').textContent = selected.body !== undefined
-      ? `Sol · ${number(distance)} units away${node.port ? ' · Port' : ''}`
+      ? `${systemName(state.selected)} · ${node.kind?.replaceAll("_"," ")||"world"} · ${number(distance)} units away${node.port ? ' · Port' : ''}`
       : selected.system === state.current ? 'Your current solar system' : state.selected.travelDays >= 0 ? `${number(state.selected.travelDays)} days · ${number(state.selected.fuel)} t antimatter` : 'Manual navigation only';
-    const system = state.selected, welcome = reception(system);
+    const system = selected.body!==undefined && state.selected.localWorlds?.[selected.body] ? {...state.selected,...state.selected.localWorlds[selected.body]} : state.selected, welcome = reception(system);
     const badge = root.querySelector('.map-welcome');
     badge.textContent = welcome.text;
     badge.dataset.tone = welcome.tone;
@@ -182,7 +183,7 @@
     cruise.hidden = !local;
     cruise.disabled = state.inLocalTransit;
     warp.hidden = local || selected.system === state.current;
-    warp.textContent = selected.body !== undefined && !local ? 'Warp to Sol' : 'Warp to';
+    warp.textContent = selected.body !== undefined && !local ? 'Warp to '+systemName(state.selected) : 'Warp to';
     warp.disabled = state.inLocalTransit || !state.selected.canTravel;
     warp.title = state.selected.canTravel ? `Warp to ${systemName(state.selected)}` : state.selected.error;
     nav.disabled = state.inLocalTransit;
@@ -254,32 +255,32 @@
     labelMeasure.font=`${fontSize}px system-ui`;
     let route;
     if(state.manualTargetSystem)route=state.nodes.find(node=>node.id===state.manualTargetSystem);
-    else if(state.current===1)route=solBodies().find(body=>body.id===state.localNavTarget);
+    else route=solBodies(state.current).find(body=>body.id===state.localNavTarget);
     if(route){const end=project(route);markup+=`<path class="map-navigation-line" d="M ${ship.x} ${ship.y} L ${end.x} ${end.y}"/>`;}
     const items=[];
     for(const node of state.nodes){
-      const opacity=node.id===1&&sol.known?1-bodyOpacity:1;if(opacity<.03)continue;
+      const opacity=node.known?1-bodyOpacity:1;if(opacity<.03)continue;
       const point=project(node.id===1?node:{x:node.x-.22,y:node.y+.075});
       const isSelected=selected.system===node.id&&(selected.body===undefined||bodyOpacity<.5);
-      const isMarked=!!markers[`system:${node.id}`]||node.id===1&&Object.keys(markers).some(key=>key.startsWith('body:1:')&&markers[key]);
+      const isMarked=!!markers[`system:${node.id}`]||Object.keys(markers).some(key=>key.startsWith(`body:${node.id}:`)&&markers[key]);
       items.push({node,point,isSelected,isCurrent:node.current,isMarked,body:false,opacity});
     }
-    if(sol?.known&&bodyOpacity>.03)for(const body of solBodies()){
+    if(bodyOpacity>.03)for(const region of state.nodes.filter(node=>node.known))for(const body of solBodies(region.id)){
       const point=project(body);
-      items.push({node:body,point,isSelected:selected.system===1&&selected.body===body.id,isCurrent:state.current===1&&state.localBody===body.id,isMarked:!!markers[`body:1:${body.id}`],body:true,opacity:bodyOpacity});
+      items.push({node:body,point,isSelected:selected.system===body.system&&selected.body===body.id,isCurrent:state.current===body.system&&state.localBody===body.id,isMarked:!!markers[`body:${body.system}:${body.id}`],body:true,opacity:bodyOpacity});
     }
     items.sort((a,b)=>Number(b.isSelected)-Number(a.isSelected)||Number(b.isCurrent)-Number(a.isCurrent)||Number(b.isMarked)-Number(a.isMarked)||Number(b.node.known)-Number(a.node.known));
     for(const item of items)if(item.opacity>.35)occupied.push({x:item.point.x-8,y:item.point.y-8,w:16,h:16,owner:item.point});
     const planetColors=['#f3c468','#bcb7ac','#dabd87','#7ebbdc','#c5cbd2','#df9475','#a69a86','#d7c3a1','#dfc892','#8acdd5','#6d94d0','#b5bdc8'];
     for(const item of items){
-      const {node,point,isSelected,isCurrent,isMarked,body,opacity}=item,relation=body?sol:node,welcome=reception(relation);
+      const {node,point,isSelected,isCurrent,isMarked,body,opacity}=item,relation=body?state.nodes.find(region=>region.id===node.system):node,welcome=reception(relation);
       const status=!relation?.known?'Unknown':relation.status==='Uninhabited'?'Uninhabited':relation.standing;
-      const color=body?planetColors[node.id]:mapColors[status]||mapColors.Unknown;
+      const color=body?(planetColors[node.id]||"#9cbdcf"):mapColors[status]||mapColors.Unknown;
       const name=body?node.name:systemName(node),reputation=!body&&node.known?node.prestige:null;
       const text=opacity>.5&&(isSelected||isCurrent||isMarked||body||node.known)?label(name,point):'';
-      const radius=body?(node.id===0?7:5):compact?4.5:5.5;
+      const radius=body?(node.kind==='star'?7:5):compact?4.5:5.5;
       const description=`${name} · ${welcome.text}${reputation!==null?` · Standing ${signed(reputation)}`:''}${relation?.status==='Forbidden'?' · Restricted space':''}`;
-      markup+=`<g class="map-destination-node ${isSelected?'selected':''} ${isCurrent?'current':''} ${!relation?.known?'unknown':''}" data-system="${body?1:node.id}" ${body?`data-body="${node.id}"`:''} data-reputation="${reputation??''}" data-standing="${escape(status)}" tabindex="${opacity>.5&&onScreen(point)?0:-1}" role="button" aria-label="${escape(description)}" aria-pressed="${isSelected}" opacity="${opacity}" style="--node-color:${color};${opacity<.35?'pointer-events:none':''}"><circle class="map-hit" cx="${point.x}" cy="${point.y}" r="${wide>.5?10:15}"/>${!body&&node.status==='Forbidden'?`<circle class="map-restricted-ring" cx="${point.x}" cy="${point.y}" r="${radius+3}"/>`:''}${isSelected?`<circle class="map-selection-ring" cx="${point.x}" cy="${point.y}" r="${radius+6}"/>`:''}<circle class="map-dot" cx="${point.x}" cy="${point.y}" r="${radius}"/>${isMarked?`<path class="map-saved-marker" d="M ${point.x-3} ${point.y-12} v -9 h 8 v 5 h -8"/>`:''}${text}</g>`;
+      markup+=`<g class="map-destination-node ${isSelected?'selected':''} ${isCurrent?'current':''} ${!relation?.known?'unknown':''}" data-system="${body?node.system:node.id}" ${body?`data-body="${node.id}"`:''} data-reputation="${reputation??''}" data-standing="${escape(status)}" tabindex="${opacity>.5&&onScreen(point)?0:-1}" role="button" aria-label="${escape(description)}" aria-pressed="${isSelected}" opacity="${opacity}" style="--node-color:${color};${opacity<.35?'pointer-events:none':''}"><circle class="map-hit" cx="${point.x}" cy="${point.y}" r="${wide>.5?10:15}"/>${!body&&node.status==='Forbidden'?`<circle class="map-restricted-ring" cx="${point.x}" cy="${point.y}" r="${radius+3}"/>`:''}${isSelected?`<circle class="map-selection-ring" cx="${point.x}" cy="${point.y}" r="${radius+6}"/>`:''}<circle class="map-dot" cx="${point.x}" cy="${point.y}" r="${radius}"/>${body&&node.kind!=='star'&&node.art&&camera.span<18&&onScreen(point)?`<image href="${escape(node.art)}" x="${point.x-13}" y="${point.y-13}" width="26" height="26" pointer-events="none"/>`:""}${isMarked?`<path class="map-saved-marker" d="M ${point.x-3} ${point.y-12} v -9 h 8 v 5 h -8"/>`:''}${text}</g>`;
     }
     const angle=state.shipAngle*180/Math.PI+90,size=blend(20,16,wide),iconWidth=shipArt?size*Math.min(1,shipArt.ratio):0,iconHeight=shipArt?size*Math.min(1,1/shipArt.ratio):0;
     function shipIcon(point,offscreen=false){return `<g class="map-your-ship ${offscreen?'map-offscreen-ship':''}" transform="translate(${point.x},${point.y})" data-ship-type="${state.shipType}" data-world-x="${state.shipPosition.x}" data-world-y="${state.shipPosition.y}" aria-label="${escape(state.shipName)}, your current ship${offscreen?', outside this view':''}"><circle r="${offscreen?9:blend(11,9,wide)}"/>${shipArt?`<image href="${shipArt.url}" x="${-iconWidth/2}" y="${-iconHeight/2}" width="${iconWidth}" height="${iconHeight}" transform="rotate(${angle})"/>`:'<circle class="map-ship-loading" r="2"/>'}${camera.span<45&&!offscreen?'<text x="15" y="-10">YOU</text>':''}</g>`;}
@@ -327,7 +328,7 @@
       if(!target){hover.hidden=true;return;}
       const system=state.nodes.find(node=>node.id===Number(target.dataset.system));
       if(!system){hover.hidden=true;return;}
-      const name=target.dataset.body!==undefined?solBodies().find(body=>body.id===Number(target.dataset.body))?.name:systemName(system),welcome=reception(system);
+      const name=target.dataset.body!==undefined?solBodies(Number(target.dataset.system)).find(body=>body.id===Number(target.dataset.body))?.name:systemName(system),welcome=reception(system);
       hover.innerHTML=`<strong>${escape(name)}</strong><span>${escape(welcome.text)}${system.known?` · Standing ${signed(system.prestige)}`:''}</span>${system.status==='Forbidden'?'<small>Restricted space</small>':''}`;
       hover.dataset.tone=welcome.tone;hover.hidden=false;
       const bounds=viewport.getBoundingClientRect();hover.style.left=`${clamp(event.clientX-bounds.left+13,8,Math.max(8,viewport.clientWidth-hover.offsetWidth-8))}px`;hover.style.top=`${clamp(event.clientY-bounds.top+14,8,Math.max(8,viewport.clientHeight-hover.offsetHeight-8))}px`;

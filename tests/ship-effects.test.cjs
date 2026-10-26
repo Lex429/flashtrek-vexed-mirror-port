@@ -41,6 +41,35 @@ function fixture({backgroundTimers=null}={}){
   return {window,definitions,entities,ctx,transforms,drawn,emitted,explosions,contacts,context:sandbox,setTime:value=>{time=value;},setBlocked:value=>{blocked=value;}};
 }
 
+test('isolated effects retain their own contacts, clock and GPU without touching the live presentation',()=>{
+ const f=fixture(),w=f.window,role=f.entities().find(r=>r.category==='civilian');let movieTime=400,movieResets=0,liveResets=0;
+ w.vexedShieldGPU={reset:()=>liveResets++};
+ const film=w.nativeShipEffects.fork({isolated:true,blocked:()=>false,now:()=>movieTime,gpu:()=>({reset:()=>movieResets++})});
+ const d=role.describe();film.visualImpact(role.state,d,{physicalContact:true,from:{x:d.x-30,y:d.y},kind:'debris'});
+ assert.equal(film.snapshot(d).contact.born,400);assert.equal(w.nativeShipEffects.snapshot(d).contact,null);
+ f.setBlocked(true);movieTime=700;film.advance(role.state,.3);assert.equal(film.snapshot(d).contact,null);
+ film.reset();assert.equal(movieResets,1);assert.equal(liveResets,0);
+});
+
+test('weapon hull flares follow the authoritative local hit through movement, rotation and zoom, then expire',()=>{
+ const f=fixture(),w=f.window,role=f.entities().find(r=>r.category==='civilian'),events=[];role.entity.shields=0;
+ w.nativeEffectProfiles={queueImpact:(ctx,event)=>{events.push(event);return true;}};
+ const d=role.describe(),from={x:d.x-100,y:d.y+15},result=w.nativeShipDamage.apply(d,10,{from});
+ w.nativeShipEffects.hit(role.state,d,result,{kind:'torpedo',weaponColor:0xaaff22});
+ const local=result.contacts.hull.local;
+ for(const zoom of [.7,2]){
+  role.entity.x+=20;role.entity.y-=13;role.entity.heading+=.4;const next=role.describe();
+  const view={ship:{x:-20,y:10},cx:300,cy:180,zoom,dimensions:next.dimensions};
+  w.nativeShipEffects.paintSurface(f.ctx,next,view,{front:false});assert.equal(events.length,zoom===.7?0:1);
+  w.nativeShipEffects.paintSurface(f.ctx,next,view,{front:true});const event=events.at(-1),a=next.heading+Math.PI/2;
+  const x=300+(next.x+20)*zoom+(Math.cos(a)*local.x-Math.sin(a)*local.y)*zoom;
+  const y=180+(next.y-10)*zoom+(Math.sin(a)*local.x+Math.cos(a)*local.y)*zoom;
+  assert.ok(Math.hypot(event.x-x,event.y-y)<1e-8);assert.equal(event.color,0xaaff22);assert.equal(event.kind,'torpedo');
+ }
+ f.setTime(1300);w.nativeShipEffects.advance(role.state,.3);w.nativeShipEffects.paintSurface(f.ctx,role.describe(),{ship:{x:0,y:0},cx:0,cy:0,zoom:1},{front:true});
+ assert.equal(events.length,2,'Expired impacts must not keep emitting lens flares');
+});
+
 test('all registered ship types and role profiles share damage and authoritative surfaces',()=>{
   const {window,definitions,entities}=fixture();
   for(const definition of definitions.registered())for(const role of entities(definition.id)){
@@ -54,6 +83,21 @@ test('all registered ship types and role profiles share damage and authoritative
     const hull=result.contacts.hull,radii=definitions.surfaceRadii(descriptor.dimensions,false,descriptor.definition);
     assert.ok(Math.abs(Math.hypot(hull.local.x/radii.rx,hull.local.y/radii.ry)-.96)<1e-8);
   }
+});
+
+test('GPU shield submission skips unused Canvas state while physical glints retain their painter',()=>{
+  const {window,entities,ctx,transforms}=fixture(),role=entities()[0],descriptor=role.describe();
+  const contact=window.nativeCombatShots.contact(descriptor,{x:descriptor.x-100,y:descriptor.y},descriptor.dimensions,true);
+  window.nativeShipEffects.visualImpact(role.state,descriptor,{contact,kind:'beam'});
+  let submissions=0;
+  window.vexedShieldGPU={available:true,duration:900,submit(){submissions++;return true;}};
+  const untouched=new Proxy({}, {get(){throw Error('GPU-only shield touched Canvas state');}});
+  for(const front of [false,true])window.nativeShipEffects.paintSurface(untouched,descriptor,{ship:{x:0,y:0},cx:0,cy:0},{front});
+  assert.equal(submissions,2);
+  window.nativeShipEffects.visualImpact(role.state,descriptor,{physicalContact:true,point:contact.world,from:contact.world,energy:.5});
+  Object.assign(ctx,{getTransform:()=>({a:1,b:0}),beginPath(){},arc(){},fill(){}});
+  window.nativeShipEffects.paintSurface(ctx,descriptor,{ship:{x:0,y:0},cx:0,cy:0},{front:true});
+  assert.ok(transforms.length,'physical glint still uses the local Canvas transform');
 });
 
 test('registered definitions inherit systems while preserving role scale and explicit capabilities',()=>{
@@ -76,7 +120,7 @@ test('effective definitions retain engine upgrades, custom movement and world-sp
   for(const level of [0,1,2,3]){
     const role=entities(10)[0];role.entity.tugEngineLevel=level;role.entity.system=1;
     role.entity.previousX=900;role.entity.previousY=1900;
-    const descriptor=role.describe(),speed=level?35+15*Math.min(2,level):definitions.get(10).speedOrOtherStationValue;
+    const descriptor=role.describe(),speed=definitions.get(10).speedOrOtherStationValue+15*Math.min(2,level);
     assert.equal(descriptor.definition.speedOrOtherStationValue,speed);
     assert.equal(descriptor.definition.movement.maxSpeed,speed*4.5);
     assert.equal(descriptor.previousX,900);assert.equal(descriptor.previousY,1900);

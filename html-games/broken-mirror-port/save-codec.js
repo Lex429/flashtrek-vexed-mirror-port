@@ -156,7 +156,31 @@
     }
     const parts=[];for(let at=0;at<expected;at+=8192)parts.push(String.fromCharCode(...output.subarray(at,Math.min(expected,at+8192))));return parts.join('');
   }
-  function stringify(state){return large(state)?compress(JSON.stringify({...state,saveSlotVersion:3})):JSON.stringify({...state,saveSlotVersion:1});}
-  function parse(text){const compressed=typeof text==='string'&&text.startsWith(compressedPrefix),value=unpack(JSON.parse(compressed?decompress(text):jsonText(text)));if(compressed&&value?.saveSlotVersion!==3)throw Error('Unsupported compressed save');return value;}
-  window.nativeSaveCodec=Object.freeze({pack,unpack,stringify,parse,compress,decompress,version,slotVersion:3,format,limits:Object.freeze({maxNodes,maxShapes,maxStrings,maxTextUnits})});
+  // VM4 stores the same VM3 stream with byte-sized varints packed two per
+  // Web Storage code unit. Large expanded fleets retain both mode slots without
+  // dropping fields or changing the existing graph/JSON and transaction owners.
+  function compactUnits(text){
+    const parts=[],codes=[];let high=-1,bytes=0;
+    const byte=value=>{bytes++;if(high<0)high=value;else{codes.push(high*256+value);high=-1;if(codes.length===8192){parts.push(String.fromCharCode(...codes));codes.length=0;}}};
+    for(let i=0;i<text.length;i++){let value=text.charCodeAt(i);while(value>=128){byte((value&127)|128);value>>>=7;}byte(value);}
+    if(high>=0)codes.push(high*256);if(codes.length)parts.push(String.fromCharCode(...codes));
+    return 'VM4:'+text.length+':'+bytes+':'+parts.join('');
+  }
+  function expandUnits(text){
+    const first=text.indexOf(':',4),second=text.indexOf(':',first+1),count=Number(text.slice(4,first)),bytes=Number(text.slice(first+1,second)),payload=text.slice(second+1);
+    if(first<0||second<0||!Number.isSafeInteger(count)||count<0||count>maxTextUnits+32||!Number.isSafeInteger(bytes)||bytes<count||bytes>count*3||payload.length!==Math.ceil(bytes/2))throw Error('Invalid compact save length');
+    if(bytes%2&&(payload.charCodeAt(payload.length-1)&255))throw Error('Invalid compact save padding');
+    const parts=[],codes=[];let at=0;
+    const byte=()=>{if(at>=bytes)throw Error('Truncated compact save');const value=payload.charCodeAt(at>>1),result=at%2?value&255:value>>>8;at++;return result;};
+    for(let i=0;i<count;i++){
+      let value=0,shift=0,next;
+      do{next=byte();if(shift===14&&next>3)throw Error('Invalid compact save unit');value|=(next&127)<<shift;shift+=7;}while(next&128);
+      codes.push(value);if(codes.length===8192){parts.push(String.fromCharCode(...codes));codes.length=0;}
+    }
+    if(at!==bytes)throw Error('Trailing compact save bytes');if(codes.length)parts.push(String.fromCharCode(...codes));
+    const result=parts.join('');if(!result.startsWith(compressedPrefix))throw Error('Unsupported compact save');return result;
+  }
+  function stringify(state){if(!large(state))return JSON.stringify({...state,saveSlotVersion:1});const text=compress(JSON.stringify({...state,saveSlotVersion:3}));return text.length>1_000_000?compactUnits(text):text;}
+  function parse(text){if(typeof text==='string'&&text.startsWith('VM4:'))text=expandUnits(text);const compressed=typeof text==='string'&&text.startsWith(compressedPrefix),value=unpack(JSON.parse(compressed?decompress(text):jsonText(text)));if(compressed&&value?.saveSlotVersion!==3)throw Error('Unsupported compressed save');return value;}
+  window.nativeSaveCodec=Object.freeze({pack,unpack,stringify,parse,compress,decompress,compactUnits,expandUnits,version,slotVersion:3,format,limits:Object.freeze({maxNodes,maxShapes,maxStrings,maxTextUnits})});
 })();

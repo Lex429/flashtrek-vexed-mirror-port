@@ -30,7 +30,7 @@
   };
   const buildMaterials=[[1,15],[2,12],[3,6],[7,5],[8,2]];
   const solGovernmentId=Number(world.systems.find(system=>system.id===1)?.governmentId)||1;
-  let targetId=null,tugSelectedAt=0;const runtimes=new WeakMap(),deadlines=new WeakMap();
+  let targetId=null,tugSelectedAt=0;const runtimes=new WeakMap(),deadlines=new WeakMap(),owners=new WeakMap();
   function pushEvent(heap,item){let i=heap.length;heap.push(item);while(i){const p=(i-1)>>1;if(heap[p].at<item.at||heap[p].at===item.at&&heap[p].order<=item.order)break;heap[i]=heap[p];i=p;}heap[i]=item;}
   function popEvent(heap){const first=heap[0],last=heap.pop();if(heap.length){let i=0;while(true){let c=i*2+1;if(c>=heap.length)break;if(c+1<heap.length&&(heap[c+1].at<heap[c].at||heap[c+1].at===heap[c].at&&heap[c+1].order<heap[c].order))c++;if(heap[c].at>last.at||heap[c].at===last.at&&heap[c].order>=last.order)break;heap[i]=heap[c];i=c;}heap[i]=last;}return first;}
   function watchDeadline(rt,ship,order){
@@ -54,6 +54,7 @@
     ship.recentEvents||=[];ship.recentEvents.unshift({at:lifeNow(economy),kind,message});ship.recentEvents.length=Math.min(16,ship.recentEvents.length);
   }
   function ensureLives(economy,state){
+    if(state)owners.set(economy,state);
     economy.flows||={produced:goods.map(()=>0),consumed:goods.map(()=>0),lost:goods.map(()=>0)};
     if(!Number.isFinite(economy.lifeClock))economy.lifeClock=window.nativeSimulation?.seconds(state)||0;
     economy.lifeMetrics||={detailed:0,distant:0,distantUpdates:0,scheduledEvents:0,deferred:0};
@@ -360,7 +361,10 @@
       }
       if(skipped>64){ship.lifeSkipPending=true;ship.lifeEventAt=at+1/60;return;}
       if(!goal){arriveTug(economy,ship);scheduleTug(economy,ship,at);return;}
-      ship.lifeLeg=window.nativeShipMotion.planLeg(ship,goal,window.nativeShipDefinitions.forEntity(null,ship,{category:'tug'}).movement||window.nativeShipMotion.profiles.manual(tugStats()),at);
+      const motion=window.nativeShipMotion,profile=window.nativeShipDefinitions.forEntity(null,ship,{category:'tug'}).movement||motion.profiles.manual(tugStats());
+      const state=owners.get(economy)||{system:1,shipSimulation:{seconds:at}},descriptor=window.nativeShipDefinitions.describe(state,ship,{category:'tug'}),padding=motion.shipRadius(descriptor)+24;
+      const points=motion.obstaclePoints(ship,goal,motion.navigationObstacles(state,1,ship,goal,padding),padding);
+      ship.lifeLeg=points===null?{valid:false}:points.length?motion.routeLeg(ship,goal,points,profile,at):motion.planLeg(ship,goal,profile,at);
       if(ship.lifeLeg.valid!==false){ship.lifeEventAt=at+ship.lifeLeg.duration;return;}
       ship.lifeLeg=null;ship.phase='waiting-route';window.nativeShipMotion.stop(ship);ship.task.status='blocked';ship.task.failureReason='Invalid saved route; cargo remains aboard';
     }

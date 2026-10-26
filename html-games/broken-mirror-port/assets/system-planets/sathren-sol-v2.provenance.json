@@ -1,0 +1,20 @@
+{
+  "id": "sathren-sol-v2",
+  "file": "sathren-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: production planet sprite for Vexed Mirror. Input image 1 is a Sol planet used ONLY as a visual reference for photographic realism, scale of texture, 3D volume and lighting, NOT an edit target or a surface to recolor. Generate ONE distinct original world, Sathren: a slate gray rocky outer planet with patchy white frost and ONE huge ancient impact basin. Fine craters, fractured ridges, natural mineral variation. Airless, no blue atmosphere, no water, no vegetation, no rings. Highly detailed realistic orbital imagery matching the game's Sol planet quality. Crisp spherical limb, physically plausible upper-left sunlight, mostly illuminated globe with softly shaded lower-right limb. Entire CIRCULAR globe centered inside a square image with 6 percent transparent margin on every side; minimum 1280x1280 preferred. Genuine alpha transparency outside planet. No stars, black backdrop, labels, text, watermarks, ships, other objects, ground-level scenery, painterly brushwork, noisy fake texture or exaggerated glow. This is an original game interpretation.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-cca086a6-4f87-42d9-a123-347fd2aa6229.png",
+  "sourceSha256": "ebe70151bc8d8d017adad004c3cfd331bab753e3b9c2dd91de801d8517ef7acd",
+  "sha256": "7fa9a7d0485e47e2fc846671493535a2a6d7abd496fced1f24e329740ec988de",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/05 - Mars.png",
+      "sha256": "3b8ca14309c978a5291f4a940e9ecbbbf2d17aa95aee3b1ecdefbe35085c26bb"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 /* The saved gameplay clock. Wall time is only used to measure the next frame. */
 (() => {
   'use strict';
-  function blocked(){return !!(document.hidden||window.nativePause?.active||window.nativeShipInventory?.active);}
+  function blocked(){return !!(document.hidden||window.nativeOpeningCinematic?.active||window.nativePause?.active||window.nativeShipInventory?.active||window.nativeShipyardServices?.active);}
   function ensure(state){
     if(!state.shipSimulation||state.shipSimulation.version!==1){
       const player=Math.max(0,Number(state.weaponCombat?.clock)||0),civilian=Math.max(0,Number(state.civilianTraffic?.clock)||0);

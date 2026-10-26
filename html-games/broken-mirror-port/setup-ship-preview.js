@@ -1,6 +1,46 @@
-/* Setup uses the same aligned showcase artwork and lamp shaders as flight. */
+/* Draw intact ships exactly as the showcase: aligned art and its native lamps. */
 (() => {
   'use strict';
+  const base = '../flashtrek-broken-mirror/showcase-assets/';
+  const assets = new Map();
+  let catalog;
+
+  function load(type) {
+    if (assets.has(type)) return assets.get(type);
+    catalog ||= fetch(base + 'catalog.json').then(response => {
+      if (!response.ok) throw Error('Showcase catalog unavailable');
+      return response.json();
+    }).catch(error => {catalog = null; throw error;});
+    const pending = catalog.then(async data => {
+      const entry = data.ships.find(ship => ship.id === type);
+      const profile = window.starterShips.get(type);
+      if (!entry || !profile) throw Error('Showcase ship unavailable');
+      const image = new Image();
+      image.src = base + entry.frames[0];
+      await image.decode();
+      const art = await (profile.alignAsync?.(image, 0) || profile.align(image, 0));
+      const bounds = entry.bounds;
+      const ratio = profile.displayRatio ?? (bounds[1] - bounds[0]) / (bounds[3] - bounds[2]);
+      return {type, name: entry.name, art, profile, ratio};
+    }).catch(error => {assets.delete(type); throw error;});
+    // Retain at most the eight starting hulls, rather than a second fleet cache.
+    if (assets.size >= 8) assets.delete(assets.keys().next().value);
+    assets.set(type, pending);
+    return pending;
+  }
+
+  function draw(context, asset, layout, time, options = {}) {
+    context.save();
+    context.translate(layout.x, layout.y);
+    context.drawImage(asset.art, -layout.w / 2, -layout.h / 2, layout.w, layout.h);
+    context.restore();
+    // The showcase uses gain/bloom 1, original hull colors and continuous pulses.
+    // Its direct lamp path avoids the flight cache's quantized pulse samples.
+    asset.profile.effects.draw(context, layout, 0, 0, time, {
+      lights: true, damage: true, anchors: false, impact: null, toolDemo: false,
+      cacheLamps: false, ...options
+    });
+  }
 
   function attach(figure, ship) {
     const canvas = figure.querySelector('canvas');
@@ -36,16 +76,10 @@
       }
       context.clearRect(0, 0, width, height);
       // Leave room for the real lamp bloom around every hull silhouette.
-      const scale = Math.min(width * .82 / asset.width, height * .84 / asset.height);
-      window.vexedFlightAssets.drawShip(context, asset, width / 2, height / 2,
-        asset.width * scale, 0, reducedMotion.matches ? 0 : now, {
-          height: asset.height * scale,
-          lights: true,
-          damage: false,
-          lightGain: 2.8,
-          lightBloom: 2.5,
-          light: {x: width * .12, y: height * .05, color: 0xd6e8ff}
-        });
+      const shipWidth = Math.min(width * .82, height * .84 * asset.ratio);
+      window.nativeSetupShipPreview.draw(context, asset, {
+        x: width / 2, y: height / 2, w: shipWidth, h: shipWidth / asset.ratio
+      }, reducedMotion.matches ? 0 : now);
       canvas.hidden = false;
       fallback.hidden = true;
       canvas.classList.add('ready');
@@ -66,7 +100,7 @@
     resize.observe(art);
     document.addEventListener('visibilitychange', visibilityChanged);
     reducedMotion.addEventListener('change', motionChanged);
-    window.vexedFlightAssets.loadShip(ship.id, ship.hull).then(loaded => {
+    load(ship.id).then(loaded => {
       if (disposed) return;
       asset = loaded;
       schedule();
@@ -83,5 +117,5 @@
     };
   }
 
-  window.nativeSetupShipPreview = Object.freeze({attach});
+  window.nativeSetupShipPreview = {attach, load, draw};
 })();

@@ -26,6 +26,29 @@ async function movingFixture(bodies,{player=false}={}){
   saved.asteroidMotion.rocks=Object.fromEntries(bodies.map((b,i)=>[rocks[i].slotId,{system:43,x:b.x,y:b.y,angle:0,vx:b.vx||0,vy:b.vy||0,spin:0,at}]));
   const f=await setup(saved);f.bodies=bodies.map((b,i)=>{const r=f.window.nativeSolAsteroids.find(rocks[i].slotId);r.size=b.size||40;return r;});return f;
 }
+test('debris broad phase preserves swept physical contacts for moving, rotated and distant targets',async()=>{
+  const {window:w}=await setup();let seed=429,calls=0,contacts=0;
+  const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  for(const type of ['ship','asteroid'])for(let i=0;i<500;i++){
+    const x=(random()-.5)*1000,y=(random()-.5)*1000,px=x+(random()-.5)*600,py=y+(random()-.5)*600;
+    const body=type==='ship'?ship({x,y,previousX:px,previousY:py,vx:(x-px)/.1,vy:(y-py)/.1,heading:random()*6}):
+      {x,y,previousX:px,previousY:py,size:10+random()*70,vx:(x-px)/.1,vy:(y-py)/.1};
+    const target={id:i,x,y,radius:type==='ship'?40:body.size*.45,...(type==='ship'?{descriptor:body}:{entity:body})};
+    const from={x:(random()-.5)*600,y:(random()-.5)*600};
+    const piece={x:(random()-.5)*600,y:(random()-.5)*600,size:3+random()*40,w:10,h:10,dt:.1,vx:80,vy:10,born:0};
+    const expected=w.nativeShipMotion.debrisContact(piece,from,body,type);
+    const controller=w.createEnvironmentalImpacts({getShips:()=>type==='ship'?[target]:[],getAsteroids:()=>type==='ship'?[]:[target],
+      debrisContact:(p,f)=>{calls++;return w.nativeShipMotion.debrisContact(p,f,body,type);}});
+    const actual=controller.stepDebris({...piece},from.x,from.y,100);
+    assert.equal(actual.length,expected?1:0,`Changed ${type} crossing ${i}`);if(expected)contacts++;
+  }
+  assert.ok(contacts>10,'Fixture must include real contacts');assert.ok(calls<600,'Distant pairs should avoid detailed physical work');
+  // A target's velocity-derived start matters even without explicit previous coordinates.
+  const rock={x:100,y:0,size:20,vx:2000,vy:0},piece={x:0,y:0,size:5,dt:.1,born:0};
+  const target={id:'fast',x:100,y:0,radius:10,entity:rock};
+  const controller=w.createEnvironmentalImpacts({getAsteroids:()=>[target],debrisContact:(p,f)=>w.nativeShipMotion.debrisContact(p,f,rock,'asteroid')});
+  assert.equal(controller.stepDebris(piece,0,0,100).length,1);
+});
 
 test('whole asteroids exchange momentum by mass and glance aside without generating ore',async()=>{
   const {window:w}=await setup(),pair=w.nativeShipMotion.asteroidPairContact;
@@ -42,11 +65,11 @@ test('whole asteroids exchange momentum by mass and glance aside without generat
 });
 
 test('drifting rocks hit other rocks offscreen and transfer motion through a chain without duplicate claims',async()=>{
-  const f=await movingFixture([{x:0,y:0,vx:60},{x:45,y:0},{x:90,y:0}]),w=f.window,s=f.state;
+  const f=await movingFixture([{x:0,y:0,vx:120},{x:45,y:0},{x:90,y:0}]),w=f.window,s=f.state;
   for(let i=0;i<30;i++){w.nativeSimulation.advance(s,1/30);w.nativeAsteroidMotion.advance(s,1/30);}
   assert.ok(f.bodies[1].vx>0);assert.ok(f.bodies[2].vx>0,'second rock transfers momentum to the third');
   const history=w.nativeAsteroidMotion.snapshot().rockContacts;assert.ok(history.some(c=>c.a===f.bodies[0].slotId&&c.b===f.bodies[1].slotId));
-  near(f.bodies.reduce((n,r)=>n+w.nativeShipMotion.asteroidMass(r)*r.vx,0),60);
+  near(f.bodies.reduce((n,r)=>n+w.nativeShipMotion.asteroidMass(r)*r.vx,0),120*Math.exp(-2));
   assert.equal(s.minedAsteroids.length,0);assert.equal(s.destroyedAsteroids.length,0);assert.equal(Object.keys(s.asteroidOreDrops||{}).length,0);
   assert.ok(f.bodies.every(r=>w.nativeSolAsteroids.nearby(43,r,1).includes(r)));
   const save=copy(s),g=await setup(save);for(const r of f.bodies){const restored=g.window.nativeSolAsteroids.find(r.slotId);near(restored.x,r.x);near(restored.vx,r.vx);}
@@ -55,11 +78,11 @@ test('drifting rocks hit other rocks offscreen and transfer motion through a cha
 test('an incoming larger asteroid pushes a stationary ship harder and sideways knockback persists through steering, pause and reload',async()=>{
   const hits=[];
   for(const size of [20,70]){
-    const f=await movingFixture([{x:0,y:-80,vy:60,size}],{player:true}),w=f.window,s=f.state;
-    w.nativeSimulation.advance(s,1.2);w.nativeAsteroidMotion.advance(s,1.2);w.nativeAsteroidMotion.collide(s,1.2);
+    const f=await movingFixture([{x:0,y:-35,vy:180,size}],{player:true}),w=f.window,s=f.state;
+    w.nativeSimulation.advance(s,.2);w.nativeAsteroidMotion.advance(s,.2);w.nativeAsteroidMotion.collide(s,.2);
     assert.ok(s.vy>0);assert.ok(s.motionKick?.vy>0);assert.equal(s.hull,100);assert.equal(s.shields,100);
     const velocity=s.vy,y=s.y;w.nativeSimulation.advance(s,.1);w.nativeShipSystems.move(s,s,'player',{},undefined,.1);
-    assert.ok(s.y>y);near(s.vy,velocity);near(s.angle,0);hits.push(velocity);
+    assert.ok(s.y>y);near(s.vy,velocity*Math.exp(-.26));near(s.angle,0);hits.push(velocity);
     w.nativePause.active=true;const paused=copy(s);w.nativeShipSystems.move(s,s,'player',{},undefined,1);assert.deepEqual(copy(s),paused);w.nativePause.active=false;
     const restored=await setup(copy(s)),before=restored.state.y;restored.window.nativeSimulation.advance(restored.state,.1);restored.window.nativeShipSystems.move(restored.state,restored.state,'player',{},undefined,.1);assert.ok(restored.state.y>before);
     const beforeBrake=s.vy;for(let i=0;i<20;i++)w.nativeShipSystems.move(s,s,'player',{brake:true},undefined,.05);assert.ok(Math.abs(s.vy)<beforeBrake*.1);
@@ -209,14 +232,14 @@ test('shielded and unshielded ships push rocks at the same physical hull without
   assert.equal(g.window.nativeAsteroidMotion.snapshot().contacts[0].shielded,false);assert.equal(out.entity.hull,100);
 });
 
-test('pushed rocks keep drifting offscreen across grid cells, pause, JSON reload and independent saves',async()=>{
-  let f=await setup(),{rock,pose}=contact(f,{speed:60});const id=rock.slotId,start={x:rock.x,y:rock.y},vx=pose.vx;
+test('pushed rocks settle offscreen while indexes, pause, JSON reload and independent saves retain their true positions',async()=>{
+  let f=await setup(),{rock,pose}=contact(f,{speed:240});const id=rock.slotId,start={x:rock.x,y:rock.y},vx=pose.vx;
   f.state.system=1;f.window.nativeSimulation.advance(f.state,20);f.window.nativeAsteroidMotion.advance(f.state,20);
-  near(rock.x,start.x+vx*20);assert.ok(f.window.nativeSolAsteroids.nearby(43,rock,1).includes(rock),'spatial grid follows displacement');
+  near(rock.x,start.x+f.window.nativeShipMotion.settleVelocity(vx,0,20,2,.05).x);assert.ok(f.window.nativeSolAsteroids.nearby(43,rock,1).includes(rock),'spatial grid follows displacement');
   assert.ok(!f.window.nativeSolAsteroids.nearby(43,start,1).includes(rock));
   const stopped=copy(f.state.asteroidMotion);f.window.nativePause.active=true;f.window.nativeAsteroidMotion.advance(f.state,10);assert.deepEqual(copy(f.state.asteroidMotion),stopped);f.window.nativePause.active=false;
   const saved=copy(f.state),oldX=rock.x;f=await setup(saved);rock=f.window.nativeSolAsteroids.find(id);near(rock.x,oldX);
-  f.window.nativeSimulation.advance(f.state,10);f.window.nativeAsteroidMotion.advance(f.state,10);near(rock.x,oldX+vx*10);
+  f.window.nativeSimulation.advance(f.state,10);f.window.nativeAsteroidMotion.advance(f.state,10);near(rock.x,oldX);near(rock.vx,0);
   const original=await fixture({regional:true}),seed=original.window.nativeSolAsteroids.find(id);
   const fresh={...copy(f.state),asteroidMotion:undefined};f.window.nativeAsteroidMotion.ensure(fresh);near(rock.x,seed.x);near(rock.y,seed.y);
 });

@@ -1,0 +1,2448 @@
+{
+  "version": 1,
+  "approvedOn": "2026-10-25",
+  "source": "User-supplied 40-system planet proposal in conversation; linked catalogue unavailable in this workspace",
+  "policy": "Earth and Sol artwork are the visual benchmark. Preserve saved body IDs, world poses, markets, mining geology, existing moons, facilities and galaxy positions. Release systems only after every planet image is generated and reviewed. New planets have no automatic population or services. Appearance specifications are game art choices, not screen canon claims.",
+  "moonTarget": 39,
+  "existingMoons": 11,
+  "additionalMoonDetails": "Awaiting user catalogue: 28 names, parent planets and appearances",
+  "releasedSystems": [
+    2,
+    4,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11,
+    13,
+    15,
+    16,
+    18,
+    19,
+    20,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    29,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    42,
+    44,
+    45,
+    46,
+    48,
+    51,
+    52,
+    54,
+    81,
+    91
+  ],
+  "references": [
+    "html-games/flashtrek-broken-mirror/art-review/sol-planets/03 - Earth.png",
+    "html-games/flashtrek-broken-mirror/art-review/sol-planets/05 - Mars.png",
+    "html-games/flashtrek-broken-mirror/art-review/sol-planets/08 - Saturn.png"
+  ],
+  "systems": [
+    {
+      "id": 2,
+      "name": "Orion",
+      "planets": [
+        {
+          "name": "Orion I",
+          "appearance": "Limestone continents and teal seas.",
+          "kind": "planet",
+          "asset": "orion-i-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Trek reference name; planetary appearance and Mirror placement adapted"
+        },
+        {
+          "name": "Orion",
+          "appearance": "Lush emerald land, turquoise water and rocky shores.",
+          "kind": "planet",
+          "asset": "orion-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Orion III",
+          "appearance": "Ochre uplands, olive valleys and blue seas.",
+          "kind": "planet",
+          "asset": "orion-iii-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Trek reference name; planetary appearance and Mirror placement adapted"
+        },
+        {
+          "name": "Vezhira",
+          "appearance": "Jade-and-cream gas giant with narrow rings.",
+          "kind": "gas_giant",
+          "asset": "vezhira-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Othrel",
+          "appearance": "Muted cyan ice giant.",
+          "kind": "ice_giant",
+          "asset": "othrel-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Sathren",
+          "appearance": "Slate rock, patchy frost and a huge impact basin.",
+          "kind": "planet",
+          "asset": "sathren-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Alpha Centauri",
+      "planets": [
+        {
+          "name": "Cindrel",
+          "appearance": "Iron-gray rock and copper impact basins.",
+          "kind": "planet",
+          "asset": "cindrel-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Aurelis",
+          "appearance": "Ivory clouds with ochre swirls.",
+          "kind": "planet",
+          "asset": "aurelis-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Alpha Centauri",
+          "appearance": "Blue oceans, green continents and white weather systems.",
+          "kind": "planet",
+          "asset": "alpha-centauri-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Pelloran",
+          "appearance": "Honey-colored gas giant with broad rings.",
+          "kind": "gas_giant",
+          "asset": "pelloran-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Veyda",
+          "appearance": "White ice crossed by mauve fractures.",
+          "kind": "planet",
+          "asset": "veyda-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Caldris",
+          "appearance": "Black volcanic plains and orange fissures.",
+          "kind": "planet",
+          "asset": "caldris-sol-v2",
+          "orbitOrder": 6,
+          "starId": 901,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Merenne",
+          "appearance": "Blue seas, copper tundra and polar ice.",
+          "kind": "planet",
+          "asset": "merenne-sol-v2",
+          "orbitOrder": 7,
+          "starId": 901,
+          "id": 306,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ossavar",
+          "appearance": "Steel-blue ice giant.",
+          "kind": "ice_giant",
+          "asset": "ossavar-sol-v2",
+          "orbitOrder": 8,
+          "starId": 901,
+          "id": 307,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Paso",
+      "planets": [
+        {
+          "name": "Serec",
+          "appearance": "Rust-red mesas and black craters.",
+          "kind": "planet",
+          "asset": "serec-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Paso",
+          "appearance": "Golden grasslands, blue river deltas and dry plateaus.",
+          "kind": "planet",
+          "asset": "paso-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Bellisar",
+          "appearance": "Pale salt flats and turquoise basins.",
+          "kind": "planet",
+          "asset": "bellisar-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ordava",
+          "appearance": "Apricot gas giant with a dusty ring.",
+          "kind": "gas_giant",
+          "asset": "ordava-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Neryss",
+          "appearance": "Blue-white ice and exposed dark mountains.",
+          "kind": "planet",
+          "asset": "neryss-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "New Switzerland",
+      "planets": [
+        {
+          "name": "Cevra",
+          "appearance": "Fractured brown-gray rock.",
+          "kind": "planet",
+          "asset": "cevra-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Montrel",
+          "appearance": "Amber clouds over red uplands.",
+          "kind": "planet",
+          "asset": "montrel-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "New Switzerland",
+          "appearance": "Snowy mountain arcs, green valleys and sapphire lakes.",
+          "kind": "planet",
+          "asset": "new-switzerland-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Talvera",
+          "appearance": "Cold ocean, rocky islands and sea ice.",
+          "kind": "planet",
+          "asset": "talvera-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Vaudren",
+          "appearance": "Cream-gray gas giant with broad icy rings.",
+          "kind": "gas_giant",
+          "asset": "vaudren-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Nivelle",
+          "appearance": "Pearl-white ice and blue crevasses.",
+          "kind": "planet",
+          "asset": "nivelle-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Epsilon",
+      "planets": [
+        {
+          "name": "Austren",
+          "appearance": "Burnished brown rock and bright mineral plains.",
+          "kind": "planet",
+          "asset": "austren-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Epsilon",
+          "appearance": "Blue water, ochre continents and olive coastlines.",
+          "kind": "planet",
+          "asset": "epsilon-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Namaris",
+          "appearance": "Sand-colored gas giant with maroon storms.",
+          "kind": "gas_giant",
+          "asset": "namaris-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Pelthen",
+          "appearance": "Dark rocky ridges breaking through white ice.",
+          "kind": "planet",
+          "asset": "pelthen-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Quintus",
+      "planets": [
+        {
+          "name": "Istren",
+          "appearance": "Dark iron crust and red impact basins.",
+          "kind": "planet",
+          "asset": "istren-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Vaskel",
+          "appearance": "Opaque tan clouds with yellow streaks.",
+          "kind": "planet",
+          "asset": "vaskel-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ordel",
+          "appearance": "Rusty deserts and small ice caps.",
+          "kind": "planet",
+          "asset": "ordel-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Maevor",
+          "appearance": "Blue-green seas and barren red continents.",
+          "kind": "planet",
+          "asset": "maevor-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Quintus",
+          "appearance": "Green land, indigo seas and snowy high latitudes.",
+          "kind": "planet",
+          "asset": "quintus-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Uldren",
+          "appearance": "Cream-and-chestnut gas giant with dark rings.",
+          "kind": "gas_giant",
+          "asset": "uldren-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Tressel",
+          "appearance": "Pale periwinkle ice giant.",
+          "kind": "ice_giant",
+          "asset": "tressel-sol-v2",
+          "orbitOrder": 7,
+          "starId": 900,
+          "id": 306,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Gorn",
+      "planets": [
+        {
+          "name": "Kressak",
+          "appearance": "Black volcanic plates and rusty cliffs.",
+          "kind": "planet",
+          "asset": "kressak-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Gorn",
+          "appearance": "Ochre badlands, basalt shelves and greenish shallow seas.",
+          "kind": "planet",
+          "asset": "gorn-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Sszareth",
+          "appearance": "Cloudy ocean world with volcanic islands.",
+          "kind": "planet",
+          "asset": "sszareth-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ghrass",
+          "appearance": "Olive-gray gas giant with cream storms.",
+          "kind": "gas_giant",
+          "asset": "ghrass-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Rhazek",
+          "appearance": "Slate ice and pale fractures.",
+          "kind": "planet",
+          "asset": "rhazek-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Rigel",
+      "planets": [
+        {
+          "name": "Akravel",
+          "appearance": "Charcoal rock with white impact rays.",
+          "kind": "planet",
+          "asset": "akravel-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Belovar",
+          "appearance": "Straw-colored clouds and rusty vortices.",
+          "kind": "planet",
+          "asset": "belovar-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ceryth",
+          "appearance": "Rose-tan deserts and black canyons.",
+          "kind": "planet",
+          "asset": "ceryth-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Dalmere",
+          "appearance": "Blue ocean and green archipelagos.",
+          "kind": "planet",
+          "asset": "dalmere-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Elvaris",
+          "appearance": "Olive continents and bright mountain chains.",
+          "kind": "planet",
+          "asset": "elvaris-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Fessara",
+          "appearance": "Ivory-and-saffron gas giant.",
+          "kind": "gas_giant",
+          "asset": "fessara-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ghalven",
+          "appearance": "Cold ocean and large ice shelves.",
+          "kind": "planet",
+          "asset": "ghalven-sol-v2",
+          "orbitOrder": 7,
+          "starId": 900,
+          "id": 306,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Heskar",
+          "appearance": "Blue-gray gas giant with reflective rings.",
+          "kind": "gas_giant",
+          "asset": "heskar-sol-v2",
+          "orbitOrder": 8,
+          "starId": 900,
+          "id": 307,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ivrann",
+          "appearance": "Turquoise ice giant.",
+          "kind": "ice_giant",
+          "asset": "ivrann-sol-v2",
+          "orbitOrder": 9,
+          "starId": 900,
+          "id": 308,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Rigel",
+          "appearance": "Frozen gray-white plains, dark mountains and amber trading settlements.",
+          "kind": "planet",
+          "asset": "rigel-sol-v2",
+          "orbitOrder": 10,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Opusab",
+      "planets": [
+        {
+          "name": "Arveth",
+          "appearance": "Tan fractured rock and dark lava basins.",
+          "kind": "planet",
+          "asset": "arveth-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Opusab",
+          "appearance": "Turquoise shallows, ochre continents and green coastal belts.",
+          "kind": "planet",
+          "asset": "opusab-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Nembor",
+          "appearance": "Beige-and-lavender gas giant.",
+          "kind": "gas_giant",
+          "asset": "nembor-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ydris",
+          "appearance": "Dark gray rock with scattered white ice fields.",
+          "kind": "planet",
+          "asset": "ydris-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Lysia",
+      "planets": [
+        {
+          "name": "Edravel",
+          "appearance": "Oxide-red plains and gray crater ejecta.",
+          "kind": "planet",
+          "asset": "edravel-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Pessara",
+          "appearance": "Pale amber clouds over a hot, dusty surface.",
+          "kind": "planet",
+          "asset": "pessara-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Lysia",
+          "appearance": "Sea-green oceans, gold continents and cream clouds.",
+          "kind": "planet",
+          "asset": "lysia-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Nollis",
+          "appearance": "Cold blue seas and gray highlands.",
+          "kind": "planet",
+          "asset": "nollis-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Orvessa",
+          "appearance": "Cream-and-cocoa gas giant with thin rings.",
+          "kind": "gas_giant",
+          "asset": "orvessa-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Theskar",
+          "appearance": "Blue-gray ice and a broken equatorial ridge.",
+          "kind": "planet",
+          "asset": "theskar-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Nausicaa",
+      "planets": [
+        {
+          "name": "Grazzek",
+          "appearance": "Dark basalt and localized orange fissures.",
+          "kind": "planet",
+          "asset": "grazzek-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Naushar",
+          "appearance": "Yellow-gray clouds over dry terrain.",
+          "kind": "planet",
+          "asset": "naushar-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Nausicaa",
+          "appearance": "Rugged rust-brown land, slate-blue seas and heavy storms.",
+          "kind": "planet",
+          "asset": "nausicaa-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Heskarr",
+          "appearance": "Muddy-gold gas giant with charcoal bands.",
+          "kind": "gas_giant",
+          "asset": "heskarr-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Vordask",
+          "appearance": "Graphite rock, white frost and a star-shaped impact basin.",
+          "kind": "planet",
+          "asset": "vordask-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Tholia",
+      "planets": [
+        {
+          "name": "Kethrix",
+          "appearance": "Black volcanic crust and amber fissures.",
+          "kind": "planet",
+          "asset": "kethrix-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Tholia",
+          "appearance": "Copper-charcoal land beneath amber haze, with localized lava and mineral flats.",
+          "kind": "planet",
+          "asset": "tholia-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Zelthra",
+          "appearance": "Bronze-and-cream gas giant with delicate rings.",
+          "kind": "gas_giant",
+          "asset": "zelthra-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Oryxal",
+          "appearance": "White ice and dark polygonal ridges.",
+          "kind": "planet",
+          "asset": "oryxal-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Flash",
+      "planets": [
+        {
+          "name": "Cindovar",
+          "appearance": "Sienna craters and black lava sheets.",
+          "kind": "planet",
+          "asset": "cindovar-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Flash",
+          "appearance": "Blue oceans, brown continents and bright storm fronts.",
+          "kind": "planet",
+          "asset": "flash-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Tavelle",
+          "appearance": "Pale dry continents and small teal seas.",
+          "kind": "planet",
+          "asset": "tavelle-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Jorvane",
+          "appearance": "Ivory-and-copper gas giant with a large white storm.",
+          "kind": "gas_giant",
+          "asset": "jorvane-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Prynd",
+          "appearance": "Chalk-white ice and charcoal ridgelines.",
+          "kind": "planet",
+          "asset": "prynd-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Oce Nu",
+      "planets": [
+        {
+          "name": "Kharvek",
+          "appearance": "Dark red plains and black ridges.",
+          "kind": "planet",
+          "asset": "kharvek-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Oce Nu",
+          "appearance": "Sapphire ocean and thin volcanic island chains.",
+          "kind": "planet",
+          "asset": "oce-nu-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Vesshul",
+          "appearance": "Ochre land divided by a blue rift sea.",
+          "kind": "planet",
+          "asset": "vesshul-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Drezh",
+          "appearance": "Taupe-and-ochre gas giant with two narrow rings.",
+          "kind": "gas_giant",
+          "asset": "drezh-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Lurvek",
+          "appearance": "Pale cyan ice giant.",
+          "kind": "ice_giant",
+          "asset": "lurvek-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Tazhul",
+          "appearance": "Violet-gray stone beneath broken white ice.",
+          "kind": "planet",
+          "asset": "tazhul-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Biakisch",
+      "planets": [
+        {
+          "name": "Iskavel",
+          "appearance": "Pale mineral crust and red-brown basins.",
+          "kind": "planet",
+          "asset": "iskavel-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Belush",
+          "appearance": "Layered tan clouds and amber storms.",
+          "kind": "planet",
+          "asset": "belush-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Biakisch",
+          "appearance": "Green-brown continents, turquoise seas and broad deltas.",
+          "kind": "planet",
+          "asset": "biakisch-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Vandrel",
+          "appearance": "Cold slate ocean and snowy gray continents.",
+          "kind": "planet",
+          "asset": "vandrel-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Nossik",
+          "appearance": "Sage-and-cream gas giant with pale rings.",
+          "kind": "gas_giant",
+          "asset": "nossik-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Evrash",
+          "appearance": "Blue ice giant with silver streaks.",
+          "kind": "ice_giant",
+          "asset": "evrash-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Lethune",
+          "appearance": "Blue-white ice and charcoal craters.",
+          "kind": "planet",
+          "asset": "lethune-sol-v2",
+          "orbitOrder": 7,
+          "starId": 900,
+          "id": 306,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Delpi",
+      "planets": [
+        {
+          "name": "Osselin",
+          "appearance": "Orange deserts and cream mineral deposits.",
+          "kind": "planet",
+          "asset": "osselin-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Delpi",
+          "appearance": "Turquoise ocean and long emerald island arcs.",
+          "kind": "planet",
+          "asset": "delpi-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Murell",
+          "appearance": "Stormy navy seas and gray-green land.",
+          "kind": "planet",
+          "asset": "murell-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Thavora",
+          "appearance": "Cream-and-rose gas giant with frosty rings.",
+          "kind": "gas_giant",
+          "asset": "thavora-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Iscara",
+          "appearance": "White ice and cyan fractures.",
+          "kind": "planet",
+          "asset": "iscara-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Iconia",
+      "planets": [
+        {
+          "name": "Eshkar",
+          "appearance": "Bleached tan rock and fractured black basins.",
+          "kind": "planet",
+          "asset": "eshkar-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Varruel",
+          "appearance": "Dense yellow-gray clouds.",
+          "kind": "planet",
+          "asset": "varruel-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Iconia",
+          "appearance": "Eroded rust-brown plateaus and scattered pale ruin scars.",
+          "kind": "planet",
+          "asset": "iconia-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Dhevara",
+          "appearance": "Cold gray continents and a dark inland ocean.",
+          "kind": "planet",
+          "asset": "dhevara-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Othess",
+          "appearance": "Brown-and-cream gas giant with narrow rings.",
+          "kind": "gas_giant",
+          "asset": "othess-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Syrren",
+          "appearance": "Blue-white ice and an ancient equatorial fracture.",
+          "kind": "planet",
+          "asset": "syrren-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Andorian",
+      "planets": [
+        {
+          "name": "Rheth",
+          "appearance": "Gray rock and copper-colored basins.",
+          "kind": "planet",
+          "asset": "rheth-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ushav",
+          "appearance": "Ivory clouds over hot gray-brown terrain.",
+          "kind": "planet",
+          "asset": "ushav-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Thessen",
+          "appearance": "Steel-blue seas and snowy slate continents.",
+          "kind": "planet",
+          "asset": "thessen-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Andor",
+          "appearance": "Blue gas giant with pale reflective rings.",
+          "kind": "gas_giant",
+          "asset": "andor-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "existingBodyId": 1,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Procyon V",
+          "appearance": "Blue-gray tundra, small dark seas and broad ice caps.",
+          "kind": "planet",
+          "asset": "procyon-v-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Trek reference name; planetary appearance and Mirror placement adapted"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Konae",
+      "planets": [
+        {
+          "name": "Eshava",
+          "appearance": "Orange deserts and a huge black volcanic plateau.",
+          "kind": "planet",
+          "asset": "eshava-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Konae",
+          "appearance": "Blue-green water, wild olive continents and no city lights.",
+          "kind": "planet",
+          "asset": "konae-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Ilyven",
+          "appearance": "Pale jade gas giant with translucent rings.",
+          "kind": "gas_giant",
+          "asset": "ilyven-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Dorsk",
+          "appearance": "Nearly black rock and patchy white ice.",
+          "kind": "planet",
+          "asset": "dorsk-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Trill",
+      "planets": [
+        {
+          "name": "Pevren",
+          "appearance": "Warm gray rock and copper basins.",
+          "kind": "planet",
+          "asset": "pevren-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Lethara",
+          "appearance": "Lavender-gray clouds over pink-brown terrain.",
+          "kind": "planet",
+          "asset": "lethara-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Trill",
+          "appearance": "Blue seas with a subtle violet cast, emerald land and snowy ridges.",
+          "kind": "planet",
+          "asset": "trill-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Ossare",
+          "appearance": "Dark lakes, tawny tundra and ivory ice caps.",
+          "kind": "planet",
+          "asset": "ossare-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Veloran",
+          "appearance": "Mauve-and-cream gas giant.",
+          "kind": "gas_giant",
+          "asset": "veloran-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Nethil",
+          "appearance": "Pale blue ice giant with delicate rings.",
+          "kind": "ice_giant",
+          "asset": "nethil-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Blender",
+      "planets": [
+        {
+          "name": "Velnak",
+          "appearance": "Black basalt and rusty fractures.",
+          "kind": "planet",
+          "asset": "velnak-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Blender",
+          "appearance": "Steel-blue seas, dark olive continents and gray-white storms.",
+          "kind": "planet",
+          "asset": "blender-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Dreshel",
+          "appearance": "Pale brown plains and dusty ice caps.",
+          "kind": "planet",
+          "asset": "dreshel-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Khurava",
+          "appearance": "Muted aubergine-and-cream gas giant.",
+          "kind": "gas_giant",
+          "asset": "khurava-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Neshul",
+          "appearance": "Blue-black rock under white frost.",
+          "kind": "planet",
+          "asset": "neshul-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Harman",
+      "planets": [
+        {
+          "name": "Dravenn",
+          "appearance": "Red-brown deserts and a long black canyon.",
+          "kind": "planet",
+          "asset": "dravenn-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Harman",
+          "appearance": "Gray-green highlands, blue seas and white coastal storms.",
+          "kind": "planet",
+          "asset": "harman-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Iskarra",
+          "appearance": "Cream-colored gas giant with charcoal bands and broad rings.",
+          "kind": "gas_giant",
+          "asset": "iskarra-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Kardon",
+      "planets": [
+        {
+          "name": "Ravosk",
+          "appearance": "Red impact plains and jagged black ridges.",
+          "kind": "planet",
+          "asset": "ravosk-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Kardon",
+          "appearance": "Scorched charcoal terrain, rusty scars and bleached basins.",
+          "kind": "planet",
+          "asset": "kardon-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Druven",
+          "appearance": "Dirty-cream gas giant with brown bands.",
+          "kind": "gas_giant",
+          "asset": "druven-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Kelshar",
+          "appearance": "Dark ice, white fractures and a huge impact basin.",
+          "kind": "planet",
+          "asset": "kelshar-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "Vex",
+      "planets": [
+        {
+          "name": "Uzhrek",
+          "appearance": "Charcoal rock and eroded rusty craters.",
+          "kind": "planet",
+          "asset": "uzhrek-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Vex",
+          "appearance": "Metallic-gray surface, localized geometric machinery and restrained green power nodes.",
+          "kind": "planet",
+          "asset": "vex-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Dhevik",
+          "appearance": "Slate continents and black-blue seas.",
+          "kind": "planet",
+          "asset": "dhevik-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Nulvar",
+          "appearance": "Steel-and-cream gas giant with narrow debris rings.",
+          "kind": "gas_giant",
+          "asset": "nulvar-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ossrek",
+          "appearance": "Nearly black crust and gray-white frost.",
+          "kind": "planet",
+          "asset": "ossrek-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "Lameu",
+      "planets": [
+        {
+          "name": "Pashven",
+          "appearance": "Orange-brown deserts and bright mineral flats.",
+          "kind": "planet",
+          "asset": "pashven-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Lameu",
+          "appearance": "Ochre grasslands, blue rivers and green uplands.",
+          "kind": "planet",
+          "asset": "lameu-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Yevrak",
+          "appearance": "Slate ocean and dark rocky continents.",
+          "kind": "planet",
+          "asset": "yevrak-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Torzha",
+          "appearance": "Gold-and-cream gas giant.",
+          "kind": "gas_giant",
+          "asset": "torzha-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Kevarn",
+          "appearance": "Dusty blue ice giant with a silver cloud band.",
+          "kind": "ice_giant",
+          "asset": "kevarn-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Nazhrel",
+          "appearance": "White ice divided by brown fault zones.",
+          "kind": "planet",
+          "asset": "nazhrel-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "Batos",
+      "planets": [
+        {
+          "name": "Krevash",
+          "appearance": "Rusty deserts and pale impact rays.",
+          "kind": "planet",
+          "asset": "krevash-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Batos",
+          "appearance": "Bronze uplands, green plains and blue inland seas.",
+          "kind": "planet",
+          "asset": "batos-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Orzhek",
+          "appearance": "Cold dusty steppe and gray-blue lakes.",
+          "kind": "planet",
+          "asset": "orzhek-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Drazhul",
+          "appearance": "Copper-and-beige gas giant with narrow rings.",
+          "kind": "gas_giant",
+          "asset": "drazhul-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Veshkar",
+          "appearance": "Gray-white ice and branching black fissures.",
+          "kind": "planet",
+          "asset": "veshkar-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Worf",
+      "planets": [
+        {
+          "name": "Tharvek",
+          "appearance": "Iron-gray crust and orange impact basins.",
+          "kind": "planet",
+          "asset": "tharvek-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ghezral",
+          "appearance": "Amber clouds and cream swirls.",
+          "kind": "planet",
+          "asset": "ghezral-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Worf",
+          "appearance": "Brown mountains, green valleys, blue oceans and polar ice.",
+          "kind": "planet",
+          "asset": "worf-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Dovrakh",
+          "appearance": "Rusty plains and cold dark lakes.",
+          "kind": "planet",
+          "asset": "dovrakh-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Keshorg",
+          "appearance": "Cream-and-red-brown gas giant with broad rings.",
+          "kind": "gas_giant",
+          "asset": "keshorg-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Uvrath",
+          "appearance": "Steel-blue ice giant with a white storm plume.",
+          "kind": "ice_giant",
+          "asset": "uvrath-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Qo'noS",
+      "planets": [
+        {
+          "name": "Qevrak",
+          "appearance": "Rusty rock and black lava sheets.",
+          "kind": "planet",
+          "asset": "qevrak-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Drazhkor",
+          "appearance": "Thick amber clouds and brown vortices.",
+          "kind": "planet",
+          "asset": "drazhkor-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Qo'noS",
+          "appearance": "Rugged brown-green land, dark seas, heavy weather and localized volcanic districts.",
+          "kind": "planet",
+          "asset": "qo-nos-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Vorzhek",
+          "appearance": "Red-brown highlands and small cold seas.",
+          "kind": "planet",
+          "asset": "vorzhek-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Khurvek",
+          "appearance": "Copper-and-cream gas giant with dusty rings.",
+          "kind": "gas_giant",
+          "asset": "khurvek-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Tazhral",
+          "appearance": "Teal ice giant with white storm streaks.",
+          "kind": "ice_giant",
+          "asset": "tazhral-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "Xonok",
+      "planets": [
+        {
+          "name": "Kozhrek",
+          "appearance": "Black plains and reddish cliffs.",
+          "kind": "planet",
+          "asset": "kozhrek-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Xonok",
+          "appearance": "Red deserts, sage uplands and blue inland seas.",
+          "kind": "planet",
+          "asset": "xonok-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Narghel",
+          "appearance": "Cream-and-charcoal gas giant with broad dark rings.",
+          "kind": "gas_giant",
+          "asset": "narghel-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Throvek",
+          "appearance": "Blue-gray ice and white impact rays.",
+          "kind": "planet",
+          "asset": "throvek-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "Qem-Kis",
+      "planets": [
+        {
+          "name": "Zorvakh",
+          "appearance": "Brown rock and pale mineral veins.",
+          "kind": "planet",
+          "asset": "zorvakh-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Qem-Kis",
+          "appearance": "Two large green-brown continents divided by blue ocean.",
+          "kind": "planet",
+          "asset": "qem-kis-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Varkesh",
+          "appearance": "Ochre deserts, dark mineral flats and cold lakes.",
+          "kind": "planet",
+          "asset": "varkesh-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Dhezhur",
+          "appearance": "Olive-and-cream gas giant with a silver ring.",
+          "kind": "gas_giant",
+          "asset": "dhezhur-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ulvek",
+          "appearance": "White ice and broken charcoal plates.",
+          "kind": "planet",
+          "asset": "ulvek-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "Du'Qot",
+      "planets": [
+        {
+          "name": "Khorvek",
+          "appearance": "Russet plains and black volcanic trenches.",
+          "kind": "planet",
+          "asset": "khorvek-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Du'Qot",
+          "appearance": "Charcoal mountains, copper-green plains and narrow blue seas.",
+          "kind": "planet",
+          "asset": "du-qot-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Vrazzul",
+          "appearance": "Apricot-and-gray gas giant.",
+          "kind": "gas_giant",
+          "asset": "vrazzul-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Neshkar",
+          "appearance": "Pale cyan ice and a rusty impact basin.",
+          "kind": "planet",
+          "asset": "neshkar-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "Nyoabek",
+      "planets": [
+        {
+          "name": "Qarresh",
+          "appearance": "Copper deserts and white mineral plateaus.",
+          "kind": "planet",
+          "asset": "qarresh-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ovrakh",
+          "appearance": "Cream clouds and brown storm bands.",
+          "kind": "planet",
+          "asset": "ovrakh-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Nyoabek",
+          "appearance": "Green river basins, bronze uplands and blue seas.",
+          "kind": "planet",
+          "asset": "nyoabek-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Thessorg",
+          "appearance": "Tan tundra, dark lakes and large ice caps.",
+          "kind": "planet",
+          "asset": "thessorg-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ghorvess",
+          "appearance": "Beige-and-rust gas giant.",
+          "kind": "gas_giant",
+          "asset": "ghorvess-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Izhren",
+          "appearance": "Blue-violet ice giant with faint rings.",
+          "kind": "ice_giant",
+          "asset": "izhren-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Kelvek",
+          "appearance": "White ice and dark impact bowls.",
+          "kind": "planet",
+          "asset": "kelvek-sol-v2",
+          "orbitOrder": 7,
+          "starId": 900,
+          "id": 306,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "Hos'Ichu",
+      "planets": [
+        {
+          "name": "Vazhrak",
+          "appearance": "Red-black rock and steep volcanic shields.",
+          "kind": "planet",
+          "asset": "vazhrak-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Hos'Ichu",
+          "appearance": "Brown-green continents, blue seas and snowy ranges.",
+          "kind": "planet",
+          "asset": "hos-ichu-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Rhezzul",
+          "appearance": "Gray clouds over cold rock and blue rift lakes.",
+          "kind": "planet",
+          "asset": "rhezzul-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Kharzeth",
+          "appearance": "Ochre-and-cream gas giant with dusty rings.",
+          "kind": "gas_giant",
+          "asset": "kharzeth-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Tuvrakh",
+          "appearance": "Blue-white ice and dark mineral ridges.",
+          "kind": "planet",
+          "asset": "tuvrakh-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "Kah'Less",
+      "planets": [
+        {
+          "name": "Qezhar",
+          "appearance": "Dark iron crust and thin volcanic seams.",
+          "kind": "planet",
+          "asset": "qezhar-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ruvkesh",
+          "appearance": "Sand-colored clouds over brown plains.",
+          "kind": "planet",
+          "asset": "ruvkesh-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Kah'Less",
+          "appearance": "Tall brown mountains, olive lowlands and blue seas.",
+          "kind": "planet",
+          "asset": "kah-less-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Dazhvek",
+          "appearance": "Rusty tundra and gray-blue lakes.",
+          "kind": "planet",
+          "asset": "dazhvek-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Norgath",
+          "appearance": "Gold-and-brown gas giant with pale rings.",
+          "kind": "gas_giant",
+          "asset": "norgath-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Vhezzar",
+          "appearance": "Blue ice giant with a long white cloud plume.",
+          "kind": "ice_giant",
+          "asset": "vhezzar-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "Noron",
+      "planets": [
+        {
+          "name": "Drazel",
+          "appearance": "Tan stone and dark brown craters.",
+          "kind": "planet",
+          "asset": "drazel-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Noron",
+          "appearance": "Ochre continents, olive basins and blue inland seas.",
+          "kind": "planet",
+          "asset": "noron-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Vemresh",
+          "appearance": "Gray clouds with amber streaks.",
+          "kind": "planet",
+          "asset": "vemresh-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ossavet",
+          "appearance": "Ivory-and-rust gas giant with thin rings.",
+          "kind": "gas_giant",
+          "asset": "ossavet-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Teralvek",
+          "appearance": "Dusty white ice and brown fractures.",
+          "kind": "planet",
+          "asset": "teralvek-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "Dyson",
+      "planets": [
+        {
+          "name": "Orveth",
+          "appearance": "Burnt-brown rock and dark glassy basins.",
+          "kind": "planet",
+          "asset": "orveth-sol-v2",
+          "orbitOrder": 1,
+          "starId": 901,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Dyson",
+          "appearance": "Faded ochre land, desiccated basins and abandoned geometric scars.",
+          "kind": "planet",
+          "asset": "dyson-sol-v2",
+          "orbitOrder": 2,
+          "starId": 901,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Nesvara",
+          "appearance": "Cream-gray gas giant with broad dark rings.",
+          "kind": "gas_giant",
+          "asset": "nesvara-sol-v2",
+          "orbitOrder": 3,
+          "starId": 901,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ulthene",
+          "appearance": "White frost and charcoal fractures.",
+          "kind": "planet",
+          "asset": "ulthene-sol-v2",
+          "orbitOrder": 4,
+          "starId": 901,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "Pirates Haven",
+      "planets": [
+        {
+          "name": "Cinderhook",
+          "appearance": "Black basalt and orange volcanic breaks.",
+          "kind": "planet",
+          "asset": "cinderhook-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Pirates Haven",
+          "appearance": "Cobalt ocean, green archipelagos and scattered amber ports.",
+          "kind": "planet",
+          "asset": "pirates-haven-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Brinewake",
+          "appearance": "Pale salt flats and turquoise inland seas.",
+          "kind": "planet",
+          "asset": "brinewake-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Gallows",
+          "appearance": "Smoky-brown gas giant with dark rings.",
+          "kind": "gas_giant",
+          "asset": "gallows-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Palehook",
+          "appearance": "White ice and charcoal crescent ridges.",
+          "kind": "planet",
+          "asset": "palehook-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "name": "Vintaak",
+      "planets": [
+        {
+          "name": "Uskarel",
+          "appearance": "Dark red craters and pale mineral cliffs.",
+          "kind": "planet",
+          "asset": "uskarel-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Tholven",
+          "appearance": "Cold tan continents and gray-blue lakes.",
+          "kind": "planet",
+          "asset": "tholven-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Vintaak gas giant",
+          "appearance": "Muted amber-brown bands and broad pale cloud streaks. Ringed gas giant, preserving its established ring system.",
+          "kind": "gas_giant",
+          "asset": "vintaak-gas-giant-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Dhesral",
+          "appearance": "Blue-green ice giant with faint rings.",
+          "kind": "ice_giant",
+          "asset": "dhesral-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ivrash",
+          "appearance": "Slate rock, blue frost and a bright-rimmed crater.",
+          "kind": "planet",
+          "asset": "ivrash-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "name": "Kwejian",
+      "planets": [
+        {
+          "name": "Eshune",
+          "appearance": "Orange-brown rock and black lava plains.",
+          "kind": "planet",
+          "asset": "eshune-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Kwejian",
+          "appearance": "Deep green forests, blue oceans, broad deltas and tropical cloud systems.",
+          "kind": "planet",
+          "asset": "kwejian-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "existingBodyId": 0,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Valaresh",
+          "appearance": "Cold blue seas and tawny tundra.",
+          "kind": "planet",
+          "asset": "valaresh-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "id": 302,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Ombrel",
+          "appearance": "Olive-and-cream gas giant with thin rings.",
+          "kind": "gas_giant",
+          "asset": "ombrel-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Nayethi",
+          "appearance": "Blue-white ice and dusky brown fractures.",
+          "kind": "planet",
+          "asset": "nayethi-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    },
+    {
+      "id": 91,
+      "name": "Irtok",
+      "planets": [
+        {
+          "name": "Pravik",
+          "appearance": "Brassy brown rock and bright mineral ridges.",
+          "kind": "planet",
+          "asset": "pravik-sol-v2",
+          "orbitOrder": 1,
+          "starId": 900,
+          "id": 300,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Zessara",
+          "appearance": "Pale yellow clouds and tan vortices.",
+          "kind": "planet",
+          "asset": "zessara-sol-v2",
+          "orbitOrder": 2,
+          "starId": 900,
+          "id": 301,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Kraxx",
+          "appearance": "Ochre continents, dark teal seas and concentrated trade ports.",
+          "kind": "planet",
+          "asset": "kraxx-sol-v2",
+          "orbitOrder": 3,
+          "starId": 900,
+          "existingBodyId": 101,
+          "nameStatus": "Existing game destination"
+        },
+        {
+          "name": "Ovrass",
+          "appearance": "Rusty cold plains, gray-blue lakes and large ice caps.",
+          "kind": "planet",
+          "asset": "ovrass-sol-v2",
+          "orbitOrder": 4,
+          "starId": 900,
+          "id": 303,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Drelnak",
+          "appearance": "Cream-and-amber gas giant with broad bright rings.",
+          "kind": "gas_giant",
+          "asset": "drelnak-sol-v2",
+          "orbitOrder": 5,
+          "starId": 900,
+          "id": 304,
+          "nameStatus": "Original game name supplied by user"
+        },
+        {
+          "name": "Tovess",
+          "appearance": "Cool blue ice giant with pale atmospheric streaks.",
+          "kind": "ice_giant",
+          "asset": "tovess-sol-v2",
+          "orbitOrder": 6,
+          "starId": 900,
+          "id": 305,
+          "nameStatus": "Original game name supplied by user"
+        }
+      ]
+    }
+  ]
+}

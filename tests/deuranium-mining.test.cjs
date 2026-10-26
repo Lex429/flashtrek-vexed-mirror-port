@@ -24,7 +24,7 @@ test('new deuranium deposits append stable IDs without altering any historical a
    const field=w.nativeSolAsteroids.forSystem(s.id),deuranium=field.filter(r=>r.oreType==='deuranium');
    assert.equal(deuranium.length,w.nativeRegionalMinerals.profile(s.id).deposits.deuranium);
    for(const r of deuranium){assert.ok(r.slotId%100000>=90000);assert.equal(w.nativeSolAsteroids.find(r.slotId),r);ids.push(r.slotId);}
-   for(const r of field.filter(r=>r.oreType!=='deuranium'))old.push([r.slotId,r.x,r.y,r.oreType,r.file,r.angle,r.size]);
+   if(s.id<=52)for(const r of field.filter(r=>r.oreType!=='deuranium'))old.push([r.slotId,r.x,r.y,r.oreType,r.file,r.angle,r.size]);
  }
  assert.equal(new Set(ids).size,ids.length);assert.equal(old.length,10462);
  assert.equal(crypto.createHash('sha256').update(JSON.stringify(old)).digest('hex'),'c86672db817b412d808b2b6106eba32f61ec53c005a9e13e3c3f644ad773548c');

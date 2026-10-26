@@ -1,0 +1,14 @@
+{
+  "id": "jeraddo",
+  "file": "jeraddo.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Jeraddo, a rocky moon of Bajor, russet and grey crater fields and dust plains, intact in this Mirror game adaptation.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-2ffd6147-c266-406c-aa43-22167322a71d.png",
+  "sourceSha256": "d18c0dc07a894025ee4b72931af1f0d9107dcc9bf6e4b1321c939fdf15913fb7",
+  "sha256": "12a853a33f10bcde39f2f7b0fb5c03af343af42d8648587ce73f66076953783e",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

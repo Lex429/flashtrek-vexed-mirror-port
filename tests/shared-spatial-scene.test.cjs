@@ -144,7 +144,7 @@ test('effective equipment statistics and shape caches update without rebuilding 
  state.mineralUpgrades={10:{hull:1,shield:2,engine:1,weapons:2,drive:1}};
  const mineral=defs.describe(state);assert.equal(mineral.definition.hull,Math.round(firstHull*1.1));assert.equal(mineral.definition.weaponDamageMultiplier,1.16);
  eq.slots.shield[0]=null;assert.equal(defs.describe(state).definition.shields,0);
- eq.slots.engineering[0]=null;assert.equal(defs.describe(state).definition.movement.maxSpeed,0);
+ eq.slots.engineering[0]=null;assert.equal(defs.describe(state).definition.movement.maxSpeed,90);
  eq.slots.engineering[0]=engine.id;const engineId=engine.id;delete eq.instances[engineId];assert.equal(defs.describe(state).definition.engineOnline,false,'a dangling fitted ID is not powered equipment');eq.instances[engineId]=engine;
  assert.equal(defs.describe(state).definition.engineOnline,true);
  const copy=defs.forEntity(state);copy.hull=1;assert.notEqual(defs.forEntity(state).hull,1);

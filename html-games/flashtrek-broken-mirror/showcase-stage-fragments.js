@@ -6,13 +6,13 @@
   // chunks. Readback and uploads are also striped: putting a full-frame native
   // pixel operation inside a generator does not make that operation resumable.
   const queue=[],statistics={completed:0,failed:0,workMs:0,maxSliceMs:0,maxStepMs:0,slices:0,steps:0,peakPending:0,readbackFallbacks:0,optionalWorkerFallbacks:0},operations=new Map(),limits={sliceMs:2,maxPending:64,maxSteps:64,pixelChunk:4096};
-  let scheduled=false,waiting=0,readback=null;
+  let scheduled=false,waiting=0,readback=null,suspended=false;
   const clock=()=>performance.now();
   const count=()=>queue.length+waiting;
-  function schedule(){if(!scheduled&&queue.length){scheduled=true;setTimeout(pump,0);}}
+  function schedule(){if(!suspended&&!scheduled&&queue.length){scheduled=true;setTimeout(pump,0);}}
   function resume(task,value,error=false){waiting--;task.value=value;task.error=error;queue.push(task);schedule();}
   function pump(){
-    scheduled=false;const started=clock();let steps=0;
+    scheduled=false;if(suspended)return;const started=clock();let steps=0;
     do{
       // Current appearances can pass optional wreck/fragment work, while every
       // eighth step still serves the oldest task so background work progresses.
@@ -64,7 +64,7 @@
     }catch(error){statistics.optionalWorkerFallbacks++;return Promise.reject(error);}
   }
   const pixels=Object.freeze({read:readPixels,write:writePixels,readAsync});
-  window.nativeDamageArtPreparation=Object.freeze({run,finish,pixels,optional,snapshot:()=>({...statistics,pending:count(),queued:queue.length,waiting,limits:{...limits},readback:readback?.snapshot()||{initialized:false,pending:0},operations:Object.fromEntries([...operations].map(([name,row])=>[name,{...row}]))}),
+  window.nativeDamageArtPreparation=Object.freeze({run,finish,pixels,optional,setPaused(value){suspended=!!value;if(!suspended)schedule();},snapshot:()=>({...statistics,suspended,pending:count(),queued:queue.length,waiting,limits:{...limits},readback:readback?.snapshot()||{initialized:false,pending:0},operations:Object.fromEntries([...operations].map(([name,row])=>[name,{...row}]))}),
     resetMetrics(){for(const field of Object.keys(statistics))statistics[field]=0;statistics.peakPending=count();operations.clear();readback?.resetMetrics?.();}});
   function* preparation(frames,anchors) {
     const w=frames[0].width,h=frames[0].height;

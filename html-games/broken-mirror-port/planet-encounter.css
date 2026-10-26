@@ -191,3 +191,5 @@
 .encounter-cargo-active .encounter-cargo-job button{padding:2px 4px;margin-top:2px}
 @media(max-width:620px){.encounter-cargo-controls:has(.encounter-cargo-active) .encounter-cargo-heading p{display:none}}
 @media(max-height:550px) and (min-width:621px){.encounter-panel[data-view=cargo]{width:min(1100px,100%);grid-template-columns:minmax(0,.3fr) minmax(0,1fr)}.encounter-cargo-offers{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.encounter-cargo-offers h3{grid-column:1/-1}.encounter-cargo-heading p{display:none}}
+.encounter-shop-item > .encounter-equipment-icon { flex: none; width: clamp(36px, 5vw, 68px); height: clamp(36px, 5vw, 68px); object-fit: contain; border: 1px solid #80ccd544; border-radius: 5px; }
+.encounter-shop-item:has(> .encounter-equipment-icon) > div { flex: 1; }

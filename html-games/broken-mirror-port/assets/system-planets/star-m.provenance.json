@@ -1,0 +1,14 @@
+{
+  "id": "star-m",
+  "file": "star-m.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: polished production stellar sprite for Vexed Mirror. Reference image is a NASA SDO/HMI continuum observation; use its fine photospheric texture, round silhouette and limb darkening as scientific reference ONLY. Its displayed orange color is assigned and must not be copied automatically. Render ONE complete self-luminous star, visible across its entire disk, no planet-like night-side terminator. Subtle finely resolved surface texture, restrained translucent corona and tiny realistic limb activity. No molten-rock cracks, no lava planet, no oversized fireball, no spiky sun icon. Square composition with entire glowing star and corona inside central 76 percent, at least 12 percent transparent padding all around. Genuine transparent background; no labels, text, logos, watermark, background stars, planets or ships. Premium realistic astronomical appearance, high detail, smooth antialiased limb. Subject: M-type red dwarf, warm deep ORANGE RED luminous photosphere, fine textured plasma and darker small starspots, one delicate small prominence. Restrained warm-red corona, no exaggerated enormous flares.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-874b7c9b-84e9-4f01-8a5d-c731f2e5b2bd.png",
+  "sourceSha256": "c9593564bce7afae24aab354e076033aeb66b9c318ce395685b755c6f24a365a",
+  "sha256": "509969367c6f5364d243231ac8f52b8d560c3961f9513cb5042c4be310f48d6a",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

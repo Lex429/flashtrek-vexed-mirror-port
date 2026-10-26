@@ -26,7 +26,9 @@
     if(!art){ensure();return false;}
     const z=view.zoom??1,scale=d.definition.artwork.scale,x=view.cx+(d.x-view.ship.x)*z,y=view.cy+(d.y-view.ship.y)*z;
     ctx.save();ctx.translate(x,y);ctx.scale(z*scale,z*scale);ctx.rotate(d.heading);
-    const drawn=art.sprites.draw(ctx,'basic',{role:'repair',health:d.entity.hull,maxHealth:40,time:time(d.state),lights:true,thrust:d.entity.phase==='repairing'?0:.8,activity:d.entity.phase==='repairing'?1:0});
+    const lights=window.nativeFlightLightingEnabled!==false;
+    const drawn=art.sprites.draw(ctx,'basic',{role:'repair',health:d.entity.hull,maxHealth:40,time:time(d.state),lights,thrust:d.entity.phase==='repairing'?0:.8,activity:d.entity.phase==='repairing'?1:0});
+    if(drawn)window.nativeRepairWork.drawThrusters(ctx,{role:'repair',health:d.entity.hull,lights,thrust:d.entity.phase==='repairing'?0:.8});
     ctx.restore();return drawn;
   }
   function hit(s,d,result){
@@ -52,8 +54,8 @@
     const initial=assets[startStage(d,m)],intact=assets[0];
     if(!initial)return fallback;
     const width=256,height=Math.max(1,Math.round(width*intact.height/intact.width)),canvas=old?.canvas||Object.assign(document.createElement('canvas'),{width,height}),g=canvas.getContext('2d');
-    g.clearRect(0,0,width,height);g.drawImage(initial.art,0,0,width,height);
-    g.save();g.beginPath();g.rect(0,0,width*q,height);g.clip();g.clearRect(0,0,width,height);g.drawImage(intact.art,0,0,width,height);g.restore();
+    if(window.nativeRepairWork?.paintHull)window.nativeRepairWork.paintHull(g,initial.art,intact.art,window.VexedRepairSites?.ships[d.shipType],q,Math.max(1,m.drones.length));
+    else{g.clearRect(0,0,width,height);g.drawImage(initial.art,0,0,width,height);g.save();g.beginPath();g.rect(0,0,width*q,height);g.clip();g.clearRect(0,0,width,height);g.drawImage(intact.art,0,0,width,height);g.restore();}
     // Suppress changing damage effects on the composited plate. Lamp power still
     // follows the real disabled state in the shared ship renderer.
     const asset={...fallback,art:canvas,repairSurface:true};surfaces.set(id,{bucket,canvas,asset});

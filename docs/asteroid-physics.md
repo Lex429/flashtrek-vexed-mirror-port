@@ -63,8 +63,9 @@ per step, with at most 2048 pair resolutions per step for crowded chains.
 system once per physics step. Civilian and freight task owners retain their
 scheduled route deadlines and economic reservations. Saved `motionKick.version:1`
 retains external ship momentum separately from engine velocity, so steering does
-not erase a sideways shove. Manual flight coasts until braking; goal/holding
-commands damp the external velocity. Scheduled ships sample a smooth displacement
+not erase a sideways shove. Collision velocity settles even with controls
+released; intended manual flight remains independent of that recovery.
+Scheduled ships sample a smooth displacement
 and recovery over up to three seconds, ending at their existing route goal and
 deadline. Inspection reads the same saved curve without replaying displacement.
 Explicit motion stops clear knockback, including ordinary zero-speed resets.
@@ -74,7 +75,8 @@ cutting range. Player mining stops if its target is destroyed or leaves range.
 Displaced positions, velocities and angular velocities are saved under
 `asteroidMotion.version:1`, keyed by the original global rock ID. Old saves
 start with an empty movement map. Positions drift analytically using the saved
-simulation clock, including offscreen systems and calendar skips. Pause, hidden
+simulation clock with 2/s stabilization and a finite 0.05-unit/s resting cutoff,
+including offscreen systems and calendar skips. Spin also settles. Pause, hidden
 tabs, inventory and warp obey the existing simulation gate. No asteroid artwork
 is loaded for drift. Depleted rocks freeze their ore/burst origins and never
 respawn automatically.

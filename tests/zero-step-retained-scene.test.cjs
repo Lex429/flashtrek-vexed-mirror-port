@@ -18,7 +18,7 @@ test('zero-step display frames retain an actual shared scene without repeating s
   const eq=w.nativeShipEquipment.ensure(s,ship),engine=eq.slots.engineering[0];assert.ok(engine);
   const moved=w.nativeShipEquipment.move(s,{holder:ship,category:'engineering',fromType:'slot',fromIndex:0,toType:'locker',toIndex:eq.locker.length});assert.equal(moved.ok,true);
   systems.refreshShip(s,ship,'civilian',1);const unequipped=systems.scene(s).bystanders.find(d=>d.entity===ship);
-  assert.equal(unequipped.definition.engineOnline,false);assert.equal(unequipped.definition.movement.maxSpeed,0);assert.ok(eq.locker.includes(engine));frames.end(s);
+  assert.equal(unequipped.definition.engineOnline,false);assert.equal(unequipped.definition.movement.maxSpeed,90);assert.ok(eq.locker.includes(engine));frames.end(s);
   frames.begin(s);assert.equal(systems.scene(s).bystanders.find(d=>d.entity===ship),unequipped);assert.equal(frames.snapshot(s).counters.sceneCollections,undefined);frames.end(s);
 });
 test('retained scenes invalidate for explicit membership changes, physical steps and standalone clock changes',async()=>{

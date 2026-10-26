@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Vexed Mirror · live cinematic shields</title>
+<style>body{margin:0;background:#040913;color:#dcf2ff;font:16px system-ui}header{padding:16px 22px}h1{font-size:23px;margin:0 0 12px}button,a{background:#143549;color:#dcf2ff;border:1px solid #428399;padding:8px 14px;margin-right:8px;text-decoration:none;cursor:pointer}p{color:#a9cadc}canvas{display:block;width:1280px;height:850px}</style>
+<header><h1>Live cinematic shields · normal animation speed</h1><button onclick="size(2)">Close-up</button><button onclick="size(1)">Normal game size</button><a href="/">Play the game</a><p id="status">Preparing the shield…</p></header>
+<canvas id="view" width="1280" height="850"></canvas>
+<script src="/html-games/flashtrek-broken-mirror/shield-gpu.js"></script>
+<script>
+let renderer,ship,start=performance.now(),cycle=-1;
+function size(detail){if(!renderer)return;const scale=1.8888888889*detail;
+ ship={x:640,y:425,w:51.0546875*scale,h:65.35*scale,rx:48.289*scale,ry:48.289*scale,angle:.35,motion:0,layer:0};
+ renderer.setFleet([ship]);start=performance.now();cycle=-1;
+ document.getElementById('status').textContent=(detail===2?'2× spatial close-up':'Normal gameplay size')+' · fresh impact every 1.2 seconds · lighting OFF · visual preview.';
+}
+(async()=>{const image=new Image();image.src='/html-games/flashtrek-broken-mirror/showcase-assets/ship-1-0.png';await image.decode();
+ renderer=await createVexedShieldGPU({canvas:document.getElementById('view'),assets:[{image}],maxShips:1});size(2);
+ function frame(now){const elapsed=now-start,next=Math.floor(elapsed/1200);if(next!==cycle){cycle=next;renderer.hit(0,{x:ship.rx*.94,y:0,born:cycle*1200,strength:1});}
+ renderer.render(elapsed,{effects:true});requestAnimationFrame(frame);}requestAnimationFrame(frame);
+})().catch(error=>document.getElementById('status').textContent=error.message);
+</script></html>

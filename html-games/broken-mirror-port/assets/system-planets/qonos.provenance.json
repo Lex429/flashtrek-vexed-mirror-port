@@ -1,0 +1,14 @@
+{
+  "id": "qonos",
+  "file": "qonos.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Qo'noS, rugged Klingon homeworld, olive-brown landmasses and mountain chains, dark green-blue ocean, dense turbulent pale clouds. No destroyed moon in this asset.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-f91d0a21-1fe1-4536-ad06-b10a7df9dd91.png",
+  "sourceSha256": "18cee32e9ffccad70b9638c55202544044942b36ca8f0cb21963681d6e5591cb",
+  "sha256": "50cedd50db62d39d315fc80dc7e44024938803ddccf662f71b31829c1c601d92",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

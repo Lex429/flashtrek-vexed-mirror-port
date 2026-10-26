@@ -1,0 +1,20 @@
+{
+  "id": "othrel-sol-v2",
+  "file": "othrel-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: production planet sprite for Vexed Mirror. Input image 1 is a Sol planet used ONLY as a visual reference for photographic realism, scale of texture, 3D volume and lighting, NOT an edit target or a surface to recolor. Generate ONE distinct original world, Othrel: a muted cyan ICE GIANT, natural pale cyan and steel-blue atmospheric layers, fine flowing bands and subtle broad storms; NO land, continents, ocean shorelines or rings. Highly detailed realistic orbital imagery matching the game's Sol planet quality. Crisp spherical limb, physically plausible upper-left sunlight, mostly illuminated globe with softly shaded lower-right limb. Entire CIRCULAR globe centered inside a square image with 6 percent transparent margin on every side; minimum 1280x1280 preferred. Genuine alpha transparency outside planet. No stars, black backdrop, labels, text, watermarks, ships, other objects, ground-level scenery, painterly brushwork, noisy fake texture or exaggerated glow. This is an original game interpretation.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-c7ba7612-65af-4357-b471-9d5393459738.png",
+  "sourceSha256": "f18fcb5f9cbe516e6c5dec3007c07e7c759973ab53532b83fa2bdee101817a8b",
+  "sha256": "59c2760cf4271376d5bcb6b42c0ae1ddb578b76a90b60f14633e470c3f61e5cf",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/09 - Uranus.png",
+      "sha256": "fba2e40c4f4d41c56fa9b297c3a4f9dc6bc99e6f4b45ce78fa7db148bba12e69"
+    }
+  ]
+}

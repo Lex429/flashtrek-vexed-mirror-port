@@ -147,7 +147,7 @@ test('stationary spinning rocks refresh debris bodies without overwriting retain
   w.nativeShipMotion.debrisContact=(fragment,previous,body,type)=>{bodies.push(body);return contact(fragment,previous,body,type);};
   assert.ok(w.nativeAsteroidMotion.debrisContact(saved,piece,from,target,'asteroid'));
   w.nativeSimulation.advance(saved,.1);w.nativeAsteroidMotion.advance(saved,.1);
-  const expected=w.nativeShipMotion.wrap(.3+.7*.1),result=w.nativeAsteroidMotion.debrisContact(saved,piece,from,target,'asteroid');
+  const expected=w.nativeShipMotion.wrap(.3+w.nativeShipMotion.settleVelocity(.7,0,.1,2,.0001).x),result=w.nativeAsteroidMotion.debrisContact(saved,piece,from,target,'asteroid');
   assert.ok(result);assert.equal(bodies[0].angle,.3);assert.ok(Math.abs(bodies[1].angle-expected)<1e-12);
   assert.notStrictEqual(bodies[1],bodies[0],'a changed orientation creates a fresh immutable physical snapshot');
   w.nativeAsteroidMotion.debrisContact(saved,piece,from,target,'asteroid');assert.strictEqual(bodies[2],bodies[1],'unchanged physical data is still reused');

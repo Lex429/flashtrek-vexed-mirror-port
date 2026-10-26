@@ -1,0 +1,20 @@
+{
+  "id": "vezhira-sol-v2",
+  "file": "vezhira-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror, not a poster. Input image 1: actual Sol Saturn artwork, a REFERENCE for realism, fine planetary-scale texture, natural spherical volume and sunlight only; not an edit target. Generate ONE new planet named Vezhira. Appearance: Jade-and-cream gas giant with narrow rings. Realistic fluid atmospheric banding, restrained jade green and ivory cream palette, small turbulent vortices. Thin narrow particulate rings with correct perspective, back half hidden by globe and front half crossing in front, entire ring ellipse inside image. Photorealistic high-detail orbital astronomical imagery matching the supplied Sol artwork, no painterly or plastic finish. Upper-left sunlight, softly shaded lower-right limb, mostly illuminated full globe. Centered composition, ring ellipse occupies 88 percent of image width, generous transparent padding; globe spherical, never flatten the globe to fit rings. 1280x1280 or higher, actual alpha transparency outside subject. No text, labels, stars, black background, nebula, frame, watermark, ships, other planets or giant ground-level mountains. Natural subtle atmospheric edge, no excessive bloom. Surface appearance is a game art interpretation.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-9de55905-9db3-4cb8-bdad-5753daf68fa7.png",
+  "sourceSha256": "74dbc2d06cfd89fad3a5f8fe8984b2180d8830b4b027f851c0ba65441ca3547f",
+  "sha256": "56648e9ae7ec5d86643dbc9d2e2986586a8cf27403bca51550d08c5e68ff1579",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/08 - Saturn.png",
+      "sha256": "2819332ce69bc703250a91edf9b04b0d40f67fa32fb0b1b7743c3f4ce3ba640e"
+    }
+  ]
+}

@@ -60,6 +60,11 @@
           if(resolveDebris&&Math.hypot(to.x-center.x,to.y-center.y)>bound+padding)sourceCleared.add(piece);
           continue; // Birth immunity ends once the fragment leaves its parent.
         }
+        if(debrisContact){
+          const body=target.descriptor||target.entity||target,r=body.hullRadii||body.radii,bound=r?Math.max(r.rx,r.ry):radius(target);
+          const center=position(target),dt=piece.dt||0,px=body.previousX??center.x-(body.vx||0)*dt,py=body.previousY??center.y-(body.vy||0)*dt;
+          if(Math.max(from.x,to.x)+margin<Math.min(px,center.x)-bound||Math.min(from.x,to.x)-margin>Math.max(px,center.x)+bound||Math.max(from.y,to.y)+margin<Math.min(py,center.y)-bound||Math.min(from.y,to.y)-margin>Math.max(py,center.y)+bound)continue;
+        }
         tested++;
         const contact=debrisContact?debrisContact(piece,from,target,type):sweptCircleContact(from,to,position(target),radius(target)+padding);
         if(contact){const entry={type,target,id,contact};if(resolveDebris){if(!best||contact.t<best.contact.t)best=entry;}else contacts.push(entry);}

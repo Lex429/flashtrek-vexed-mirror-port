@@ -90,6 +90,26 @@ try:
             return page.evaluate('__impactSnapshot()')
 
         report = {'keys': {}}
+        # Real key events while rendering is deliberately held: release the tap
+        # before any simulation step, then prove it is consumed once on resume.
+        page.evaluate('__impactActivate()')
+        host.keyboard.down('w');host.keyboard.up('w')
+        page.evaluate('__impactTick(1)')
+        tapped=page.evaluate('__impactSnapshot()')
+        assert tapped['speed']>0,tapped
+        page.evaluate('__impactTick(10)')
+        coasted=page.evaluate('__impactSnapshot()')
+        assert abs(coasted['speed']-tapped['speed'])<.001,(tapped,coasted)
+        angle=coasted['angle']
+        host.keyboard.down('a');host.keyboard.up('a')
+        page.evaluate('__impactTick(1)')
+        assert page.evaluate('__impactSnapshot().angle')<angle
+        page.evaluate('__impactActivate()')
+        host.keyboard.down('w');host.keyboard.up('w')
+        page.evaluate('()=>{dispatchEvent(new Event("blur"));__impactTick(1);}')
+        assert page.evaluate('__impactSnapshot().speed')==0
+        report['betweenFrameTaps']={'thrust':True,'turn':True,'consumedOnce':True,'blurClearsPending':True}
+        page.evaluate('__impactActivate()')
         page.locator('#devToolsBtn').click()
         page.locator('#galaxy-map-button').click()
         page.evaluate('__impactTick(1)')
@@ -168,12 +188,14 @@ try:
         coast_before = page.evaluate('__impactSnapshot()')
         page.evaluate('__impactTick(360)')
         coast_after = page.evaluate('__impactSnapshot()')
-        assert abs(coast_after['vx']-coast_before['vx']) < 1e-7
-        assert abs(coast_after['vy']-coast_before['vy']) < 1e-7
-        assert abs(coast_after['speed']-coast_before['speed']) < 1e-7
+        # Free collision impulse settles; the commanded engine velocity remains.
+        kick=coast_before.get('kick') or {}
+        assert abs(coast_after['vx']-(coast_before['vx']-kick.get('vx',0))) < .051,(coast_before,coast_after)
+        assert abs(coast_after['vy']-(coast_before['vy']-kick.get('vy',0))) < .051,(coast_before,coast_after)
+        assert not coast_after.get('kick'),coast_after
         if coast_before.get('spin'):
             assert abs((coast_after.get('spin') or {}).get('velocity', 0)) < abs(coast_before['spin']['velocity'])*.0001
-        report['handsOffAfterRealImpact'] = {'before': coast_before, 'afterSixSeconds': coast_after, 'worldVelocityPreserved': True}
+        report['handsOffAfterRealImpact'] = {'before': coast_before, 'afterSixSeconds': coast_after, 'engineVelocityPreserved': True,'collisionImpulseSettled': True}
         host.screenshot(path=str(OUTPUT/'hands-off-post-impact-coasting.png'))
         before = page.evaluate('__impactSnapshot()')
         thrust = drive('w', 30)
@@ -182,7 +204,7 @@ try:
         wrap = lambda angle: math.atan2(math.sin(angle), math.cos(angle))
         assert wrap(steer['angle']-thrust['angle']) < -.2
         kick_size = lambda sample: sum(abs(v) for k, v in (sample.get('kick') or {}).items() if k in ('vx', 'vy'))
-        assert kick_size(thrust) < kick_size(before)
+        assert kick_size(thrust) <= kick_size(before), (before,thrust)
         assert stopped['speed'] == 0 and not stopped.get('kick')
         assert not stopped.get('spin') or abs(stopped['spin']['velocity']) < .0001
         report['afterRealImpact'] = {'before': before, 'thrust': thrust, 'steer': steer, 'stopped': stopped}

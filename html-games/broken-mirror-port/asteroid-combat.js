@@ -148,6 +148,11 @@
     if(!rock||gone(state,rock.slotId))return {ok:false};
     finishRock(state,rock,true,onFinish);return {ok:true,rock,oreMask:state.asteroidOreDrops[rock.slotId]};
   }
+  function environmentalDamage(maximum,before,damage){
+    const after=before>=maximum*.75?before:Math.min(maximum*.75,before+Math.max(0,Number(damage)||0));
+    const stage=value=>Math.min(3,Math.floor(value/maximum*4+1e-9));
+    return {after,changedStage:stage(after)>stage(before),hull:Math.max(0,maximum-after),damage:after-before};
+  }
   function hit(state,id,damage,impact=null,onFinish){
     const rock=rockById(id);
     if(!rock||gone(state,id))return {ok:false,destroyed:false};
@@ -155,9 +160,8 @@
     const maximum=Math.max(1,Number(rock.maxHull)||rock.size*.45),before=Number(state.asteroidDamage[id])||0;
     // All environmental damage shares this floor. Never heal older saves that
     // already contain a rock below 25%, and never call the destruction path.
-    const after=before>=maximum*.75?before:Math.min(maximum*.75,before+Math.max(0,Number(damage)||0));
+    const {after,changedStage}=environmentalDamage(maximum,before,damage);
     state.asteroidDamage[id]=after;
-    const stage=value=>Math.min(3,Math.floor(value/maximum*4+1e-9)),changedStage=stage(after)>stage(before);
     if(changedStage&&(rock.system??1)===state.system){
       const pieces=makeRockShards(rock,{chips:true});
       if(pieces.length){bursts.push({rock:{...rock},born:now(),pieces,chips:true});if(bursts.length>12)bursts.shift();}
@@ -220,6 +224,7 @@
     return null;
   }
   function drawCombatTargetFrame(ctx,{name,size,kind='ASTEROID',shield=0,hull=1,color='#ff7777'},x,y,zoom,cx){
+    window.nativeHullBatch?.flush(ctx);
     window.drawShowcaseTargetFrame(ctx,{
       x,y,w:size,h:size,name,kind,shield,hull,zoom,color,
       rightEdge:cx+(ctx.canvas.width-cx)/zoom-15/zoom
@@ -270,6 +275,27 @@
     bursts=bursts.filter(burst=>time-burst.born<6200);
     collections=collections.filter(entry=>time-entry.born<2500);
     collectionFields=collectionFields.filter(entry=>time-entry.born<2300);
+  }
+  function advanceRockFragments(burst,time,dt,onDebris=()=>{}){
+    for(const piece of burst.pieces){
+      if(time-burst.born>piece.ttl)continue;
+      piece.environmentPiece||={system:burst.rock.system??1,size:Math.max(2,Math.hypot(piece.w,piece.h)*burst.rock.size*.4),
+        x:burst.rock.x+piece.x*burst.rock.size,y:burst.rock.y+piece.y*burst.rock.size,
+        vx:(burst.rock.vx||0)+Math.cos(piece.angle)*piece.speed,vy:(burst.rock.vy||0)+Math.sin(piece.angle)*piece.speed,spin:piece.spin,angle:burst.rock.angle||0};
+      const p=piece.environmentPiece,x=p.x,y=p.y,elapsed=Math.min(dt,Math.max(0,(time-(piece.updatedAt??burst.born))/1000));
+      p.x+=p.vx*elapsed;p.y+=p.vy*elapsed;p.angle+=p.spin*elapsed;piece.updatedAt=time;
+      onDebris(p,x,y,elapsed);piece.worldX=p.x;piece.worldY=p.y;
+    }
+  }
+  function paintRockFragments(ctx,burst,time,{ship={x:0,y:0},cx=0,cy=0,visible=()=>true}={}){
+    const age=time-burst.born,t=age/1000;
+    for(const p of burst.pieces){
+      if(age>p.ttl)continue;
+      const px=cx+(p.worldX??burst.rock.x+p.x*burst.rock.size)-ship.x,py=cy+(p.worldY??burst.rock.y+p.y*burst.rock.size)-ship.y;
+      if(!visible(px,py,Math.hypot(p.w,p.h)*burst.rock.size/2))continue;
+      ctx.save();ctx.globalAlpha=Math.min(1,(p.ttl-age)/500);ctx.translate(px,py);ctx.rotate(p.environmentPiece?.angle??(burst.rock.angle||0)+p.spin*t);
+      ctx.drawImage(p.texture,-p.w*burst.rock.size/2,-p.h*burst.rock.size/2,p.w*burst.rock.size,p.h*burst.rock.size);ctx.restore();
+    }
   }
   function paint(ctx,{state,ship,cx,cy,zoom,w=cx*2,h=cy*2}){
     const time=window.nativeSimulation.now(state);const now=time;
@@ -330,5 +356,5 @@
     }
     for(const entry of collections){if((entry.rock.system??1)===state.system)drawOreTransport(ctx,entry,{ship,cx,cy,now,zoom,w,h});}
   }
-  window.nativeAsteroidCombat={select,deselect,autoTarget,clear,collect,collectField,fire,hit,weaponHit,debrisHit,destroy,completeMining,miningTiming,miningDamage,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,metrics:()=>({bursts:bursts.length,chips:bursts.filter(b=>b.chips).length,pieces:bursts.reduce((n,b)=>n+b.pieces.length,0)}),get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
+  window.nativeAsteroidCombat={environmentalDamage,makeRockShards,advanceRockFragments,paintRockFragments,select,deselect,autoTarget,clear,collect,collectField,fire,hit,weaponHit,debrisHit,destroy,completeMining,miningTiming,miningDamage,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,metrics:()=>({bursts:bursts.length,chips:bursts.filter(b=>b.chips).length,pieces:bursts.reduce((n,b)=>n+b.pieces.length,0)}),get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
 })();

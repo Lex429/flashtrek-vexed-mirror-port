@@ -10,6 +10,15 @@ and `browser-unified-equipment.py`, including actual Inventory evidence.
 
 The active entry point is `html-games/broken-mirror-port/index.html`. Shared showcase artwork and shaders live in `html-games/flashtrek-broken-mirror/`. Do not migrate the archived previews as if they were active gameplay.
 
+The showcase Stress tab is the shared effects performance lab; see
+`docs/effect-lab.md`. A request to "put it in game" refers to the exact tested
+candidate recorded by `tools/effect_lab.py status` in local `effect-lab/selected.json`.
+Review its profile, fixture and source hashes, apply it with `promote --apply`,
+then run `tools/validate_effect_game.py` with that fixture and report the actual
+result. Changed source requires remeasurement/restaging. Never substitute a
+renderer-only pass for a full-game performance result. Keep experimental modules
+separate from the released profile and preserve real frame intervals and stalls.
+
 Preserve artwork, ship statistics, faction differences, deliveries, civilian jobs, ore rewards and old saves. Keep changes incremental. Controllers select goals and commands; they must not duplicate movement integration, weapon specifications, recharge, collision, damage or impact rendering.
 
 The ownership contract is `docs/ship-system-contract.md`. Shared modules own ship definitions, motion, simulation time, weapon instances, firing, damage and effects. Add differences as explicit definition/profile/capability data. World coordinates and simulation time are authoritative; camera conversion belongs in rendering. Render functions cannot damage objects, complete mining or grant resources.
@@ -210,8 +219,10 @@ Ship-pair angular response belongs to `ship-motion.shipPairContact`; use the
 actual contact lever arms and inertia for momentum/energy-consistent impulses.
 Saved `motionSpin` is separate from steering angular velocity. Sample it in
 `sampleLeg` and inspector poses, carry it through `ship-systems.applyContact`,
-and rebase it when rerouting. Manual steering/thrust counter free collision drift;
-unpowered coasting retains linear momentum. Do not change manual ship profiles
+and rebase it when rerouting. Per the October 20 gameplay requirement, free
+collision drift settles even with controls released; intended manual coasting
+retains its engine velocity. Asteroid drift also settles analytically to rest.
+Do not change manual ship profiles
 to compensate for a collision-control bug. Run `impact-controls.test.cjs` and
 `browser-impact-controls.py`, including actual WASD/arrows and post-ram braking.
 

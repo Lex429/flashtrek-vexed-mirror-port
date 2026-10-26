@@ -176,6 +176,21 @@
       }
       rt.initializing=false;
     }
+    // Relocate saved chart endpoints once; existing contracts retain their paid
+    // prices, local arrival poses, cargo, progress and scheduled deadlines.
+    const layoutVersion=Number(world.chartLayoutVersion)||1;
+    if((Number(life.chartLayoutVersion)||1)<layoutVersion){
+      for(const ship of traffic.ships){
+        const j=ship.journey;
+        if(!j||!world.geologyMapPositions?.[j.origin]&&!world.geologyMapPositions?.[j.destination])continue;
+        const a=anchor(j.origin),b=anchor(j.destination);
+        if(!a||!b||![j.from?.x,j.from?.y,j.to?.x,j.to?.y].every(Number.isFinite))continue;
+        j.galaxyFrom={x:a.x+j.from.x,y:a.y+j.from.y};j.galaxyTo={x:b.x+j.to.x,y:b.y+j.to.y};
+        j.distance=Math.hypot(j.galaxyTo.x-j.galaxyFrom.x,j.galaxyTo.y-j.galaxyFrom.y);
+        if(j.duration>0)j.speed=j.distance/j.duration;
+      }
+      life.chartLayoutVersion=layoutVersion;
+    }
     if(minerals()&&!life.regionalMarketsInitialized){
       life.regionalMarketsInitialized=true;
       for(const entry of world.systems)for(const port of portsIn(state,entry.id))market(state,entry.id,port);
@@ -347,6 +362,7 @@
         if(!Number.isFinite(ship.nextActionAt))schedule(state,ship,result.arrived?now(state):ship.localLeg.startedAt+ship.localLeg.duration);}
       if(job.origin)job.origin.port=portFor(state,job.origin.system,job.origin.port);
       if(job.destination)job.destination.port=portFor(state,job.destination.system,job.destination.port);
+      if(!job.origin||!job.destination)continue;
       if(ship.cargo){ship.cargo.toPort=portFor(state,ship.cargo.toSystem??job.destination.system,ship.cargo.toPort);ship.cargo.fromPort=portFor(state,ship.cargo.fromSystem??job.origin.system,ship.cargo.fromPort);}
       if(medicalOre(ship))continue;
       const old=saved[job.id],good=ship.cargo?.good??job.requirements?.good,tons=ship.cargo?.tons??old?.tons??job.requirements?.tons;
@@ -424,8 +440,28 @@
     delete ship.trafficControl;
     const definition=stats(ship),configured=definition.profile?.movement??definition.movement;
     const profile=typeof configured==='function'?configured(state,ship,definition):configured||window.nativeShipMotion.profiles.civilian(definition);
-    ship.localLeg=window.nativeShipMotion.planLeg(ship,goal,profile,at);
-    if(ship.localLeg.valid===false){interrupt(state,ship,'invalid route',at);return false;}
+    const motion=window.nativeShipMotion,descriptor=window.nativeShipDefinitions.describe(state,ship,{category:'civilian'}),padding=motion.shipRadius(descriptor)+24;
+    const bodies=motion.navigationObstacles(state,ship.system,ship,goal,padding);
+    // A displaced resource can put its old approach offset inside a planet's
+    // clearance zone. Keep the claim and choose a reachable mining stand-off.
+    if(phase==='mining-flight'&&!motion.clearSegment(goal,goal,bodies,padding)){
+      const rock=rockById(ship.task?.requirements?.rockId,ship.system),candidates=[];
+      if(rock)for(const radius of [130,210,275])for(let i=0;i<24;i++){
+        const angle=i*Math.PI/12,p={x:rock.x+Math.cos(angle)*radius,y:rock.y+Math.sin(angle)*radius};
+        if(motion.clearSegment(p,p,bodies,padding))candidates.push(p);
+      }
+      candidates.sort((a,b)=>Math.hypot(a.x-goal.x,a.y-goal.y)-Math.hypot(b.x-goal.x,b.y-goal.y));
+      if(candidates.length)goal=candidates[0];
+    }
+    const points=motion.obstaclePoints(ship,goal,bodies,padding);
+    ship.localLeg=points===null?{valid:false}:points.length?motion.routeLeg(ship,goal,points,profile,at):motion.planLeg(ship,goal,profile,at);
+    if(ship.localLeg.valid===false){
+      interrupt(state,ship,'invalid route',at);
+      // A miner whose approach is blocked still owns a real return journey;
+      // it must not become an idle resident of an uninhabited asteroid field.
+      if(!inhabited(state,ship.system))returnToBase(state,ship,ship.operatingBase,at);
+      return false;
+    }
     ship.phase=phase==='mining-flight'?'mining-flight':'cruise';
     ship.goalX=goal.x;ship.goalY=goal.y;ship.task.phase=phase;schedule(state,ship,at+ship.localLeg.duration);
     return true;
@@ -936,6 +972,7 @@
   function upgradeMinerals(state,kind,port){
     const quote=minerals()?.upgradeQuote(state,kind);if(!quote)return {ok:false,error:'Unknown mineral technology.'};
     if(quote.level>=quote.max)return {ok:false,error:'This hull already has the maximum upgrade.'};
+    if(window.nativeShipyardRefits&&!window.nativeShipyardRefits.canMineralUpgrade(state))return {ok:false,error:'Hull refit budget reached. Reconfigure your build at Mars Orbital Shipyard.'};
     if(finite(state.latinum)<quote.price||Object.entries(quote.materials).some(([ore,n])=>minerals().held(state,ore)<n))return {ok:false,error:'The upgrade requires the listed minerals and latinum.'};
     const m=market(state,state.system,port),before=window.nativeShipDefinitions.forEntity(state),ledger=initialize(state).economicLedger;
     ledger.technologyMineralsConsumed||={};

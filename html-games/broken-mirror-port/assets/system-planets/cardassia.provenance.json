@@ -1,0 +1,14 @@
+{
+  "id": "cardassia",
+  "file": "cardassia.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Cardassia Prime, hot heavily urbanized depleted world, ochre-grey continents with vast fine metallic city grids over much of the surface, small dark seas and pale haze.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-b29c99bd-d7f1-42bc-a20b-2f182c1ab4fc.png",
+  "sourceSha256": "3bf23ec57e121fb8e5d63582cc95be57478cc5283803be03e13283f1f0056f8c",
+  "sha256": "71748d8caf1a8a37bea9f5075737cd27cc49562bf00ce5ffef0cab39a6336f54",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

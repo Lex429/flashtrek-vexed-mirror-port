@@ -1,0 +1,14 @@
+{
+  "id": "andoria",
+  "file": "andoria.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Andoria, a spherical frozen MOON, blue-white ice sheets, rugged glacial terrain and pale blue atmosphere. Show only the moon; its gas giant parent is a separate asset.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-a2a48194-4f65-4b44-b260-1cca7f61f877.png",
+  "sourceSha256": "2f2bbacf6536615de4172b4620d774859db6769edeb92dae890c548b184e872c",
+  "sha256": "6ee08ae01da846b8d5bcaa41309551f11b64ce914a70a01b13ba2f7fbf6750e6",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

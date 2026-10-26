@@ -132,3 +132,27 @@ test('failed asynchronous readback keeps the source and completes one bounded st
   const metrics=window.nativeDamageArtPreparation.snapshot();assert.equal(metrics.pending,0);assert.equal(metrics.failed,0);assert.equal(metrics.completed,1);
   assert.equal(metrics.readbackFallbacks,1);assert.equal(metrics.readback.failed,1,'worker failure remains observable despite successful art fallback');
 });
+
+test('serialized CThia partitions preserve the approved torn seam ownership',()=>{
+  const {window}=fixture();
+  window.starterShips={get:()=>({destruction:{sites:[['stub',0,0]]}})};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../html-games/flashtrek-broken-mirror/earth-fractures.js'),'utf8'),{window});
+  const original=window.earthFractureConfigs.get(59).partition;
+  const restored=window.createTornHullPartition(structuredClone(original.serialized));
+  const buffer=Buffer.alloc(365*512*2);let i=0;
+  for(let y=0;y<512;y++)for(let x=0;x<365;x++){
+    const owner=restored.owner(x+.137,y-.281);
+    assert.equal(owner,original.owner(x+.137,y-.281));buffer.writeUInt16LE(owner,i++*2);
+  }
+  // Captured from the pre-migration approved partition, including float seams.
+  assert.equal(require('node:crypto').createHash('sha256').update(buffer).digest('hex'),'796b961a397e23e71ede661fa0bc4c61ac59e9504add092c85ba7794b377cf8b');
+});
+
+test('showcase preparation suspends during a stress test and resumes without losing work',async()=>{
+  const {window,frames,flush}=fixture(),queue=window.nativeDamageArtPreparation;
+  queue.setPaused(true);
+  const pending=window.showcaseStageFragments.prepareAsync(frames,[[8,16],[35,42]]);
+  assert.equal(flush(),0);assert.equal(queue.snapshot().completed,0);assert.equal(queue.snapshot().pending,1);
+  queue.setPaused(false);flush();await pending;assert.equal(queue.snapshot().pending,0);
+  assert.equal(queue.snapshot().completed,1);
+});

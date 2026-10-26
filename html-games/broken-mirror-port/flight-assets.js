@@ -140,8 +140,8 @@
   function loadPlanet(systemId) {
     const system = window.VexedMirrorWorld.systems.find(entry => entry.id === Number(systemId));
     if (!system) return Promise.reject(new Error('Unknown system'));
-    const pending = image('assets/planets/planet-' + system.planetArtFrame + '.png');
-    pending.then(art => planetCache.set(system.id, art), () => {});
+    const pending = image(window.nativeSystemCatalog?.bodies(system.id).find(body=>body.legacyWorldId===system.id)?.art || 'assets/planets/planet-' + system.planetArtFrame + '.png');
+    pending.then(art => {planetCache.delete(system.id);while(planetCache.size>=4)planetCache.delete(planetCache.keys().next().value);planetCache.set(system.id, art);}, () => {});
     return pending;
   }
 
@@ -149,21 +149,24 @@
     const names=['Sun','Mercury','Venus','Earth','Moon','Mars','Asteroid Belt','Jupiter','Saturn','Uranus','Neptune','Pluto'];
     const id=Number(bodyId),name=names[id];
     if(!name)return Promise.reject(new Error('Unknown Sol destination'));
-    return image('../flashtrek-broken-mirror/art-review/sol-planets/'+String(id).padStart(2,'0')+' - '+encodeURIComponent(name)+'.png')
+    return image(window.nativeSystemCatalog?.bodies(1).find(body=>body.id===id)?.art || '../flashtrek-broken-mirror/art-review/sol-planets/'+String(id).padStart(2,'0')+' - '+encodeURIComponent(name)+'.png')
       .then(art=>{localBodyCache.set(id,art);return art});
   }
 
   function drawShip(ctx, asset, x, y, width, angle, time, appearance = {}) {
     if (!asset) return;
+    if(window.nativeFlightLightingEnabled===false)appearance={...appearance,lights:false,light:null};
     const height = appearance.height ?? width * asset.height / asset.width;
+    const source=appearance.light,localLight=source?{direction:(source.direction??Math.atan2(source.y-y,source.x-x))-angle,color:source.color,
+      bright:appearance.warpPulse?Math.min(.34,.22+appearance.warpPulse*.12):.22}:null;
+    const rasterAppearance={...appearance,localLight,batchChecked:true};
+    if(window.nativeHullBatch?.queueShip(ctx,asset,x,y,width,height,angle,time,rasterAppearance))return;
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.translate(x, y);ctx.rotate(angle);ctx.scale(appearance.squeezeX ?? 1, 1);
     ctx.globalAlpha *= appearance.alpha ?? 1;
-    const source=appearance.light,localLight=source?{direction:(source.direction??Math.atan2(source.y-y,source.x-x))-angle,color:source.color,
-      bright:appearance.warpPulse?Math.min(.34,.22+appearance.warpPulse*.12):.22}:null;
-    const cached=window.nativeShipSpriteCache?.draw(ctx,asset,width,height,time,{...appearance,localLight});
+    const cached=window.nativeShipSpriteCache?.draw(ctx,asset,width,height,time,rasterAppearance);
     if(!cached){ctx.drawImage(asset.art, -width / 2, -height / 2, width, height);
       asset.profile?.effects.draw(ctx, {x:0, y:0, w: width, h: height}, 0, asset.damageStage, time,
       {lights: appearance.lights !== false, damage: appearance.damage !== false, lightGain: appearance.lightGain??2.8, lightBloom: appearance.lightBloom??2.5});
@@ -204,4 +207,5 @@
   function resetCaches(){imageCache.clear();shipCache.clear();shipReferences.clear();imageBytes=shipBytes=renderEpoch=0;for(const key of Object.keys(cacheMetrics))cacheMetrics[key]=0;for(const key of Object.keys(preparation))preparation[key]=0;recentPreparation.length=0;}
   window.vexedFlightAssets = {loadShip,peekShip,retainShip,beginRenderFrame, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing,cacheSnapshot,resetCaches, size:id=>shipSizes.get(Number(id))||(()=>{const d=window.nativeShipDefinitions?.dimensions({shipType:Number(id)});return d?{id:Number(id),playerWidth:d.width,playerHeight:d.height}:null;})(),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
   loadWarpRing().catch(()=>{});
+  window.vexedFlightAssets.loadImage=image;
 })();

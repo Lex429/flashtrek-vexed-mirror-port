@@ -1,0 +1,20 @@
+{
+  "id": "ruvkesh-sol-v2",
+  "file": "ruvkesh-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror. Input image 1 is the actual Sol Venus artwork, a REFERENCE ONLY for realistic orbital photography, fine planetary-scale detail, natural spherical volume and illumination. It is not an edit target or a surface to recolor. Generate ONE distinctive new world: Ruvkesh, in the Kah'Less system. Appearance specification: Sand-colored clouds over brown plains. Photorealistic astronomical imagery at the visual quality of the supplied Sol artwork. Invent original geography, continent silhouettes and/or storm arrangements, distinct from the reference image. Fine natural geological or atmospheric structure, no painterly brushwork, flat texture or plastic finish. Upper-left sunlight, mostly illuminated globe, soft shaded lower-right limb and realistic terminator. Entire circular globe centered in a square image with 6 percent transparent padding on every side. Minimum 1280x1280 preferred. Genuine alpha transparency outside the subject. Clouds, coastlines, craters, mountains and any settlements must be appropriately small at planetary scale. Natural subdued atmospheric limb where appropriate, no excessive glow. No stars, black backdrop, scenery, labels, text, watermarks, borders, spacecraft or other planets. No added rings unless specified. The appearance and local planetary roster are original game interpretations, not claims of screen canon.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-bf4c39d4-65c4-4315-8afd-6ff65f65d6f6.png",
+  "sourceSha256": "a386f1c5862b09dbebc1cd24db66b4f2e238c291d41b5d8d57d8b4ec8de7cdea",
+  "sha256": "1315dafff5e5210a3e3a5c78b676e4d7793961c8a6fa099776a2d30b40d1344f",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/02 - Venus.png",
+      "sha256": "791367d48ca4246c9792b20e48bc8424a8a817fb292568716f5e04e2e9b34a18"
+    }
+  ]
+}

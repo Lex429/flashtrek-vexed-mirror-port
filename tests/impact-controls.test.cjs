@@ -26,11 +26,13 @@ test('off-center impulses conserve linear/angular momentum without adding kineti
   }
 });
 
-test('manual steering/thrust counters collision drift; coasting retains momentum and braking stops it',async()=>{
+test('impact stabilization settles released controls while preserving intended coasting, turning and thrust',async()=>{
   const {window:w}=await fixture({full:false,economic:false}),m=w.nativeShipMotion,profile={maxSpeed:140,acceleration:80,braking:100,turnRate:1.2};
   const initial={x:0,y:0,heading:0,vx:60,vy:0,speed:60,motionKick:{version:1,mode:'free',vx:-40,vy:0}},coast=copy(initial),turn=copy(initial),thrust=copy(initial);
   for(let i=0;i<60;i++){m.step(coast,{},profile,1/60);m.step(turn,{turn:1},profile,1/60);m.step(thrust,{throttle:1},profile,1/60);}
-  near(coast.motionKick.vx,-40);near(turn.heading,1.2);assert.ok(Math.abs(turn.motionKick.vx)<6);assert.ok(Math.abs(thrust.motionKick.vx)<6);
+  assert.ok(Math.abs(coast.motionKick.vx)<3);near(turn.heading,1.2);assert.ok(Math.abs(turn.motionKick.vx)<3);assert.ok(Math.abs(thrust.motionKick.vx)<3);
+  for(let i=0;i<180;i++)m.step(coast,{},profile,1/60);
+  assert.equal(coast.motionKick,undefined);near(coast.vx,100);near(coast.vy,0);
   for(let i=0;i<180;i++)m.step(turn,{brake:true},profile,1/60);assert.equal(turn.speed,0);assert.equal(turn.motionKick,undefined);
 });
 

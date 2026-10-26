@@ -36,6 +36,7 @@ try:
           const check=(v,m)=>{if(!v)throw Error(m);},near=(a,b,m)=>check(Math.abs(a-b)<.01,m+': '+a+' != '+b),clone=v=>JSON.parse(JSON.stringify(v));
           const base=clone(nativeNpcDev.getState()),rockId=nativeSolAsteroids.placements[0].slotId;
           const templates={civilian:clone(base.civilianTraffic.ships[0]),tug:clone(base.solEconomy.freighters[0])};
+          function isolated(category){const e=clone(templates[category]);for(const key of ['journey','localLeg','lifeLeg','motionKick','motionSpin','disputeId','retaliationId'])delete e[key];return e;}
           const canvas=document.createElement('canvas');canvas.id='asteroid-physics-output';canvas.width=1100;canvas.height=540;
           canvas.style.cssText='position:fixed;left:10px;top:100px;z-index:100000;background:#050a12';document.body.append(canvas);
           const ctx=canvas.getContext('2d',{willReadFrequently:true});
@@ -67,7 +68,7 @@ try:
           for(const category of ['player','civilian','tug'])for(const shielded of [true,false]){
             const s=fresh(),r=nativeSolAsteroids.find(rockId);r.maxHull=1000;
             let entity=s;
-            if(category!=='player'){entity={...clone(templates[category]),id:9999,system:1,phase:'cruise',hull:1000};if(category==='tug')s.solEconomy.freighters=[entity];else s.civilianTraffic.ships=[entity];}
+            if(category!=='player'){entity={...isolated(category),id:9999,system:1,phase:'cruise',hull:1000};if(category==='tug')s.solEconomy.freighters=[entity];else s.civilianTraffic.ships=[entity];}
             Object.assign(entity,{shields:shielded?1000:0,angle:.65,heading:.65,vx:Math.cos(.65)*45,vy:Math.sin(.65)*45,speed:45});
             let d=nativeShipDefinitions.describe(s,entity,{category});
             const distance=d.hullRadii.ry+r.size*.43-.5,n={x:Math.cos(.65),y:Math.sin(.65)},x=r.x-n.x*distance,y=r.y-n.y*distance;
@@ -169,9 +170,9 @@ try:
           const incoming=[];
           for(const category of ['player','civilian','tug'])for(const size of [20,70]){
             const initial=fresh(),r=nativeSolAsteroids.find(rockId),x=r.x,y=r.y,oldSize=r.size;
-            const s={...initial,asteroidMotion:{version:1,rocks:{[rockId]:{system:1,x,y:y-100,angle:r.angle,vx:0,vy:70,spin:0,at:nativeSimulation.seconds(initial)}}}};
+            const s={...initial,asteroidMotion:{version:1,rocks:{[rockId]:{system:1,x,y:y-35,angle:r.angle,vx:0,vy:180,spin:0,at:nativeSimulation.seconds(initial)}}}};
             nativeAsteroidMotion.ensure(s);r.size=size;
-            let entity=s;if(category!=='player'){entity={...clone(templates[category]),id:8899,system:1,phase:'cruise',hull:1000};if(category==='tug')s.solEconomy.freighters=[entity];else s.civilianTraffic.ships=[entity];}
+            let entity=s;if(category!=='player'){entity={...isolated(category),id:8899,system:1,phase:'cruise',hull:1000};if(category==='tug')s.solEconomy.freighters=[entity];else s.civilianTraffic.ships=[entity];}
             Object.assign(entity,{shields:1000,vx:0,vy:0,speed:0,heading:0,angle:0});
             if(category==='player')putPlayer(s,x,y);else Object.assign(entity,{x,y});entity.previousX=x;entity.previousY=y;
             await nativeShipEffects.prepare(nativeShipDefinitions.describe(s,entity,{category}).shipType,category);
@@ -189,7 +190,7 @@ try:
           for(const category of ['player','civilian','tug']){const cases=incoming.filter(c=>c.category===category);check(cases[1].velocity>cases[0].velocity,'Larger rock did not push '+category+' harder');}
           const chainState=fresh(),chainRocks=nativeSolAsteroids.forSystem(43).slice(0,3),at=nativeSimulation.seconds(chainState),positions=[0];
           for(let i=1;i<3;i++)positions.push(positions[i-1]+(chainRocks[i-1].size+chainRocks[i].size)*.43+8);
-          const chained={...chainState,asteroidMotion:{version:1,rocks:Object.fromEntries(chainRocks.map((r,i)=>[r.slotId,{system:43,x:positions[i],y:0,angle:r.angle,vx:i?0:60,vy:0,spin:0,at}]))}};
+          const chained={...chainState,asteroidMotion:{version:1,rocks:Object.fromEntries(chainRocks.map((r,i)=>[r.slotId,{system:43,x:positions[i],y:0,angle:r.angle,vx:i?0:120,vy:0,spin:0,at}]))}};
           chained.minedAsteroids=[...chainState.minedAsteroids,...nativeSolAsteroids.forSystem(43).filter(r=>!chainRocks.includes(r)).map(r=>r.slotId)];
           nativeAsteroidMotion.ensure(chained);
           for(let i=0;i<180;i++){nativeSimulation.advance(chained,1/60);nativeAsteroidMotion.advance(chained,1/60);}
@@ -209,6 +210,11 @@ try:
         page.locator('#asteroid-physics-output').screenshot(path=str(OUTPUT/'contacts.png'))
         page.locator('#collision-floor-output').evaluate('(el)=>el.style.visibility="visible"')
         page.locator('#collision-floor-output').screenshot(path=str(OUTPUT/'collision-floor.png'))
+        # Inspect restoration before the first gameplay step; live stabilization
+        # legitimately changes velocity once simulation resumes.
+        page.add_init_script('''(()=>{const raf=requestAnimationFrame;window.requestAnimationFrame=fn=>raf(t=>{
+          if(fn.name==='draw'&&document.body.classList.contains('playing'))return;fn(t);
+        });})();''')
         page.reload()
         page.locator('[data-menu="continue-dev"]').click(timeout=30000)
         page.wait_for_function('()=>nativeNpcDev.getState()&&nativeSolAsteroids.placements.length')

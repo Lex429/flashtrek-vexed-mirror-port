@@ -26,6 +26,7 @@
     context.setTransform(1,0,0,1,0,0);context.globalAlpha=1;context.globalCompositeOperation='source-over';context.filter='none';context.clearRect(0,0,width,height);return canvas;
   }
   function drawLamp(ctx,textures,point,pulse,options){
+    if(window.nativeFlightLightingEnabled===false)return true;
     const transform=ctx.getTransform(),sx=Math.hypot(transform.a,transform.b),sy=Math.hypot(transform.c,transform.d);
     if(!(sx>0&&sy>0))return false;
     const width=Math.max(1,Math.round(textures.lit.width*sx)),height=Math.max(1,Math.round(textures.lit.height*sy));
@@ -169,10 +170,26 @@
   }
   function draw(ctx,asset,width,height,time,appearance={}){
     if(!asset?.art||!(Number.isFinite(width)&&Number.isFinite(height)&&width>0&&height>0))return false;
+    if(window.nativeShipLampGPU?.queue(ctx,asset,width,height,time,appearance))appearance={...appearance,lights:false,damage:false,localLight:null,staticHull:true};
+    window.nativeEffectProfiles?.queueShipSurface?.(ctx,asset,width,height);
+    if(!appearance.batchChecked&&window.nativeHullBatch?.queue(ctx,asset,width,height,time,appearance))return true;
     const transform=ctx.getTransform();
     const sx=Math.hypot(transform.a,transform.b),sy=Math.hypot(transform.c,transform.d);
     if(!(sx>0&&sy>0))return false;
-    const warp=Boolean(appearance.kind&&asset.profile),light=appearance.localLight;
+    const lightingEnabled=window.nativeFlightLightingEnabled!==false;
+    const warp=Boolean(appearance.kind&&asset.profile),light=lightingEnabled?appearance.localLight:null;
+    if((!lightingEnabled||appearance.staticHull)&&!warp&&asset.damageStage===0){
+      const scale=Math.min(2,768/Math.max(width*sx,height*sy));
+      const rw=Math.max(1,Math.round(width*sx*scale)),rh=Math.max(1,Math.round(height*sy*scale));
+      const key=[identity(asset),rw,rh,'static'].join(':');let entry=sprites.get(key);
+      if(!entry){
+        const started=performance.now();while(sprites.size>=maxEntries||pixels+rw*rh>maxPixels)discard(sprites.keys().next().value);
+        const canvas=surface(rw,rh),g=canvas.getContext('2d',{willReadFrequently:true});
+        g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(asset.art,0,0,rw,rh);
+        entry={canvas,pixels:rw*rh};sprites.set(key,entry);pixels+=entry.pixels;counters.spriteMisses++;counters.spriteBuildMs+=performance.now()-started;
+      }else{counters.spriteHits++;sprites.delete(key);sprites.set(key,entry);}
+      ctx.drawImage(entry.canvas,-width/2,-height/2,width,height);return true;
+    }
     const gpu=!appearance.canvasOnly&&!warp&&window.nativeShipGpuBatch?.active?.(ctx);
     if(!gpu)window.nativeShipGpuBatch?.flush?.(ctx);
     // Every profiled ship is supersampled at 2x its actual screen size.
@@ -185,7 +202,7 @@
       Math.ceil(Math.max(32*quality,Math.max(rw,rh)*.35));
     const cw=rw+pad*2,ch=rh+pad*2,area=cw*ch;
     if(area*(gpu?1:2)>maxPixels){counters.rejected++;return false;}
-    const shade=gpu?null:illuminated(asset,rw,rh,light,appearance.owner),lights=appearance.lights!==false,damage=appearance.damage!==false;
+    const shade=gpu?null:illuminated(asset,rw,rh,light,appearance.owner),lights=lightingEnabled&&appearance.lights!==false,damage=appearance.damage!==false;
     const gain=appearance.lightGain??2.8,bloom=appearance.lightBloom??2.5;
     // Shared NPC rendering explicitly requests 20Hz. Direct lit previews keep
     // their established 60Hz default, as do player, damaged and warp effects.

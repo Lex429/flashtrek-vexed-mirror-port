@@ -1,0 +1,14 @@
+{
+  "id": "vex",
+  "file": "vex.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Vex, almost destroyed homeworld, blackened green-grey terrain, enormous scars and dead basins, a thin eerie green atmosphere. Intact spherical planet, not an explosion.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-0d11e8d1-d605-4606-9322-9932f789b9f0.png",
+  "sourceSha256": "021a99670175d72efb8636562a0f2a905ce424213711719da650a47cf9016a04",
+  "sha256": "1bf3f791f1dcf8ecf91242da86fdbf7bdae0e4c1400ca728e456bdaa627de09f",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

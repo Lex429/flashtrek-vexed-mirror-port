@@ -1,0 +1,14 @@
+{
+  "id": "kerkhov",
+  "file": "kerkhov.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Kerkhov, an alien planetary destination in the Vulcan system, subdued teal and ochre cloud formations and rugged dark surface, original visual interpretation.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-581d8249-85a6-41f3-aa2b-b2d61b42a573.png",
+  "sourceSha256": "123790d8ded817999a7fba24d8471d49bc496d783ff6ffc19e6151fa09de0e0f",
+  "sha256": "84ad2410f7cc78cd1b06b542e3f7e9ed3b7b31de2423e9e3aebb5f8a9386b5d0",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

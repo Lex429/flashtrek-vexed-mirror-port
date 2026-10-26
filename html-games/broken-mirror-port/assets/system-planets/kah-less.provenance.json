@@ -1,0 +1,14 @@
+{
+  "id": "kah-less",
+  "file": "kah-less.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Kah'Less, dismal rugged training world, treacherous brown mountain ranges, dark blue-grey ocean and dense storm systems.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-4554c648-6e6f-4ca3-9ce5-76efcb31eb93.png",
+  "sourceSha256": "b190791c7c7521cd2e5675e650280fe08d3a8b7053a20385b1f32a2f7034463b",
+  "sha256": "ecedf666e5801fa466c2384e8dc2883fa790fb3c69efe062a9b538d85421c627",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

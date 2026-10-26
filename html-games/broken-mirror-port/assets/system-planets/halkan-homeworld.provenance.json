@@ -1,0 +1,14 @@
+{
+  "id": "halkan-homeworld",
+  "file": "halkan-homeworld.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: precise-object-edit. Edit target: the attached generated Halkan homeworld sprite. Preserve the beautiful planet's detailed surface, cloud patterns, natural lighting, spherical proportions and colors. Repair its silhouette: remove ALL ragged white/cyan artifacts around the limb and any detached pixels. Shrink the complete planet uniformly to 76 percent of a square canvas so it has at least 12 percent truly transparent empty padding on all four sides. Full planet must be fully contained, never touch an edge. Create a clean smooth antialiased outer atmospheric limb, restrained thin blue atmospheric glow, no white outline, no pixelated fringe. Genuinely transparent background; preserve alpha. No additional objects, stars, text or labels. This is a production orbital game sprite.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-68ecf828-2b8d-4a6e-9824-fecaa6106a71.png",
+  "sourceSha256": "06aa2019300c34e7815dd8679df9a91139b27b7d4baf0f69b9c8f24f13a96a78",
+  "sha256": "54aafc16c61296e745ada40e23d7baf8fb784e5f966ff57a99d485fb2ab4682f",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

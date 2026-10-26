@@ -1,0 +1,20 @@
+{
+  "id": "dazhvek-sol-v2",
+  "file": "dazhvek-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror. Input image 1 is the actual Sol Earth artwork, a REFERENCE ONLY for realistic orbital photography, fine planetary-scale detail, natural spherical volume and illumination. It is not an edit target or a surface to recolor. Generate ONE distinctive new world: Dazhvek, in the Kah'Less system. Appearance specification: Rusty tundra and gray-blue lakes. Photorealistic astronomical imagery at the visual quality of the supplied Sol artwork. Invent original geography, continent silhouettes and/or storm arrangements, distinct from the reference image. Fine natural geological or atmospheric structure, no painterly brushwork, flat texture or plastic finish. Upper-left sunlight, mostly illuminated globe, soft shaded lower-right limb and realistic terminator. Entire circular globe centered in a square image with 6 percent transparent padding on every side. Minimum 1280x1280 preferred. Genuine alpha transparency outside the subject. Clouds, coastlines, craters, mountains and any settlements must be appropriately small at planetary scale. Natural subdued atmospheric limb where appropriate, no excessive glow. No stars, black backdrop, scenery, labels, text, watermarks, borders, spacecraft or other planets. No added rings unless specified. The appearance and local planetary roster are original game interpretations, not claims of screen canon.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-e692ac37-8675-4d53-aaca-b9881f0a2acd.png",
+  "sourceSha256": "58113bf00eee14496bcb2524da9e37e2c05e3e8b25f22a7f92fa8ebeae66f761",
+  "sha256": "1888a1fab18cb89de5db9cdb0df235b5d6028215d598d5a5a4f57fb5cd4f2788",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/03 - Earth.png",
+      "sha256": "0802891f5ba0986ec2f343a5adbc9216ce6612f2f45d4cff77668272c4bed2ee"
+    }
+  ]
+}

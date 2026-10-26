@@ -376,6 +376,7 @@ try:
               nativeCombatShots.restore=state=>{window.__beamReloaded=state;return restore(state);};
             }""")
             page.locator('[data-menu="continue"]').click()
+            page.wait_for_function('()=>!!window.__beamReloaded',timeout=30000)
             restored_attack = page.evaluate("""saved => {
               const state=window.__beamReloaded,event=state.weaponCombat.events[0],target=state.civilianTraffic.ships.find(ship=>ship.id===saved.targetId),owned=nativeWeaponLoadout.equipped(state)[0];
               if(!event||event.resolved||event.id!==saved.eventId)throw Error('Continue lost its pending beam');

@@ -133,6 +133,14 @@
     const previous=entry.target;insertTarget(record,target,reusable);window.nativeSimulationFrame?.trackPose?.(state,entity,previous,target);
     const scene=caches(state)?.get('targets:'+record.system);if(scene){const index=scene.scene.targets.indexOf(previous);if(index>=0)scene.scene.targets[index]=target;scene.byId.set(idKey(target.id),target);}return target;
   }
+  function presentation(state,entity=state,category=entity===state?'player':'civilian',system=entity.system??state.system){
+    const frame=window.nativeSimulationFrame?.current(state);
+    if(!frame)return window.nativeShipDefinitions.describe(state,entity,{category});
+    const cacheKey='presentation:'+system;let cached=frame.caches.get(cacheKey);
+    if(!cached){cached=new Map(collectShips(state,system).map(target=>[target.entity,target]));frame.caches.set(cacheKey,cached);}
+    const target=cached.get(entity);
+    return target?.category===category?target:window.nativeShipDefinitions.describe(state,entity,{category});
+  }
   function scene(state,{system=state.system}={}){
     const frameCache=caches(state),cacheKey='targets:'+system,cached=frameCache?.get(cacheKey);
     if(cached)return cached.scene;
@@ -308,7 +316,7 @@
   }
   function bodyTargets(state,system){
     const frameCache=caches(state),key='bodies:'+system,cached=frameCache?.get(key);if(cached)return cached;
-    const bodies=system===1?(window.nativeSystemHub?.sol||[]).filter(body=>body.id!==6).map(body=>({x:body.x-220,y:body.y+75,radius:(window.vexedSolFlight?.bodySize(body)||100)*.44})):[];
+    const bodies=window.nativeSystemCatalog?window.nativeSystemCatalog.bodies(system).filter(b=>b.kind!=='belt'&&!b.occludedBy).map(b=>({x:b.x-220,y:b.y+75,radius:(b.size||100)*.44})):system===1?(window.nativeSystemHub?.sol||[]).filter(body=>body.id!==6).map(body=>({x:body.x-220,y:body.y+75,radius:(window.vexedSolFlight?.bodySize(body)||100)*.44})):[];
     frameCache?.set(key,bodies);return bodies;
   }
   function collisionScene(state,{system=state.system}={}){
@@ -392,7 +400,7 @@
       vx:entity.vx,vy:entity.vy,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionSpin:entity.motionSpin,motionTime:window.nativeSimulation.seconds(state)};
     const origin={x:descriptor.x-entity.x,y:descriptor.y-entity.y};
     profile||=descriptor.definition.movement;
-    if(entity.phase==='disabled'||descriptor.definition.engineOnline===false){command={coast:true};profile={maxSpeed:Infinity,turnRate:0,damping:0,inertial:true};}
+    if(entity.phase==='disabled'){command={coast:true};profile={maxSpeed:Infinity,turnRate:0,damping:0,inertial:true};}
     command=window.nativeShipTraffic?.steer(state,descriptor,command,profile)||command;
     const result=window.nativeShipMotion.step(pose,command,profile,dt);
     Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionAngularVelocity:pose.motionAngularVelocity,
@@ -427,5 +435,5 @@
     }});
   register('asteroid',{collect:asteroidTargets,hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.weaponHit(state,target.rockId,amount,impact)});
   function inspect(state,id){if(String(id)==='player')return inspectPlayer(state)[0];if(String(id).startsWith('tug:'))return window.nativeSolEconomy?.inspect?.(state,String(id).slice(4))||null;return window.nativeNpcLives?.inspect?.(state,id)||null;}
-  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,countShips:(state,system=state.system)=>shipRecord(state,system).ships.length,scene,collisionScene,query,resolve,applyHit,visualImpact,resolved,move,applyContact,inspectAll,inspect,observeCollection,invalidate,invalidateShips,refreshShip,sampledShip,refreshAsteroid});
+  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,presentation,countShips:(state,system=state.system)=>shipRecord(state,system).ships.length,scene,collisionScene,query,resolve,applyHit,visualImpact,resolved,move,applyContact,inspectAll,inspect,observeCollection,invalidate,invalidateShips,refreshShip,sampledShip,refreshAsteroid});
 })();

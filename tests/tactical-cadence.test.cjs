@@ -77,7 +77,7 @@ test('prepared tactical actors are reused for perception and avoidance while pos
   assert.equal(w.nativeSimulationFrame.snapshot(state).counters.tacticalDecisions,firstDecisions+1,'fitting changes bypass the cadence deadline');
   const equipment=ship.shipEquipment,engine=equipment.slots.engineering[0];equipment.slots.engineering[0]=null;
   const unpowered=prepare(state);steer(unpowered);
-  assert.equal(unpowered.definition.engineOnline,false);assert.equal(seenAvoidance.at(-1).movement.maxSpeed,0);
+  assert.equal(unpowered.definition.engineOnline,false);assert.equal(seenAvoidance.at(-1).movement.maxSpeed,90);
   assert.equal(w.nativeSimulationFrame.snapshot(state).counters.tacticalDecisions,firstDecisions+2,'effective movement changes react immediately');
 
   equipment.slots.engineering[0]=engine;

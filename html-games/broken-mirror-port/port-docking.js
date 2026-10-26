@@ -5,6 +5,10 @@
   const coords={1:[-4100,1100],2:[-2300,-1500],3:[0,0],4:[1400,-250],5:[4800,1800],7:[11800,2700],8:[15300,-2700],9:[19000,3300],10:[23200,-4400]};
   const sizes={1:62,2:105,3:128,4:48,5:85,7:165,8:155,9:112,10:110};
   const owner=ship=>`civilian:${ship.id}`;
+  function clearRocks(state,system,point,radius){
+    const gone=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]);
+    return (window.nativeSolAsteroids?.nearby?.(system,point,radius+80)||[]).every(rock=>gone.has(rock.slotId)||Math.hypot(point.x-rock.x,point.y-rock.y)>=radius+rock.size*.43+GAP);
+  }
   const data=state=>state.portDocking||=( {version:1,sequence:0,ships:{}} );
   const runtimes=new WeakMap(),proxyTargets=new WeakMap(),CELL=512;
   const unwrap=value=>proxyTargets.get(value)||value;
@@ -152,7 +156,7 @@
       const p={x:c.x+Math.cos(angle)*distance,y:c.y+Math.sin(angle)*distance,radius:r};
       const clear=occupied(state,system,id,p,r,context).every(q=>Math.hypot(p.x-q.x,p.y-q.y)>=r+q.radius+GAP);
       const outsideBodies=system!==1||Object.keys(coords).every(key=>{const b=center(1,Number(key));return Math.hypot(p.x-b.x,p.y-b.y)>r+(sizes[key]||128)/2+100;});
-      if(clear&&outsideBodies)return p;
+      if(clear&&outsideBodies&&clearRocks(state,system,p,r))return p;
     }
     return null;
   }

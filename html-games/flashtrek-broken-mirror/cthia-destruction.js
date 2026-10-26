@@ -1,5 +1,19 @@
 /* Cut the current hull into disjoint sections. Every source pixel belongs to
    one section, so the initial wreckage reconstructs the visible ship exactly. */
+// Measured torn seams have a data-only form for the artwork worker. Both
+// threads use this exact owner, including floating-point seam coordinates.
+window.createTornHullPartition = data => {
+  const {id,anchors,chips}=data;
+  const hash=n=>{const v=Math.sin(n*12.9898+73.217)*43758.5453;return v-Math.floor(v);};
+  function owner(x,y){
+    const dx=(hash(Math.floor(y/4)+id*17)-.5)*6,dy=(hash(Math.floor(x/4)+id*31)-.5)*6;
+    for(let i=0;i<chips.length;i++)if(Math.hypot(x-chips[i].x+dx*.15,y-chips[i].y+dy*.15)<chips[i].r)return anchors.length+i;
+    let best=0,distance=Infinity;
+    for(let i=0;i<anchors.length;i++){const p=anchors[i],d=(x+dx-p[1])**2+(y+dy-p[2])**2;if(d<distance){distance=d;best=i;}}
+    return best;
+  }
+  return {owner,serialized:{kind:'torn-anchors-v1',id,anchors,chips}};
+};
 window.createShipDestruction = () => {
   'use strict';
   // Only cosmetic particles use this stream. Physical fragment trajectories

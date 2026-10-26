@@ -1,0 +1,389 @@
+{
+  "version": 1,
+  "checkedOn": "2026-10-25",
+  "policy": "Screen-supported relationships take precedence. Licensed schemes remain references; Prime geography in this Mirror game is an adaptation. Unmeasured distances, orbital phases and unknown stellar luminosities are explicit model assumptions. Chart coordinates are compressed schematic distances, not AU or an ephemeris. No claim of an N-body stability simulation is made.",
+  "sources": {
+    "NASA-ORBITS": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/planetfact_notes.html",
+    "NASA-DISTANCES": "https://science.nasa.gov/solar-system/planet-sizes-and-locations-in-our-solar-system/",
+    "NASA-PLANET-COMPARE": "https://solarsystem.nasa.gov/planet-compare/",
+    "NASA-HABITABLE-ZONE": "https://science.nasa.gov/exoplanets/habitable-zone/",
+    "NASA-BINARY-STABILITY": "https://ntrs.nasa.gov/citations/20150022375",
+    "NASA-KEPLER-B": "https://science.nasa.gov/exoplanet-catalog/kepler-174-b/",
+    "NASA-KEPLER-C": "https://science.nasa.gov/exoplanet-catalog/kepler-174-c/",
+    "NASA-KEPLER-D": "https://science.nasa.gov/exoplanet-catalog/kepler-174-d/",
+    "TREK-ANDORIA": "https://www.startrek.com/news/why-is-the-sky-blue",
+    "TREK-CHARADES": "https://www.startrek.com/news/recap-205-charades-strange-new-worlds",
+    "TREK-BETA-III": "https://www.startrek.com/news/star-trek-megalomaniacal-ai-guide"
+  },
+  "orderedSystems": {
+    "12": {
+      "groups": [
+        [
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          3
+        ]
+      ],
+      "evidence": "reported_screen_graphic",
+      "note": "Retain the reported inner world and Vulcan/T'Khut companion interpretation; exact co-orbital dynamics are unresolved, not a verified stability result.",
+      "sources": [
+        "VULCAN",
+        "TKHUT"
+      ]
+    },
+    "14": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          102
+        ],
+        [
+          0
+        ],
+        [
+          103
+        ],
+        [
+          104
+        ]
+      ],
+      "evidence": "licensed_reference",
+      "note": "Retain the existing Ventarus Idrilon fourth-planet RPG interpretation, not a screen-canonical ordinal.",
+      "sources": [
+        "FERENGINAR"
+      ]
+    },
+    "31": {
+      "groups": [
+        [
+          2
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          3
+        ]
+      ],
+      "evidence": "reported_screen_graphic",
+      "note": "Retain the Nemesis diagram interpretation: inner world, Romulus, Remus, outer world. Survey names and distances are authored.",
+      "sources": [
+        "ROMULUS"
+      ]
+    },
+    "47": {
+      "groups": [
+        [
+          0
+        ],
+        [
+          1
+        ]
+      ],
+      "evidence": "authored",
+      "note": "Bajor's conflicting licensed VII/XI placements remain unresolved. Bajor VIII is a supported name; no complete census or canonical ordinal is inferred for Bajor."
+    },
+    "50": {
+      "groups": [
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          2
+        ],
+        [
+          3
+        ],
+        [
+          4
+        ]
+      ],
+      "evidence": "reported_screen_graphic",
+      "note": "Retain the existing I, Prime/II, III, IV, V diagram interpretation without inventing a complete eight-planet census.",
+      "sources": [
+        "CARDASSIA"
+      ]
+    },
+    "55": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          102
+        ],
+        [
+          0
+        ]
+      ],
+      "evidence": "adapted_numbering",
+      "note": "Epsilon Indi IV retains its designation. The three named survey neighbors and their spacing are game additions.",
+      "sources": [
+        "EPSILON-INDI-IV"
+      ]
+    },
+    "58": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          102
+        ],
+        [
+          103
+        ],
+        [
+          104
+        ],
+        [
+          105
+        ],
+        [
+          106
+        ],
+        [
+          107
+        ],
+        [
+          0
+        ]
+      ],
+      "evidence": "adapted_numbering",
+      "note": "Vega IX retains its designation. The inner survey roster is authored, not nine independently verified screen planets.",
+      "sources": [
+        "VEGA-IX"
+      ]
+    },
+    "60": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          0
+        ]
+      ],
+      "evidence": "astronomy",
+      "note": "Kepler-174 b, c and d follow NASA orbital radii; the Mirror culture and surface artwork remain fiction."
+    },
+    "62": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          0
+        ],
+        [
+          102
+        ]
+      ],
+      "evidence": "adapted_numbering",
+      "note": "Retain VII and the authored II/V/VIII survey layout; ordinal gaps are not filled with invented bodies.",
+      "sources": [
+        "TONNATA-VII"
+      ]
+    },
+    "68": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          0
+        ]
+      ],
+      "evidence": "adapted_numbering",
+      "note": "Mintaka III retains its designation. A compressed representative primary does not resolve the actual multiple-star architecture.",
+      "sources": [
+        "MINTAKA-III"
+      ]
+    },
+    "70": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          102
+        ],
+        [
+          0
+        ]
+      ],
+      "evidence": "adapted_numbering",
+      "note": "Talos IV retains its designation; the inner survey worlds are authored.",
+      "sources": [
+        "TALOS-IV"
+      ]
+    },
+    "71": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          102
+        ],
+        [
+          0
+        ]
+      ],
+      "evidence": "adapted_numbering",
+      "note": "Tau Ceti IV retains its Trek designation. The survey roster is not an observed exoplanet census.",
+      "sources": [
+        "TAU-CETI-IV"
+      ]
+    },
+    "82": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          102
+        ],
+        [
+          0
+        ]
+      ],
+      "evidence": "adapted_numbering",
+      "reposition": [
+        100,
+        101,
+        102
+      ],
+      "note": "Move the three authored I/II/III survey worlds inside Archer IV's orbit; retain the inhabited destination and yard coordinates.",
+      "sources": [
+        "ARCHER-IV"
+      ]
+    },
+    "84": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          0
+        ]
+      ],
+      "evidence": "adapted_numbering",
+      "reposition": [
+        100,
+        101
+      ],
+      "sources": [
+        "BETA-III",
+        "TREK-BETA-III"
+      ],
+      "note": "Move the two authored I/II survey worlds inside Beta III's orbit. C-111's stellar identity and unmeasured distances remain adaptations."
+    },
+    "85": {
+      "groups": [
+        [
+          100
+        ],
+        [
+          101
+        ],
+        [
+          102
+        ],
+        [
+          103
+        ],
+        [
+          104
+        ],
+        [
+          105
+        ],
+        [
+          0
+        ]
+      ],
+      "evidence": "adapted_numbering",
+      "note": "Retain Eminiar VII and the existing authored inner survey interpretation, including Vendikar; no exact screen orbital radii are asserted.",
+      "sources": [
+        "EMINIAR-VII"
+      ]
+    }
+  },
+  "solarAxesAU": {
+    "1": 0.3871,
+    "2": 0.7233,
+    "3": 1.0,
+    "5": 1.5237,
+    "7": 5.2028,
+    "8": 9.5388,
+    "9": 19.1914,
+    "10": 30.0611,
+    "11": 39.48,
+    "12": 2.77,
+    "13": 43.1,
+    "14": 45.8,
+    "15": 67.7
+  },
+  "solarAxesNote": "Rounded representative semimajor axes, not instantaneous distance or a common-epoch alignment. Dwarf-planet elements vary with epoch. Ceres lies in the main belt; Pluto, Haumea, Makemake and Eris retain the outer-system ordering.",
+  "keplerAxesAU": {
+    "100": 0.1,
+    "101": 0.214,
+    "0": 0.677
+  },
+  "luminosityAssumptions": {
+    "G": 1.0,
+    "K": 0.4,
+    "M": 0.04,
+    "F": 3.0,
+    "A": 25.0
+  },
+  "systemLuminosityAssumptions": {
+    "11": 100000,
+    "68": 90000
+  },
+  "modelNote": "For unmeasured orbits, a representative stellar luminosity sets a sqrt(L) distance scale. Existing inhabited terrestrial anchors are placed near that scale, with geometrically spaced inner/outer orbits. Gas giants may occur inside or outside the temperate region. These are design estimates; actual atmospheres, masses, eccentricities and stability are unmeasured. Alpha Centauri's assumed circumstellar orbits are capped below 2.4 AU and remain separate by parent star. Other binary layouts retain qualified schematic geometry."
+}

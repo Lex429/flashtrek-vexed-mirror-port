@@ -1,0 +1,14 @@
+{
+  "id": "rigel",
+  "file": "rigel.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Rigel VII, rocky temperate planet with rugged brown-grey mountains, dark blue seas and diffuse pale clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-45968433-bf9a-40e2-8ae8-2ed3464cf7fb.png",
+  "sourceSha256": "edd840e5e9fb0e8ca435abea362630a06b2b9ffbda63ac64f276f61c493ecd9f",
+  "sha256": "4688b80cf93264b53e5a048959454e8ff3349f16b8e865862ca2264ce9fa5852",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

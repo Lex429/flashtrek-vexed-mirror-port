@@ -1,0 +1,14 @@
+{
+  "id": "worf",
+  "file": "worf.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Worf, a peaceful Klingon colony planet, earthy green-brown continents, blue-grey ocean and mountain ranges.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-87f27fe1-51a2-4109-996d-d07ed39bb621.png",
+  "sourceSha256": "15eae763d8a86849240415753b025d939a9deaeb7335c86fbb635d2b5a370916",
+  "sha256": "24e03d16e3663e847d7d8d5c82e30c044815dc954e05a7602d4b5923ca5f0d08",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

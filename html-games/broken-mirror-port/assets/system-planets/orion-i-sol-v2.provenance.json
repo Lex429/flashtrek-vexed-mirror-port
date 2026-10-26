@@ -1,0 +1,20 @@
+{
+  "id": "orion-i-sol-v2",
+  "file": "orion-i-sol-v2.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: scientific-educational. Asset type: final transparent planet sprite for Vexed Mirror, not a poster. Reference image 1 is the actual Sol Earth artwork: use it ONLY as the benchmark for orbital-photography realism, fine planetary-scale detail, spherical volume, sharp natural limb and lighting; do not copy Earth's geography. Generate ONE new world: ORION I, limestone continental shields in ivory and warm pale stone, teal blue seas, fine eroded coastlines, mountain belts, delicate physically plausible white weather systems. Upper-left sunlight, a softly shaded lower-right limb, mostly illuminated full spherical disk. Match Earth's realism and texture density, no painted or plastic look. Full round globe centered with 6 percent transparent padding on each side, 1280x1280 or higher. Actual alpha transparency outside globe. Geographic features are at realistic planetary scale. No stars, black background, text, labels, frame, watermark, spacecraft, other globes, oversized mountains or excessive bloom. This is an original game-world appearance, not an assertion of a canon surface.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-15708886-e246-4f9a-8981-32d267ea334d.png",
+  "sourceSha256": "fe6c92bbd3dab67ec1394aab2300b2ff20801e475514c5ae68a42de25b47bfa6",
+  "sha256": "48807ab1f67cbf4865f7bce0f9435f2fc3e2bdad87960b8517852909702f3890",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true,
+  "referenceArtwork": [
+    {
+      "file": "html-games/flashtrek-broken-mirror/art-review/sol-planets/03 - Earth.png",
+      "sha256": "0802891f5ba0986ec2f343a5adbc9216ce6612f2f45d4cff77668272c4bed2ee"
+    }
+  ]
+}

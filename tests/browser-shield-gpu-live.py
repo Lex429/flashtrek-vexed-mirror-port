@@ -65,7 +65,9 @@ try:
         assert page.evaluate('vexedShieldGPU.canvas.hidden'), 'Flight shield leaked into galaxy map'
         page.evaluate("document.getElementById('dev-galaxy-return').click()")
         page.evaluate('__shieldState.shipSimulation.seconds+=.91;__shieldFrame(performance.now())')
-        assert page.evaluate('vexedShieldGPU.canvas.hidden'), 'Expired shield remained visible'
+        assert page.evaluate('vexedShieldGPU.snapshot().lastActiveShields===0'), 'Expired shield remained active'
+        # The shared overlay continues painting running lamps after shields expire.
+        assert page.evaluate('vexedShieldGPU.canvas.hidden||vexedShieldGPU.snapshot().shipLamps.lastInstances>0')
         page.set_viewport_size({'width': 1024, 'height': 768})
         page.evaluate('__shieldFrame(performance.now())')
         assert page.evaluate('vexedShieldGPU.canvas.width===space.width&&vexedShieldGPU.canvas.height===space.height')

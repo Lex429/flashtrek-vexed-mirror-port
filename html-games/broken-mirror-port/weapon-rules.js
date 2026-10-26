@@ -17,7 +17,7 @@
   function weaponSpec(weapon,kind,{damageMultiplier=1}={}){
     const turret=/turrent|turret/i.test(weapon.name||'');
     return {kind,damage:Math.max(0,Number(weapon.damage)||0)*damageMultiplier,
-      range:kind==='beam'?520:kind==='torpedo'?650:430,
+      range:Math.max(1,Number(weapon.range)||(kind==='beam'?520:kind==='torpedo'?650:430)),
       arc:(turret||kind==='beam'?180:50)*Math.PI/180,
       speed:kind==='torpedo'?225:340,turn:kind==='torpedo'?.85:0,
       radius:kind==='torpedo'?3:1.4,recharge:Math.max(0,Number(weapon.recharge)||0)/13};

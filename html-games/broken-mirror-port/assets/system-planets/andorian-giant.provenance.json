@@ -1,0 +1,14 @@
+{
+  "id": "andorian-giant",
+  "file": "andorian-giant.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: the unnamed Andorian gas giant, pale blue and lavender cloud bands with subtle storms, broad delicate icy rings; entire tilted ring ellipse and sphere fit inside frame.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-56810fba-b851-49d1-bd81-807cacc0d442.png",
+  "sourceSha256": "49c9788cac82f337f5dac3cb82f5413ee6a7d7aa3ddfc10ce5728ba298df87c7",
+  "sha256": "80ccc2b54ec024c784e45b08eff1ca505d0869b71bd9cb60e48d2df691f1b730",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

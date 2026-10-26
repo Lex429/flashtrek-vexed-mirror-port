@@ -72,7 +72,7 @@ test('a weapon hit consumes shields before hull and uses each matching contact s
   const result = api.hit(player, 35, { kind: 'torpedo', from: { x: -50, y: 20 } });
   assert.deepEqual(plain(result), { ok: true, destroyed: false, disabled: false, shields: 0, hull: 55 });
   assert.deepEqual(contacts.map(contact => contact.shielded), [true, false]);
-  assert.deepEqual(bursts[0].point, { x: 6, y: 22 });
+  assert.deepEqual(plain(bursts[0].point), { x: 6, y: 22, damage: 15, capacity: 100, kind: 'torpedo', normal: { x: -4, y: 2 } });
   assert.equal(api.snapshot().flash.kind, 'torpedo');
   assert.equal(player.speed, 25);
   assert.ok(player.localCruise);

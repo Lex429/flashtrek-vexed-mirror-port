@@ -1,0 +1,14 @@
+{
+  "id": "iconia",
+  "file": "iconia.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Iconia, devastated ancient homeworld with weathered ochre-grey continents, old impact scars, sparse ocean and thin clouds.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-dafd78d2-fd86-42f0-8d8f-0b6f2b9bc1ef.png",
+  "sourceSha256": "5edffe390a29d76e8f5443ccd326a0fef6c8cecbb19a17722ae30bd1c6b11dce",
+  "sha256": "66ffb5b4facec0fe4801b14608a70dd77b87174968e68feb983d05cb27d8906d",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

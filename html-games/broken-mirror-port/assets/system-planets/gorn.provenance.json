@@ -1,0 +1,14 @@
+{
+  "id": "gorn",
+  "file": "gorn.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: The Broken Mirror Gorn world: abandoned dry reptilian homeworld with barren amber land, dead seas and a thin sickly atmosphere. This is game lore, not a claim about Gornar.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-b4cdabc6-b428-425a-8a7d-6bc797b16d96.png",
+  "sourceSha256": "cb4caa012834fe6ec60d815f2b8bef276c74e8d1f0eb5b13c5aebc2b3793013a",
+  "sha256": "852a79b4de653e141fa96e627cfd81dd2433370c655e5dfe6dca44d55b6037ff",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

@@ -21,7 +21,7 @@ body>footer{position:absolute;z-index:50;bottom:0;left:0;right:0;display:flex;al
 .dev-select{display:block;margin:14px 0;color:#9dd9ee;font-size:12px;letter-spacing:.08em;text-transform:uppercase}.dev-select select{display:block;width:100%;margin-top:6px;padding:9px 10px;background:#101c29;color:#e7f7ff;border:1px solid #426077;border-radius:4px;font:14px system-ui}
 #connection{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .flight-keys{white-space:nowrap;color:#7891a4}
-body:not(.playing)>footer .game-actions button:not(#pauseBtn),body:not(.playing)>footer #connection,body:not(.playing) .flight-keys{display:none}
+body:not(.playing)>footer{display:none}
 body.warping>footer #connection,body.warping .flight-keys{visibility:hidden}
 body:has(#galaxy-map:not([hidden]))>footer{visibility:hidden;pointer-events:none}
 #notice{top:calc(var(--hud-height,43px) + 10px);max-width:calc(100% - 20px);font-size:clamp(10px,1.8cqw,13px);text-align:center}

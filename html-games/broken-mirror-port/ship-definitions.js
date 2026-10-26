@@ -8,6 +8,9 @@
     civilian:{artwork:'showcase',disableRatio:.25,dimensions:'civilian',displayHeights:{23:22.5,47:72,52:90}}
   };
   const number=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
+  // Fixed pre-refit benchmarks: original Intrepid (95), original Saber (20).
+  // Hull class and controller ownership never select the installed engine's speed.
+  const engineSpeeds=Object.freeze({standard:95,unfitted:20});
   // Preserve the established active civilian fleet, then use the recovered
   // flight scale for the remaining classes. These are gameplay units, not metres.
   const displayHeights=Object.freeze({18:11.7,23:22.5,47:72,52:90,58:75});
@@ -89,7 +92,7 @@
     const npcPolicy={name:policyName,...policies[policyName],...(typeof custom.npcPolicy==='object'?custom.npcPolicy:{})};
     if(policies[policyName]?.supplies)npcPolicy.supplies={...policies[policyName].supplies,...custom.npcPolicy?.supplies};
     npcPolicy.combat={...policies[policyName]?.combat,...custom.npcPolicy?.combat};
-    const result={...stats,...custom,id:type,category,profile:role,slots,npcPolicy,
+    const result={...stats,...custom,speedOrOtherStationValue:engineSpeeds.standard,id:type,category,profile:role,slots,npcPolicy,
       defaultRole:custom.defaultRole||(policyName==='medical'?'medical':'freight'),artworkProfile:custom.artworkProfile||artworkProfile(type),dimensions:custom.dimensions||presentation(type),
       startingEquipment:{weapon:initial.map(id=>itemKind(id)!=='weapon'?null:id||null),repairDrone:Array.from({length:Number.isInteger(slots.repairDrone)&&slots.repairDrone>=0&&slots.repairDrone<=64?slots.repairDrone:0},()=> 'basic-dot'),ability:initial.filter(id=>itemKind(id)==='ability'),engineering:['standard-engine'],shield:(custom.shields??stats.shields)>0?['standard-shield']:[],...custom.startingEquipment},
       npcStartingEquipment:custom.npcStartingEquipment||{ability:custom.capabilities?.canMine!==false&&(npcPolicy.activities?.includes('mining')||npcPolicy.supplies?.mine)?['mining-laser']:[]},
@@ -98,11 +101,12 @@
       geometry:{hull:{width:.34,height:.44,minX:8,minY:12},...custom.geometry},
       emitters:custom.emitters||{beam:{x:0,y:-.36},beamAft:{x:0,y:.36},projectile:{x:0,y:-.36}},
       repair:{...repairAttachments,...custom.repair},
+      repairBayGeometry:custom.repairBayGeometry||{hatch:{x:0,y:.3},outward:{x:0,y:1},clearance:30},
       // Physical fragment topology is definition data, available before a
       // camera requests pixels. Custom artwork must supply matching topology.
       debrisGeometry:custom.debrisGeometry||(!custom.artworkProfile&&!custom.artwork&&!custom.renderer?window.VexedMirrorDebrisGeometry?.ships?.[type]:null),
       equipment:custom.equipment||stats.defaultWeapons||[],
-      statUpgrades:custom.statUpgrades||(type===10?[{levelField:'tugEngineLevel',stat:'speedOrOtherStationValue',base:35,perLevel:15,maxLevel:2}]:[]),
+      statUpgrades:custom.statUpgrades||(type===10?[{levelField:'tugEngineLevel',stat:'speedOrOtherStationValue',base:95,perLevel:15,maxLevel:2}]:[]),
       capabilities:{armed:true,canMine:true,canDock:true,canTrade:true,medical:policyName==='medical',disableRatio:.25,defensiveWeapon:type===47?1:10,...custom.capabilities}};
     result.equipment=result.startingEquipment.weapon;
     result.movement=custom.movement||window.nativeShipMotion?.profiles.manual(result);
@@ -123,18 +127,25 @@
     for(const kind of ['engineering','shield'])for(const id of slots?.[kind]||[])signature+=':'+kind+':'+id+':'+!!instances?.[id];
     for(const upgrade of base.statUpgrades){const installed=instances?.[slots?.engineering?.[0]];signature+=':'+number(eq?installed?.upgrades?.[upgrade.levelField]:entity[upgrade.levelField]);}
     const levels=entity.mineralUpgrades?.[entity.shipType];for(const kind of ['shield','hull','engine','weapons','drive'])signature+=':'+number(levels?.[kind]);
+    signature+=':refit:'+JSON.stringify(entity.shipRefit||null)+':shield:'+JSON.stringify(entity.shieldResponse||null);
     const cached=effectiveCache.get(entity);if(cached?.signature===signature)return cached.value;
     const definition={...base};
+    const installed=eq?.instances[eq.slots.engineering[0]],engine=window.nativeShipEquipment?.model(installed?.modelId);
+    definition.engineOnline=!eq||!!installed;
+    definition.engineModelId=definition.engineOnline?(installed?.modelId||'standard-engine'):null;
+    definition.speedOrOtherStationValue=definition.engineOnline?engineSpeeds.standard*number(engine?.speedMultiplier,1):engineSpeeds.unfitted;
     for(const upgrade of definition.statUpgrades){const installed=entity.shipEquipment?.instances[entity.shipEquipment.slots.engineering[0]],level=number(entity.shipEquipment?installed?.upgrades?.[upgrade.levelField]:entity[upgrade.levelField]);
-      if(level>0)definition[upgrade.stat]=upgrade.base+upgrade.perLevel*Math.min(upgrade.maxLevel??Infinity,level);}
-    const effective=window.nativeRegionalMinerals?window.nativeRegionalMinerals.stats(entity,definition):definition;
+      if(level>0&&definition.engineOnline)definition[upgrade.stat]=(upgrade.stat==='speedOrOtherStationValue'?definition[upgrade.stat]:upgrade.base)+upgrade.perLevel*Math.min(upgrade.maxLevel??Infinity,level);}
+    let effective=window.nativeRegionalMinerals?window.nativeRegionalMinerals.stats(entity,definition):definition;
+    if(window.nativeShipyardRefits)effective=window.nativeShipyardRefits.stats(entity,effective);
     if(entity.shipEquipment){
       const fitted=kind=>entity.shipEquipment.slots[kind]?.some(id=>entity.shipEquipment.instances[id]);
       if(!fitted('shield'))effective.shields=0;
-      effective.engineOnline=fitted('engineering');
     }
+    // Built-in basic propulsion remains available without removable warp hardware.
+    // Hull/engine tuning cannot turn an empty bay into an upgraded engine.
+    if(!effective.engineOnline)effective.speedOrOtherStationValue=engineSpeeds.unfitted;
     if(!overrides.get(type)?.movement)effective.movement=window.nativeShipMotion?.profiles.manual(effective);
-    if(effective.engineOnline===false&&effective.movement)effective.movement={...effective.movement,maxSpeed:0,acceleration:0,turnRate:0};
     effectiveCache.set(entity,{signature,value:effective});window.nativeSimulationFrame?.count(state,'effectiveStatsBuilds');return effective;
   }
   function forEntity(state,entity=state,{category=entity===state?'player':'civilian'}={}){
@@ -194,5 +205,5 @@
     return definition.damageStages.filter(threshold=>fraction<threshold).length;
   }
   const registered=()=>[...new Set([...window.VexedMirrorWorld.ships.map(ship=>Number(ship.id)),...overrides.keys()])].map(type=>get(type));
-  window.nativeShipDefinitions=Object.freeze({register,get,forEntity,dimensions,describe,surfaceRadii,stage,profiles,registered,artworkProfile,presentation,policies,validate,revision:()=>revision});
+  window.nativeShipDefinitions=Object.freeze({register,get,forEntity,dimensions,describe,surfaceRadii,stage,profiles,registered,artworkProfile,presentation,policies,validate,engineSpeeds,revision:()=>revision});
 })();

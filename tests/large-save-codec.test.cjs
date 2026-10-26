@@ -53,6 +53,16 @@ test('compressed lengths, tokens, offsets and truncated payloads fail without al
   for(const invalid of ['VM4:0:\u0000','VM3:33554433:x','VM3:-1:x','VM3:NaN:x','VM3:4:'+String.fromCharCode(300),'VM3:4:'+String.fromCharCode(0,0),'VM3:4:'+String.fromCharCode(0,1),'VM3:4:'+String.fromCharCode(240,255),'VM3:4:'+String.fromCharCode(64,97)])assert.throws(()=>f.codec.decompress(invalid));
   const text=f.codec.compress(JSON.stringify({saveSlotVersion:99}));assert.throws(()=>f.codec.parse(text),/Unsupported/);
 });
+
+test('compact storage preserves every UTF-16 unit and reads existing compressed saves without changing state',()=>{
+  const f=fixture(),units='VM3:'+Array.from({length:65536},(_,i)=>String.fromCharCode(i)).join('');
+  const compact=f.codec.compactUnits(units);
+  assert.equal(f.codec.expandUnits(compact),units);
+  const source={...state(600),saveSlotVersion:3},old=f.codec.compress(JSON.stringify(source));
+  assert.equal(JSON.stringify(f.codec.parse(f.codec.compactUnits(old))),JSON.stringify(source));
+  assert.equal(JSON.stringify(f.codec.parse(old)),JSON.stringify(source));
+  for(const invalid of ['VM4:-1:0:','VM4:33554465:0:','VM4:1:4:xx','VM4:1:1:'+String.fromCharCode(0x8000),'VM4:1:3:'+String.fromCharCode(0xffff,0x0400),'VM4:1:1:'+String.fromCharCode(0x6101)])assert.throws(()=>f.codec.parse(invalid));
+});
 test('malformed references, shape lengths, cycles, unreachable nodes and unsupported versions fail honestly',()=>{
   const f=fixture(),s=state(1),base=JSON.parse(JSON.stringify(f.codec.pack(s))),clone=()=>JSON.parse(JSON.stringify(base));
   for(const mutate of [p=>p.nodes[0][1]=[999999999],p=>p.nodes[0].push(1),p=>p.nodes[0][1]=[0],p=>p.nodes.push([-1]),p=>p.codecVersion=99,p=>p.root=[-999999]]){

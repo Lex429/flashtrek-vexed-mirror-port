@@ -90,6 +90,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-review-gameplay.py
+      - name: Showcase control pages, window fit and repair fleet actions
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-showcase-workspace.py
       - name: Full fleet dimensions, four damage frames and player/NPC lighting parity
         env:
           BROWSER_CHANNEL: ''
@@ -101,11 +105,40 @@ jobs:
       - name: Setup showcase lighting, animation lifecycle and screen fit
         env:
           BROWSER_CHANNEL: ''
-        run: python tests/browser-setup-preview.py
+        run: |
+          python tests/browser-setup-preview.py
+          python tests/browser-setup-animations.py
+          python tests/browser-setup-showcase.py
+          python tests/browser-menu-transition.py
+          python tests/browser-menu-emblem.py
       - name: Typed equipment, real hull purchases, six drone bays and mode-separated saves
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-unified-equipment.py
+      - name: Constitution flight, weapons, damaged hulls and saved equipment
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-constitution-ships.py
+      - name: Animated GPU lamps preserve original hull and damage pixels
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-ship-lamps.py
+      - name: Inventory mouse and touch dragging
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-inventory-drag.py
+      - name: Engine upgrades, generated icons and keyboard flight without an engine
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-engine-equipment.py
+      - name: Manual repair drone deployment and midway reload
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-manual-repair.py
+      - name: Visible DOT launch, hull approach and bay recovery
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-drone-launch.py
       - name: Asteroid weapon hits, physical hull pushes, local contact glints and saved drift
         env:
           BROWSER_CHANNEL: ''
@@ -122,10 +155,14 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-npc-lives.py
+      - name: Verify cold and cached New Game and Continue
+        run: python tests/browser-startup-recovery.py --seconds 1 --label ci
       - name: Live Dot repair nozzles, saved simulation, hull restoration and destruction
         env:
           BROWSER_CHANNEL: ''
-        run: python tests/browser-ship-repairs.py
+        run: |
+          python tests/browser-ship-repairs.py
+          python tests/browser-fleet-repairs.py
       - name: Audited Earth traffic jam in local flight and Dev inspector
         env:
           BROWSER_CHANNEL: ''

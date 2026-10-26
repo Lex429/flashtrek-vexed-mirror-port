@@ -1,7 +1,7 @@
 /* Retained WebGL2 presentation. No simulation, saves, damage or firing. */
 (() => {
   'use strict';
-  const STRIDE=20,MAX_SHIPS=128,MAX_TEXTURE_BYTES=32*1024*1024;
+  const STRIDE=20,MAX_SHIPS=256,MAX_TEXTURE_BYTES=32*1024*1024;
   const vertex=`#version 300 es
   precision highp float;
   layout(location=0) in vec2 corner;
@@ -120,17 +120,19 @@
   }`;
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
   function program(gl,vs,fs){const p=gl.createProgram(),v=compile(gl,gl.VERTEX_SHADER,vs),f=compile(gl,gl.FRAGMENT_SHADER,fs);gl.attachShader(p,v);gl.attachShader(p,f);gl.linkProgram(p);gl.deleteShader(v);gl.deleteShader(f);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));return p;}
-  async function create({canvas,assets=[],transparent=false,maxShips=MAX_SHIPS}={}){
+  async function create({canvas,assets=[],transparent=false,maxShips=MAX_SHIPS,presentation=null}={}){
     if(!canvas||!Number.isInteger(maxShips)||maxShips<1||maxShips>MAX_SHIPS)throw Error('Invalid GPU shield capacity');
     const gl=canvas.getContext('webgl2',{alpha:transparent,premultipliedAlpha:true,antialias:false,depth:false,stencil:false,preserveDrawingBuffer:false});
     if(!gl)throw Error('WebGL2 unavailable');
-    const p=program(gl,vertex,fragment),timeLocation=gl.getUniformLocation(p,'time'),viewportLocation=gl.getUniformLocation(p,'viewport');
+    const history=presentation?.history||1;
+    if(![1,3].includes(history))throw Error('Invalid impact history capacity');
+    const p=program(gl,presentation?.vertex||vertex,presentation?.fragment||fragment),timeLocation=gl.getUniformLocation(p,'time'),viewportLocation=gl.getUniformLocation(p,'viewport');
     const quad=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,quad);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-.5,-.5,.5,-.5,-.5,.5,-.5,.5,.5,-.5,.5,.5]),gl.STATIC_DRAW);
-    const hulls=new Float32Array(maxShips*STRIDE),shields=new Float32Array(maxShips*STRIDE),rows=new Array(maxShips);
+    const hulls=new Float32Array(maxShips*STRIDE),shields=new Float32Array(maxShips*STRIDE*history),rows=new Array(maxShips),events=new Array(maxShips*history).fill(null);
     const buffers=[],vaos=[];
     for(let i=0;i<2;i++){
       const vao=gl.createVertexArray();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,quad);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
-      const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,hulls.byteLength,gl.DYNAMIC_DRAW);
+      const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,i?shields.byteLength:hulls.byteLength,gl.DYNAMIC_DRAW);
       for(let a=1;a<=5;a++){gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,4,gl.FLOAT,false,STRIDE*4,(a-1)*16);gl.vertexAttribDivisor(a,1);}
       buffers.push(buffer);vaos.push(vao);
     }
@@ -153,29 +155,48 @@
     for(let i=0;i<150;i++){starData[i*2]=i*67%1280;starData[i*2+1]=i*43%850;}
     gl.bindVertexArray(starVao);gl.bindBuffer(gl.ARRAY_BUFFER,starBuffer);gl.bufferData(gl.ARRAY_BUFFER,starData,gl.STATIC_DRAW);const starAttribute=gl.getAttribLocation(stars,'position');gl.enableVertexAttribArray(starAttribute);gl.vertexAttribPointer(starAttribute,2,gl.FLOAT,false,0,0);
     const starViewport=gl.getUniformLocation(stars,'viewport');
-    const stats={frames:0,drawCalls:0,textureUploads:assets.length,bufferUploads:0,hits:0,rejectedHits:0,textureBytes,bufferBytes:hulls.byteLength*2+48+starData.byteLength,maxShips,maxTextureBytes:MAX_TEXTURE_BYTES};
+    const stats={frames:0,drawCalls:0,textureUploads:assets.length,bufferUploads:0,hits:0,rejectedHits:0,textureBytes,bufferBytes:hulls.byteLength+shields.byteLength+48+starData.byteLength,impactHistory:history,maxShips,maxTextureBytes:MAX_TEXTURE_BYTES};
     function setFleet(fleet){
-      if(fleet.length>maxShips)throw Error('GPU shield ship budget exceeded');count=fleet.length;hulls.fill(0);shields.fill(0);
+      if(fleet.length>maxShips)throw Error('GPU shield ship budget exceeded');count=fleet.length;hulls.fill(0);shields.fill(0);events.fill(null);
       if(fleet.some(r=>![r.x,r.y,r.w,r.h,r.rx,r.ry].every(Number.isFinite)||r.w<=0||r.h<=0||r.rx<=0||r.ry<=0||!Number.isInteger(r.layer||0)||(r.layer||0)<0||(r.layer||0)>=layers))throw Error('Invalid GPU ship geometry');
       for(let i=0;i<count;i++){
         const r=rows[i]={angle:0,phase:0,motion:0,...fleet[i]},o=i*STRIDE,a=assets[r.layer||0];
         const values=[r.x,r.y,r.w,r.h,r.angle||0,r.phase||0,r.motion||0,0,r.rx,r.ry,0,0,-1e6,900,0,0,r.layer||0,a?a.image.width/width:1,a?a.image.height/height:1,i*.37];
-        hulls.set(values,o);shields.set(values,o);shields[o+2]=r.rx*2+16;shields[o+3]=r.ry*2+16;shields[o+7]=1;
+        hulls.set(values,o);
+        for(let lane=0;lane<history;lane++){const so=(i*history+lane)*STRIDE;shields.set(values,so);shields[so+2]=r.rx*2+16;shields[so+3]=r.ry*2+16;shields[so+7]=1;}
       }
       gl.bindBuffer(gl.ARRAY_BUFFER,buffers[0]);gl.bufferSubData(gl.ARRAY_BUFFER,0,hulls);dirty=true;stats.bufferUploads++;
     }
-    function hit(index,{x=0,y=0,born=0,strength=1,collapse=false,duration=900}={}){
+    function hit(index,{x=0,y=0,born=0,strength=1,collapse=false,duration=900,eventId=null,kind='beam',charge=1}={}){
       if(!Number.isInteger(index)||index<0||index>=count||![x,y,born,strength,duration].every(Number.isFinite)||duration<=0){stats.rejectedHits++;return false;}
-      const o=index*STRIDE,r=rows[index],n=Math.hypot(x/r.rx,y/r.ry),f=n>1?1/n:1;
-      shields[o+10]=x*f;shields[o+11]=y*f;shields[o+12]=born;shields[o+13]=collapse?430:duration;shields[o+14]=Math.min(1.8,Math.max(.5,strength));shields[o+15]=collapse?1:0;dirty=true;stats.hits++;return true;
+      const r=rows[index],n=Math.hypot(x/r.rx,y/r.ry),f=n>1?1/n:1;
+      let lane=0;
+      if(history>1){
+        lane=-1;for(let j=0;j<history;j++){const e=events[index*history+j];if(e&&e.born===born&&e.id===eventId){lane=j;break;}}
+        if(lane<0){lane=0;for(let j=1;j<history;j++)if((events[index*history+j]?.born??-Infinity)<(events[index*history+lane]?.born??-Infinity))lane=j;}
+        const ei=index*history+lane,e=events[ei]||(events[ei]={});e.born=born;e.id=eventId;e.nx=x*f/r.rx;e.ny=y*f/r.ry;
+      }
+      const o=(index*history+lane)*STRIDE;
+      if(presentation?.latestSurface){
+        let newest=lane;
+        for(let j=0;j<history;j++)if((events[index*history+j]?.born??-Infinity)>(events[index*history+newest]?.born??-Infinity))newest=j;
+        for(let j=0;j<history;j++)shields[(index*history+j)*STRIDE+17]=j===newest?1:0;
+      }
+      shields[o+10]=x*f;shields[o+11]=y*f;shields[o+12]=born;shields[o+13]=collapse?430:duration;shields[o+14]=Math.min(1.8,Math.max(.5,strength));
+      shields[o+15]=(collapse?1:0)+(presentation?.weaponAware?(kind==='torpedo'?2:kind==='disruptor'?4:0):0);
+      if(presentation?.weaponAware)shields[o+18]=Math.max(0,Math.min(1,Number.isFinite(charge)?charge:1));
+      dirty=true;stats.hits++;return true;
     }
     function updatePose(index,{x,y,angle,rx,ry,w,h}){
       if(index<0||index>=count)return;
-      const o=index*STRIDE,r=rows[index];Object.assign(r,{x,y,angle,rx,ry,w,h});
-      hulls[o]=shields[o]=x;hulls[o+1]=shields[o+1]=y;hulls[o+4]=shields[o+4]=angle;
-      shields[o+2]=rx*2+16;shields[o+3]=ry*2+16;shields[o+8]=rx;shields[o+9]=ry;dirty=true;
+      const o=index*STRIDE,r=rows[index];r.x=x;r.y=y;r.angle=angle;r.rx=rx;r.ry=ry;r.w=w;r.h=h;
+      hulls[o]=x;hulls[o+1]=y;hulls[o+4]=angle;
+      for(let lane=0;lane<history;lane++){const so=(index*history+lane)*STRIDE;
+        shields[so]=x;shields[so+1]=y;shields[so+4]=angle;shields[so+2]=rx*2+16;shields[so+3]=ry*2+16;shields[so+8]=rx;shields[so+9]=ry;
+        const e=events[index*history+lane];if(e){shields[so+10]=e.nx*rx;shields[so+11]=e.ny*ry;}
+      }dirty=true;
     }
-    function hide(index){if(index>=0&&index<count){shields[index*STRIDE+14]=0;dirty=true;}}
+    function hide(index){if(index>=0&&index<count){for(let lane=0;lane<history;lane++)shields[(index*history+lane)*STRIDE+14]=0;dirty=true;}}
     function visibility(time){let visible=0,fullyVisible=0,active=0,fullyActive=0;
       for(let i=0;i<count;i++){
         const o=i*STRIDE,r=rows[i],a=r.angle+Math.sin(time*.0005+r.phase)*r.motion*.125,x=r.x+Math.sin(time*.0007+r.phase)*r.motion,y=r.y+Math.cos(time*.0006+r.phase)*r.motion;
@@ -184,28 +205,31 @@
         if(x+ex>=0&&x-ex<=canvas.width&&y+ey>=0&&y-ey<=canvas.height)visible++;
         if(full)fullyVisible++;
         // Match the shader's float32 clock, including a hit paused on its birth frame.
-        const age=Math.fround(time)-shields[o+12];if(age>=0&&age<shields[o+13]&&shields[o+14]>0){active++;if(full)fullyActive++;}
+        let lit=false;for(let lane=0;lane<history;lane++){const so=(i*history+lane)*STRIDE,age=Math.fround(time)-shields[so+12];if(age>=0&&age<shields[so+13]&&shields[so+14]>0)lit=true;}
+        if(lit){active++;if(full)fullyActive++;}
       }return {visible,fullyVisible,active,fullyActive};
     }
-    function render(time,{effects=false,ships=true,background=!transparent}={}){
+    function render(time,{effects=false,ships=true,background=!transparent,beforeEffects=null}={}){
       if(disposed||lost)throw Error('GPU shield renderer disposed or context lost');
       gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(background?0.015:0,background?0.035:0,background?0.075:0,background?1:0);gl.clear(gl.COLOR_BUFFER_BIT);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
       let calls=0;
       if(background){gl.useProgram(stars);gl.uniform2f(starViewport,canvas.width,canvas.height);gl.bindVertexArray(starVao);gl.drawArrays(gl.POINTS,0,150);calls++;}
       gl.useProgram(p);gl.uniform2f(viewportLocation,canvas.width,canvas.height);gl.uniform1f(timeLocation,time);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D_ARRAY,texture);
+      presentation?.bind?.(gl,p,{time,effects,count});
       if(ships&&count){gl.bindVertexArray(vaos[0]);gl.drawArraysInstanced(gl.TRIANGLES,0,6,count);calls++;}
+      if(beforeEffects){beforeEffects();gl.useProgram(p);gl.uniform2f(viewportLocation,canvas.width,canvas.height);gl.uniform1f(timeLocation,time);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D_ARRAY,texture);}
       if(effects&&count){
         if(dirty){gl.bindBuffer(gl.ARRAY_BUFFER,buffers[1]);gl.bufferSubData(gl.ARRAY_BUFFER,0,shields);dirty=false;stats.bufferUploads++;}
-        gl.blendFunc(gl.ONE,gl.ONE);gl.bindVertexArray(vaos[1]);gl.drawArraysInstanced(gl.TRIANGLES,0,6,count);calls++;
+        gl.blendFunc(gl.ONE,presentation?.premultipliedShields?gl.ONE_MINUS_SRC_ALPHA:gl.ONE);gl.bindVertexArray(vaos[1]);gl.drawArraysInstanced(gl.TRIANGLES,0,6,count*history);calls++;
       }
       stats.frames++;stats.drawCalls+=calls;return {...visibility(time),drawCalls:calls};
     }
     const debug=gl.getExtension('WEBGL_debug_renderer_info');
-    const environment={version:gl.getParameter(gl.VERSION),renderer:debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),attributes:gl.getContextAttributes(),lighting:'OFF',maxArrayLayers:gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS)};
+    const environment={version:gl.getParameter(gl.VERSION),renderer:debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),attributes:gl.getContextAttributes(),maxArrayLayers:gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS)};
     if(gl.getError()!==gl.NO_ERROR)throw Error('WebGL initialization error');
     return Object.freeze({setFleet,hit,updatePose,hide,render,visibility,gl,environment,
       snapshot:()=>({...stats,ships:count,instanceBytes:hulls.byteLength+shields.byteLength,nominalDrawingBufferBytes:canvas.width*canvas.height*4,disposed}),
       destroy(){if(disposed)return;disposed=true;canvas.removeEventListener('webglcontextlost',contextLost);gl.deleteTexture(texture);for(const b of [...buffers,quad,starBuffer])gl.deleteBuffer(b);for(const v of [...vaos,starVao])gl.deleteVertexArray(v);gl.deleteProgram(p);gl.deleteProgram(stars);}});
   }
-  window.createVexedShieldGPU=create;
+  window.createVexedShieldGPU=options=>window.nativeEffectProfiles?.createShield(create,options)||create(options);
 })();

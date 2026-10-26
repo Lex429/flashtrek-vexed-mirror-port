@@ -1,0 +1,14 @@
+{
+  "id": "hos-ichu",
+  "file": "hos-ichu.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Hos'Ichu, a volcanic world with black basalt continents, glowing lava fissures, sulfur haze and sparse dark seas.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-e994c849-d90a-4b19-8f05-e5aa7a43737b.png",
+  "sourceSha256": "13ea57d808f804f58702df7bd607760a8c7804c31848012fbc6ade188eb80a85",
+  "sha256": "3929e695c30dc7b65abe3c462df3e7fc6aa125c8f1835610a1ecc09d91a3edec",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}

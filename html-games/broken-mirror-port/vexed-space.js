@@ -3,8 +3,9 @@
  */
 (() => {
   'use strict';
+  function create(initialSystem=1){
   const color=value=>'#'+Number(value).toString(16).padStart(6,'0');
-  let model=window.vexedSpaceModel.create(1),starSprites=new Map(),light,shadowPaths=[],shadowSignature='';
+  let model=window.vexedSpaceModel.create(initialSystem),starSprites=new Map(),light,lastShadow=-Infinity,shadowPaths=[],shadowSignature='',lastView=null;
   let brightTravelX=0,brightTravelY=0,opticalX=0,opticalY=0;
   let skyOrigin=null,initialBright=model.state.stars.filter(star=>star.layer===5).map(star=>({x:star.x,y:star.y}));
   const rgba=(tint,alpha)=>{const value=Number(tint);return `rgba(${value>>16&255},${value>>8&255},${value&255},${alpha})`;};
@@ -218,8 +219,21 @@
       ctx.globalAlpha=Math.min(1,star.alpha/100);ctx.fillStyle='#fff';
       ctx.beginPath();ctx.arc(star.x,star.y,star.radius*.58,0,Math.PI*2);ctx.fill();
     }
-    updateShadows(objects);
-    for(const path of shadowPaths){ctx.globalAlpha=path.alpha/100;ctx.fillStyle=color(777);ctx.beginPath();path.points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.fill();}
+    // Ship/planet lighting may be disabled for performance. Background optics
+    // still belong to the parallax sky and must keep their normal occlusion.
+    if(window.nativeFlightLightingEnabled===false){
+      light=null;shadowPaths=[];shadowSignature='';
+    }else{
+      let nearest=null,best=Infinity;
+      for(const star of bright){
+        if(star.x< -80||star.x>w+80||star.y< -80||star.y>h+80||objects.some(obj=>obj.contains?obj.contains(star.x,star.y):((star.x-obj.x)/obj.rx)**2+((star.y-obj.y)/obj.ry)**2<1))continue;
+        const dx=w/2-star.x,dy=h/2-star.y,d=dx*dx+dy*dy;
+        if(d<best){best=d;nearest={x:star.x,y:star.y,color:star.color};}
+      }
+      light=systemLight(view);
+      if(state.elapsed-lastShadow>.4){lastShadow=state.elapsed;updateShadows(objects);}
+      for(const path of shadowPaths){ctx.globalAlpha=path.alpha/100;ctx.fillStyle=color(777);ctx.beginPath();path.points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.fill();}
+    }
     for(const star of bright){
       const {x,y}=star;
       if(x< -80||x>w+80||y< -80||y>h+80)continue;
@@ -253,7 +267,9 @@
     aura.addColorStop(0,rgba(tint,emission ? .24 : .13));aura.addColorStop(.3,rgba(tint,emission ? .1 : .055));aura.addColorStop(1,rgba(tint,0));
     ctx.fillStyle=aura;ctx.beginPath();ctx.arc(0,0,outer,0,Math.PI*2);ctx.fill();ctx.restore();
   }
+  function planetHalo(ctx,planet,system){if(window.nativeFlightLightingEnabled!==false)planetGlow(ctx,bodyDisk(planet,system,planet.id,true));}
   function planetLight(ctx,disk){
+    if(window.nativeFlightLightingEnabled===false)return;if(!(disk.rx>0)&&disk.width)disk=bodyDisk(disk,model.state.system??initialSystem,disk.id,true);
     if(!light||disk.profile?.emission||!(disk.rx>0&&disk.ry>0))return;
     const angle=light.direction??Math.atan2(light.y-disk.y,light.x-disk.x);
     ctx.save();ctx.translate(disk.x,disk.y);ctx.scale(disk.rx,disk.ry);
@@ -265,7 +281,7 @@
     ctx.globalAlpha=1;ctx.fillStyle=daylight;ctx.fillRect(-1,-1,2,2);
     ctx.restore();
   }
-  window.vexedSpace={enterSystem,update(dt,input){
+  return {create,enterSystem,update(dt,input){
       model.update(dt,input);
       if(!(dt>0))return;
       const dx=Number(input?.locx)||0,dy=Number(input?.locy)||0;
@@ -274,6 +290,8 @@
       opticalX+=(Math.max(-30,Math.min(30,dx*13*.12))-opticalX)*blend;
       opticalY+=(Math.max(-30,Math.min(30,dy*13*.12))-opticalY)*blend;
     },render,
-    planetGlow,planetLight,bodyDisk,bodyProfile,systemStars,sourceVisibility,
+    planetGlow,planetHalo,planetLight,bodyDisk,bodyProfile,systemStars,sourceVisibility,
     get state(){return model.state;},get light(){return light;}};
+  }
+  window.vexedSpace=create();
 })();

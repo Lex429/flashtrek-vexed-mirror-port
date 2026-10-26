@@ -30,10 +30,10 @@
   const shipIcon=ship=>shipArtIds.has(ship.id)?`<img class="hub-ship-art" src="../flashtrek-broken-mirror/startup/sol-ships/ship-${ship.id}.png" alt="">`:`<span class="hub-ship-icon">${safe(ship.name).charAt(0)}</span>`;
   const fmt=value=>Math.floor(Number(value)||0).toLocaleString();
   const local=state=>state.system===1;
-  const population=(state,id)=>Math.max(0,Math.round(Number(id===3?state.planetPopulationCounts?.[1]??Number(state.planetPopulations?.[1])*1e9:state.solPopulations?.[id]??solPopulation[id])||0));
-  const nodes=state=>local(state)?sol.map(node=>({...node,population:population(state,node.id)})):[{id:0,name:world.systems.find(s=>s.id===state.system)?.name||'Unknown world',x:0,y:0,port:Number(state.planetPopulations?.[state.system])>0,population:Math.max(0,Math.round(Number(state.planetPopulationCounts?.[state.system]??Number(state.planetPopulations?.[state.system])*1e9))||0),description:world.systems.find(s=>s.id===state.system)?.description||''}];
-  const current=state=>local(state)?Number(state.localBody??3):0;
-  const image=node=>local(bridge.getState())?`../flashtrek-broken-mirror/art-review/sol-planets/${String(node.id).padStart(2,'0')} - ${encodeURIComponent(node.name)}.png`:`assets/planets/planet-${world.systems.find(s=>s.id===bridge.getState().system).planetArtFrame}.png`;
+  const population=(state,id)=>window.nativeSystemCatalog ? window.nativeSystemCatalog.population(state,window.nativeSystemCatalog.bodies(state.system).find(body=>body.id===Number(id))) : Math.max(0,Math.round(Number(id===3?state.planetPopulationCounts?.[1]??Number(state.planetPopulations?.[1])*1e9:state.solPopulations?.[id]??solPopulation[id])||0));
+  const nodes=state=>window.nativeSystemCatalog ? window.nativeSystemCatalog.nodes(state) : local(state)?sol.map(node=>({...node,population:population(state,node.id)})):[{id:0,name:world.systems.find(s=>s.id===state.system)?.name||'Unknown world',x:0,y:0,port:Number(state.planetPopulations?.[state.system])>0,population:Math.max(0,Math.round(Number(state.planetPopulationCounts?.[state.system]??Number(state.planetPopulations?.[state.system])*1e9))||0),description:world.systems.find(s=>s.id===state.system)?.description||''}];
+  const current=state=>window.nativeSystemCatalog ? window.nativeSystemCatalog.currentId(state) : local(state)?Number(state.localBody??3):0;
+  const image=node=>node.art || (local(bridge.getState())?`../flashtrek-broken-mirror/art-review/sol-planets/${String(node.id).padStart(2,'0')} - ${encodeURIComponent(node.name)}.png`:`assets/planets/planet-${world.systems.find(s=>s.id===bridge.getState().system).planetArtFrame}.png`);
   const selectedNode=state=>nodes(state).find(n=>n.id===selected)||nodes(state)[0];
   function pageControls(kind,page,total){
     if(total<=1)return '';
@@ -89,7 +89,7 @@
    function tugUpgrade(state){
      if(state.shipType!==10||selected!==7)return '';
      const level=Math.max(0,Math.min(2,Number(state.shipEquipment?.instances[state.shipEquipment.slots.engineering[0]]?.upgrades?.tugEngineLevel)||0)),next=level+1;
-     return `<div class="hub-section"><h3>Jupiter Station · Tug Class II engines</h3><p>Current engine: Mk ${level+1} · ${35+15*level} speed rating. Jupiter-built upgrades improve manual flight and local cruise.</p>${level<2?`<button data-upgrade-tug ${current(state)===7&&!state.localCruise?'':'disabled'}>Install Mk ${next+1} · ${level===0?'2,000':'6,000'} latinum</button><p class="hub-hint">Requires locally produced computers and components${level===1?', plus deuranium':''}.</p>`:'<p>Maximum engine upgrade installed.</p>'}</div>`;
+     return `<div class="hub-section"><h3>Jupiter Station · Tug Class II engines</h3><p>Current engine: Mk ${level+1} · ${Number(window.nativeShipDefinitions.forEntity(state).speedOrOtherStationValue.toFixed(1))} speed rating. Jupiter-built upgrades improve manual flight and local cruise.</p>${level<2?`<button data-upgrade-tug ${current(state)===7&&!state.localCruise?'':'disabled'}>Install Mk ${next+1} · ${level===0?'2,000':'6,000'} latinum</button><p class="hub-hint">Requires locally produced computers and components${level===1?', plus deuranium':''}.</p>`:'<p>Maximum engine upgrade installed.</p>'}</div>`;
    }
    function render(preserveFocus=true){
     if(root.hidden||!bridge)return;
@@ -133,5 +133,5 @@
     const count=selectedNode(bridge.getState()).population;
     window.nativePopulation.animateDisplay(label,count);
   }
-  window.nativeSystemHub={open,close,refresh:render,updatePopulation,population,select(id){if(!root.hidden&&nodes(bridge.getState()).some(node=>node.id===Number(id))){selected=Number(id);render();}},get active(){return !root.hidden},sol};
+  window.nativeSystemHub={open,close,refresh:render,updatePopulation,population,select(id){if(!root.hidden&&nodes(bridge.getState()).some(node=>node.id===Number(id))){selected=Number(id);render();}},get active(){return !root.hidden},nodes,current,image,sol:window.nativeSystemCatalog?.bodies(1)||sol};
 })();

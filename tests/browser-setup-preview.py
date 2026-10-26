@@ -20,11 +20,11 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 
 TRACK = r"""() => {
   window.__setupCalls = new WeakMap();
-  const draw = vexedFlightAssets.drawShip;
-  vexedFlightAssets.drawShip = function(ctx, asset, x, y, width, angle, time, appearance) {
+  const draw = nativeSetupShipPreview.draw;
+  nativeSetupShipPreview.draw = function(ctx, asset, layout, time, options) {
     if (ctx.canvas.closest('#setup-ui')) {
       const count = (__setupCalls.get(ctx.canvas)?.count || 0) + 1;
-      __setupCalls.set(ctx.canvas, {asset, x, y, width, angle, time, appearance, count});
+      __setupCalls.set(ctx.canvas, {asset, layout, time, options, count});
     }
     return draw.apply(this, arguments);
   };
@@ -32,39 +32,38 @@ TRACK = r"""() => {
 
 PIXELS = r"""() => {
   const canvas = document.querySelector('#setup-ui canvas.ready');
-  const call = __setupCalls.get(canvas), a = call.asset;
+  const call = __setupCalls.get(canvas), a = call.asset, l = call.layout;
   const check = (v, m) => { if (!v) throw Error(m); };
-  check(a.damageStage === 0, 'Preview loaded damaged artwork');
   check(a.profile.effects === starterShips.get(a.type).effects, 'Showcase shader changed');
-  check(call.appearance.lights && !call.appearance.damage, 'Healthy lighting flags changed');
-  check(call.appearance.lightGain === 2.8 && call.appearance.lightBloom === 2.5, 'Full lamp gain/bloom missing');
-  check(Math.abs(call.width / call.appearance.height - a.width / a.height) < 1e-9, 'Hull distorted');
-  check(call.width < canvas.width && call.appearance.height < canvas.height, 'No room for bloom');
-  function render(time, lights, light = call.appearance.light) {
+  check(!a.art.coreUnlit, 'Flight artwork dimming changed the showcase hull');
+  check(Math.abs(l.w / l.h - a.ratio) < 1e-9, 'Showcase proportions changed');
+  check(l.w < canvas.width && l.h < canvas.height, 'No room for bloom');
+  function render(time, lights) {
     const c = document.createElement('canvas');
     c.width = canvas.width; c.height = canvas.height;
-    vexedFlightAssets.drawShip(c.getContext('2d'), a, call.x, call.y, call.width,
-      call.angle, time, {...call.appearance, lights, light});
-    return c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const g = c.getContext('2d');
+    g.save(); g.translate(l.x, l.y);
+    g.drawImage(a.art, -l.w / 2, -l.h / 2, l.w, l.h); g.restore();
+    a.profile.effects.draw(g, l, 0, 0, time, {
+      lights, damage: true, anchors: false, impact: null, toolDemo: false, cacheLamps: false
+    });
+    return g.getImageData(0, 0, c.width, c.height).data;
   }
   const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
   const expected = render(call.time, true);
-  check(pixels.every((v, i) => v === expected[i]), 'Menu pixels differ from shared renderer');
+  check(pixels.every((v, i) => v === expected[i]), 'Menu pixels differ from showcase composition');
   const on = render(1000, true), off = render(1000, false), later = render(2347, true);
-  const unshaded = render(1000, true, null);
-  let lit = 0, animated = 0, shaded = 0, visible = 0;
+  let lit = 0, animated = 0, visible = 0;
   for (let i = 0; i < on.length; i += 4) {
     const diff = other => Math.abs(on[i] - other[i]) + Math.abs(on[i+1] - other[i+1]) + Math.abs(on[i+2] - other[i+2]);
     if (on[i+3] > 30) visible++;
     if (diff(off) > 8) lit++;
     if (diff(later) > 8) animated++;
-    if (diff(unshaded) > 8) shaded++;
   }
   check(visible > 100, 'Ship is invisible');
   check(lit > 5, 'Ship lamps are invisible');
   check(animated > 0, 'Showcase lamps do not animate');
-  check(shaded > 10, 'Directional hull illumination missing');
-  return {ship: a.type, name: a.name, lit, animated, shaded, sharedPixelsEqual: true};
+  return {ship: a.type, name: a.name, lit, animated, showcasePixelsEqual: true};
 }"""
 
 FIT = r"""() => {
@@ -73,7 +72,9 @@ FIT = r"""() => {
   const top = rect(ui.querySelector('.setup-top')), body = rect(ui.querySelector('.setup-body'));
   const bottom = rect(ui.querySelector('.setup-bottom'));
   check(top.bottom <= body.top + 1 && body.bottom <= bottom.top + 1, 'Controls overlap');
-  for (const el of [ui, ...ui.querySelectorAll('.setup-body,.setup-panel,.faction-card,.setup-specs > div,.setup-ship-preview,.setup-ship-art')]) {
+  // The decorative sweep extends beyond each clipped card; check its actual
+  // text content rather than counting that pseudo-element as layout overflow.
+  for (const el of [ui, ...ui.querySelectorAll('.setup-body,.setup-panel,.faction-card span,.setup-specs > div,.setup-ship-preview,.setup-ship-art')]) {
     check(el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1, 'Content overflows ' + el.className);
   }
   for (const panel of ui.querySelectorAll('.setup-panel')) {
@@ -91,9 +92,13 @@ FIT = r"""() => {
   const canvas = ui.querySelector('canvas.ready'), c = rect(canvas), art = rect(canvas.parentElement);
   const call = __setupCalls.get(canvas);
   check(canvas.dataset.ship === String(call.asset.type), 'Wrong ship after selection');
-  check(Math.abs(call.width/call.appearance.height-call.asset.width/call.asset.height) < 1e-9, 'Ship aspect changed');
+  check(Math.abs(call.layout.w/call.layout.h-call.asset.ratio) < 1e-9, 'Ship aspect changed');
   check(c.left >= art.left-1 && c.top >= art.top-1 && c.right <= art.right+1 && c.bottom <= art.bottom+1, 'Canvas exceeds preview');
   check(art.bottom <= rect(ui.querySelector('figcaption')).top+1, 'Ship overlaps caption');
+  check(getComputedStyle(document.querySelector('body > footer')).display === 'none', 'Gameplay footer visible in setup');
+  check(!ui.querySelector('.setup-kicker,.setup-steps,.setup-hint'), 'Menu clutter returned');
+  check(ui.querySelector('figcaption').textContent === call.asset.name, 'Caption has extra labels');
+  check(getComputedStyle(canvas.parentElement).backgroundImage === 'none', 'Ship backdrop returned');
   return true;
 }"""
 
@@ -104,7 +109,9 @@ try:
     with sync_playwright() as p:
         channel = os.environ.get('BROWSER_CHANNEL', 'msedge')
         browser = p.chromium.launch(headless=True, **({'channel': channel} if channel else {}))
-        page = browser.new_page(viewport={'width': 1280, 'height': 850}, device_scale_factor=2)
+        # Audit lighting and geometry without transient button transforms; the
+        # setup animation suite covers full-motion input and screen transitions.
+        page = browser.new_page(viewport={'width': 1280, 'height': 850}, device_scale_factor=2, reduced_motion='reduce')
         page.on('pageerror', lambda e: errors.append(str(e)))
         page.on('response', lambda r: errors.append(f'{r.status} {r.url}') if r.status >= 400 else None)
         page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
@@ -114,6 +121,7 @@ try:
         page.locator('[data-menu="new"]').click()
 
         def ready():
+            page.wait_for_function('() => !nativeMenuTransition.snapshot().active')
             page.wait_for_function('() => {const c=document.querySelector("#setup-ui canvas.ready");return c && __setupCalls.has(c);}')
 
         lighting = []
@@ -152,11 +160,14 @@ try:
         ready()
         page.evaluate(FIT)
         page.locator('.setup-back').click()
+        ready()
         for faction in range(1, 9):
             page.evaluate('(id) => document.querySelector(`.faction-card[data-faction="${id}"]`).click()', faction)
         ready()
         assert page.locator('#setup-ui canvas').get_attribute('data-ship') == '44'
 
+        page.emulate_media(reduced_motion='no-preference')
+        page.wait_for_function('() => __setupCalls.get(document.querySelector("#setup-ui canvas")).time>0')
         page.emulate_media(reduced_motion='reduce')
         page.wait_for_function('() => __setupCalls.get(document.querySelector("#setup-ui canvas")).time===0')
         page.wait_for_timeout(100)
@@ -173,6 +184,7 @@ try:
 
         page.evaluate('() => {window.__oldSetupCanvas=document.querySelector("#setup-ui canvas");}')
         page.locator('.setup-back').click()
+        page.wait_for_function('() => !nativeMenuTransition.snapshot().active')
         stopped = page.evaluate('() => __setupCalls.get(__oldSetupCanvas).count')
         page.wait_for_timeout(180)
         assert page.evaluate('() => __setupCalls.get(__oldSetupCanvas).count') == stopped
@@ -184,9 +196,13 @@ try:
         page.locator('input[name="captain"]').fill('Lighting Check')
         page.locator('.setup-back').click()
         page.locator('.setup-primary').click()
+        ready()
         assert page.locator('input[name="captain"]').input_value() == 'Lighting Check'
         page.locator('.setup-primary').click()
-        page.wait_for_function('() => document.body.classList.contains("playing") && !nativeSetup.active')
+        page.wait_for_function('()=>nativeOpeningCinematic.active')
+        page.locator('[data-film-action="skip"]').click()
+        page.wait_for_function('() => document.body.classList.contains("playing") && !nativeSetup.active && !nativeMenuTransition.snapshot().active')
+        assert page.locator('#pauseBtn').is_visible()
         assert not errors, errors
         report = {'passed': True, 'lighting': lighting, 'fittedScreens': fits, 'classicView': True,
                   'reducedMotion': True, 'reducedMotionResize': True, 'resumeAnimation': True,

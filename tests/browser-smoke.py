@@ -102,6 +102,8 @@ try:
           const civilian={...civilianTemplate,id:9999,system:state.system,x:origin.x+45,y:origin.y,heading:0,phase:'cruise',hull:100,shields:100};
           const tug={...tugTemplate,id:9999,x:origin.x+70,y:origin.y,heading:0,phase:'waiting',hull:100,shields:100};
           state.civilianTraffic.ships=[civilian];state.solEconomy.freighters=[tug];
+          for(const e of [civilian,tug])for(const field of ['localLeg','lifeLeg','journey','motionKick','motionSpin'])delete e[field];
+          nativeShipSystems.invalidate(state,state.system);
           const before=JSON.stringify([state.hull,state.shields,civilian.hull,civilian.shields,tug.hull,tug.shields]);
           nativeEnvironmentalImpacts.explode(state,{x:origin.x+25,y:origin.y,size:80},{radius:180});
           for(let i=0;i<65;i++){nativeSimulation.advance(state,1/60);nativeEnvironmentalImpacts.advance(state,1/60);}
@@ -146,6 +148,7 @@ try:
         results['saveContinuePreservesOwnedRecharge'] = True
         page.goto(base + '/html-games/flashtrek-broken-mirror/damage-showcase.html')
         page.wait_for_function('() => window.showcaseState?.().ready', timeout=120000)
+        page.locator('[data-workspace-tab="damage"]').click()
         page.locator('#ship-select').select_option('59')
         page.wait_for_function('() => window.showcaseState().ship===59 && window.showcaseState().ready')
         page.locator('#destroy').click()
@@ -155,7 +158,9 @@ try:
         assert shielded['nearbyShip']['hull'] == 100 and shielded['nearbyShip']['shields'] == 100
         page.screenshot(path=str(OUTPUT / 'showcase-shield-impact.png'))
         page.locator('#repair').click()
+        page.locator('[data-workspace-page="impacts"]:visible').click()
         page.locator('#debris-target-shields').uncheck()
+        page.locator('[data-workspace-page="hull"]:visible').click()
         page.locator('#destroy').click()
         page.wait_for_function('() => window.showcaseState().nearbyShip.impacts.some(event=>event.kind==="sparks")', timeout=30000)
         unshielded = page.evaluate('window.showcaseState()')

@@ -1,0 +1,53 @@
+﻿Game ID,Game destination,Broken Mirror government,Rebirth ID,Rebirth name,Trek relationship,Known body entries (not unique planet count),Summary
+1,Earth,Earth Empire,1,Earth,screen_world_match,16,Human imperial capital under wartime strain.
+2,Orion,Earth Empire,19,Orion,screen_world_match,4,Annexed Orion trade world with a slave economy.
+3,Lik Prime,Earth Empire,20,Lik Prime,game_world_no_screen_mapping_established,0,Pre-warp society disrupted by annexation; poisoned water and import dependence.
+4,Alpha Centauri,Earth Empire,21,Alpha Centauri,screen_world_match,4,Dense human colony and important administrative center.
+5,Paso,Earth Empire,22,Paso,game_world_no_screen_mapping_established,0,Life-supporting world ruined by extraction; now uninhabitable.
+6,New Switzerland,Independent,23,New Switzerland,game_world_no_screen_mapping_established,0,Pacifist human refuge and precision-manufacturing economy.
+7,Trey,Earth Empire,24,Trey,game_world_no_screen_mapping_established,0,Canyon prison world controlled by the Earth Empire.
+8,Epsilon,Earth Empire,25,Epsilon,ambiguous_short_name,0,Failed human colony with isolated holdouts.
+9,Quintus,Earth Empire,26,Quintus,game_world_no_screen_mapping_established,0,Human military training outpost with a civilian population.
+10,Gorn,None,27,Gorn,species_only_unresolved_world,0,Abandoned Gorn world following the game's extermination story.
+11,Rigel,Andorian,28,Rigel,screen_world_match_system_ambiguous,11,Small industrial society protected by the Andorians.
+12,Vulcan,Vulcan Command,2,Vulcan,screen_world_match,11,Vulcan educational and research center.
+13,Opusab,Independent,29,Opusab,game_world_no_screen_mapping_established,0,Multi-species independent settlement with calming native flowers.
+14,Ferenginar,Ferengi Alliance,3,Ferenginar,screen_world_match,1,Ferengi trading homeworld.
+15,Lysia,Lysian,30,Lysia,screen_world_match,3,Formerly exploited Lysian population with weak local defenses.
+16,Nausica,Independent,31,Nausica,screen_world_match,1,Independent Nausicaan traders and former imperial soldiers.
+17,Denmark,None,32,Denmark,game_world_no_screen_mapping_established,0,"Uninhabited, biodiverse world with immense waterfalls."
+18,Tholia,Tholian Syndicate,15,Tholia,screen_world_match,2,Tholian ship-design and civilian shipbuilding center.
+19,Flash,Independent,33,Flash,game_world_no_screen_mapping_established,0,Computer and software production world.
+20,Oce Nu,Klingon Empire,34,Oce Nu,game_world_no_screen_mapping_established,0,Contested crossroads between human and Klingon powers.
+21,Koann,Klingon Empire,35,Koann,game_world_no_screen_mapping_established,0,Former human shipyards repurposed for Klingon intelligence.
+22,Biakisch,Independent,36,Biakisch,game_world_no_screen_mapping_established,0,Largely unnoticed pre-industrial civilization.
+23,Delpi,Delpin,37,Delpi,game_world_no_screen_mapping_established,0,Almost entirely ocean-covered homeworld of an aquatic civilization.
+24,Iconia,None,38,Iconia,screen_world_match,2,Ruined ancient Iconian homeworld.
+25,Andoria,Andorian,39,Andoria,screen_world_match,6,Andorian commercial shipbuilding world.
+26,Konae,None,40,Konae,game_world_no_screen_mapping_established,0,Small pleasant world never colonized by the major governments.
+27,Trill,Independent,7,Trill,screen_world_match,2,Independent Trill world; original description contains game-specific adult satire.
+28,Tepos,Independent,41,Tepos,game_world_no_screen_mapping_established,0,Weapons-manufacturing and dealing economy.
+29,Blender,Dominion,42,Blender,game_world_no_screen_mapping_established,0,Dominion survivors rebuilding after defeat by Earth.
+30,Remus,Romulan Empire,9,Remus,screen_world_match,5,Romulan-controlled Reman mining homeworld.
+31,Romulus,Romulan Empire,8,Romulus,screen_world_match,5,Romulan political homeworld.
+32,Harman,None,43,Harman,game_world_no_screen_mapping_established,0,Frozen remains of a vanished early-warp civilization.
+33,Kardon,None,44,Kardon,game_world_no_screen_mapping_established,0,Scorched dead world at the edge of the Vex mystery.
+34,Vex,Borg,45,Vex,game_world_no_screen_mapping_established,0,Ruined Vex homeworld; Borg starting control in the game.
+35,Lameu,Independent,46,Lameu,game_world_no_screen_mapping_established,0,Abandoned imperial possession now governing itself.
+36,Batos,Klingon Empire,47,Batos,game_world_no_screen_mapping_established,0,Conquered world serving as a Klingon military outpost.
+37,Worf,Klingon Empire,48,Worf,character_namesake_only,0,"Klingon settlement named after a warrior, not a named screen planetary system."
+38,Qonos,Klingon Empire,10,Qo'noS,screen_world_match,3,Klingon homeworld and center of the anti-human uprising.
+39,Xonok,Klingon Empire,49,Xonok,game_world_no_screen_mapping_established,0,"Toxic, uninhabited industrial extraction world."
+40,Qem-Kis,Klingon Empire,50,Qem Kis,game_world_no_screen_mapping_established,0,Abandoned metropolis now used by criminals and mercenaries.
+41,Anorez,Cardassian Order,51,Anorez,game_world_no_screen_mapping_established,0,Wildlife-rich hunting and provisioning destination.
+42,Du'Qot,Klingon Empire,52,Du'Qot,game_world_no_screen_mapping_established,0,Quiet Klingon world with illicit ship trading.
+43,Hof-Maso,Klingon Empire,53,Hof Maso,game_world_no_screen_mapping_established,0,Major Klingon fleet-building center.
+44,Nyoabek,Klingon Empire,54,Nyoabek,game_world_no_screen_mapping_established,0,Hostile environment with repeatedly failed colonies.
+45,Hos'Ichu,Klingon Empire,55,Hos'Ichu,game_world_no_screen_mapping_established,0,Volcanic and densely settled Klingon world.
+46,Kah'Less,Klingon Empire,56,Kah'Less,character_namesake_only,0,Harsh Klingon warrior-training world.
+47,Bajora,Bajoran,57,Bajor,screen_world_match,23,Bajoran ecological and spiritual homeworld.
+48,Noron,Cardassian Order,58,Noron,game_world_no_screen_mapping_established,0,Desert world with scattered oasis colonies.
+49,Erasariel,Cardassian Order,59,Erasariel,game_world_no_screen_mapping_established,0,Remote frozen world inhabited through artificial support.
+50,Cardassia,Cardassian Order,4,Cardassia Prime,screen_world_match,5,Highly urbanized Cardassian homeworld with exhausted resources.
+51,Dyson,Independent,60,Dyson,technology_analogue_only,2,Hidden world associated with an inhabited Dyson sphere.
+52,Pirates Haven,Pirates,,,game_world_no_screen_mapping_established,0,Hidden pirate refuge reached through a generator route.

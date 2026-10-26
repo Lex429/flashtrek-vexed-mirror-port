@@ -20,6 +20,37 @@ try:
     with sync_playwright() as p:
         channel=os.environ.get('BROWSER_CHANNEL','msedge')
         browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
+        # The actual Dev menu starts the rescue without fixture damage or travel.
+        demo=browser.new_page(viewport={'width':1280,'height':850})
+        demo.on('pageerror',lambda e:errors.append(str(e)))
+        demo.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+        demo.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
+        demo.locator('[data-menu="dev"]').click()
+        demo.wait_for_function('()=>!!nativeNpcDev.getState()',timeout=30000)
+        initial_demo=demo.evaluate(r"""()=>{
+          const s=nativeNpcDev.getState(),d=s.devRepairDemo,target=nativeNpcLives.find(s,d.targetId),medic=nativeNpcLives.find(s,d.medicalId);
+          if(target.phase!=='disabled'||target.hull!==d.initialHull||medic.task.kind!=='medical')throw Error('Dev launch did not start its real rescue');
+          return {...d,ships:s.civilianTraffic.ships.length};
+        }""")
+        demo.wait_for_function(r"""()=>{const s=nativeNpcDev.getState(),d=s.devRepairDemo,m=s.shipRepairs.missions.find(m=>m.target.id===d.targetId);return m?.restoredHull>2&&nativeShipRepairs.drones(s,s.system).filter(d=>d.entity.missionId===m.id&&d.entity.phase==='repairing').length===6;}""",timeout=60000)
+        demo_result=demo.evaluate(r"""()=>{
+          const s=nativeNpcDev.getState(),d=s.devRepairDemo,target=nativeNpcLives.find(s,d.targetId),medic=nativeNpcLives.find(s,d.medicalId),origin=nativeShipDefinitions.describe(s),view=nativeView.measure(document.querySelector('#space'));
+          for(const e of [target,medic])if(Math.abs(e.x-origin.x)>view.w/2-45||Math.abs(e.y-origin.y)>view.h/2-45)throw Error('Rescue is outside the initial flight view');
+          const m=s.shipRepairs.missions.find(m=>m.target.id===target.id),drones=nativeShipRepairs.drones(s,s.system).filter(e=>e.entity.missionId===m.id);
+          if(drones.some(e=>e.dimensions.width!==3.5))throw Error('Dev rescue changed DOT scale');
+          if(!nativeSaveStorage.write(s).ok)throw Error('Could not save the rescue');
+          return {targetId:target.id,medicalId:medic.id,hull:target.hull,working:drones.length,missionStartedAt:m.startedAt,ships:s.civilianTraffic.ships.length};
+        }""")
+        demo.locator('#space').screenshot(path=str(OUTPUT/'dev-medical-rescue.png'))
+        demo.reload()
+        demo.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
+        demo.locator('[data-menu="continue-dev"]').click()
+        demo.wait_for_function('()=>!!nativeNpcDev.getState()',timeout=30000)
+        restored_demo=demo.evaluate(r"""()=>{const s=nativeNpcDev.getState(),d=s.devRepairDemo,m=s.shipRepairs.missions.find(m=>m.target.id===d.targetId);return {targetId:d.targetId,medicalId:d.medicalId,hull:nativeNpcLives.find(s,d.targetId).hull,ships:s.civilianTraffic.ships.length,missionStartedAt:m.startedAt};}""")
+        for key in ['targetId','medicalId','ships','missionStartedAt']:
+            assert restored_demo[key]==demo_result[key], (key,restored_demo,demo_result)
+        assert restored_demo['hull']>=demo_result['hull']>initial_demo['initialHull'], 'Continue Dev replayed the disabled-hull setup'
+        demo.close()
         # Exercise a first repair through the real flight loop. Hold optional
         # damage preparation so it cannot hide a missing cold-start body.
         cold=browser.new_page(viewport={'width':1280,'height':850},record_video_dir=str(OUTPUT/'repair-foundation-video'),record_video_size={'width':1280,'height':850})
@@ -71,7 +102,7 @@ try:
         cold.evaluate(r"""()=>{
           const s=nativeNpcDev.getState(),e=s.civilianTraffic.ships[0];
           window.repairTrackingStart={x:e.x,y:e.y,heading:e.heading,ids:e.repairBay.slots.map(d=>d.id),hull:e.hull,consumed:s.shipRepairs.ledger.consumed};
-          e.motionKick={version:1,mode:'free',vx:4,vy:1};e.vx=4;e.vy=1;e.speed=Math.hypot(4,1);
+          e.motionKick={version:1,mode:'free',vx:4,vy:1,inherited:true};e.vx=4;e.vy=1;e.speed=Math.hypot(4,1);
           e.motionSpin={version:1,mode:'free',velocity:.7};nativeShipSystems.refreshShip(s,e,'civilian',e.system);
         }""")
         cold.wait_for_timeout(1700)
@@ -111,7 +142,7 @@ try:
         page.wait_for_timeout(150)
         result=page.evaluate(r"""async()=>{
           const check=(v,m)=>{if(!v)throw Error(m);},near=(a,b,m)=>check(Math.abs(a-b)<.001,m+': '+a+' vs '+b);
-          const s=JSON.parse(JSON.stringify(nativeNpcDev.getState())),e=s.civilianTraffic.ships.find(e=>e.id===2);
+          const s=JSON.parse(JSON.stringify(nativeNpcDev.getState())),e=s.civilianTraffic.ships.find(e=>e.shipType===47&&e.id!==s.devRepairDemo?.targetId);
           s.civilianTraffic.ships=[e];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.solEconomy.freighters=[];
           s.shipRepairs.missions=[];s.shipRepairs.calls=[];s.shipRepairs.nextPollAt=0;
           s.system=1;s.devMode=false;s.landed=false;Object.assign(e,{x:150,y:120,system:1,phase:'disabled',hull:10,shields:0,repairDeuranium:20,nextActionAt:null,cargo:null,localLeg:null,journey:null});
@@ -124,14 +155,15 @@ try:
           check(document.querySelectorAll('iframe').length===framesBefore,'Offscreen repair requested artwork');
           await Promise.all([nativeRepairVisuals.ensure(),nativeShipEffects.prepare(47,'civilian')]);
           const sprites=document.querySelector('iframe').contentWindow.droneSprites,sourceExtent=1254*sprites.definitions.repair.basic.scale;
-          const referenceScale=nativeShipDefinitions.get(nativeShipRepairs.rules.basicType,'repair-drone').artwork.scale;
+          const referenceScale=3.5/sourceExtent;
           let tries=0;while(!nativeShipRepairs.drones(s,1).some(d=>d.entity.phase==='repairing')){tick(.1);check(tries++<200,'Drone approach stalled');}
-          const before=JSON.stringify(s),contacts=[];
+          tick(.1);const before=JSON.stringify(s),contacts=[];
           const draw=()=>{ctx.fillStyle='#000';ctx.fillRect(0,0,c.width,c.height);nativeShipEffects.paintShip(ctx,nativeShipDefinitions.describe(s,e,{category:'civilian'}),view);nativeRepairVisuals.paint(s,ctx,view);};
           for(const heading of [0,Math.PI/2,Math.PI,-Math.PI/2])for(const zoom of [.7,1,1.7]){
             const d=e.repairBay.slots[0];d.heading=heading;view.zoom=zoom;
             const described=nativeShipRepairs.drones(s,1).find(t=>t.id===d.id),b=nativeRepairVisuals.beam(s,described);
-            near(described.dimensions.width,3.5,'Maintenance DOT size');check(described.dimensions.height<nativeShipDefinitions.dimensions({shipType:18},'civilian').height,'Repair DOT is not smaller than a Runabout');
+            near(described.dimensions.width,3.5,'Maintenance DOT width');
+            for(const shipType of [7,18]){const shuttle=nativeShipDefinitions.dimensions({shipType},'civilian');check(described.dimensions.width/Math.max(shuttle.width,shuttle.height)<1/3,'DOT is too large beside a shuttle');}
             near(described.hullRadii.rx,sourceExtent*referenceScale*.34,'Scaled physical hull');
             const extents=[],drawImage=ctx.drawImage;
             ctx.drawImage=function(image,...args){const m=this.getTransform();extents.push(Math.hypot(m.a,m.b)*image.width);return drawImage.call(this,image,...args);};
@@ -140,7 +172,7 @@ try:
             const n=sprites.nozzle('basic');
             near(b.from.x,described.x+(n.x*Math.cos(heading)-n.y*Math.sin(heading))*referenceScale,'Nozzle world X');near(b.from.y,described.y+(n.x*Math.sin(heading)+n.y*Math.cos(heading))*referenceScale,'Nozzle world Y');
             draw();const px=Math.round(view.cx+(b.from.x-view.ship.x)*zoom),py=Math.round(view.cy+(b.from.y-view.ship.y)*zoom),pixels=ctx.getImageData(px-2,py-2,5,5).data;
-            // At the showcase proportion the zoomed-out beam is subpixel-wide;
+            // At maintenance-drone size the zoomed-out beam is subpixel-wide;
             // antialiasing lowers brightness while preserving its green tint.
             let green=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i+1]>pixels[i]+8&&pixels[i+1]>30)green++;
             check(green>0,'No green welding pixels at rotated nozzle');contacts.push({heading,zoom,from:b.from,to:b.to,green,extent:extents[0],hullRadius:described.hullRadii.rx});
@@ -171,12 +203,13 @@ try:
           window.__repairProof={s,draw};return {contacts,plates,wreck,explosionLayouts,offscreenEffects:{operations,identicalEdgePixels:true,purePainting:true},missions:s.shipRepairs.missions.length,consumed:s.shipRepairs.ledger.consumed};
         }""")
         result['coldStart']=cold_result
+        result['devLaunch']=demo_result
         result['medical']=page.evaluate(r"""async()=>{
           const check=(v,m)=>{if(!v)throw Error(m);},s=JSON.parse(JSON.stringify(nativeNpcDev.getState()));
-          const target=s.civilianTraffic.ships.find(e=>e.id===3),medic=s.civilianTraffic.ships.find(e=>e.shipType===58);
+          const target=s.civilianTraffic.ships.find(e=>e.id===3),medic=s.civilianTraffic.ships.find(e=>e.shipType===58&&e.id!==s.devRepairDemo?.medicalId);
           s.civilianTraffic.ships=[target,medic];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.solEconomy.freighters=[];
           s.system=1;s.shipRepairs.calls=[];s.shipRepairs.missions=[];s.shipRepairs.nextPollAt=0;
-          for(const e of [target,medic]){e.nextActionAt=null;e.lifeScheduleToken++;e.cargo=null;delete e.localLeg;delete e.journey;}
+          for(const e of [target,medic]){nativeNpcLives.interrupt(s,e,'Isolated medical browser fixture');delete e.task;e.nextActionAt=null;e.lifeScheduleToken++;e.cargo=null;delete e.localLeg;delete e.journey;}
           Object.assign(target,{system:1,x:2500,y:2500,hull:10,shields:0,phase:'disabled',repairDeuranium:0});Object.assign(medic,{system:2,x:0,y:0,phase:'docked',repairDeuranium:100});
           nativeShipRepairs.initialize(s);nativeNpcLives.initialize(s).config.economyEnabled=false;
           const tick=()=>{nativeSimulation.advance(s,.25);nativeCivilianTraffic.advance(s,.25);};tick();
@@ -201,7 +234,7 @@ try:
         page.locator('#repair-browser-proof').screenshot(path=str(OUTPUT/'live-repair-drones.png'))
         if errors: raise AssertionError(errors)
         (OUTPUT/'browser-ship-repairs.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
-        print(json.dumps({'ok':True,'contacts':len(result['contacts']),'wreck':result['wreck'],'coldStart':cold_result}))
+        print(json.dumps({'ok':True,'contacts':len(result['contacts']),'wreck':result['wreck'],'coldStart':cold_result,'devLaunch':demo_result}))
         browser.close()
 finally:
     server.shutdown()

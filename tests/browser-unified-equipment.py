@@ -58,11 +58,23 @@ try:
         inventory()
         assert page.locator('[data-equipment-kind="repairDrone"][data-equipment-place="slot"]').count()==6
         assert 'Empty' in slot('repairDrone',5).inner_text()
+        page.locator('.inventory-close').click()
+        page.locator('#tradeBtn').click()
+        page.locator('#system-hub [data-tab="services"]').click()
+        page.locator('[data-view-tab="shop"]').click()
+        page.locator('[data-shop-category="equipment"]').click()
+        wallet=page.evaluate('__equipmentState.latinum')
+        for _ in range(5):
+            page.locator('[data-buy-equipment="basic-dot"]').click()
+        page.locator('[data-buy-equipment="mining-laser"]').click()
+        assert page.evaluate('__equipmentState.latinum')==wallet-5*1300-120
+        page.locator('.encounter-close').click()
+        inventory()
         for index in range(1,6):
-            page.locator('[data-equipment-shop]').select_option('basic-dot')
-            page.locator('[data-buy-equipment]').click()
-            page.locator('[data-equipment-place="locker"][aria-label="Stored Basic Dot"]').last.click()
-            slot('repairDrone',index).click()
+            page.locator('[data-equipment-place="locker"][aria-label="Stored Basic Dot"]').last.drag_to(slot('repairDrone',index))
+        page.locator('[aria-label="Stored Mining laser"]').drag_to(slot('ability',0))
+        assert slot('repairDrone',5).locator('img[src$="dot-basic.png"]').count()==1
+        assert not page.locator('#ship-inventory [data-buy-equipment],#ship-inventory [data-stow-equipment],#ship-inventory .inventory-stow').count()
         assert page.evaluate('__equipmentState.repairBay.slots.filter(d=>d.hull>0).length')==6
         # The same fitting boundary rejects out-of-range grants without new identities.
         assert page.evaluate("()=>{const s=__equipmentState,before=Object.keys(s.shipEquipment.instances).length,r=nativeShipEquipment.grant(s,1,{location:'slot',slot:9});return !r.ok&&before===Object.keys(s.shipEquipment.instances).length;}")
@@ -102,6 +114,25 @@ try:
         assert '50 t' in page.locator('.inventory-cargo .inventory-section-title').inner_text()
         assert page.locator('[data-equipment-place="locker"][aria-label="Stored Basic Dot"]').count()==5
         page.screenshot(path=str(OUTPUT/'inventory-small.png'))
+        # Real HTML drag events remove every Danube component into an exact tile,
+        # then restore the same instance to its real typed bay.
+        for kind in ['weapon','engineering','shield','repairDrone','ability']:
+            owned=page.evaluate('(kind)=>__equipmentState.shipEquipment.slots[kind][0]',kind)
+            assert owned,kind
+            slot(kind,0).drag_to(page.locator('[data-inventory-cell="23"]'))
+            assert page.evaluate('(kind)=>__equipmentState.shipEquipment.slots[kind][0]',kind) is None,kind
+            assert page.locator('[data-inventory-cell="23"]').get_attribute('data-item-key')=='equipment:'+owned
+            page.locator('[data-inventory-cell="23"]').drag_to(slot(kind,0))
+            assert page.evaluate('(kind)=>__equipmentState.shipEquipment.slots[kind][0]',kind)==owned,kind
+        food=page.locator('[data-item-key="supply:food"]')
+        food.drag_to(page.locator('[data-inventory-cell="22"]'))
+        assert page.locator('[data-inventory-cell="22"]').get_attribute('data-item-key')=='supply:food'
+        # Swap supplies without changing either quantity or re-packing the grid.
+        page.locator('[data-item-key="supply:dilithium"]').drag_to(page.locator('[data-inventory-cell="22"]'))
+        assert page.locator('[data-inventory-cell="22"]').get_attribute('data-item-key')=='supply:dilithium'
+        assert page.evaluate('__equipmentState.food')==40
+        assert page.evaluate('__equipmentState.dilithium')==25
+        page.screenshot(path=str(OUTPUT/'inventory-danube-drag.png'))
         # An ability fits independently of weapons and retains its owned deadline.
         page.evaluate("()=>{const s=__equipmentState,r=nativeShipEquipment.grant(s,22);r.instance.readyAt=999;nativeShipInventory.refresh();}")
         page.locator('[data-equipment-place="locker"][aria-label="Stored Cloaking Device"]').click()
@@ -113,15 +144,18 @@ try:
         assert page.locator('[data-pause-title]').inner_text()=='Game saved'
         page.locator('#pause-menu [data-resume]').click()
         saved=page.evaluate('JSON.parse(JSON.stringify(__equipmentState.shipEquipment))')
+        saved_layout=page.evaluate('JSON.parse(JSON.stringify(__equipmentState.inventoryLayout))')
         page.reload()
         page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
         assert not page.locator('[data-menu="continue"]').is_disabled()
         assert not page.locator('[data-menu="continue-dev"]').is_disabled()
         page.evaluate("()=>{const ensure=nativeShipEquipment.ensure;window.nativeShipEquipment={...nativeShipEquipment,ensure(s,h=s,d){if(s?.captain&&h===s)window.__equipmentState=s;return ensure(s,h,d);}};}")
         page.locator('[data-menu="continue"]').click()
-        page.evaluate('()=>{window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
+        page.wait_for_function('()=>document.body.classList.contains("playing") && !nativeMenuTransition.snapshot().active && window.__equipmentState')
+        page.evaluate('window.nativeSimulation={...nativeSimulation,blocked:()=>true}')
         restored=page.evaluate('__equipmentState.shipEquipment')
         assert restored==saved
+        assert page.evaluate("__equipmentState.inventoryLayout")==saved_layout
         # Upgrade purchase reads the fitted engine, rather than a stale legacy hull field.
         page.evaluate("""()=>{const s=__equipmentState;nativeShipEquipment.changeHull(s,10);s.localBody=7;s.localNavTarget=7;vexedSolFlight.setTarget(7);s.tugEngineLevel=2;const eq=nativeShipEquipment.ensure(s);eq.instances[eq.slots.engineering[0]].upgrades.tugEngineLevel=0;}""")
         page.locator('#tradeBtn').click()
@@ -129,7 +163,7 @@ try:
         upgrade=page.locator('#system-hub [data-upgrade-tug]')
         assert not upgrade.is_disabled()
         upgrade.click()
-        assert page.evaluate("()=>{const s=__equipmentState,eq=s.shipEquipment;return eq.instances[eq.slots.engineering[0]].upgrades.tugEngineLevel===1&&nativeShipDefinitions.forEntity(s).speedOrOtherStationValue===50;}")
+        assert page.evaluate("()=>{const s=__equipmentState,eq=s.shipEquipment;return eq.instances[eq.slots.engineering[0]].upgrades.tugEngineLevel===1&&nativeShipDefinitions.forEntity(s).speedOrOtherStationValue===110;}")
         page.locator('#system-hub .hub-close').click()
         # A quota error must reach the actual pause UI as a failure.
         page.evaluate("()=>{Storage.prototype.setItem=function(){throw Error('Test quota exhausted')};}")
@@ -137,7 +171,7 @@ try:
         page.locator('#pause-menu [data-save]').click()
         assert page.locator('[data-pause-title]').inner_text()=='Save failed'
         assert not errors,errors
-        report={'passed':True,'normalPurchases':[58,57,7],'sixWorkingDrones':repair,'abilityIdentityAndRecharge':True,'midwayReload':True,'saveFailureUI':True,'fittedEngineUpgrade':True,'screenshots':['inventory-olympic.png','inventory-cargo.png','inventory-small.png'],'javascriptErrors':errors}
+        report={'passed':True,'normalPurchases':[58,57,7],'sixWorkingDrones':repair,'abilityIdentityAndRecharge':True,'midwayReload':True,'saveFailureUI':True,'fittedEngineUpgrade':True,'dragAllDanubeEquipment':True,'inventoryPositionsSurviveReload':True,'portEquipmentPurchases':True,'screenshots':['inventory-olympic.png','inventory-cargo.png','inventory-small.png','inventory-danube-drag.png'],'javascriptErrors':errors}
         (OUTPUT/'report.json').write_text(json.dumps(report,indent=2))
         print(json.dumps(report))
         browser.close()

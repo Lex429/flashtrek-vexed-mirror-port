@@ -1,23 +1,34 @@
 /* Shared showcase/game weapon drawing. Coordinates and zoom come from each scene. */
 (() => {
- const appearance={units:.91976,spinMin:4,spinMax:9};
+ const bounds=new WeakMap();
+ const appearance={units:.91976,spinMin:4,spinMax:9,durationMs:kind=>kind==='beam'?180:kind==='torpedo'?560:360,
+  beginFrame:canvas=>bounds.set(canvas,{rect:null,width:canvas.width}),endFrame:canvas=>bounds.delete(canvas)};
  window.showcaseWeaponAppearance=appearance;
  window.createShowcaseWeaponVisual=({kind,style,units=appearance.units,spin,spinSpeed})=>({kind,style,units,
   spin:spin??Math.random()*Math.PI*2,spinSpeed:spinSpeed??appearance.spinMin+Math.random()*(appearance.spinMax-appearance.spinMin)});
  window.paintShowcaseWeaponShot=(ctx,shot,geometry,age=0)=>{
-  ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.shadowBlur=0;ctx.shadowColor='transparent';ctx.filter='none';ctx.lineCap='butt';ctx.lineJoin='miter';
-  let spin=shot.spin+age/1000*shot.spinSpeed;
+  let spin=shot.spin+age/1000*shot.spinSpeed,pixelRatio=null;
   if(geometry.screenPixels){
    // Transform positions first, then draw in CSS pixels so even the shader's minimum widths stay identical.
-   const matrix=ctx.getTransform(),rect=ctx.canvas.getBoundingClientRect(),pixelRatio=ctx.canvas.width/Math.max(1,rect.width);
+   const matrix=ctx.getTransform(),frame=bounds.get(ctx.canvas);
+   const rect=frame?(frame.rect&&frame.width===ctx.canvas.width?frame.rect:(frame.width=ctx.canvas.width,frame.rect=ctx.canvas.getBoundingClientRect())):ctx.canvas.getBoundingClientRect();
+   pixelRatio=ctx.canvas.width/Math.max(1,rect.width);
    const point=(x,y)=>({x:(matrix.a*x+matrix.c*y+matrix.e)/pixelRatio,y:(matrix.b*x+matrix.d*y+matrix.f)/pixelRatio});
    geometry={...geometry,zoom:1};
    for(const [x,y] of [['x','y'],['x1','y1'],['x2','y2']])if(Number.isFinite(geometry[x])&&Number.isFinite(geometry[y])){const mapped=point(geometry[x],geometry[y]);geometry[x]=mapped.x;geometry[y]=mapped.y;}
    if(Number.isFinite(geometry.angle)){const x=Math.cos(geometry.angle),y=Math.sin(geometry.angle);geometry.angle=Math.atan2(matrix.b*x+matrix.d*y,matrix.a*x+matrix.c*y);}
-   spin+=Math.atan2(matrix.b,matrix.a);ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+   spin+=Math.atan2(matrix.b,matrix.a);
   }
-  window.drawShowcaseWeapon(ctx,{...geometry,kind:shot.kind,color:shot.style.color,thickness:shot.style.thickness,
-   units:shot.units??appearance.units,spin});
+  const parameters={...geometry,kind:shot.kind,color:shot.style.color,thickness:shot.style.thickness,age,duration:shot.duration||appearance.durationMs(shot.kind),seed:shot.spin,
+   units:shot.units??appearance.units,spin,zoom:(geometry.zoom??1)*(window.nativeEffectProfiles?.weapon().scale||1)};
+  // GPU packets need geometry, not Canvas drawing commands. Avoid queuing a
+  // save/restore and style reset for every shot when the GPU accepts it.
+  const gpuMatrix=pixelRatio===null?null:{a:pixelRatio,b:0,c:0,d:pixelRatio,e:0,f:0};
+  if(window.nativeEffectProfiles?.queueWeapon?.(ctx,parameters,gpuMatrix))return;
+  ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.shadowBlur=0;ctx.shadowColor='transparent';ctx.filter='none';ctx.lineCap='butt';ctx.lineJoin='miter';
+  if(pixelRatio!==null)ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+  if(window.nativeEffectProfiles)window.nativeEffectProfiles.drawWeapon(window.drawShowcaseWeapon,ctx,parameters);
+  else window.drawShowcaseWeapon(ctx,parameters);
   ctx.restore();
  };
  const hex=color=>'#'+Number(color).toString(16).padStart(6,'0');

@@ -208,14 +208,15 @@ SCENARIO=r"""async () => {
    ships:state.civilianTraffic.ships.map(e=>({id:e.id,task:e.task,journey:e.journey,cargo:e.cargo,credits:e.credits,equipment:e.shipEquipment,repairDeuranium:e.repairDeuranium})),
    reservations:state.civilianTraffic.life.reservations,transactions:state.civilianTraffic.life.transactions});
  const expected=retain(s),saved=nativeSaveStorage.write(s);check(saved.ok,'5000-record durable save failed: '+saved.error);
- const stored=localStorage.getItem(nativeSaveStorage.keys.dev);check(stored.startsWith('VM3:'),'Large fleet did not use versioned packing');
+ const stored=localStorage.getItem(nativeSaveStorage.keys.dev);check(/^VM[34]:/.test(stored),'Large fleet did not use versioned packing');
  resumeNativeGame('dev');const restored=nativeNpcDev.getState();
- check(retain(restored)===expected,'Large reload changed jobs, cargo, equipment, cooldowns, debt or transactions');
+ const differences=[];function compare(a,b,path=''){if(JSON.stringify(a)===JSON.stringify(b))return;if(a&&b&&typeof a==='object'&&typeof b==='object'){for(const k of new Set([...Object.keys(a),...Object.keys(b)]))if(differences.length<12)compare(a[k],b[k],path+'.'+k);}else differences.push({path,before:a,after:b});}compare(JSON.parse(expected),JSON.parse(retain(restored)));
+ check(differences.length===0,'Large reload changed jobs, cargo, equipment, cooldowns, debt or transactions '+JSON.stringify(differences));
  check(restored.civilianTraffic.ships.length+restored.solEconomy.freighters.length+1===5000,'Large reload lost records');
- const normal={...clone(restored),devMode:false};check(nativeSaveStorage.write(normal).ok,'Two large mode slots exceeded the origin quota');
+ const devBeforeNormal=localStorage.getItem(nativeSaveStorage.keys.dev),normal={...clone(restored),devMode:false};check(nativeSaveStorage.write(normal).ok,'Two large mode slots exceeded the origin quota');
  check(retain(nativeSaveStorage.read('normal'))===retain(normal),'Normal large slot did not restore exactly');
- check(localStorage.getItem(nativeSaveStorage.keys.dev)===stored,'Normal write changed the Dev slot');
- const combinedCharacters=stored.length+localStorage.getItem(nativeSaveStorage.keys.normal).length;
+ check(localStorage.getItem(nativeSaveStorage.keys.dev)===devBeforeNormal,'Normal write changed the Dev slot');
+ const combinedCharacters=devBeforeNormal.length+localStorage.getItem(nativeSaveStorage.keys.normal).length;
  const departure=retain(restored),travel=nativeNavigation.call('course',2);
  check(travel.ok===false&&travel.error.includes('catching up'),'Actual travel controller skipped unpaid physical steps');
  check(retain(restored)===departure&&!vexedWarp.active,'Rejected overloaded travel consumed resources or changed jobs');

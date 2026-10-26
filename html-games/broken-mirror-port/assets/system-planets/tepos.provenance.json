@@ -1,0 +1,14 @@
+{
+  "id": "tepos",
+  "file": "tepos.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production planet sprite for the Star Trek-inspired Vexed Mirror game. Render ONE complete spherical planet isolated on genuinely transparent background. Detailed realistic orbital photography / cinematic astronomical matte painting, crisp geography, subtle atmospheric limb where appropriate, natural sunlight from upper left, soft night-side terminator on lower right, matching polished Sol planet sprites. Centered full circular disk occupies 88 percent of a square image, all edges comfortably inside frame. No background stars, no text, no labels, no UI, no spacecraft, no other planets, no ground-level landscape. Planet subject: Tepos, industrial weapons-trading world with brown-green land, grey seas and faint warm night-side settlement patterns.",
+  "source": "C:\\Users\\alphi\\.codex\\generated_images\\01a16b52-b51f-7510-a58f-3a882566afc4\\exec-e7fbba2c-8d0a-49da-b8e9-7af2282933b3.png",
+  "sourceSha256": "327af9599dab50f51d6ffc791758f4fac2c5727d3598d37f7c98395e613f1647",
+  "sha256": "9c97b2ddf6fc0b08fd80d10d9351ac80ef22b7d2d7c20678897d0e2f5c435799",
+  "size": [
+    1254,
+    1254
+  ],
+  "transparent": true
+}
