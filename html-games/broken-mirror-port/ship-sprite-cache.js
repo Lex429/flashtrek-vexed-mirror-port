@@ -95,7 +95,7 @@
       point.left-px,point.top-py,textures.lit.width+px*2,textures.lit.height+py*2);
     ctx.restore();return true;
   }
-  function discard(key,released=[]){const entry=sprites.get(key);window.nativeShipGpuBatch?.release?.(entry);pixels-=entry.pixels;sprites.delete(key);released.push(entry.effects);counters.evictions++;}
+  function discard(key,released=[]){const entry=sprites.get(key);window.nativeShipGpuBatch?.release?.(entry);pixels-=entry.pixels;sprites.delete(key);released.push(entry.effects||entry.canvas);counters.evictions++;}
   function discardComposition(key,released=[]){const entry=compositions.get(key);pixels-=entry.pixels;compositions.delete(key);released.push(entry.canvas);counters.evictions++;}
   function makeRoom(area,released){
     while(pixels+area>maxPixels){

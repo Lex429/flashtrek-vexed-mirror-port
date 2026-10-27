@@ -18,6 +18,7 @@ try:
         page.locator('#inventoryBtn').click();page.wait_for_selector('#ship-inventory canvas.ready')
         coverage=page.evaluate('''()=>{const s=__inventoryReview,eq=s.shipEquipment;return {models:nativeShipEquipment.models().length,missing:nativeShipEquipment.models().filter(m=>!eq.locker.some(id=>String(eq.instances[id].modelId)===String(m.id))).map(m=>m.id),ores:Object.keys(nativeRegionalMinerals.ores).filter(k=>!s.minerals[k])};}''')
         assert not coverage['missing'] and not coverage['ores'],coverage
+        assert 'unlimited' in page.locator('.inventory-cargo .inventory-section-title').inner_text().lower()
         owned=page.evaluate('Object.keys(__inventoryReview.shipEquipment.instances).length')
         for _ in range(2):page.locator('[data-restock-dev]').click()
         assert page.evaluate('Object.keys(__inventoryReview.shipEquipment.instances).length')==owned

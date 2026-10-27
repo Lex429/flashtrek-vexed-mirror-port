@@ -692,7 +692,7 @@ canvas.addEventListener('click',event=>{
   const ore=window.nativeAsteroidCombat?.oreHit(game,ship,{cx:view.w/2,cy:view.h/2,zoom:1,x,y});
   if(ore){
    if(Math.hypot(ore.rock.x-ship.x,ore.rock.y-ship.y)>360){toast('Move within 360 units to collect ore.');return}
-   if(ore.rock.oreType!=='dilithium'&&window.nativeShipEquipment.cargoUsed(game)+ore.indices.length>shipStats(game).cargo){toast('Cargo hold full. Sell or deliver cargo before collecting this ore.');return;}
+   if(!game.devMode&&ore.rock.oreType!=='dilithium'&&window.nativeShipEquipment.cargoUsed(game)+ore.indices.length>shipStats(game).cargo){toast('Cargo hold full. Sell or deliver cargo before collecting this ore.');return;}
    for(const index of ore.indices)game.asteroidOreDrops[ore.rock.slotId]&=~(1<<index);
    if(ore.rock.oreType==='dilithium')game.dilithium=(Number(game.dilithium)||0)+ore.indices.length;
    else{game.minerals ||= {};game.minerals[ore.rock.oreType]=(Number(game.minerals[ore.rock.oreType])||0)+ore.indices.length}

@@ -33,6 +33,14 @@ test('unlit healthy fleets share immutable display-sized artwork; art and size i
   assert.equal(effects.length,1,'reenabling lights restores the animated presentation');
 });
 
+test('animated ships can evict static hulls without inserting missing reusable surfaces',()=>{
+  const {cache,ctx,asset}=fixture();
+  for(let i=0;i<256;i++)cache.draw(ctx,{...asset},20,30,0,{staticHull:true});
+  assert.doesNotThrow(()=>cache.draw(ctx,{...asset},20,30,0));
+  assert.ok(cache.snapshot().counters.evictions>0);
+  assert.ok(cache.snapshot().bytes<=cache.snapshot().limits.bytes);
+});
+
 test('lighting and warp use bounded screen-sized rasters and freeze at simulation time',()=>{
   const {cache,ctx,asset,effects,canvases}=fixture();
   const options={localLight:{direction:.7,color:0xffdb9e,bright:.22}};
