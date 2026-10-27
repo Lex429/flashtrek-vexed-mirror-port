@@ -234,7 +234,9 @@ def main():
                 frames = report['keyboardTraversal']
                 ray = (frames[0]['light']['x']-frames[0]['body']['x'], frames[0]['light']['y']-frames[0]['body']['y'])
                 assert all(abs((f['light']['x']-f['body']['x'])-ray[0]) < 1e-6 and abs((f['light']['y']-f['body']['y'])-ray[1]) < 1e-6 for f in frames), 'Illumination changed as background stars moved'
-                assert max(f['source']['x'] for f in frames)-min(f['source']['x'] for f in frames) > .5, 'No real parallax was exercised'
+                # Ordinary flight now deliberately uses much slower parallax;
+                # the source must still move during the real keyboard traversal.
+                assert max(f['source']['x'] for f in frames)-min(f['source']['x'] for f in frames) > .05, 'No real parallax was exercised'
                 assert page.evaluate('nativeNpcDev.getState().civilianTraffic.ships.length+nativeNpcDev.getState().solEconomy.freighters.length+1') == report['population']
             report.update(browserVersion=browser.version, errors=errors, failedRequests=failed)
             assert not errors, errors

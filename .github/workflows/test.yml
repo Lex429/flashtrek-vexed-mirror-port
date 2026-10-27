@@ -198,7 +198,9 @@ jobs:
       - name: Planet limbs, smooth eclipses and stable system illumination
         env:
           BROWSER_CHANNEL: ''
-        run: python tests/browser-planet-lighting.py --label ci
+        run: |
+          python tests/browser-star-comfort.py
+          python tests/browser-planet-lighting.py --label ci
       - name: Cold damage artwork, pause and map preparation boundaries
         env:
           BROWSER_CHANNEL: ''

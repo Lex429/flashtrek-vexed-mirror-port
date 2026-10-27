@@ -185,18 +185,18 @@
       ctx.globalAlpha=Math.min(1,star.alpha/100);
       tiles(star.x+plane.x+ox,star.y+plane.y+oy,820,670,w,h,star.layer===5?80:20,(x,y)=>{
         ctx.drawImage(sprite.canvas,x-sprite.x,y-sprite.y,sprite.w,sprite.h);
-        if(star.trailVisible){
+        if(star.trailVisible&&!view.reducedMotion){
           ctx.save();ctx.translate(x,y);ctx.rotate(star.trailAngle);
           // Source trail is a diamond, scaled only along the direction of travel.
           const inherited=ctx.globalAlpha;ctx.scale(star.trailLength,1);
           ray(ctx,0,1,star.radius*.4,13033471,35*star.trailAlpha/100*inherited);ctx.restore();
         }
-        if(star.layer>=3&&star.layer<=4&&state.flightSpeed>5){
-          const motion=Math.min(1,state.flightSpeed/260),length=star.layer===4?4+30*motion:3+17*motion;
+        if(star.layer>=3&&star.layer<=4&&!view.reducedMotion&&state.speedEffect>.01){
+          const motion=state.speedEffect,length=(star.layer===4?34:20)*motion;
           ctx.save();ctx.translate(x,y);ctx.rotate(star.trailAngle);
           ctx.globalCompositeOperation='screen';ctx.globalAlpha=1;
           const streak=ctx.createLinearGradient(-length,0,0,0);
-          streak.addColorStop(0,rgba(star.color,0));streak.addColorStop(1,rgba(star.color,.18+.27*motion));
+          streak.addColorStop(0,rgba(star.color,0));streak.addColorStop(1,rgba(star.color,.45*motion));
           ctx.strokeStyle=streak;ctx.lineWidth=Math.max(.65,star.radius*.8);
           ctx.beginPath();ctx.moveTo(-length,0);ctx.lineTo(0,0);ctx.stroke();ctx.restore();
         }
@@ -238,7 +238,8 @@
       const {x,y}=star;
       if(x< -80||x>w+80||y< -80||y>h+80)continue;
       const visibility=sourceVisibility(star,objects);
-      if(visibility>0)flare(ctx,star,w,h,state.elapsed,view.reducedMotion,view.warpPulse,approach(star,view),visibility);
+      const engagement=approach(star,view)*(.12+(view.reducedMotion?0:.88*state.speedEffect));
+      if(visibility>0)flare(ctx,star,w,h,state.elapsed,view.reducedMotion,view.warpPulse,engagement,visibility);
     }
     ctx.restore();
   }
@@ -284,11 +285,10 @@
   return {create,enterSystem,update(dt,input){
       model.update(dt,input);
       if(!(dt>0))return;
-      const dx=Number(input?.locx)||0,dy=Number(input?.locy)||0;
-      brightTravelX+=dx*dt*13*.05;brightTravelY+=dy*dt*13*.05;
-      const blend=Math.min(1,dt*4);
-      opticalX+=(Math.max(-30,Math.min(30,dx*13*.12))-opticalX)*blend;
-      opticalY+=(Math.max(-30,Math.min(30,dy*13*.12))-opticalY)*blend;
+      brightTravelX=model.state.travelX*.05;brightTravelY=model.state.travelY*.05;
+      const dx=model.state.motionX,dy=model.state.motionY,blend=1-Math.exp(-dt*3);
+      opticalX+=(Math.max(-8,Math.min(8,dx*13*.04))-opticalX)*blend;
+      opticalY+=(Math.max(-8,Math.min(8,dy*13*.04))-opticalY)*blend;
     },render,
     planetGlow,planetHalo,planetLight,bodyDisk,bodyProfile,systemStars,sourceVisibility,
     get state(){return model.state;},get light(){return light;}};

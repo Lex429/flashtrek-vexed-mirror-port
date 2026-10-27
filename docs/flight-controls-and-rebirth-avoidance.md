@@ -20,6 +20,13 @@ Pausing, menus, blur and state changes clear pending control gestures. The
 ordinary shared movement owner handles reverse and braking; no renderer moves
 the player or grants different equipment statistics.
 
+Flight stars use a separate visual response: subtle parallax during ordinary
+travel, with streaks starting above both 220 world units/second and 80% of the
+ship's normal top speed. Strong effects build over sustained fast travel and
+fade quickly on braking. Star motion eases through changes in course; reduced
+motion suppresses streaks and further slows the sky. These visuals do not alter
+ship motion, equipment, or physical system illumination.
+
 Incoming fire is remembered for six simulation seconds so a beam disappearing
 between volleys does not make a nearby rock take priority. Active escape intent
 does not count as a continuing attack. Outside combat, selection uses actual

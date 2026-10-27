@@ -217,7 +217,7 @@ function draw(frameTime){if(window.nativeOpeningCinematic?.active){hostTime.chec
   const previous=spaceCamera?.system===game.system&&spaceCamera?.phase===phase?spaceCamera:null;
   const locx=previous&&dt>0?-(cameraX-previous.x)/(dt*13):0,locy=previous&&dt>0?-(cameraY-previous.y)/(dt*13):0;
   spaceCamera={x:cameraX,y:cameraY,system:game.system,phase};
-  window.vexedSpace.enterSystem(game.system);window.vexedSpace.update(dt,{locx,locy,speed:locx||locy?Math.max(0,warpFlight?.speed??game.speed):0,warp:phase==='arrival'?2:1,frame:Math.floor(starTime*window.VexedFlightReference.space.sourceRenderFps)});
+  window.vexedSpace.enterSystem(game.system);window.vexedSpace.update(dt,{locx,locy,speed:locx||locy?Math.max(0,warpFlight?.speed??game.speed):0,maxSpeed:window.nativeShipMotion.profiles.manual(shipStats(game)).maxSpeed,reducedMotion:reducedMotion.matches,warp:phase==='arrival'?2:1,frame:Math.floor(starTime*window.VexedFlightReference.space.sourceRenderFps)});
   const warpPulse=phase==='departure'?(warpFlight.ring?.alpha||0):phase==='arrival'?1-(warpFlight.alpha||0):0;
   window.vexedSpace.render(ctx,{w,h,zoom,reducedMotion:reducedMotion.matches,warpPulse,playerX:solPosition?.x??game.x,playerY:solPosition?.y??game.y,cameraX,cameraY},planetVisuals.map(visual=>visual.disk));
  }
