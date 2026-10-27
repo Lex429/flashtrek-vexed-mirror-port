@@ -1,7 +1,7 @@
 (()=>{'use strict';
 const canvas=document.querySelector('#space'),ctx=canvas.getContext('2d'),modal=document.querySelector('#modal'),dialog=document.querySelector('#dialog'),navigation=window.nativeNavigation;
 const asteroidMineButton=document.createElement('button');asteroidMineButton.id='asteroid-mine-action';asteroidMineButton.type='button';asteroidMineButton.hidden=true;document.querySelector('#game').append(asteroidMineButton);
-canvas.title='W / Up: forward | S / Down: stop; release and press again to reverse | A/D: turn | X: full stop | Q: quick turnaround | Shift: smart target | Space: fire';
+canvas.title='W / Up: thrust toward nose | Tap S / Down: drift | Hold S / Down: stop; press again at rest to reverse | A/D: turn | Tap X: full stop | Q: quick turnaround | Shift: smart target | Space: fire';
 const world=window.VexedMirrorWorld;
 const localCatalog=window.nativeSystemCatalog;
 const localBodies=()=>localCatalog.bodies(game.system);
@@ -161,7 +161,7 @@ function advanceSimulation(dt,now){
   window.nativeAsteroidCombat.advance(game,step);
   if(modal.hidden&&game.phase!=='disabled'&&game.hull>0&&!game.landed&&!window.nativeGalaxyMap?.isOpen&&!window.nativeSystemHub?.active&&!window.nativePlanetEncounter?.active&&!game.localCruise&&!game.arrivalApproach&&!busy()){
    const held=code=>keys[code]||pressed[code];
-   window.nativeShipSystems.move(game,game,'player',flightControls.command(game,held),undefined,step);
+   window.nativeShipSystems.move(game,game,'player',flightControls.command(game,held,step),undefined,step);
    pressed={};
    updateManualFlight(now);
   }
@@ -217,7 +217,7 @@ function draw(frameTime){if(window.nativeOpeningCinematic?.active){hostTime.chec
   const previous=spaceCamera?.system===game.system&&spaceCamera?.phase===phase?spaceCamera:null;
   const locx=previous&&dt>0?-(cameraX-previous.x)/(dt*13):0,locy=previous&&dt>0?-(cameraY-previous.y)/(dt*13):0;
   spaceCamera={x:cameraX,y:cameraY,system:game.system,phase};
-  window.vexedSpace.enterSystem(game.system);window.vexedSpace.update(dt,{locx,locy,speed:locx||locy?Math.max(0,warpFlight?.speed??game.speed):0,maxSpeed:window.nativeShipMotion.profiles.manual(shipStats(game)).maxSpeed,reducedMotion:reducedMotion.matches,warp:phase==='arrival'?2:1,frame:Math.floor(starTime*window.VexedFlightReference.space.sourceRenderFps)});
+  window.vexedSpace.enterSystem(game.system);window.vexedSpace.update(dt,{locx,locy,speed:locx||locy?Math.max(0,warpFlight?.speed??game.speed):0,maxSpeed:window.nativeShipMotion.profiles.manual(shipStats(game)).maxSpeed,courseLocked:phase==='flight',reducedMotion:reducedMotion.matches,warp:phase==='arrival'?2:1,frame:Math.floor(starTime*window.VexedFlightReference.space.sourceRenderFps)});
   const warpPulse=phase==='departure'?(warpFlight.ring?.alpha||0):phase==='arrival'?1-(warpFlight.alpha||0):0;
   window.vexedSpace.render(ctx,{w,h,zoom,reducedMotion:reducedMotion.matches,warpPulse,playerX:solPosition?.x??game.x,playerY:solPosition?.y??game.y,cameraX,cameraY},planetVisuals.map(visual=>visual.disk));
  }

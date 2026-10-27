@@ -40,9 +40,10 @@
       if(magnitude>limit){mx*=limit/magnitude;my*=limit/magnitude;}
       const tau=state.flightSpeed>0?.55:.18,decay=Math.exp(-dt/tau),gain=(.14+.18*state.speedEffect)*(input.reducedMotion?.18:1);
       const targetX=mx*gain,targetY=my*gain;
-      mx=targetX*dt+(state.motionX-targetX)*tau*(1-decay);
-      my=targetY*dt+(state.motionY-targetY)*tau*(1-decay);
-      state.motionX=targetX+(state.motionX-targetX)*decay;state.motionY=targetY+(state.motionY-targetY)*decay;
+      mx=input.courseLocked?targetX*dt:targetX*dt+(state.motionX-targetX)*tau*(1-decay);
+      my=input.courseLocked?targetY*dt:targetY*dt+(state.motionY-targetY)*tau*(1-decay);
+      state.motionX=input.courseLocked?targetX:targetX+(state.motionX-targetX)*decay;
+      state.motionY=input.courseLocked?targetY:targetY+(state.motionY-targetY)*decay;
       state.velocity=Math.hypot(state.motionX,state.motionY);
       mx*=13;my*=13;state.travelX+=mx;state.travelY+=my;
       const warp=Number(input.warp)>1&&Number(input.warp)<21;

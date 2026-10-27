@@ -25,6 +25,20 @@ try:
           s.shipRepairs.missions=[];s.shipRepairs.calls=[];
           s.minedAsteroids=nativeSolAsteroids.forSystem(11).map(r=>r.slotId);nativeNpcLives.invalidateMembership?.(s);nativeShipSystems.invalidate(s);
         }''')
+        page.keyboard.down('w');page.wait_for_function('()=>nativeNpcDev.getState().speed>150');page.keyboard.up('w')
+        before_drift=page.evaluate('()=>{const s=nativeNpcDev.getState();return {speed:s.speed,vx:s.vx,vy:s.vy};}')
+        page.keyboard.press('s');page.wait_for_function('()=>nativeNpcDev.getState().motionDrift===true')
+        page.keyboard.down('d');page.wait_for_function('()=>nativeNpcDev.getState().angle>.7',timeout=15000);page.keyboard.up('d')
+        drift=page.evaluate('()=>{const s=nativeNpcDev.getState();return {speed:s.speed,vx:s.vx,vy:s.vy,angle:s.angle};}')
+        assert abs(drift['speed']-before_drift['speed'])<.01 and abs(drift['vy'])<.01,(before_drift,drift)
+        page.evaluate('()=>{const s=nativeNpcDev.getState();nativeSaveStorage.write(s);resumeNativeGame("dev");}')
+        assert page.evaluate('nativeNpcDev.getState().motionDrift') is True
+        page.keyboard.down('w');page.wait_for_function('()=>nativeNpcDev.getState().vy>60',timeout=15000);page.keyboard.up('w')
+        assert page.evaluate('nativeNpcDev.getState().motionDrift') is False
+        page.keyboard.press('x');page.wait_for_function('()=>nativeNpcDev.getState().speed===0',timeout=15000)
+        page.wait_for_timeout(200);assert page.evaluate('nativeNpcDev.getState().speed')==0
+        # Start a straight run for the stop/reverse checks below.
+        page.evaluate('()=>{nativeNpcDev.getState().angle=0;}')
         page.keyboard.down('w');page.wait_for_function('()=>nativeNpcDev.getState().speed>60');page.keyboard.up('w')
         page.keyboard.down('s');page.wait_for_function('()=>nativeNpcDev.getState().speed===0',timeout=15000)
         stopped=page.evaluate('()=>{const s=nativeNpcDev.getState();return {x:s.x,y:s.y};}')
@@ -75,6 +89,6 @@ try:
         page.keyboard.press('Space');page.wait_for_function('()=>__feelFired?.ok',timeout=10000)
         page.screenshot(path=str(OUTPUT/'reverse-smart-target-long-range.png'))
         assert not errors,errors
-        report={'passed':True,'holdBrakeStaysStopped':True,'freshPressReverses':True,'reverseAndReload':reverse,'exactStop':True,'quickTurn':True,'closestRock':True,'actualIncomingShotPriority':fire,'betweenVolleyMemory':True,'rearLongRangeFire':status,'javascriptErrors':errors}
+        report={'passed':True,'tapBrakeDrift':drift,'driftSavedAndReloaded':True,'freshThrustChangesCourse':True,'tapXCompletesStop':True,'holdBrakeStaysStopped':True,'freshPressReverses':True,'reverseAndReload':reverse,'exactStop':True,'quickTurn':True,'closestRock':True,'actualIncomingShotPriority':fire,'betweenVolleyMemory':True,'rearLongRangeFire':status,'javascriptErrors':errors}
         (OUTPUT/'browser-flight-feel.json').write_text(json.dumps(report,indent=2));print(json.dumps(report));browser.close()
 finally:server.shutdown();server.server_close()

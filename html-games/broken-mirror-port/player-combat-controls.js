@@ -36,25 +36,32 @@
     return {incoming,threats,choose,reset(){attackers.clear();lastAt=-Infinity;lastKey=null;lastBattle=false;}};
   }
   function flightControls(){
-    let turnaround=null,qDown=false,sDown=false,reversePress=false;
-    return {reset(){turnaround=null;qDown=false;sDown=false;reversePress=false;},command(ship,held){
-      const s=!!(held('KeyS')||held('ArrowDown')),stop=!!held('KeyX');
-      // A braking press stays a braking press after reaching zero. Reverse
-      // requires a fresh press made while already stopped.
-      if(s&&!sDown)reversePress=!stop&&!(ship.speed>0||Math.hypot(ship.vx||0,ship.vy||0)>0);
+    let turnaround=null,qDown=false,sDown=false,reversePress=false,sSeconds=0,stopping=false,wBlocked=false;
+    return {reset(){turnaround=null;qDown=false;sDown=false;reversePress=false;sSeconds=0;stopping=false;wBlocked=false;},command(ship,held,dt=1/60){
+      const s=!!(held('KeyS')||held('ArrowDown')),stop=!!held('KeyX'),w=!!(held('KeyW')||held('ArrowUp'));
+      let drift=!!ship.motionDrift;
+      // A tap cuts flight assist without spending momentum. Holding the same
+      // press brakes and stays stopped; reverse needs a fresh press at rest.
+      if(s&&!sDown){reversePress=!stop&&!(ship.speed>0||Math.hypot(ship.vx||0,ship.vy||0)>0);sSeconds=0;drift=!reversePress;}
       if(!s||stop)reversePress=false;
+      sSeconds=s?sSeconds+Math.max(0,Number(dt)||0):0;
+      if(s||stop)wBlocked=w;
+      if(!w)wBlocked=false;
+      if(stop)stopping=true;
+      if(w&&!wBlocked&&!s&&!stop){drift=false;stopping=false;}
+      if(s&&reversePress){drift=false;stopping=false;}
       sDown=s;
-      const brake=stop||(s&&!reversePress);
+      const brake=stopping||(s&&!reversePress&&sSeconds>=.18);
       const q=!!held('KeyQ');
-      if(q&&!qDown&&turnaround===null)turnaround=Math.atan2(Math.sin(ship.angle+Math.PI),Math.cos(ship.angle+Math.PI));
+      if(q&&!qDown&&turnaround===null){turnaround=Math.atan2(Math.sin(ship.angle+Math.PI),Math.cos(ship.angle+Math.PI));wBlocked=w;}
       qDown=q;if(s||stop||held('KeyA')||held('KeyD')||held('ArrowLeft')||held('ArrowRight'))turnaround=null;
       if(turnaround!==null){
         const error=Math.atan2(Math.sin(turnaround-ship.angle),Math.cos(turnaround-ship.angle));
         if(Math.abs(error)<.035){turnaround=null;}
-        else return {heading:turnaround,brake:true,brakeFactor:1.7,turnFactor:1.8};
+        else return {manualFlight:true,drift:false,heading:turnaround,brake:true,brakeFactor:1.7,turnFactor:1.8};
       }
-      return {turn:(held('KeyA')||held('ArrowLeft')?-1:0)+(held('KeyD')||held('ArrowRight')?1:0),
-        throttle:!brake&&(held('KeyW')||held('ArrowUp'))?1:0,reverse:s&&reversePress,
+      return {manualFlight:true,drift,turn:(held('KeyA')||held('ArrowLeft')?-1:0)+(held('KeyD')||held('ArrowRight')?1:0),
+        throttle:!brake&&!s&&!wBlocked&&w?1:0,reverse:s&&reversePress,
         brake,brakeFactor:2};
     }};
   }

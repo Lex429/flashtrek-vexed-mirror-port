@@ -5,10 +5,11 @@ Dev and regular games use the same motion, targeting and weapon owners.
 
 | Input | Action |
 | --- | --- |
-| W / Up | Forward thrust; brake out of reverse before accelerating forward |
-| S / Down | Brake to a full stop and stay stopped while held; release and press again at rest to reverse at up to 45% forward speed |
+| W / Up | Apply thrust toward the nose, gradually bending existing momentum onto a new course |
+| S / Down tap | Disengage flight assist and drift without losing engine momentum |
+| S / Down hold | After 0.18 seconds, brake to a full stop and stay stopped while held; release and press again at rest to reverse at up to 45% forward speed |
 | A / D, Left / Right | Turn while travelling forward or backward |
-| X | Brake to a complete stop; also cancel a turnaround |
+| X tap | Continue braking to a complete stop after release; also cancel a turnaround |
 | Q | One braking half-turn per press; ordinary steering can interrupt it |
 | Shift tap | Smart lock: active/recent attacker, active mining rock, then nearest target |
 | Quick Shift taps | Deliberately cycle the ranked candidates |
@@ -20,10 +21,18 @@ Pausing, menus, blur and state changes clear pending control gestures. The
 ordinary shared movement owner handles reverse and braking; no renderer moves
 the player or grants different equipment statistics.
 
+Manual flight uses acceleration-limited velocity vectors. Steering is tighter
+at low speed and produces wider arcs at high speed. A drift turn rotates the
+nose without rotating momentum; W reengages thrust. A brake cancels already-held
+thrust until W is released and pressed again. X remains latched until fresh
+thrust or a reverse press. Drift state and world velocity survive saving and
+reloading; pause clears pending gestures without erasing momentum.
+
 Flight stars use a separate visual response: subtle parallax during ordinary
 travel, with streaks starting above both 220 world units/second and 80% of the
 ship's normal top speed. Strong effects build over sustained fast travel and
-fade quickly on braking. Star motion eases through changes in course; reduced
+fade quickly on braking. In normal flight, stars follow the actual travel vector
+without a separate direction delay; reduced
 motion suppresses streaks and further slows the sky. These visuals do not alter
 ship motion, equipment, or physical system illumination.
 

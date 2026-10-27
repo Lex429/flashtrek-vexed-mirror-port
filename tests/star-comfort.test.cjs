@@ -45,3 +45,14 @@ test('constant flight has the same visual travel at 30, 60 and 144 Hz',()=>{
   const distances=[30,60,144].map(hz=>{const model=sky();fly(model,6,input(200),hz);return model.state.travelX;});
   for(const distance of distances)assert.ok(Math.abs(distance-distances[0])<1e-8);
 });
+
+test('course-locked flight sky follows actual travel immediately instead of lagging behind a curved course',()=>{
+  const model=sky();
+  for(const angle of [0,.05,.1,.2,.4]){
+    const command=input(200,{locx:-Math.cos(angle)*200/13,locy:-Math.sin(angle)*200/13,courseLocked:true});
+    model.update(1/60,command);
+    assert.ok(Math.abs(Math.atan2(-model.state.motionY,-model.state.motionX)-angle)<1e-9);
+  }
+  const before=model.state.travelX;model.update(1/60,input(0,{courseLocked:true}));
+  assert.equal(model.state.motionX,0);assert.equal(model.state.motionY,0);assert.equal(model.state.travelX,before);
+});

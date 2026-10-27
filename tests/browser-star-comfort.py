@@ -18,15 +18,24 @@ try:
         page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
         page.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden',timeout=120000)
         page.evaluate('''()=>{
-          const update=vexedSpace.update;vexedSpace.update=function(dt,input){window.__skyInput={...input};return update.call(this,dt,input);};
+          const update=vexedSpace.update;window.__skyCourseError=0;
+          vexedSpace.update=function(dt,input){
+            window.__skyInput={...input};const result=update.call(this,dt,input),s=this.state;
+            if(input.courseLocked&&Math.hypot(input.locx,input.locy)>0&&Math.hypot(s.motionX,s.motionY)>0){
+              const cross=Math.abs(input.locx*s.motionY-input.locy*s.motionX)/(Math.hypot(input.locx,input.locy)*Math.hypot(s.motionX,s.motionY));
+              __skyCourseError=Math.max(__skyCourseError,cross);
+            }return result;
+          };
           startNativeDevGame();const s=nativeNpcDev.getState();nativeShipMotion.stop(s);
           Object.assign(s,{system:11,x:30000,y:30000,angle:0,phase:'flight',landed:false,localCruise:null,arrivalApproach:null});
           delete s.journey;delete s.shipyardDock;nativeShipSystems.invalidate(s);
         }''')
         page.keyboard.down('w');page.wait_for_function('()=>nativeNpcDev.getState().speed>60',timeout=15000);page.keyboard.up('w')
+        page.keyboard.down('d');page.wait_for_timeout(400);page.keyboard.up('d')
         live=page.evaluate('''()=>({speed:nativeNpcDev.getState().speed,effect:vexedSpace.state.speedEffect,input:__skyInput,
-          trails:vexedSpace.state.stars.filter(s=>s.trailVisible).length})''')
+          courseError:__skyCourseError,trails:vexedSpace.state.stars.filter(s=>s.trailVisible).length})''')
         assert live['input']['maxSpeed']>0 and live['input']['reducedMotion'] is False,live
+        assert live['input']['courseLocked'] is True and live['courseError']<1e-8,live
         assert live['effect']==0 and live['trails']==0,live
         page.emulate_media(reduced_motion='reduce')
         page.wait_for_function('()=>__skyInput?.reducedMotion===true')

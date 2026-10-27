@@ -50,6 +50,50 @@ test('quick turnaround makes one controlled half-turn per press, brakes, and can
   controls.reset();active.clear();assert.equal(controls.command(s,key=>active.has(key)).heading,undefined);assert.equal(s.angle,angle);
 });
 
+test('tap brake preserves momentum through a nose turn; fresh thrust bends the course with bounded acceleration',()=>{
+  const w=setup(),s={...ship(),speed:100,vx:100},controls=w.nativePlayerCombatControls.flightControls(),active=new Set(['KeyS']);
+  const movement=w.nativeShipMotion.profiles.manual({speedOrOtherStationValue:100/4.5,turn:8});
+  const advance=frames=>{for(let i=0;i<frames;i++)w.nativeShipMotion.step(s,controls.command(s,k=>active.has(k)),movement,1/60);};
+  advance(5);active.clear();advance(1);assert.equal(s.speed,100);assert.equal(s.motionDrift,true);
+  active.add('KeyD');advance(60);active.clear();
+  assert.ok(s.angle>.8);assert.equal(s.vx,100);assert.equal(s.vy,0,'turning the nose must not turn drift momentum');
+  const before=plain(s);active.add('KeyW');advance(1);
+  assert.ok(Math.hypot(s.vx-before.vx,s.vy-before.vy)<=movement.acceleration/60+1e-8);
+  assert.ok(s.vx>95&&s.vy>0&&s.vy<2,'reengaging thrust cannot instantly redirect fast travel');
+  advance(120);assert.ok(s.vy>50);assert.ok(s.speed<=100.00001);assert.equal(s.motionDrift,false);
+});
+
+test('brake tap disengages an already held throttle and X finishes a stop after release',()=>{
+  const w=setup(),s={...ship(),speed:100,vx:100},controls=w.nativePlayerCombatControls.flightControls(),active=new Set(['KeyW']);
+  const movement=w.nativeShipMotion.profiles.manual({speedOrOtherStationValue:100/4.5,turn:8});
+  const advance=frames=>{for(let i=0;i<frames;i++)w.nativeShipMotion.step(s,controls.command(s,k=>active.has(k)),movement,1/60);};
+  advance(1);active.add('KeyS');advance(3);active.delete('KeyS');active.add('KeyD');advance(30);
+  assert.equal(s.vx,100);assert.equal(s.vy,0);assert.equal(s.motionDrift,true);
+  active.clear();advance(1);active.add('KeyX');advance(1);active.clear();advance(120);
+  assert.equal(s.speed,0);assert.equal(s.vx,0);assert.equal(s.vy,0);
+  const x=s.x,y=s.y;advance(120);assert.equal(s.x,x);assert.equal(s.y,y);
+  active.add('KeyW');advance(60);assert.ok(s.speed>70,'fresh thrust releases the full-stop latch');
+});
+
+test('assisted turns are tighter at low speed and preserve speed without snapping velocity to the nose',()=>{
+  const w=setup(),movement=w.nativeShipMotion.profiles.manual({speedOrOtherStationValue:100/4.5,turn:8});
+  const slow={...ship(),speed:15,vx:15},fast={...ship(),speed:100,vx:100};
+  for(let i=0;i<30;i++)for(const s of [slow,fast])w.nativeShipMotion.step(s,{turn:1},movement,1/60);
+  assert.ok(slow.angle>fast.angle*1.5);assert.ok(Math.atan2(fast.vy,fast.vx)<fast.angle-.1);
+  assert.ok(Math.abs(fast.speed-100)<1e-8);assert.ok(Math.abs(slow.speed-15)<1e-8);
+});
+
+test('shared movement preserves drift and vector momentum through save/reload and pause',async()=>{
+  const {fixture}=require('./npc-economy-fixture.cjs'),f=await fixture({full:false,economic:false}),w=f.window;
+  Object.assign(f.state,{speed:60,vx:60,vy:0,angle:0});
+  w.nativeShipSystems.move(f.state,f.state,'player',{drift:true,turn:1},undefined,.1);
+  assert.equal(f.state.motionDrift,true);assert.equal(f.state.vx,60);assert.equal(f.state.vy,0);
+  const restored=plain(f.state);w.nativeShipSystems.move(restored,restored,'player',{turn:1},undefined,.1);
+  assert.equal(restored.motionDrift,true);assert.equal(restored.vx,60);assert.equal(restored.vy,0);
+  const paused=plain(restored);w.nativePause.active=true;
+  w.nativeShipSystems.move(restored,restored,'player',{throttle:1},undefined,2);assert.deepEqual(plain(restored),paused);
+});
+
 test('smart Shift remembers attackers between volleys, always ranks them ahead of nearby rocks, then returns to nearest distance',()=>{
   const w=setup(),api=w.nativePlayerCombatControls,m=api.smartTargeting();
   const targets=[{key:'asteroid:1',kind:'asteroid',d:5},{key:'civilian:neutral',d:10},{key:'civilian:enemy',d:800}];

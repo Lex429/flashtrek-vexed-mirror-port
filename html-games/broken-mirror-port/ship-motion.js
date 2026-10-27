@@ -15,7 +15,7 @@
   // These explicit profiles retain the established roles' flight characteristics.
   // A controller can select a profile, but it cannot replace the integration rules.
   const profiles={
-    manual(stats){const maxSpeed=Math.max(36,finite(stats?.speedOrOtherStationValue,35)*4.5);return {maxSpeed,acceleration:maxSpeed*.75,braking:maxSpeed*1.2,turnRate:Math.max(.5,finite(stats?.turn,2)/4)};},
+    manual(stats){const maxSpeed=Math.max(36,finite(stats?.speedOrOtherStationValue,35)*4.5);return {maxSpeed,acceleration:maxSpeed*.75,braking:maxSpeed*1.2,turnRate:Math.max(.5,finite(stats?.turn,2)/4),vectorFlight:true,lateralAcceleration:maxSpeed*.6};},
     tug(){return {maxSpeed:135,acceleration:38,braking:45,turnRate:1.35,alignmentFloor:.26,alignmentDivisor:Math.PI,brakingDistanceOffset:4,arrivalRadius:7,arrivalSpeed:24};},
     civilian(stats){const maxSpeed=Math.max(36,finite(stats?.speedOrOtherStationValue,40)*3);return {maxSpeed,acceleration:maxSpeed*.75,braking:225,turnRate:Infinity,directGoal:true,arrivalRadius:.75,snap:true};},
     combat(type,cruiseSpeed=105){const data=combatProfiles[type]||combatProfiles[47];return {maxSpeed:Math.max(36,data.speed*finite(cruiseSpeed,105)),acceleration:data.acceleration,braking:data.acceleration,turnRate:data.turnRate,headingGain:3,angularResponse:6,alignmentFloor:.25,alignmentDivisor:2.3,inertial:true};},
@@ -33,7 +33,7 @@
     if(resetAngular)entity.motionAngularVelocity=0;
     return entity;
   }
-  function stop(entity,{preserveImpulse=false}={}){entity.speed=0;entity.vx=0;entity.vy=0;delete entity.motionReverse;if(!preserveImpulse){delete entity.motionKick;delete entity.motionSpin;}return entity;}
+  function stop(entity,{preserveImpulse=false}={}){entity.speed=0;entity.vx=0;entity.vy=0;delete entity.motionReverse;delete entity.motionDrift;if(!preserveImpulse){delete entity.motionKick;delete entity.motionSpin;}return entity;}
   function integrate(entity,command={},profile={},dt){
     const idle={arrived:false,distance:null,headingError:0,moved:false};
     if(!entity||!validPoint(entity)||!Number.isFinite(dt)||dt<=0)return idle;
@@ -48,7 +48,9 @@
     const top=Math.max(0,finite(profile.maxSpeed,Infinity))*engine;
     const acceleration=Math.max(0,finite(profile.acceleration,Infinity))*engine;
     const braking=Math.max(0,finite(profile.braking,acceleration))*Math.max(0,finite(command.brakeFactor,1));
-    const turnRate=Math.max(0,finite(profile.turnRate,Infinity))*Math.max(0,finite(command.turnFactor,1));
+    const vectorFlight=profile.vectorFlight&&!goal&&!Number.isFinite(command.speed);
+    const speedRatio=vectorFlight&&top>0?clamp(entity.speed/top,0,1):0;
+    const turnRate=Math.max(0,finite(profile.turnRate,Infinity))*Math.max(0,finite(command.turnFactor,1))/(1+1.2*speedRatio*speedRatio);
     let desiredHeading=goal?Math.atan2(dy,dx):command.heading;
     if(goal&&distance<=radius&&entity.speed<=arrivalSpeed){
       if(command.snap??profile.snap){entity.x=goal.x;entity.y=goal.y;}
@@ -72,6 +74,33 @@
       entity.x+=entity.vx*dt;entity.y+=entity.vy*dt;
       const damping=Math.exp(-Math.max(0,finite(profile.damping))*dt);
       entity.vx*=damping;entity.vy*=damping;entity.speed=Math.hypot(entity.vx,entity.vy);
+      return {arrived:false,distance,headingError:error,moved:entity.x!==oldX||entity.y!==oldY};
+    }
+    if(vectorFlight){
+      if(command.drift!==undefined)entity.motionDrift=!!command.drift;
+      const speed=Math.hypot(entity.vx,entity.vy),throttle=clamp(finite(command.throttle),0,1);
+      if(command.brake){
+        const next=Math.max(0,speed-braking*dt),scale=speed>0?next/speed:0;
+        entity.vx*=scale;entity.vy*=scale;
+      }else if(command.reverse||throttle){
+        // Thrust changes a velocity vector; pointing the nose cannot teleport
+        // existing momentum onto another course.
+        const wanted=command.reverse?-top*.45:top,rate=command.reverse?acceleration*.7:acceleration*throttle;
+        const dx=Math.cos(entity[key])*wanted-entity.vx,dy=Math.sin(entity[key])*wanted-entity.vy,length=Math.hypot(dx,dy);
+        const blend=length>0?Math.min(1,rate*dt/length):0;
+        entity.vx+=dx*blend;entity.vy+=dy*blend;
+        entity.motionDrift=false;
+      }else if(!entity.motionDrift&&speed>0&&(command.turn||Number.isFinite(command.heading))){
+        const course=Math.atan2(entity.vy,entity.vx),wanted=entity[key]+(entity.motionReverse?Math.PI:0);
+        const limit=Math.max(0,finite(profile.lateralAcceleration,acceleration))*engine*dt/speed;
+        const direction=course+clamp(wrap(wanted-course),-limit,limit);
+        entity.vx=Math.cos(direction)*speed;entity.vy=Math.sin(direction)*speed;
+      }
+      const magnitude=Math.hypot(entity.vx,entity.vy);
+      if(magnitude>top){entity.vx*=top/magnitude;entity.vy*=top/magnitude;}
+      entity.speed=Math.hypot(entity.vx,entity.vy);
+      entity.motionReverse=!!(entity.speed>0&&(command.reverse||entity.motionReverse&&entity.vx*Math.cos(entity[key])+entity.vy*Math.sin(entity[key])<0));
+      entity.x+=entity.vx*dt;entity.y+=entity.vy*dt;
       return {arrived:false,distance,headingError:error,moved:entity.x!==oldX||entity.y!==oldY};
     }
     let speed=entity.speed,reversing=!!entity.motionReverse;
