@@ -6,7 +6,7 @@ Dev and regular games use the same motion, targeting and weapon owners.
 | Input | Action |
 | --- | --- |
 | W / Up | Forward thrust; brake out of reverse before accelerating forward |
-| S / Down | Brake forward motion, then back up at up to 45% forward speed |
+| S / Down | Brake to a full stop and stay stopped while held; release and press again at rest to reverse at up to 45% forward speed |
 | A / D, Left / Right | Turn while travelling forward or backward |
 | X | Brake to a complete stop; also cancel a turnaround |
 | Q | One braking half-turn per press; ordinary steering can interrupt it |

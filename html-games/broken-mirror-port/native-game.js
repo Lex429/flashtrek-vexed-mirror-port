@@ -1,7 +1,7 @@
 (()=>{'use strict';
 const canvas=document.querySelector('#space'),ctx=canvas.getContext('2d'),modal=document.querySelector('#modal'),dialog=document.querySelector('#dialog'),navigation=window.nativeNavigation;
 const asteroidMineButton=document.createElement('button');asteroidMineButton.id='asteroid-mine-action';asteroidMineButton.type='button';asteroidMineButton.hidden=true;document.querySelector('#game').append(asteroidMineButton);
-canvas.title='W / Up: forward | S / Down: brake then reverse | A/D: turn | X: full stop | Q: quick turnaround | Shift: smart target | Space: fire';
+canvas.title='W / Up: forward | S / Down: stop; release and press again to reverse | A/D: turn | X: full stop | Q: quick turnaround | Shift: smart target | Space: fire';
 const world=window.VexedMirrorWorld;
 const localCatalog=window.nativeSystemCatalog;
 const localBodies=()=>localCatalog.bodies(game.system);

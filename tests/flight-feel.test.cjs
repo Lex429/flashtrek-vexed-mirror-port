@@ -14,6 +14,31 @@ test('reverse brakes through zero, backs up, coasts and returns to forward thrus
   tick(w,s,{brake:true,brakeFactor:2},120);assert.equal(s.speed,0);assert.equal(Math.hypot(s.vx,s.vy),0);
 });
 
+test('S and Down stop and stay stopped until a fresh press requests reverse',()=>{
+  for(const key of ['KeyS','ArrowDown']){
+    const w=setup(),s=ship(),controls=w.nativePlayerCombatControls.flightControls(),active=new Set();
+    const advance=frames=>{for(let i=0;i<frames;i++)w.nativeShipMotion.step(s,controls.command(s,k=>active.has(k)),profile,1/60);};
+    tick(w,s,{throttle:1},60);active.add(key);advance(120);
+    assert.equal(s.speed,0);assert.equal(s.vx,0);assert.equal(s.motionReverse,false);
+    const x=s.x;advance(180);assert.equal(s.x,x,'continuing to hold the brake must not start reverse');
+    active.clear();advance(1);active.add(key);advance(90);
+    assert.ok(s.motionReverse&&s.vx<-40,'a fresh press at rest starts reverse');
+    active.clear();advance(1);active.add(key);advance(120);
+    assert.equal(s.speed,0,'a fresh press while backing up brakes too');
+    const reverseStop=s.x;advance(120);assert.equal(s.x,reverseStop);
+    active.clear();advance(1);active.add('KeyW');advance(60);assert.ok(s.vx>70,'forward thrust starts from rest');
+  }
+});
+
+test('stop overrides thrust and cancels an active reverse press until release',()=>{
+  const w=setup(),s=ship(),controls=w.nativePlayerCombatControls.flightControls(),active=new Set(['KeyS']);
+  const advance=frames=>{for(let i=0;i<frames;i++)w.nativeShipMotion.step(s,controls.command(s,k=>active.has(k)),profile,1/60);};
+  advance(60);assert.ok(s.motionReverse);
+  active.add('KeyX');active.add('KeyW');advance(120);assert.equal(s.speed,0);
+  active.delete('KeyX');advance(120);assert.equal(s.speed,0,'held S stays a stop even with W held');
+  controls.reset();assert.equal(controls.command({...s,speed:50,vx:50},k=>active.has(k)).reverse,false,'reset reevaluates a held key safely');
+});
+
 test('quick turnaround makes one controlled half-turn per press, brakes, and can be cancelled with stop or a gate reset',()=>{
   const w=setup(),s=ship(),controls=w.nativePlayerCombatControls.flightControls();tick(w,s,{throttle:1},60);
   let active=new Set(['KeyQ']);

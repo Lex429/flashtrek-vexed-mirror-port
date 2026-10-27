@@ -36,19 +36,26 @@
     return {incoming,threats,choose,reset(){attackers.clear();lastAt=-Infinity;lastKey=null;lastBattle=false;}};
   }
   function flightControls(){
-    let turnaround=null,qDown=false;
-    return {reset(){turnaround=null;qDown=false;},command(ship,held){
+    let turnaround=null,qDown=false,sDown=false,reversePress=false;
+    return {reset(){turnaround=null;qDown=false;sDown=false;reversePress=false;},command(ship,held){
+      const s=!!(held('KeyS')||held('ArrowDown')),stop=!!held('KeyX');
+      // A braking press stays a braking press after reaching zero. Reverse
+      // requires a fresh press made while already stopped.
+      if(s&&!sDown)reversePress=!stop&&!(ship.speed>0||Math.hypot(ship.vx||0,ship.vy||0)>0);
+      if(!s||stop)reversePress=false;
+      sDown=s;
+      const brake=stop||(s&&!reversePress);
       const q=!!held('KeyQ');
       if(q&&!qDown&&turnaround===null)turnaround=Math.atan2(Math.sin(ship.angle+Math.PI),Math.cos(ship.angle+Math.PI));
-      qDown=q;if(held('KeyX')||held('KeyA')||held('KeyD')||held('ArrowLeft')||held('ArrowRight'))turnaround=null;
+      qDown=q;if(s||stop||held('KeyA')||held('KeyD')||held('ArrowLeft')||held('ArrowRight'))turnaround=null;
       if(turnaround!==null){
         const error=Math.atan2(Math.sin(turnaround-ship.angle),Math.cos(turnaround-ship.angle));
         if(Math.abs(error)<.035){turnaround=null;}
         else return {heading:turnaround,brake:true,brakeFactor:1.7,turnFactor:1.8};
       }
       return {turn:(held('KeyA')||held('ArrowLeft')?-1:0)+(held('KeyD')||held('ArrowRight')?1:0),
-        throttle:held('KeyW')||held('ArrowUp')?1:0,reverse:!!(held('KeyS')||held('ArrowDown')),
-        brake:!!held('KeyX'),brakeFactor:2};
+        throttle:!brake&&(held('KeyW')||held('ArrowUp'))?1:0,reverse:s&&reversePress,
+        brake,brakeFactor:2};
     }};
   }
   window.nativePlayerCombatControls=Object.freeze({heldFire,rankTargets,smartTargeting,flightControls});

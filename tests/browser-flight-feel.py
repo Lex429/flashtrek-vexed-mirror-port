@@ -26,6 +26,11 @@ try:
           s.minedAsteroids=nativeSolAsteroids.forSystem(11).map(r=>r.slotId);nativeNpcLives.invalidateMembership?.(s);nativeShipSystems.invalidate(s);
         }''')
         page.keyboard.down('w');page.wait_for_function('()=>nativeNpcDev.getState().speed>60');page.keyboard.up('w')
+        page.keyboard.down('s');page.wait_for_function('()=>nativeNpcDev.getState().speed===0',timeout=15000)
+        stopped=page.evaluate('()=>{const s=nativeNpcDev.getState();return {x:s.x,y:s.y};}')
+        page.wait_for_timeout(750)
+        assert page.evaluate('(p)=>{const s=nativeNpcDev.getState();return s.speed===0&&s.vx===0&&s.vy===0&&s.x===p.x&&s.y===p.y;}',stopped),'holding S restarted motion after stopping'
+        page.keyboard.up('s');page.wait_for_timeout(100)
         page.keyboard.down('s');page.wait_for_function('()=>{const s=nativeNpcDev.getState();return s.motionReverse&&s.vx< -35;}',timeout=15000);page.keyboard.up('s')
         reverse=page.evaluate('()=>{const s=nativeNpcDev.getState();nativeSaveStorage.write(s);resumeNativeGame("dev");return {reverse:nativeNpcDev.getState().motionReverse,vx:nativeNpcDev.getState().vx};}')
         assert reverse['reverse'] and reverse['vx']<0,reverse
@@ -70,6 +75,6 @@ try:
         page.keyboard.press('Space');page.wait_for_function('()=>__feelFired?.ok',timeout=10000)
         page.screenshot(path=str(OUTPUT/'reverse-smart-target-long-range.png'))
         assert not errors,errors
-        report={'passed':True,'reverseAndReload':reverse,'exactStop':True,'quickTurn':True,'closestRock':True,'actualIncomingShotPriority':fire,'betweenVolleyMemory':True,'rearLongRangeFire':status,'javascriptErrors':errors}
+        report={'passed':True,'holdBrakeStaysStopped':True,'freshPressReverses':True,'reverseAndReload':reverse,'exactStop':True,'quickTurn':True,'closestRock':True,'actualIncomingShotPriority':fire,'betweenVolleyMemory':True,'rearLongRangeFire':status,'javascriptErrors':errors}
         (OUTPUT/'browser-flight-feel.json').write_text(json.dumps(report,indent=2));print(json.dumps(report));browser.close()
 finally:server.shutdown();server.server_close()
