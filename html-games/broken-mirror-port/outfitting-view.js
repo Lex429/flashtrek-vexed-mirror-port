@@ -6,9 +6,9 @@
  const labels={weapon:'Weapon',repairDrone:'Dot bay',ability:'Ability bay',engineering:'Engines',shield:'Deflector'};
  const upgrades={repairDrone:'dot',engineering:'engine'};
  const minerals=Object.freeze({
-  trellium:{name:'Trellium',icon:'assets/ui/minerals/trellium.svg'},tritanium:{name:'Tritanium',icon:'assets/ui/minerals/tritanium.svg'},
-  dilithium:{name:'Dilithium',icon:'assets/ui/dilithium.svg'},gallicite:{name:'Gallicite',icon:'assets/ui/minerals/gallicite.svg'},
-  benamite:{name:'Benamite',icon:'assets/ui/minerals/benamite.svg'},deuranium:{name:'Deuranium ore',icon:'assets/ui/minerals/deuranium.svg'},latinum:{name:'Latinum',icon:'startup/resources/latinum.png'}
+  trellium:{name:'Trellium',icon:'assets/inventory-ores/trellium.png'},tritanium:{name:'Tritanium',icon:'assets/inventory-ores/tritanium.png'},
+  dilithium:{name:'Dilithium',icon:'assets/inventory-ores/dilithium.png'},gallicite:{name:'Gallicite',icon:'assets/inventory-ores/gallicite.png'},
+  benamite:{name:'Benamite',icon:'assets/inventory-ores/benamite.png'},deuranium:{name:'Deuranium ore',icon:'assets/inventory-ores/deuranium.png'},latinum:{name:'Latinum',icon:'startup/resources/latinum.png'}
  });
  const icon=kind=>`<svg class="outfit-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[upgrades[kind]||kind]||paths.utility}"></path></svg>`;
  const mineralIcon=key=>`<img class="outfit-mineral-icon" data-mineral-icon="${safe(key)}" src="${minerals[key]?.icon||'assets/ui/mineral.svg'}" alt="" aria-hidden="true">`;
@@ -42,7 +42,7 @@
     return placing?`<button type="button" class="outfit-mount outfit-target" ${attrs} data-place-bay="${cell}" aria-label="Place new ${labels[draft.category]} at mount ${cell+1}"><span>+</span><small>PLACE HERE</small></button>`:`<div class="outfit-mount outfit-unused" ${attrs} aria-label="Unused mount ${cell+1}"><span>·</span></div>`;
    }).join('');
   };
-  return `<div class="outfit-loadout"><div class="inventory-rig"><div class="inventory-weapons" data-bay-area="weapons">${zone('weapons')}</div><div class="inventory-ship"><canvas data-ship-preview role="img" aria-label="${safe(s.shipName||ship.name)} with current damage and lighting"></canvas><div class="inventory-ship-rings" aria-hidden="true"></div></div><div class="inventory-systems" data-bay-area="systems">${zone('systems')}</div><div class="inventory-ship-label"><span>YOUR INVENTORY LAYOUT</span><strong>${safe(ship.name)}</strong></div></div><div class="inventory-drone-bays"><div class="inventory-section-title"><span>DOT REPAIR BAYS</span><strong>${eq.slots.repairDrone.filter(Boolean).length} / ${eq.slots.repairDrone.length} fitted${draft?.category==='repairDrone'?' + 1 preview':''}</strong></div><div class="inventory-drone-grid" data-bay-area="drones">${zone('drones')||'<p>No repair-drone bays</p>'}</div></div></div>`;
+  return `<div class="outfit-loadout"><div class="inventory-rig"><div class="inventory-weapons" data-bay-area="weapons">${zone('weapons')}</div><div class="inventory-ship"><canvas data-ship-preview role="img" aria-label="${safe(s.shipName||ship.name)} with current damage and lighting"></canvas><div class="inventory-ship-rings" aria-hidden="true"></div></div><div class="inventory-systems" data-bay-area="systems">${zone('systems')}</div><div class="inventory-ship-label"><strong>${safe(s.shipName||ship.name)}</strong><span>${safe(ship.name)}</span></div></div><div class="inventory-drone-bays"><div class="inventory-section-title"><span>DOT REPAIR BAYS</span><strong>${eq.slots.repairDrone.filter(Boolean).length} / ${eq.slots.repairDrone.length} fitted${draft?.category==='repairDrone'?' + 1 preview':''}</strong></div><div class="inventory-drone-grid" data-bay-area="drones">${zone('drones')||'<p>No repair-drone bays</p>'}</div></div></div>`;
  }
  const previews=new WeakMap();
  function stopPreview(root){const p=previews.get(root);if(p){p.cancelled=true;cancelAnimationFrame(p.frame);}previews.delete(root);}
@@ -55,8 +55,9 @@
     if(p.cancelled||!canvas.isConnected||root.hidden)return;
     const bounds=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,1.5),w=Math.max(1,Math.round(bounds.width*dpr)),h=Math.max(1,Math.round(bounds.height*dpr));
     if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}ctx.clearRect(0,0,w,h);
-    const scale=Math.min(w*.82/asset.width,h*.88/asset.height);
-    window.vexedFlightAssets.drawShip(ctx,asset,w/2,h/2,asset.width*scale,0,window.nativeSimulation.now(s),{height:asset.height*scale,damage:true,lights:s.phase!=='disabled',light:window.vexedSpace?.light});
+    const dimensions=window.nativeShipDefinitions.dimensions(s,'player'),scale=Math.min(w*.84/dimensions.width,h*.86/dimensions.height);
+    canvas.dataset.previewRatio=String(dimensions.width/dimensions.height);
+    window.vexedFlightAssets.drawShip(ctx,asset,w/2,h/2,dimensions.width*scale,0,window.nativeSimulation.now(s),{height:dimensions.height*scale,damage:true,lights:s.phase!=='disabled',light:window.vexedSpace?.light});
     canvas.classList.add('ready');p.frame=requestAnimationFrame(paint);
    };p.frame=requestAnimationFrame(paint);
   }).catch(()=>{if(!p.cancelled)canvas.setAttribute('aria-label','Ship preview unavailable');});

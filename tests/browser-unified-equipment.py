@@ -30,7 +30,7 @@ try:
         page.evaluate("""()=>{
           const s=JSON.parse(JSON.stringify(__equipmentState));
           s.devMode=false;s.captain='Captain Alex';s.shipName='ISS Concord';s.system=11;s.latinum=1000000;s.antimatter=80;s.deuranium=12;s.food=40;s.dilithium=25;
-          s.shipType=7;s.weapons=[1];s.weaponInventory=[];delete s.shipEquipment;delete s.weaponLoadout;delete s.repairBay;
+          s.shipType=7;s.weapons=[1];s.weaponInventory=[];delete s.shipEquipment;delete s.weaponLoadout;delete s.repairBay;delete s.inventoryLayout;
           s.minerals={};s.solFreightHold={};s.localContracts=[];s.hull=50;s.shields=50;s.phase='docked';s.localCruise=null;delete s.arrivalApproach;
           s.localPrestige[11]=s.localPrestige[8]=s.localPrestige[1]=100;
           if(!nativeSaveStorage.write(s).ok)throw Error('fixture save failed');resumeNativeGame('normal');
@@ -125,6 +125,7 @@ try:
             page.locator('[data-inventory-cell="23"]').drag_to(slot(kind,0))
             assert page.evaluate('(kind)=>__equipmentState.shipEquipment.slots[kind][0]',kind)==owned,kind
         food=page.locator('[data-item-key="supply:food"]')
+        assert food.count(),page.evaluate('()=>({food:__equipmentState.food,layout:__equipmentState.inventoryLayout,paging:document.querySelector(".inventory-page-nav").innerText})')
         food.drag_to(page.locator('[data-inventory-cell="22"]'))
         assert page.locator('[data-inventory-cell="22"]').get_attribute('data-item-key')=='supply:food'
         # Swap supplies without changing either quantity or re-packing the grid.

@@ -4,29 +4,84 @@
   const root=document.createElement('section');
   root.id='ship-inventory';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','Ship inventory');
   document.body.append(root);
-  let equipmentSelection=null,equipmentNote='';
+  let equipmentSelection=null,equipmentNote='',fitIndex=0,inventoryPageFloor=1;
   let touchDrag=null,suppressClickUntil=0;
   let bridge=null,previousFocus=null,inventoryPage=0,view='loadout',rightPage='inventory',deliveryNote='',filter='all';
   const safe=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-  const qty=value=>Math.max(0,Math.floor(Number(value)||0));
-  const fmt=value=>qty(value).toLocaleString();
+  const qty=value=>Math.max(0,Number(value)||0);
+  const fmt=value=>qty(value).toLocaleString(undefined,{maximumFractionDigits:3});
   const equipmentArt=data=>window.nativeOutfittingView.art(data);
   const shipFor=state=>window.nativeShipDefinitions?.forEntity(state)||window.VexedMirrorWorld.ships.find(item=>item.id===Number(state.shipType))||window.VexedMirrorWorld.ships.find(item=>item.id===7);
   const place=id=>window.nativeSystemHub?.sol.find(node=>node.id===Number(id))?.name||'Unknown destination';
   const planetArt=id=>{const node=window.nativeSystemHub?.sol.find(entry=>entry.id===Number(id));return node?`../flashtrek-broken-mirror/art-review/sol-planets/${String(node.id).padStart(2,'0')} - ${encodeURIComponent(node.name)}.png`:'assets/ui/freight.svg'};
-  const itemIcons={antimatter:'startup/resources/antimatter.png',dilithium:'assets/ui/dilithium.svg',deuranium:'startup/resources/deuranium.png',food:'assets/ui/food.svg',latinum:'startup/resources/latinum.png'};
+  const itemIcons={antimatter:'startup/resources/antimatter.png',dilithium:'assets/inventory-ores/dilithium.png',deuranium:'startup/resources/deuranium.png',food:'assets/ui/food.svg',latinum:'startup/resources/latinum.png'};
   const goodIcons=['assets/ui/mineral.svg','assets/ui/metal.svg','assets/ui/components.svg','assets/ui/computers.svg','assets/ui/fuel.svg','assets/ui/food.svg','assets/ui/medicine.svg','startup/resources/deuranium.png','assets/ui/hull-sections.svg'];
   const compact=value=>qty(value)>=10000?new Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1}).format(qty(value)):fmt(value);
+  const pageSize=()=>matchMedia('(max-width:760px)').matches?12:matchMedia('(max-width:1150px)').matches?16:24;
+  const keyKind=key=>key?.startsWith('equipment:')?'equipment':key?.startsWith('freight:')||key?.startsWith('contract:')?'freight':'supplies';
   const item=(name,value,unit='',kind='supply',customIcon)=>{
     const resource=String(name).toLowerCase(),icon=customIcon||(kind==='mineral'?window.nativeOutfittingView.minerals[resource]?.icon:null)||itemIcons[resource]||`assets/ui/${kind==='mineral'?'mineral':'freight'}.svg`;
     return `<span class="inventory-item-icon"><img src="${icon}" alt=""></span><span class="inventory-item-name">${safe(kind==='mineral'?window.nativeOutfittingView.minerals[resource]?.name||name:name)}</span><strong class="inventory-item-count">${compact(value)}${unit}</strong>`;
   };
   const locationFor=node=>node.hasAttribute('data-inventory-cell')?{type:'cell',index:Number(node.dataset.inventoryCell),key:node.dataset.itemKey,category:node.dataset.equipmentKind}:{type:'slot',category:node.dataset.equipmentKind,index:Number(node.dataset.equipmentIndex),key:node.dataset.itemKey};
+  function findLocation(at){return at?.type==='cell'?root.querySelector(`[data-inventory-cell="${at.index}"]`):root.querySelector(`[data-equipment-place="slot"][data-equipment-kind="${at?.category}"][data-equipment-index="${at?.index}"]`);}
+  function feedback(kind,from,to,origin){
+    window.nativeMenuSounds?.inventory(kind);
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    const target=findLocation(to)||findLocation(from)||root.querySelector('.inventory-inspector');
+    target?.animate([{outline:'2px solid transparent',offset:0},{outline:`2px solid ${kind==='reject'?'#edaa91':'#9de4c9'}`,offset:.3},{outline:'2px solid transparent',offset:1}],{duration:360});
+    if(kind==='reject'||!origin||!target)return;
+    const end=target.getBoundingClientRect(),ghost=document.createElement('div');ghost.className='inventory-transfer-ghost';ghost.innerHTML=origin.html;
+    Object.assign(ghost.style,{left:origin.x+'px',top:origin.y+'px'});root.append(ghost);
+    const animation=ghost.animate([{transform:'translate(-50%,-50%) scale(.9)',opacity:.9},{transform:`translate(calc(-50% + ${end.x+end.width/2-origin.x}px),calc(-50% + ${end.y+end.height/2-origin.y}px)) scale(.4)`,opacity:0}],{duration:240,easing:'ease-out'});
+    animation.onfinish=()=>ghost.remove();
+  }
   function transfer(from,to){
+    const source=findLocation(from),bounds=source?.getBoundingClientRect(),icon=source?.querySelector('.inventory-item-icon,.inventory-system-icon,.inventory-dot-icon');
+    const origin=bounds?{x:bounds.x+bounds.width/2,y:bounds.y+bounds.height/2,html:icon?.innerHTML||''}:null;
     const result=bridge.moveInventory({from,to});
-    equipmentNote=result?.ok?(result.saved===false?'Item moved, but saving failed. Use Save to try again.':''):(result?.error||'Unable to move that item.');
-    if(result?.ok)equipmentSelection=null;
+    equipmentNote=result?.ok?(result.saved===false?'Item moved, but saving failed. Use Save to try again.':to.type==='slot'?'Equipment installed.':from.type==='slot'?'Equipment removed and stored.':'Item moved.'):(result?.error||'Unable to move that item.');
+    if(result?.ok){
+      equipmentSelection=null;
+      if(matchMedia('(max-width:760px)').matches)view=to.type==='slot'?'loadout':'cargo';
+      if(to.type==='cell'){
+        const cells=window.nativeShipEquipment.inventoryLayout(bridge.getState()).cells;
+        if(filter!=='all'&&keyKind(cells[to.index])!==filter)filter='all';
+        const order=filter==='all'?null:cells.map((key,index)=>key&&keyKind(key)===filter?index:null).filter(index=>index!==null);
+        inventoryPage=Math.floor((order?order.indexOf(to.index):to.index)/pageSize());
+      }
+    }
     render();
+    if(result?.ok)findLocation(to)?.focus({preventScroll:true});
+    feedback(result?.ok?(to.type==='slot'?'equip':'unequip'):'reject',from,to,origin);
+  }
+  function inspector(state,ship,eq,tiles){
+    const selected=equipmentSelection,instance=selected?.key?.startsWith('equipment:')?eq.instances[selected.key.slice(10)]:null,data=window.nativeShipEquipment.model(instance?.modelId),tile=tiles.get(selected?.key);
+    if(!selected)return '<section class="inventory-inspector" aria-label="Item details"><div><span>ITEM DETAILS</span><strong>Select an item to inspect</strong><p>Compare equipment, choose a bay, then Equip. Drag to fit or arrange directly.</p></div></section>';
+    const name=data?.name||tile?.name||instance?.modelId||'Item',stored=selected.type==='cell',slots=eq.slots[instance?.category]||[];
+    fitIndex=Math.max(0,Math.min(fitIndex,slots.length-1));
+    let detail='',rows=[],allowed={ok:true};
+    if(instance&&data){
+      const draft={...state,shipEquipment:{...eq,slots:{...eq.slots,[instance.category]:slots.map((id,i)=>i===fitIndex?instance.id:id)}}};
+      const after=window.nativeShipDefinitions.forEntity(draft),before=ship;
+      const stat=(label,value,old,unit='',lower=false)=>{const delta=Number(value)-Number(old);return `<div><span>${safe(label)}</span><strong>${fmt(value)}${safe(unit)}</strong>${stored&&Number.isFinite(delta)&&Math.abs(delta)>.0001?`<small class="${delta*(lower?-1:1)>0?'positive':'negative'}">${delta>0?'+':''}${Number(delta.toFixed(3)).toLocaleString()}${safe(unit)} vs fitted</small>`:''}</div>`;};
+      const current=window.nativeShipEquipment.model(eq.instances[slots[fitIndex]]?.modelId);
+      if(instance.category==='weapon'){
+        const spec=model=>window.nativeWeaponRules.weaponSpec(model,window.nativeCombatShots.weaponVisual(model).kind,{damageMultiplier:ship.weaponDamageMultiplier||1}),next=spec(data),old=current?spec(current):{damage:0,range:0,recharge:0};
+        rows=[stat('Damage',next.damage,old.damage),stat('Range',next.range,old.range),stat('Recharge',next.recharge,old.recharge,' s',true)];
+      }else if(instance.category==='engineering')rows=[stat('Top speed',after.movement.maxSpeed,before.movement.maxSpeed),stat('Acceleration',after.movement.acceleration,before.movement.acceleration)];
+      else if(instance.category==='shield'){rows=[stat('Shield capacity',after.shields,before.shields)];if(data.regen)rows.push(stat('Recharge / second',after.shields*data.regen,undefined));}
+      else if(instance.category==='repairDrone')rows=[stat('Drone hull',instance.hull,data.hull||40),`<div><span>State</span><strong>${safe(instance.phase)}</strong></div>`];
+      detail=data.description||(instance.category==='ability'?'Utility equipment for a compatible ability bay.':'Drag into a compatible bay or use the fitting controls.');
+      if(stored)allowed=slots.length?(window.nativeShipyardRefits?.validateFit(state,{category:instance.category,slot:fitIndex,modelId:instance.modelId})||allowed):{ok:false,error:'This hull has no compatible bays.'};
+      if(instance.category==='repairDrone'&&!['stowed','destroyed'].includes(instance.phase))allowed={ok:false,error:'Recover deployed drones before changing equipment.'};
+    }else if(instance){allowed={ok:false,error:'Legacy equipment remains in storage; this model cannot be fitted.'};}
+    else if(tile){
+      const key=selected.key.split(':').slice(1).join(':');detail=selected.key.startsWith('mineral:')?window.nativeRegionalMinerals.ores[key]?.use||'Raw mineral cargo.':selected.key.startsWith('contract:')?'Contract cargo: deliver it to its destination to receive payment.':'Ship supply or trade cargo. Drag to arrange its saved position.';
+      const value=selected.key.startsWith('mineral:')?state.minerals[key]:selected.key.startsWith('freight:')?state.solFreightHold[key]:state[key];
+      if(value!==undefined)rows=[`<div><span>Quantity</span><strong>${fmt(value)}${selected.key.startsWith('freight:')?' t':''}</strong></div>`];
+    }
+    return `<section class="inventory-inspector has-selection" aria-label="Item details"><div class="inventory-detail-heading"><span class="inventory-detail-art">${data?equipmentArt(data):tile?.html.match(/<span class="inventory-item-icon">(.*?)<\/span>/)?.[1]||''}</span><div><span>${instance?(stored?'STORED EQUIPMENT':'INSTALLED EQUIPMENT'):'CARGO DETAILS'}</span><strong>${safe(name)}</strong></div></div><p>${safe(detail)}</p><div class="inventory-detail-stats">${rows.join('')}</div>${instance?`<div class="inventory-detail-actions">${stored?`<label>Fit into<select data-fit-slot data-focus-key="fit-slot" aria-label="Equipment destination bay">${slots.map((id,index)=>`<option value="${index}" ${index===fitIndex?'selected':''}>${safe(window.nativeOutfittingView.labels[instance.category]||'Bay')} ${index+1} — ${safe(window.nativeShipEquipment.model(eq.instances[id]?.modelId)?.name||'Empty')}</option>`).join('')}</select></label><button type="button" data-equipment-action="equip" ${allowed.ok?'':'disabled'}>Equip${slots[fitIndex]?' / Replace':''}</button>`:`<button type="button" data-equipment-action="unequip" ${allowed.ok?'':'disabled'}>Unequip</button>`}<button type="button" data-equipment-action="cancel">Cancel</button></div>${!allowed.ok?`<p role="status">${safe(allowed.error)}</p>`:''}`:'<button type="button" data-equipment-action="cancel">Cancel selection</button>'}</section>`;
   }
   function preview(state,ship){window.nativeOutfittingView.preview(root,state,ship);}
   function render(){
@@ -50,17 +105,26 @@
     const positiveFill=Math.min(100,Math.max(0,standing))/2,negativeFill=Math.min(100,Math.max(0,-standing))/2;
     const canPlotDelivery=Number(state.system)===1&&!state.localCruise&&!state.arrivalApproach;
     const inventoryTiles=[...eq.locker.map((id,index)=>{const instance=eq.instances[id],data=equipment.model(instance.modelId);return {key:'equipment:'+id,kind:'equipment',category:instance.category,name:data?.name||instance.modelId,html:`<span class="inventory-item-icon">${equipmentArt(data)}</span><span class="inventory-item-name">${safe(data?.name||instance.modelId)}</span>`,locker:index};}),
-      ...[['Dilithium',state.dilithium],['Deuranium',state.deuranium],['Food',state.food]].filter(([,amount])=>Number(amount)>0).map(([name,amount])=>({key:'supply:'+name.toLowerCase(),kind:'supplies',name,html:item(name,amount)})),
+      ...[['Antimatter',state.antimatter],['Dilithium',state.dilithium],['Deuranium',state.deuranium],['Food',state.food]].filter(([,amount])=>Number(amount)>0).map(([name,amount])=>({key:'supply:'+name.toLowerCase(),kind:'supplies',name,html:item(name,amount)})),
       ...minerals.map(([name,amount])=>({key:'mineral:'+name,kind:'supplies',name,html:item(name.charAt(0).toUpperCase()+name.slice(1),amount,'','mineral')})),
       ...freightGoods.map(entry=>({key:'freight:'+entry.id,kind:'freight',name:entry.name,html:item(entry.name,entry.amount,' t','freight',goodIcons[entry.id])})),
       ...jobs.map(job=>({key:'contract:'+job.id,kind:'freight',name:window.nativeSolEconomy.goods[job.good]||'Cargo',html:`<span class="inventory-item-icon"><img src="${goodIcons[job.good]||'assets/ui/freight.svg'}" alt=""></span><span class="inventory-item-name">${safe(window.nativeSolEconomy.goods[job.good]||'Cargo')}</span><strong class="inventory-item-count">${fmt(job.tons)} t</strong><span class="inventory-item-tag">CONTRACT</span>`}))
     ];
     const layout=equipment.inventoryLayout(state),tiles=new Map(inventoryTiles.map(tile=>[tile.key,tile]));
-    const inventoryPageSize=24,inventoryPages=Math.max(1,Math.ceil((layout.cells.length+inventoryPageSize)/inventoryPageSize));inventoryPage=Math.max(0,Math.min(inventoryPage,inventoryPages-1));
+    const inventoryPageSize=pageSize();
+    const displayCells=filter==='all'?Array.from({length:layout.cells.length},(_,i)=>i):layout.cells.map((key,index)=>tiles.get(key)?.kind===filter?index:null).filter(index=>index!==null);
+    const matchingCount=displayCells.filter(index=>tiles.has(layout.cells[index])).length;
+    const inventoryPages=Math.max(1,Math.ceil(displayCells.length/inventoryPageSize),filter==='all'?inventoryPageFloor:1);
+    inventoryPage=Math.max(0,Math.min(inventoryPage,inventoryPages-1));
+    const occupied=new Set(displayCells);let free=0;
+    while(displayCells.length<inventoryPages*inventoryPageSize){
+      if(filter==='all')displayCells.push(displayCells.length);
+      else{while(layout.cells[free]||occupied.has(free))free++;displayCells.push(free);occupied.add(free++);}
+    }
     const visibleTiles=Array.from({length:inventoryPageSize},(_,offset)=>{
-      const index=inventoryPage*inventoryPageSize+offset,key=layout.cells[index],tile=tiles.get(key),active=equipmentSelection?.key===key&&!!key;
+      const index=displayCells[inventoryPage*inventoryPageSize+offset],key=layout.cells[index],tile=tiles.get(key),active=equipmentSelection?.key===key&&!!key;
       const attributes=tile?.kind==='equipment'?`data-equipment-kind="${tile.category}" data-equipment-place="locker" data-equipment-index="${tile.locker}"`:'';
-      return `<button type="button" class="inventory-item ${tile?(tile.kind==='equipment'?'inventory-weapon-tile':'inventory-cargo-tile'):'inventory-blank'}${active?' selected':''}${tile&&filter!=='all'&&filter!==tile.kind?' inventory-filter-dim':''}" data-inventory-cell="${index}" data-item-key="${safe(key||'')}" data-focus-key="cell-${index}" ${attributes} ${tile?`draggable="true" data-kind="${tile.category||tile.kind}" aria-pressed="${active}" title="${safe(tile.name)} · Drag to move" aria-label="${tile.kind==='equipment'?'Stored ':''}${safe(tile.name)}"`:`aria-label="Empty inventory tile ${index+1}"`}>${tile?tile.html:'<span class="inventory-empty-mark">+</span>'}</button>`;
+      return `<button type="button" class="inventory-item ${tile?(tile.kind==='equipment'?'inventory-weapon-tile':'inventory-cargo-tile'):'inventory-blank'}${active?' selected':''}" data-inventory-cell="${index}" data-item-key="${safe(key||'')}" data-focus-key="cell-${index}" ${attributes} ${tile?`draggable="true" data-kind="${tile.category||tile.kind}" aria-pressed="${active}" title="${safe(tile.name)} · Drag to move" aria-label="${tile.kind==='equipment'?'Stored ':''}${safe(tile.name)}"`:`aria-label="Empty inventory tile ${index+1}"`}>${tile?tile.html:'<span class="inventory-empty-mark">+</span>'}</button>`;
     });
     const fittedCount=Object.values(eq.slots).flat().filter(Boolean).length,totalSlots=Object.values(eq.slots).flat().length;
     root.dataset.view=view;root.dataset.rightPage=rightPage;
@@ -78,18 +142,27 @@
         </section>
         <section class="inventory-cargo" aria-label="Ship inventory and deliveries"><div class="inventory-section-title"><span><b>02</b> CARGO HOLD</span><strong>Cargo ${fmt(used)} / ${fmt(capacity)} t</strong></div><div class="inventory-capacity" role="meter" aria-label="Cargo capacity" aria-valuemin="0" aria-valuemax="${Math.max(1,capacity)}" aria-valuenow="${Math.min(used,Math.max(1,capacity))}" aria-valuetext="${fmt(used)} of ${fmt(capacity)} tonnes"><i style="--fill:${capacity?Math.max(0,Math.min(100,used/capacity*100)):0}%"></i></div>
           <nav class="inventory-right-tabs" aria-label="Inventory sections"><button type="button" data-focus-key="right-inventory" data-right-page="inventory" aria-pressed="${rightPage==='inventory'}">Inventory <span>${inventoryTiles.length}</span></button><button type="button" data-focus-key="right-deliveries" data-right-page="deliveries" aria-pressed="${rightPage==='deliveries'}">Deliveries <span>${jobs.length}</span></button></nav>
-          <div class="inventory-items-page"><nav class="inventory-filters" aria-label="Highlight inventory category">${[['all','All items'],['equipment','Equipment'],['supplies','Supplies'],['freight','Freight']].map(([key,label])=>`<button type="button" data-focus-key="filter-${key}" data-inventory-filter="${key}" aria-pressed="${filter===key}">${label}</button>`).join('')}</nav><div class="inventory-grid" aria-label="Stored equipment and cargo">${visibleTiles.join('')}</div><p class="inventory-arrange-hint" role="status">${safe(equipmentNote||'Drag to arrange. Empty tiles accept any item. Positions save automatically.')}</p><div class="inventory-page-nav"><span>${inventoryTiles.length} items aboard</span><div><button type="button" data-focus-key="previous" data-inventory-page="previous" ${inventoryPage===0?'disabled':''} aria-label="Previous inventory page">&lsaquo;</button><span>${inventoryPage+1} / ${inventoryPages}</span><button type="button" data-focus-key="next" data-inventory-page="next" ${inventoryPage>=inventoryPages-1?'disabled':''} aria-label="Next inventory page">&rsaquo;</button></div></div></div>
+          <div class="inventory-items-page"><nav class="inventory-filters" aria-label="Filter inventory category">${[['all','All items'],['equipment','Equipment'],['supplies','Supplies'],['freight','Freight']].map(([key,label])=>`<button type="button" data-focus-key="filter-${key}" data-inventory-filter="${key}" aria-pressed="${filter===key}">${label}</button>`).join('')}</nav><div class="inventory-grid" aria-label="Stored equipment and cargo">${visibleTiles.join('')}</div><p class="inventory-arrange-hint" role="status">${safe(equipmentNote||'Select to inspect. Drag to fit or arrange. Positions save automatically.')}</p><div class="inventory-page-nav"><span>${matchingCount} ${filter==='all'?'items aboard':'matching items'}</span><div>${filter==='all'?'<button type="button" data-inventory-page="add" aria-label="Add inventory arrangement page">+ Space</button>':''}<button type="button" data-focus-key="previous" data-inventory-page="previous" ${inventoryPage===0?'disabled':''} aria-label="Previous inventory page">&lsaquo;</button><span>${inventoryPage+1} / ${inventoryPages}</span><button type="button" data-focus-key="next" data-inventory-page="next" ${inventoryPage>=inventoryPages-1?'disabled':''} aria-label="Next inventory page">&rsaquo;</button></div></div></div>
+          ${state.devMode?'<button type="button" class="inventory-restock" data-restock-dev>Restock Dev Inventory</button>':''}
 
           <div class="inventory-deliveries-page" aria-label="Delivery contracts"><div class="inventory-deliveries-summary"><span>ACTIVE CONTRACTS</span><strong>${jobs.length} / 2</strong></div>${jobs.length?`<div class="inventory-contract-cards">${jobs.map((job,index)=>`<article class="inventory-contract-card"><div class="inventory-contract-main"><div class="inventory-contract-planet"><img src="${planetArt(job.to)}" alt="${safe(place(job.to))}"></div><div class="inventory-contract-details"><span class="inventory-contract-kicker">DELIVERY ${String(index+1).padStart(2,'0')} / ${safe(place(job.from))} TO</span><strong class="inventory-contract-destination">${safe(place(job.to))}</strong><div class="inventory-contract-cargo"><img src="${goodIcons[job.good]||'assets/ui/freight.svg'}" alt=""><span>${fmt(job.tons)} t ${safe(window.nativeSolEconomy.goods[job.good]||'Cargo')} aboard</span></div></div><div class="inventory-contract-payment"><span>ON DELIVERY</span><strong>${fmt(job.pay)}</strong><small>LATINUM</small></div></div><div class="inventory-contract-actions"><button type="button" data-delivery-action="cruise" data-delivery-id="${safe(job.id)}" ${canPlotDelivery&&Number(state.localBody)!==Number(job.to)?'':'disabled'}>Cruise to ${safe(place(job.to))}</button><button type="button" data-delivery-action="select" data-delivery-id="${safe(job.id)}" aria-pressed="${Number(state.localNavTarget)===Number(job.to)}" ${canPlotDelivery?'':'disabled'}>${Number(state.localNavTarget)===Number(job.to)?'Navigation selected':'Select for navigation'}</button></div></article>`).join('')}</div>`:'<div class="inventory-deliveries-empty"><img src="assets/ui/freight.svg" alt=""><strong>No active deliveries</strong><span>Accept a shipping contract at a port to see its cargo, route, and payment here.</span></div>'}${deliveryNote?`<p class="inventory-delivery-note" role="status">${safe(deliveryNote)}</p>`:''}</div>
         </section>
-      </div></div>`;
+      </div>${inspector(state,ship,eq,tiles)}</div>`;
     root.querySelector('.inventory-close').onclick=close;
+    root.querySelector('[data-fit-slot]')?.addEventListener('change',event=>{fitIndex=Number(event.target.value);render();});
+    root.querySelector('[data-restock-dev]')?.addEventListener('click',()=>{const result=equipment.restockDev(state);const saved=result.ok?bridge.save():null;equipmentNote=result.ok?(saved?.ok?`Dev inventory restocked. ${result.added} missing equipment items supplied.`:'Restocked, but saving failed. Use Save to try again.'):result.error;render();window.nativeMenuSounds?.inventory(result.ok?'equip':'reject');});
+    root.querySelectorAll('[data-equipment-action]').forEach(button=>button.onclick=()=>{
+      if(button.dataset.equipmentAction==='cancel'){equipmentSelection=null;equipmentNote='';render();return;}
+      if(!equipmentSelection)return;
+      if(button.dataset.equipmentAction==='equip')transfer(equipmentSelection,{type:'slot',category:equipmentSelection.category,index:fitIndex});
+      else{let index=0;while(layout.cells[index])index++;transfer(equipmentSelection,{type:'cell',index});}
+    });
     root.querySelectorAll('[data-repair-mode]').forEach(button=>button.onclick=()=>{const result=bridge.setRepairMode?.(button.dataset.repairMode);equipmentNote=result?.ok?(result.saved===false?'Repair mode changed, but saving failed. Use Save to try again.':''):result?.error||'Unable to change repair mode.';render();});
     root.querySelector('[data-deploy-repair-drones]').onclick=()=>{const result=bridge.deployRepairDrones?.();if(result?.ok&&result.saved!==false){close();document.getElementById('space')?.focus({preventScroll:true});return;}equipmentNote=result?.saved===false?'Drones deployed, but saving failed. Use Save to try again.':result?.error||'Unable to deploy repair drones.';render();};
     root.querySelectorAll('[data-inventory-view]').forEach(button=>button.onclick=()=>{view=button.dataset.inventoryView;render();});
     root.querySelectorAll('[data-right-page]').forEach(button=>button.onclick=()=>{rightPage=button.dataset.rightPage;deliveryNote='';render()});
     root.querySelectorAll('[data-delivery-action]').forEach(button=>button.onclick=()=>{const result=bridge.deliveryNavigation?.(Number(button.dataset.deliveryId),button.dataset.deliveryAction);if(result?.ok){close();document.getElementById('space')?.focus({preventScroll:true});return}deliveryNote=result?.error||'Unable to plot this delivery.';render()});
-    root.querySelectorAll('[data-inventory-page]').forEach(button=>button.onclick=()=>{inventoryPage+=button.dataset.inventoryPage==='next'?1:-1;render()});
+    root.querySelectorAll('[data-inventory-page]').forEach(button=>button.onclick=()=>{if(button.dataset.inventoryPage==='add'){inventoryPageFloor=inventoryPages+1;inventoryPage=inventoryPages;}else inventoryPage+=button.dataset.inventoryPage==='next'?1:-1;render()});
     root.querySelectorAll('[data-inventory-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.inventoryFilter;inventoryPage=0;render()});
     const choose=locationFor;
     const targets=root.querySelectorAll('[data-inventory-cell],[data-equipment-place="slot"]');
@@ -101,10 +174,12 @@
       node.onclick=()=>{
         if(performance.now()<suppressClickUntil)return;
         const destination=at();
-        if(equipmentSelection){
-          if(equipmentSelection.type===destination.type&&equipmentSelection.index===destination.index&&(destination.type==='cell'||equipmentSelection.category===destination.category)){equipmentSelection=null;equipmentNote='';render();}
-          else transfer(equipmentSelection,destination);
-        }else if(destination.key){equipmentSelection=destination;equipmentNote='';render();}
+        if(!destination.key&&equipmentSelection){transfer(equipmentSelection,destination);return;}
+        if(destination.key){
+          if(equipmentSelection?.key===destination.key)equipmentSelection=null;
+          else{equipmentSelection=destination;fitIndex=Math.max(0,eq.slots[destination.category]?.findIndex(id=>!id)??0);}
+          equipmentNote='';render();
+        }
       };
       node.draggable=!!node.dataset.itemKey;
       node.ondragstart=event=>{equipmentSelection=at();event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',JSON.stringify(equipmentSelection));node.classList.add('drag-source');highlight();};
@@ -154,7 +229,8 @@
   };
   root.addEventListener('pointerup',event=>endTouch(event));root.addEventListener('pointercancel',event=>endTouch(event,true));
   root.addEventListener('keydown',event=>{if(event.key==='Tab'){const nodes=[...root.querySelectorAll('button:not(:disabled),select:not(:disabled)')].filter(node=>node.getClientRects().length),first=nodes[0],last=nodes[nodes.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}if(event.target.matches('select')&&event.code==='KeyI')event.stopPropagation();});
-  function open(){if(!bridge?.getState?.()||!root.hidden)return;previousFocus=document.activeElement;equipmentSelection=null;equipmentNote='';inventoryPage=0;view='loadout';rightPage='inventory';deliveryNote='';filter='all';root.hidden=false;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:true,at:performance.now()}}));render();root.querySelector('.inventory-close')?.focus({preventScroll:true});}
+  function open(){if(!bridge?.getState?.()||!root.hidden)return;previousFocus=document.activeElement;equipmentSelection=null;equipmentNote='';inventoryPage=0;inventoryPageFloor=1;view='loadout';rightPage='inventory';deliveryNote='';filter='all';root.hidden=false;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:true,at:performance.now()}}));render();root.querySelector('.inventory-close')?.focus({preventScroll:true});}
   function close(){if(root.hidden)return;root.hidden=true;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:false,at:performance.now()}}));window.nativeOutfittingView.stopPreview(root);if(touchDrag)clearTimeout(touchDrag.timer);touchDrag=null;root.innerHTML='';equipmentSelection=null;previousFocus?.focus?.({preventScroll:true});}
+  addEventListener('resize',()=>{if(!root.hidden)render();});
   window.nativeShipInventory={attach(value){bridge=value;},open,close,refresh:render,get active(){return !root.hidden}};
 })();

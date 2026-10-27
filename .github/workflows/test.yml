@@ -130,7 +130,9 @@ jobs:
       - name: Inventory mouse and touch dragging
         env:
           BROWSER_CHANNEL: ''
-        run: python tests/browser-inventory-drag.py
+        run: |
+          python tests/browser-inventory-upgrade.py
+          python tests/browser-inventory-drag.py
       - name: Engine upgrades, generated icons and keyboard flight without an engine
         env:
           BROWSER_CHANNEL: ''

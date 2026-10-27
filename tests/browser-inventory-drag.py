@@ -64,11 +64,14 @@ try:
         # Wrong-type drops cannot spend or duplicate an owned item.
         snapshot = page.evaluate('JSON.stringify(__inventoryState.shipEquipment)')
         cell(21).click()
-        slot('weapon').click()
+        page.locator('[data-equipment-place="slot"][data-equipment-kind="weapon"][data-equipment-index="1"]').click()
         assert 'compatible' in page.locator('.inventory-hint').inner_text().lower()
         assert page.evaluate('JSON.stringify(__inventoryState.shipEquipment)') == snapshot
         cell(21).drag_to(slot('engineering'))
         assert page.evaluate('nativeShipDefinitions.forEntity(__inventoryState).movement.acceleration') > 0
+        # Extra arrangement space is explicit rather than a phantom blank page.
+        page.locator('[data-inventory-page="add"]').click()
+        page.locator('[data-inventory-page="previous"]').click()
         # Holding a real mouse drag over the page arrow opens another page.
         origin=center(page.locator('[data-item-key="mineral:iron"]'))
         page.mouse.move(*origin)
@@ -109,13 +112,13 @@ try:
         touch('touchMove', (origin[0]-10, origin[1]))
         touch('touchMove', center(page.locator('[data-inventory-view="cargo"]')))
         page.wait_for_function('()=>document.querySelector("#ship-inventory").dataset.view==="cargo"')
-        target = center(cell(12))
+        target = center(cell(10))
         touch('touchMove', target)
         touch('touchEnd')
-        assert cell(12).get_attribute('data-item-key') == engine
+        assert cell(10).get_attribute('data-item-key') == engine
         assert page.evaluate('__inventoryState.shipEquipment.slots.engineering[0]') is None
         page.wait_for_timeout(450)
-        origin = center(cell(12))
+        origin = center(cell(10))
         touch('touchStart', origin)
         touch('touchMove', (origin[0]-10, origin[1]))
         touch('touchMove', center(page.locator('[data-inventory-view="loadout"]')))

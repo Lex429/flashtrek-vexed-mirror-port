@@ -1,0 +1,37 @@
+{
+  "generator": "Built-in image_gen",
+  "transparent_background": true,
+  "reference": "Antimatter containment module, startup/resources/antimatter.png",
+  "images": [
+    {
+      "file": "trellium.png",
+      "ore": "trellium",
+      "prompt": "Use case: stylized-concept. Asset type: transparent square inventory resource icon for the Vexed Mirror space game. Generate ONE trellium ORE inventory icon. Center a translucent emerald green layered mineral plates, hexagonal interlocking cluster inside a premium detailed sci-fi containment assembly: diamond-shaped brushed gold and dark gunmetal outer frame, beveled machined edges, four small clamps and a dark open central chamber displaying the mineral clearly. Similar visual language to a luxurious gold diamond-shaped antimatter containment module. Front view, very slight 3D depth, symmetrical outer frame, mineral silhouette distinct. Crisp high-end rendered game asset with restrained emissive light reflecting the mineral's own color. Entire object visible with 8 percent transparent padding. True transparent background. No text, letters, labels, number, watermark, backdrop, floor, border outside the object. Readable as an 80px icon. Do not make a UI panel or a grid, only one isolated item."
+    },
+    {
+      "file": "tritanium.png",
+      "ore": "tritanium",
+      "prompt": "Use case: stylized-concept. Asset type: transparent square inventory resource icon for the Vexed Mirror space game. Generate ONE tritanium ORE inventory icon. Center a dense silvery blue metallic ore nuggets, rugged angular geometric block inside a premium detailed sci-fi containment assembly: diamond-shaped brushed gold and dark gunmetal outer frame, beveled machined edges, four small clamps and a dark open central chamber displaying the mineral clearly. Similar visual language to a luxurious gold diamond-shaped antimatter containment module. Front view, very slight 3D depth, symmetrical outer frame, mineral silhouette distinct. Crisp high-end rendered game asset with restrained emissive light reflecting the mineral's own color. Entire object visible with 8 percent transparent padding. True transparent background. No text, letters, labels, number, watermark, backdrop, floor, border outside the object. Readable as an 80px icon. Do not make a UI panel or a grid, only one isolated item."
+    },
+    {
+      "file": "dilithium.png",
+      "ore": "dilithium",
+      "prompt": "Use case: stylized-concept. Asset type: transparent square inventory resource icon for the Vexed Mirror space game. Generate ONE dilithium ORE inventory icon. Center a luminous pale violet and pink paired long faceted crystal prisms inside a premium detailed sci-fi containment assembly: diamond-shaped brushed gold and dark gunmetal outer frame, beveled machined edges, four small clamps and a dark open central chamber displaying the mineral clearly. Similar visual language to a luxurious gold diamond-shaped antimatter containment module. Front view, very slight 3D depth, symmetrical outer frame, mineral silhouette distinct. Crisp high-end rendered game asset with restrained emissive light reflecting the mineral's own color. Entire object visible with 8 percent transparent padding. True transparent background. No text, letters, labels, number, watermark, backdrop, floor, border outside the object. Readable as an 80px icon. Do not make a UI panel or a grid, only one isolated item."
+    },
+    {
+      "file": "gallicite.png",
+      "ore": "gallicite",
+      "prompt": "Use case: stylized-concept. Asset type: transparent square inventory resource icon for the Vexed Mirror space game. Generate ONE gallicite ORE inventory icon. Center a bright copper orange crystalline growth with dark iron veins, branching cluster inside a premium detailed sci-fi containment assembly: diamond-shaped brushed gold and dark gunmetal outer frame, beveled machined edges, four small clamps and a dark open central chamber displaying the mineral clearly. Similar visual language to a luxurious gold diamond-shaped antimatter containment module. Front view, very slight 3D depth, symmetrical outer frame, mineral silhouette distinct. Crisp high-end rendered game asset with restrained emissive light reflecting the mineral's own color. Entire object visible with 8 percent transparent padding. True transparent background. No text, letters, labels, number, watermark, backdrop, floor, border outside the object. Readable as an 80px icon. Do not make a UI panel or a grid, only one isolated item."
+    },
+    {
+      "file": "benamite.png",
+      "ore": "benamite",
+      "prompt": "Use case: stylized-concept. Asset type: transparent square inventory resource icon for the Vexed Mirror space game. Generate ONE benamite ORE inventory icon. Center a rare vivid electric cyan and sapphire jewel, compact star-shaped faceted crystal inside a premium detailed sci-fi containment assembly: diamond-shaped brushed gold and dark gunmetal outer frame, beveled machined edges, four small clamps and a dark open central chamber displaying the mineral clearly. Similar visual language to a luxurious gold diamond-shaped antimatter containment module. Front view, very slight 3D depth, symmetrical outer frame, mineral silhouette distinct. Crisp high-end rendered game asset with restrained emissive light reflecting the mineral's own color. Entire object visible with 8 percent transparent padding. True transparent background. No text, letters, labels, number, watermark, backdrop, floor, border outside the object. Readable as an 80px icon. Do not make a UI panel or a grid, only one isolated item."
+    },
+    {
+      "file": "deuranium.png",
+      "ore": "deuranium",
+      "prompt": "Use case: stylized-concept. Asset type: transparent square inventory resource icon for the Vexed Mirror space game. Generate ONE deuranium ORE inventory icon. Center a warm amber golden heavy mineral, broad dark graphite rock with glowing amber seams inside a premium detailed sci-fi containment assembly: diamond-shaped brushed gold and dark gunmetal outer frame, beveled machined edges, four small clamps and a dark open central chamber displaying the mineral clearly. Similar visual language to a luxurious gold diamond-shaped antimatter containment module. Front view, very slight 3D depth, symmetrical outer frame, mineral silhouette distinct. Crisp high-end rendered game asset with restrained emissive light reflecting the mineral's own color. Entire object visible with 8 percent transparent padding. True transparent background. No text, letters, labels, number, watermark, backdrop, floor, border outside the object. Readable as an 80px icon. Do not make a UI panel or a grid, only one isolated item."
+    }
+  ]
+}

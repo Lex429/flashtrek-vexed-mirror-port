@@ -14,7 +14,7 @@ const shipStats=value=>window.nativeShipDefinitions.forEntity(value,value,{categ
 const localSpeedFactor=value=>{const speed=Number(shipStats(value).speedOrOtherStationValue),standard=window.nativeShipDefinitions.engineSpeeds.standard;return speed>standard?2.5*speed/standard:Math.max(.7,Math.min(2.5,speed/35));};
 function unlockDev(value){
  value.devMode=true;
- if(!value.devWeaponKitGranted){for(const weapon of window.VexedMirrorWeapons||[])window.nativeWeaponLoadout.grant(value,weapon.id);value.devWeaponKitGranted=true}
+ if(value.devInventoryKitVersion!==2){window.nativeShipEquipment.restockDev(value);value.devWeaponKitGranted=true}
  for(const key of devResources)value[key]=1000000000;
  value.stocks=Object.fromEntries(goods.map(g=>[g,1000000000]));
  value.discovered=world.systems.map(system=>system.id);

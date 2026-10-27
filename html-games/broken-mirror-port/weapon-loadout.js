@@ -8,10 +8,22 @@
   'standard-engine':{id:'standard-engine',category:'engineering',name:'Standard warp engine',price:500,speedMultiplier:1,icon:'assets/equipment/standard-engine.png',description:'Standard propulsion for every ship. Original Intrepid-class flight speed.'},
   'upgraded-engine':{id:'upgraded-engine',category:'engineering',name:'Upgraded warp engine',price:2500,speedMultiplier:1.1,icon:'assets/equipment/upgraded-engine.png',description:'Refined warp coils. 10% faster than the standard engine.'},
   'advanced-engine':{id:'advanced-engine',category:'engineering',name:'Advanced warp engine',price:5000,speedMultiplier:1.2,icon:'assets/equipment/advanced-engine.png',description:'Advanced plasma regulation. 20% faster than the standard engine.'},
-  'standard-shield':{id:'standard-shield',category:'shield',name:'Hull shield system',price:500}
+  'standard-shield':{id:'standard-shield',category:'shield',name:'Hull shield system',price:500,shieldMultiplier:1,description:'Standard hull shield capacity.'},
+  'upgraded-shield':{id:'upgraded-shield',category:'shield',name:'Upgraded hull shield',price:2500,shieldMultiplier:1.1,description:'Reinforced shield emitters. 10% more shield capacity.'},
+  'advanced-shield':{id:'advanced-shield',category:'shield',name:'Advanced hull shield',price:5000,shieldMultiplier:1.2,description:'Advanced shield emitters. 20% more shield capacity.'}
  };
  const cache=new WeakMap(),clock=s=>(window.nativeSimulation?.seconds(s)??Number(s?.weaponCombat?.clock))||0;
  function model(id){if(catalog[id])return catalog[id];const yard=window.nativeShipyardRefits?.model(id);if(yard)return yard;const w=window.VexedMirrorWeapons?.find(w=>w.id===Number(id));return w?{...w,category:w.category||'weapon'}:null;}
+ function models(){return [...new Map([...Object.values(catalog),...(window.VexedMirrorWeapons||[]).map(w=>model(w.id)),...(window.nativeShipyardRefits?.weapons||[]),...(window.nativeShipyardRefits?.shields||[])].filter(Boolean).map(m=>[String(m.id),m])).values()];}
+ function restockDev(state){
+  if(!state?.devMode)return {ok:false,error:'Inventory restocking is available in Dev mode only.'};
+  const eq=ensure(state);let added=0;
+  for(const data of models())if(!eq.locker.some(id=>String(eq.instances[id]?.modelId)===String(data.id))){const result=grant(state,data.id);if(result.ok)added++;}
+  state.minerals||={};for(const key of Object.keys(window.nativeRegionalMinerals?.ores||{}))state.minerals[key]=Math.max(25,Number(state.minerals[key])||0);
+  state.solFreightHold||={};for(let id=0;id<(window.nativeSolEconomy?.goods?.length||9);id++)state.solFreightHold[id]=Math.max(10,Number(state.solFreightHold[id])||0);
+  for(const key of ['antimatter','dilithium','deuranium','food'])state[key]=Math.max(100,Number(state[key])||0);
+  state.devInventoryKitVersion=2;inventoryLayout(state);return {ok:true,added};
+ }
  const compatible=(kind,id)=>model(id)?.category===kind;
  function fittingChanged(state,holder){
   if(!state)return;
@@ -96,7 +108,7 @@
   if(!list)return {ok:false,error:'That equipment slot is outside this hull capacity.'};
   if(location==='slot'){const allowed=window.nativeShipyardRefits?.validateFit(holder,{category:kind,slot:index,modelId:id});if(allowed&&!allowed.ok)return allowed;}
   if(location==='slot'&&eq.instances[list[index]]?.category==='repairDrone'&&!['stowed','destroyed'].includes(eq.instances[list[index]].phase))return {ok:false,error:'Recover deployed drones before changing equipment.'};
-  const item=create(eq,id);if(list[index])eq.locker.push(list[index]);list[index]=item.id;project(holder,eq);fittingChanged(state,holder);return {ok:true,instance:item};
+  const item=create(eq,id);if(list[index])eq.locker.push(list[index]);list[index]=item.id;project(holder,eq);if(location==='slot'&&kind==='shield'&&Number.isFinite(holder.shields))holder.shields=Math.min(holder.shields,window.nativeShipDefinitions.forEntity(state,holder).shields);fittingChanged(state,holder);return {ok:true,instance:item};
  }
  function move(state,{holder=state,category='weapon',fromType,fromIndex,toType,toIndex,toCategory=category}={}){
   const eq=ensure(state,holder),source=target(eq,category,fromType,fromIndex),dest=target(eq,toCategory,toType,toIndex),id=source?.[fromIndex],other=dest?.[toIndex],item=eq.instances[id],swapped=eq.instances[other];
@@ -107,13 +119,13 @@
   if(source===dest&&fromIndex===toIndex)return {ok:true};
   if(fromType==='locker'){source.splice(fromIndex,1);if(toType==='locker')source.splice(Math.min(toIndex,source.length),0,id);else{dest[toIndex]=id;if(other)eq.locker.splice(Math.min(fromIndex,eq.locker.length),0,other);}}
   else if(toType==='locker'){source[fromIndex]=other||null;if(toIndex===dest.length)dest.push(id);else dest[toIndex]=id;}else{source[fromIndex]=other||null;dest[toIndex]=id;}
-  project(holder,eq);if(!eq.slots.shield.some(Boolean))holder.shields=0;fittingChanged(state,holder);return {ok:true};
+  project(holder,eq);if(!eq.slots.shield.some(Boolean))holder.shields=0;else if((category==='shield'||toCategory==='shield')&&(fromType==='slot'||toType==='slot')&&Number.isFinite(holder.shields))holder.shields=Math.min(holder.shields,window.nativeShipDefinitions.forEntity(state,holder).shields);fittingChanged(state,holder);return {ok:true};
  }
  function equipped(state,holder=state,defaults){const eq=ensure(state,holder,defaults);return eq.slots.weapon.map((id,slot)=>({slot,instance:eq.instances[id],weapon:model(eq.instances[id]?.modelId)})).filter(i=>i.instance&&i.weapon);}
  // Saved presentation positions reference owned items; quantities and fitting remain authoritative.
  function inventoryKeys(state){
   const eq=ensure(state),positive=value=>Number(value)>0;
-  return [...eq.locker.map(id=>'equipment:'+id),...['dilithium','deuranium','food'].filter(key=>positive(state[key])).map(key=>'supply:'+key),
+  return [...eq.locker.map(id=>'equipment:'+id),...['antimatter','dilithium','deuranium','food'].filter(key=>positive(state[key])).map(key=>'supply:'+key),
    ...Object.entries(state.minerals||{}).filter(([,n])=>positive(n)).map(([key])=>'mineral:'+key),
    ...Object.entries(state.solFreightHold||{}).filter(([,n])=>positive(n)).map(([key])=>'freight:'+key),
    ...(state.localContracts||[]).map(job=>'contract:'+job.id)];
@@ -154,11 +166,11 @@
   inventoryLayout(state);return {ok:true};
  }
  function cargoUsed(state,holder=state){const qty=n=>Math.max(0,Number(n)||0);return holder===state?qty(holder.devMode?0:holder.deuranium)+Object.values(holder.solFreightHold||{}).reduce((n,v)=>n+qty(v),0)+(holder.localContracts||[]).reduce((n,j)=>n+qty(j.tons),0)+Object.values(holder.minerals||{}).reduce((n,v)=>n+qty(v),0):qty(holder.cargo?.tons)+qty(holder.oreHold)+qty(holder.tons)+qty(holder.repairDeuranium);}
- function canChangeHull(state,type,{holder=state}={}){const def=window.nativeShipDefinitions.get(type),used=cargoUsed(state,holder);if(used>def.cargo)return {ok:false,error:`Cargo aboard is ${used} t; ${def.name} holds ${def.cargo} t. Deliver or sell cargo before buying this hull.`};const eq=ensure(state,holder);if(Object.values(eq.instances).some(i=>i.category==='repairDrone'&&!['stowed','destroyed'].includes(i.phase)))return {ok:false,error:'Recover deployed drones before changing hulls.'};return {ok:true};}
+ function canChangeHull(state,type,{holder=state}={}){const def=window.nativeShipDefinitions.get(type),used=cargoUsed(state,holder);if(!(holder===state&&state.devMode)&&used>def.cargo)return {ok:false,error:`Cargo aboard is ${used} t; ${def.name} holds ${def.cargo} t. Deliver or sell cargo before buying this hull.`};const eq=ensure(state,holder);if(Object.values(eq.instances).some(i=>i.category==='repairDrone'&&!['stowed','destroyed'].includes(i.phase)))return {ok:false,error:'Recover deployed drones before changing hulls.'};return {ok:true};}
  function changeHull(state,type,{holder=state}={}){const allowed=canChangeHull(state,type,{holder});if(!allowed.ok)return allowed;const eq=ensure(state,holder),def=window.nativeShipDefinitions.get(type);holder.shipType=Number(type);delete eq.bayLayout;delete holder.shipRefit;delete holder.shieldResponse;holder.shipClass=def.name;reconcile(holder,eq);holder.hull=window.nativeShipDefinitions.forEntity(state,holder).hull;holder.shields=0;holder.speed=0;holder.vitalsVersion=2;holder.phase='docked';fittingChanged(state,holder);return {ok:true};}
  function refit(state,ids,{holder=state}={}){const eq=ensure(state,holder);for(const kind of ['weapon','ability']){eq.locker.push(...eq.slots[kind].filter(Boolean));eq.slots[kind].fill(null);}for(const id of ids||[]){const kind=model(id)?.category;if(!kind)continue;const slot=eq.slots[kind].findIndex(id=>!id);grant(state,id,{holder,location:slot<0?'locker':'slot',slot});}eq.nextSlot=0;project(holder,eq);return holder.weaponLoadout;}
  function purchase(state,id,{holder=state}={}){const item=model(id);if(!item)return {ok:false,error:'Unknown equipment.'};if(item.shipyardOnly)return {ok:false,error:'Purchase Federation equipment at Mars Orbital Shipyard.'};if((holder===state?state.latinum:holder.credits)<item.price)return {ok:false,error:'Not enough credits for this equipment.'};const result=grant(state,id,{holder});if(result.ok){if(holder===state)state.latinum-=item.price;else holder.credits-=item.price;}return result;}
  const ready=(item,now)=>(Number(item?.readyAt)||0)<=now,consume=(item,spec,now)=>{item.readyAt=now+spec.recharge;};
- window.nativeShipEquipment=Object.freeze({ensure,capacities,model,compatible,grant,move,inventoryKeys,inventoryLayout,moveInventory,bayLayout,placeBay,equipped,cargoUsed,canChangeHull,changeHull,purchase,kinds,project,has:(s,e,id)=>{const eq=ensure(s,e);return eq.slots[model(id)?.category]?.some(key=>eq.instances[key]?.modelId===id)||false;}});
+ window.nativeShipEquipment=Object.freeze({ensure,capacities,model,models,restockDev,compatible,grant,move,inventoryKeys,inventoryLayout,moveInventory,bayLayout,placeBay,equipped,cargoUsed,canChangeHull,changeHull,purchase,kinds,project,has:(s,e,id)=>{const eq=ensure(s,e);return eq.slots[model(id)?.category]?.some(key=>eq.instances[key]?.modelId===id)||false;}});
  window.nativeWeaponLoadout=Object.freeze({ensure:(s,h=s,d)=>{ensure(s,h,d);return h.weaponLoadout;},equipped,grant,move,refit,ready,consume,project:(h)=>project(h,h.shipEquipment)});
 })();

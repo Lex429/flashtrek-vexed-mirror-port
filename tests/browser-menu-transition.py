@@ -61,7 +61,8 @@ try:
         page.goto(url)
         page.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden',timeout=120000)
         assert not page.evaluate('nativeMenuSounds.snapshot().unlocked'),'Audio unlocked without a user gesture'
-        for name in ['dev','continue-dev']:assert page.locator(f'[data-menu="{name}"]').is_hidden()
+        # Dev entry points are intentionally visible in the current launcher.
+        for name in ['dev','continue-dev']:assert page.locator(f'[data-menu="{name}"]').is_visible()
         disabled=page.locator('[data-menu="instructions"]');disabled.hover()
         assert disabled.evaluate('(b)=>getComputedStyle(b,"::before").animationName')=='none'
         assert not page.evaluate('nativeMenuTransition.snapshot().active')
@@ -113,9 +114,10 @@ try:
         assert page.evaluate('menuActions.length')==count and not page.evaluate('nativeSetup.active')
         page.locator('#pause-menu [data-resume]').click()
         for key in ['Enter','Space']:
+            page.wait_for_function('()=>!nativeSetup.active&&!nativeMenuTransition.snapshot().active')
             button.focus();page.keyboard.press(key);page.wait_for_selector('#setup-ui:not([hidden])');page.wait_for_function('()=>!nativeMenuTransition.snapshot().active');count+=1
-            assert page.evaluate('menuActions.length')==count
-            page.locator('.setup-back').click();page.wait_for_timeout(250)
+            page.wait_for_function('(count)=>menuActions.length===count',arg=count)
+            page.locator('.setup-back').click();page.wait_for_selector('#setup-ui',state='hidden')
         page.locator('#menu-sound-toggle').click()
         played=page.evaluate('nativeMenuSounds.snapshot().played')
         button.click();page.wait_for_selector('#setup-ui:not([hidden])');page.wait_for_function('()=>!nativeMenuTransition.snapshot().active')

@@ -124,7 +124,7 @@
     // Only ownership/configuration affects capabilities. Charge, damage and pose do
     // not; checking the actual fitted IDs also admits direct legacy save repairs.
     let signature=revision+':'+cacheKey+':'+(eq?'equipment':'legacy');
-    for(const kind of ['engineering','shield'])for(const id of slots?.[kind]||[])signature+=':'+kind+':'+id+':'+!!instances?.[id];
+    for(const kind of ['engineering','shield'])for(const id of slots?.[kind]||[])signature+=':'+kind+':'+id+':'+instances?.[id]?.modelId;
     for(const upgrade of base.statUpgrades){const installed=instances?.[slots?.engineering?.[0]];signature+=':'+number(eq?installed?.upgrades?.[upgrade.levelField]:entity[upgrade.levelField]);}
     const levels=entity.mineralUpgrades?.[entity.shipType];for(const kind of ['shield','hull','engine','weapons','drive'])signature+=':'+number(levels?.[kind]);
     signature+=':refit:'+JSON.stringify(entity.shipRefit||null)+':shield:'+JSON.stringify(entity.shieldResponse||null);
@@ -141,6 +141,7 @@
     if(entity.shipEquipment){
       const fitted=kind=>entity.shipEquipment.slots[kind]?.some(id=>entity.shipEquipment.instances[id]);
       if(!fitted('shield'))effective.shields=0;
+      else{const shield=window.nativeShipEquipment?.model(instances?.[slots.shield[0]]?.modelId);effective.shields=Math.round(effective.shields*number(shield?.shieldMultiplier,1));}
     }
     // Built-in basic propulsion remains available without removable warp hardware.
     // Hull/engine tuning cannot turn an empty bay into an upgraded engine.

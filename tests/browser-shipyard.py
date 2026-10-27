@@ -30,7 +30,7 @@ try:
         page.evaluate('''()=>{
           const s=JSON.parse(JSON.stringify(window.__shipyardState));
           Object.assign(s,{devMode:false,captain:'Yard Test',shipName:'USS Refit',shipType:7,system:1,localBody:5,x:230,y:-45,angle:-Math.PI/2,speed:0,vx:0,vy:0,latinum:200000,dilithium:250,deuranium:0,phase:'flight',landed:false,vitalsVersion:2,weapons:[1],weaponInventory:[],solFreightHold:{},localContracts:[],minerals:{trellium:100,tritanium:100,gallicite:60,benamite:20,deuranium:40}});
-          for(const key of ['shipEquipment','weaponLoadout','repairBay','shipRefit','shieldResponse','shipyardDock','arrivalApproach','localCruise','pendingTransit'])delete s[key];
+          for(const key of ['shipEquipment','weaponLoadout','repairBay','inventoryLayout','shipRefit','shieldResponse','shipyardDock','arrivalApproach','localCruise','pendingTransit'])delete s[key];
           nativeShipEquipment.ensure(s);const d=nativeShipDefinitions.forEntity(s);s.hull=d.hull;s.shields=d.shields;
           if(!nativeSaveStorage.write(s).ok)throw Error('Fixture save failed');resumeNativeGame('normal');
         }''')
@@ -117,7 +117,10 @@ try:
         assert '50' in page.locator('[data-upgrade-change="hull"]').inner_text()
         assert page.locator('[data-yard-action="confirm-upgrade"]').is_disabled()
         page.locator('[data-yard-action="cancel-preview"]').first.click()
+        lighting_before=page.evaluate('()=>window.nativeFlightLightingEnabled!==false')
         page.locator('[data-yard-action="lighting"]').click()
+        assert page.evaluate('()=>window.nativeFlightLightingEnabled') is not lighting_before
+        if lighting_before:page.locator('[data-yard-action="lighting"]').click()
         assert page.evaluate('()=>window.nativeFlightLightingEnabled') is True
         page.locator('[data-yard-action="close"]').click()
         page.wait_for_timeout(600)
@@ -135,7 +138,7 @@ try:
         assert page.locator('#ship-inventory [data-bay-key="weapon:3"]').get_attribute('data-bay-cell')=='4'
         assert page.evaluate('()=>getComputedStyle(document.querySelector("#ship-inventory .inventory-drone-grid")).gridTemplateColumns.split(" ").length')==6
         for mineral in ['trellium','tritanium','gallicite','benamite','deuranium']:
-            assert f'/minerals/{mineral}.svg' in page.locator(f'#ship-inventory [data-item-key="mineral:{mineral}"] img').get_attribute('src')
+            assert f'/inventory-ores/{mineral}.png' in page.locator(f'#ship-inventory [data-item-key="mineral:{mineral}"] img').get_attribute('src')
         page.screenshot(path=str(OUTPUT/'09-inventory.png'))
         page.keyboard.press('i')
         page.evaluate('''async()=>{

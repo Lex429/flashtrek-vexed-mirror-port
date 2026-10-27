@@ -78,7 +78,7 @@
     const ship = currentShip(state, place), ships = offeredShips(state, place);
     const ids = state.system === 1 ? weaponOffers[place.id] || [] : window.VexedMirrorWorld.systems.find(s=>s.id===state.system)?.weaponShopItemIds ?? [1,7,10,14,15];
     const weapons = ids.map(weapon).filter(Boolean);
-    const outfitter=['mining-laser','basic-dot','standard-engine','upgraded-engine','advanced-engine','standard-shield'].map(id=>window.nativeShipEquipment.model(id));
+    const outfitter=['mining-laser','basic-dot','standard-engine','upgraded-engine','advanced-engine','standard-shield','upgraded-shield','advanced-shield'].map(id=>window.nativeShipEquipment.model(id));
     const items = category === 'ships' ? ships : category === 'equipment' ? outfitter : weapons;
     const size = category === 'ships' ? 2 : window.innerWidth <= 620 || window.innerHeight < 550 ? 2 : 3;
     const pages = Math.max(1, Math.ceil(items.length / size)); page = Math.min(page, pages - 1);

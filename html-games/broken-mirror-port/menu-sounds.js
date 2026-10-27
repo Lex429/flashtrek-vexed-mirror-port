@@ -1,4 +1,4 @@
-/* Original Broken Mirror computer clips; menu-only playback, no synthesized audio. */
+/* Original Broken Mirror computer clips for menus and inventory feedback. */
 (() => {
   'use strict';
   const key='vexedMirror.menuSounds.v1',menu=document.getElementById('menu-art');
@@ -59,5 +59,5 @@
   },{capture:true});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
   label();
-  window.nativeMenuSounds=Object.freeze({play,stop,snapshot:()=>({enabled,unlocked:!!context,state:context?.state||'locked',decoded:[...buffers.keys()],played:{...played},active:voices.size})});
+  window.nativeMenuSounds=Object.freeze({play,stop,inventory(kind){unlock();return play({equip:'confirm',unequip:'press',reject:'hover',select:'press'}[kind]||'press');},snapshot:()=>({enabled,unlocked:!!context,state:context?.state||'locked',decoded:[...buffers.keys()],played:{...played},active:voices.size})});
 })();

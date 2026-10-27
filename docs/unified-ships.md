@@ -65,10 +65,34 @@ resource. Fitted weapons keep the existing model recharge times.
 Inventory shows every bay, installed item or Empty label, and cargo use/capacity.
 Drag an installed item into any inventory tile to unequip it, or drag stored
 equipment into a compatible bay to equip it. DOT bays show the original DOT
-artwork; mining lasers occupy removable ability bays. Click/select and keyboard
-activation use the same move operation. There are no stow or purchase controls
-inside Inventory. The port Shop's Equipment tab sells Basic Dots, mining lasers,
+artwork; mining lasers occupy removable ability bays. Selecting an occupied tile
+or bay inspects it without swapping. The detail panel compares real fitted stats
+and offers a destination bay, Equip/Replace, Unequip and Cancel. Dragging and
+keyboard placement into empty tiles use the same shared move operation. The
+port Shop's Equipment tab sells Basic Dots, mining lasers,
 engines and shield systems into inventory for manual fitting.
+
+The preview uses definition-owned hull dimensions and reserves a separate row
+for the ship name/class. Fractional quantities remain visible, category filters
+show only matching items without reordering saved positions, and extra empty
+pages require the explicit `+ Space` control. Unequipping reveals the destination
+page. Successful fitting plays the original computer MP3 clips and a short item
+transfer/slot animation; mute and reduced-motion settings apply. These effects
+never change inventory ownership or save results.
+
+Standard, Upgraded and Advanced shields supply 100%, 110% and 120% base capacity
+at 500, 2,500 and 5,000 latinum. Fitting does not refill charge; downgrading clamps
+charge to the new capacity. Existing Federation shield tradeoffs remain intact.
+Shared effective definitions apply these tiers for every controller.
+
+Dev inventory kit version 2 supplies one stored copy of every catalog model,
+including Federation weapons/deflectors, all three engines, shield tiers, Dots
+and utility equipment, plus samples of every ore and freight good. Existing Dev
+saves receive the kit once; `Restock Dev Inventory` replaces missing stored types
+without repeatedly duplicating stock. Dev samples do not prevent trying smaller
+hulls; normal cargo limits and deployed-drone restrictions remain enforced.
+The six transparent ore images and their built-in image_gen prompts are recorded
+in `html-games/broken-mirror-port/assets/inventory-ores/manifest.json`.
 
 `nativeShipEquipment.moveInventory` owns grid swaps and fitting through the same
 typed equipment boundary. Saved `inventoryLayout.version:1` cells reference owned
