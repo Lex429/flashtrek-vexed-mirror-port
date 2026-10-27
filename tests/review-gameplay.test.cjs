@@ -53,7 +53,13 @@ test('saved collision spin turns the hull while hands-off coasting preserves wor
  assert.ok(ship.heading>.39&&ship.heading<.41,'The legitimate angular impulse must still turn the hull');
  assert.equal(ship.motionSpin,undefined,'A damped impact must finish rather than become a steering command');
  const heading=ship.heading;for(let i=0;i<120;i++)m.step(ship,{},profile,1/60);near(ship.heading,heading);
- m.step(ship,{turn:1},profile,.2);assert.ok(ship.heading>heading+.5);assert.ok(ship.vy>50,'Intentional steering must remain effective');
+ // High-speed steering now bends the course instead of snapping momentum to
+ // a nose that was already rotated by the collision.
+ m.step(ship,{turn:1},profile,.2);assert.ok(ship.heading>heading+.25&&ship.heading<heading+.5);
+ assert.ok(ship.vy>0&&ship.vy<25,'Initial steering must be gradual');near(ship.speed,120);
+ assert.ok(Math.atan2(ship.vy,ship.vx)<ship.heading-.1,'Momentum must lag behind the turned nose');
+ for(let i=0;i<36;i++)m.step(ship,{turn:1},profile,1/60);
+ assert.ok(ship.vy>50,'Sustained intentional steering must remain effective');near(ship.speed,120);
 });
 
 test('pure braking reduces the existing course rather than steering along a collision-rotated nose',async()=>{
