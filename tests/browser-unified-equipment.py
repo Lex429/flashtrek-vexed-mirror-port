@@ -116,21 +116,22 @@ try:
         page.screenshot(path=str(OUTPUT/'inventory-small.png'))
         # Real HTML drag events remove every Danube component into an exact tile,
         # then restore the same instance to its real typed bay.
+        stash_cell=int(page.locator('[data-inventory-cell]').last.get_attribute('data-inventory-cell'))
         for kind in ['weapon','engineering','shield','repairDrone','ability']:
             owned=page.evaluate('(kind)=>__equipmentState.shipEquipment.slots[kind][0]',kind)
             assert owned,kind
-            slot(kind,0).drag_to(page.locator('[data-inventory-cell="23"]'))
+            slot(kind,0).drag_to(page.locator(f'[data-inventory-cell="{stash_cell}"]'))
             assert page.evaluate('(kind)=>__equipmentState.shipEquipment.slots[kind][0]',kind) is None,kind
-            assert page.locator('[data-inventory-cell="23"]').get_attribute('data-item-key')=='equipment:'+owned
-            page.locator('[data-inventory-cell="23"]').drag_to(slot(kind,0))
+            assert page.locator(f'[data-inventory-cell="{stash_cell}"]').get_attribute('data-item-key')=='equipment:'+owned
+            page.locator(f'[data-inventory-cell="{stash_cell}"]').drag_to(slot(kind,0))
             assert page.evaluate('(kind)=>__equipmentState.shipEquipment.slots[kind][0]',kind)==owned,kind
         food=page.locator('[data-item-key="supply:food"]')
         assert food.count(),page.evaluate('()=>({food:__equipmentState.food,layout:__equipmentState.inventoryLayout,paging:document.querySelector(".inventory-page-nav").innerText})')
-        food.drag_to(page.locator('[data-inventory-cell="22"]'))
-        assert page.locator('[data-inventory-cell="22"]').get_attribute('data-item-key')=='supply:food'
+        food.drag_to(page.locator(f'[data-inventory-cell="{stash_cell-1}"]'))
+        assert page.locator(f'[data-inventory-cell="{stash_cell-1}"]').get_attribute('data-item-key')=='supply:food'
         # Swap supplies without changing either quantity or re-packing the grid.
-        page.locator('[data-item-key="supply:dilithium"]').drag_to(page.locator('[data-inventory-cell="22"]'))
-        assert page.locator('[data-inventory-cell="22"]').get_attribute('data-item-key')=='supply:dilithium'
+        page.locator('[data-item-key="supply:dilithium"]').drag_to(page.locator(f'[data-inventory-cell="{stash_cell-1}"]'))
+        assert page.locator(f'[data-inventory-cell="{stash_cell-1}"]').get_attribute('data-item-key')=='supply:dilithium'
         assert page.evaluate('__equipmentState.food')==40
         assert page.evaluate('__equipmentState.dilithium')==25
         page.screenshot(path=str(OUTPUT/'inventory-danube-drag.png'))

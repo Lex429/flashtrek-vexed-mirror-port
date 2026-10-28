@@ -26,7 +26,7 @@
   const detail=kind==='engineering'?`Flight speed ${Number(ship.speedOrOtherStationValue.toFixed(1))}${instance?.upgrades?.tugEngineLevel?' · Mk '+(instance.upgrades.tugEngineLevel+1):''}`:'';
   return `<button type="button" class="inventory-slot ${kind==='weapon'?'inventory-weapon':'inventory-system'} ${classes}" ${attrs}><span>${data?.id==='mining-laser'?'MINING LASER':labels[kind].toUpperCase()} ${String(index+1).padStart(2,'0')}</span><span class="inventory-slot-content"><span class="inventory-system-icon">${instance?art(data):icon(kind)}</span><span><strong>${safe(data?.name||'Empty bay')}</strong>${detail?`<small>${safe(detail)}</small>`:''}</span></span></button>`;
  }
- function rig(s,ship,eq,{renderSlot=(kind,id,index)=>slot(s,ship,eq,kind,id,index),draft=null,highlight=null}={}){
+ function rig(s,ship,eq,{renderSlot=(kind,id,index)=>slot(s,ship,eq,kind,id,index),draft=null,highlight=null,bayWindow=null}={}){
   const owner=window.nativeShipEquipment,limits={...owner.capacities(s)};
   if(draft)limits[draft.category]++;
   const layout=owner.bayLayout(s,limits),newKey=draft?draft.category+':'+draft.index:null,newBay=layout.bays.find(b=>b.key===newKey);
@@ -35,7 +35,8 @@
   const zone=name=>{
    const list=layout.bays.filter(b=>b.zone===name),placing=newBay?.zone===name,byCell=new Map(list.map(b=>[b.cell,b]));
    const count=placing?layout.zones[name].count:Math.max(0,...list.map(b=>b.cell+1));
-   return Array.from({length:count},(_,cell)=>{
+   const size=bayWindow?(name==='drones'?6:bayWindow.rows):count,start=bayWindow&&!(name==='drones'&&count<=6)?bayWindow.page*size:0;
+   return Array.from({length:Math.max(0,Math.min(size,count-start))},(_,offset)=>{const cell=start+offset;
     const bay=byCell.get(cell),attrs=`data-bay-zone="${name}" data-bay-cell="${cell}"`;
     if(bay?.key===newKey)return `<button type="button" class="outfit-mount outfit-ghost${draft.chosen?' chosen':''}" ${attrs} data-place-bay="${cell}" aria-label="Place new ${labels[draft.category]} at mount ${cell+1}" aria-pressed="${!!draft.chosen}">${icon(draft.category)}<strong>NEW ${labels[draft.category].toUpperCase()}</strong><small>${draft.chosen?'Position selected':'Click to place here'}</small></button>`;
     if(bay){const added=highlight?.category===bay.category&&highlight.index===bay.index;return renderSlot(bay.category,eq.slots[bay.category]?.[bay.index],bay.index).replace('<button ',`<button ${attrs} data-bay-key="${bay.key}" `).replace('class="inventory-slot ',`class="inventory-slot ${added?'outfit-added ':''}`);}

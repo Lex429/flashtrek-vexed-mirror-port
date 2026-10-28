@@ -80,6 +80,13 @@ page. Successful fitting plays the original computer MP3 clips and a short item
 transfer/slot animation; mute and reduced-motion settings apply. These effects
 never change inventory ownership or save results.
 
+Inventory panes do not scroll. The grid measures the available width and height
+and shows fewer items per page to retain readable icons. Extra equipment bays
+and delivery contracts use page buttons; saved bay/item positions do not change.
+Short or narrow windows show selected-item details in a fitted overlay instead
+of squeezing the loadout. Mouse-wheel input cannot scroll the inventory or the
+game behind it. The restock button remains removed.
+
 Standard, Upgraded and Advanced shields supply 100%, 110% and 120% base capacity
 at 500, 2,500 and 5,000 latinum. Fitting does not refill charge; downgrading clamps
 charge to the new capacity. Existing Federation shield tradeoffs remain intact.

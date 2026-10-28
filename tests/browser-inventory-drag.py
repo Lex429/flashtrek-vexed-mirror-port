@@ -52,22 +52,23 @@ try:
             assert box
             return (box['x'] + box['width']/2, box['y'] + box['height']/2)
 
+        store_index=int(page.locator('[data-inventory-cell]').last.get_attribute('data-inventory-cell'))-2
         # Every resource and contract tile is movable, including holes in the grid.
-        page.locator('[data-item-key="supply:food"]').drag_to(cell(21))
-        assert cell(21).get_attribute('data-item-key') == 'supply:food'
+        page.locator('[data-item-key="supply:food"]').drag_to(cell(store_index))
+        assert cell(store_index).get_attribute('data-item-key') == 'supply:food'
         engine = slot('engineering').get_attribute('data-item-key')
-        slot('engineering').drag_to(cell(21))
-        assert cell(21).get_attribute('data-item-key') == engine
+        slot('engineering').drag_to(cell(store_index))
+        assert cell(store_index).get_attribute('data-item-key') == engine
         assert page.locator('[data-item-key="supply:food"]').count() == 1
         assert page.evaluate('nativeShipDefinitions.forEntity(__inventoryState).movement.maxSpeed') == 90
         assert page.evaluate('nativeShipDefinitions.forEntity(__inventoryState).movement.acceleration') > 0
         # Wrong-type drops cannot spend or duplicate an owned item.
         snapshot = page.evaluate('JSON.stringify(__inventoryState.shipEquipment)')
-        cell(21).click()
+        cell(store_index).click()
         page.locator('[data-equipment-place="slot"][data-equipment-kind="weapon"][data-equipment-index="1"]').click()
         assert 'compatible' in page.locator('.inventory-hint').inner_text().lower()
         assert page.evaluate('JSON.stringify(__inventoryState.shipEquipment)') == snapshot
-        cell(21).drag_to(slot('engineering'))
+        cell(store_index).drag_to(slot('engineering'))
         assert page.evaluate('nativeShipDefinitions.forEntity(__inventoryState).movement.acceleration') > 0
         # Extra arrangement space is explicit rather than a phantom blank page.
         page.locator('[data-inventory-page="add"]').click()
@@ -112,13 +113,14 @@ try:
         touch('touchMove', (origin[0]-10, origin[1]))
         touch('touchMove', center(page.locator('[data-inventory-view="cargo"]')))
         page.wait_for_function('()=>document.querySelector("#ship-inventory").dataset.view==="cargo"')
-        target = center(cell(10))
+        target_index=int(page.locator('.inventory-blank').first.get_attribute('data-inventory-cell'))
+        target = center(cell(target_index))
         touch('touchMove', target)
         touch('touchEnd')
-        assert cell(10).get_attribute('data-item-key') == engine
+        assert cell(target_index).get_attribute('data-item-key') == engine
         assert page.evaluate('__inventoryState.shipEquipment.slots.engineering[0]') is None
         page.wait_for_timeout(450)
-        origin = center(cell(10))
+        origin = center(cell(target_index))
         touch('touchStart', origin)
         touch('touchMove', (origin[0]-10, origin[1]))
         touch('touchMove', center(page.locator('[data-inventory-view="loadout"]')))
@@ -136,7 +138,7 @@ try:
         page.set_viewport_size({'width': 1440, 'height': 1000})
         page.wait_for_timeout(450)
         page.evaluate("()=>{Storage.prototype.setItem=function(){throw Error('Test quota exhausted')};}")
-        page.locator('[data-item-key="supply:dilithium"]').drag_to(cell(20))
+        page.locator('[data-item-key="supply:dilithium"]').drag_to(page.locator('.inventory-blank').first)
         hint=page.locator('.inventory-hint').inner_text().lower()
         assert 'saving failed' in hint, hint
         assert not errors, errors

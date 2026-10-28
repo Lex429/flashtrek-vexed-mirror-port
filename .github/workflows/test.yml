@@ -132,6 +132,7 @@ jobs:
           BROWSER_CHANNEL: ''
         run: |
           python tests/browser-inventory-upgrade.py
+          python tests/browser-inventory-fit.py
           python tests/browser-inventory-drag.py
       - name: Engine upgrades, generated icons and keyboard flight without an engine
         env:
