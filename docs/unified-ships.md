@@ -88,8 +88,8 @@ Shared effective definitions apply these tiers for every controller.
 Dev inventory kit version 2 supplies one stored copy of every catalog model,
 including Federation weapons/deflectors, all three engines, shield tiers, Dots
 and utility equipment, plus samples of every ore and freight good. Existing Dev
-saves receive the kit once; `Restock Dev Inventory` replaces missing stored types
-without repeatedly duplicating stock. Dev samples do not prevent trying smaller
+saves receive the kit once without repeatedly duplicating stock. The inventory
+does not show a restock button. Dev samples do not prevent trying smaller
 hulls; normal cargo limits and deployed-drone restrictions remain enforced.
 The six transparent ore images and their built-in image_gen prompts are recorded
 in `html-games/broken-mirror-port/assets/inventory-ores/manifest.json`.
