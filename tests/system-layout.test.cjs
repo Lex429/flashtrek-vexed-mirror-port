@@ -4,7 +4,7 @@ const root=path.join(__dirname,'..'),game=path.join(root,'html-games/broken-mirr
 const baseline=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/system-layout-v1.json'),'utf8'));
 const layout=JSON.parse(fs.readFileSync(path.join(root,'tools/system-layout.json'),'utf8'));
 const plain=value=>JSON.parse(JSON.stringify(value));
-function catalogFixture(){const window={};const context=vm.createContext({window});const load=file=>vm.runInContext(fs.readFileSync(path.join(game,file),'utf8'),context);for(const f of ['world-data.js','system-catalog-data.js','system-catalog.js'])load(f);window.nativeSystemHub={sol:window.nativeSystemCatalog.bodies(1)};window.vexedSolFlight={shipPosition:s=>({x:s.x,y:s.y})};load('manual-flight.js');return {window,load};}
+function catalogFixture(){const window={};const context=vm.createContext({window});const load=file=>vm.runInContext(fs.readFileSync(path.join(game,file),'utf8'),context);for(const f of ['world-data.js','system-catalog-data.js','system-catalog.js'])load(f);window.nativeSystemHub={sol:window.nativeSystemCatalog.bodies(1)};window.vexedSolFlight={shipPosition:s=>({x:s.x,y:s.y})};load('manual-flight.js');load('sol-flight.js');return {window,load};}
 test('all original destinations and Halka remain fixed while exactly the latest 38 receive the reviewed layout',()=>{
  const {window:w}=catalogFixture();let moved=0;
  for(const s of w.VexedMirrorWorld.systems){const old=baseline.positions[s.id];if(s.id<=53)assert.deepEqual(plain(s.mapPosition),old,s.name);else{const p=layout.positions.find(p=>p.id===s.id);assert.deepEqual(plain(s.mapPosition),{x:p.x,y:p.y});assert.notDeepEqual(plain(s.mapPosition),old);moved++;}}
@@ -28,7 +28,7 @@ test('old local navigation selections and holdings survive layout initialization
  const {window:w,load}=catalogFixture();w.nativePopulation={initialize(s){s.planetPopulationCounts=Object.fromEntries(Object.entries(s.planetPopulations).map(([id,n])=>[id,n*1e9]));}};w.nativeShipDefinitions={registered:()=>[],forEntity:()=>({speedOrOtherStationValue:95,antimatterUseOrPopulationEffect:2,warpSpeedMultiplier:1})};load('native-navigation.js');
  const s={system:54,shipType:7,faction:0,devMode:false,x:123,y:-80,localBody:100,localNavTarget:101,localBodySystem:54,localSystemVersion:2,discovered:[1,54,55],latinum:777,antimatter:100,nav:100,shipEquipment:{owned:'keep'},minedAsteroids:[5400001],planetPopulations:{54:0}};
  const before=plain(s);w.nativeNavigation.initialize(s);for(const k of ['system','x','y','localBody','localNavTarget','latinum','antimatter','shipEquipment','minedAsteroids'])assert.deepEqual(plain(s[k]),before[k],k);
- w.nativeNavigation.attach({getGame:()=>s,isBusy:()=>false});const quote=w.nativeNavigation.call('state',55).selected,a=w.nativeManualFlight.chartPosition(54),b=w.nativeManualFlight.chartPosition(55),days=Math.floor((Math.abs(a.x-b.x)+Math.abs(a.y-b.y))/5);
+ w.nativeNavigation.attach({getGame:()=>s,isBusy:()=>false});const quote=w.nativeNavigation.call('state',55).selected,a=w.nativeManualFlight.position(s),b=w.nativeManualFlight.planetPosition(55),days=Math.floor(Math.hypot(a.x-b.x,a.y-b.y)/(w.nativeManualFlight.unitsPerChartPoint*5));
  assert.equal(quote.travelDays,days);assert.equal(quote.fuel,Math.floor(days/2/3));assert.ok(quote.canTravel);assert.ok(Number.isFinite(w.nativeManualFlight.guidance(s,55).distance));
 });
 test('a paid old-layout delivery rebases chart endpoints once while retaining cargo, escrow, progress, deadlines and exactly-once payment',async()=>{
