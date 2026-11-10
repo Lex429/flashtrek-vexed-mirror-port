@@ -1,12 +1,14 @@
 /* Persistent civilian traffic shared by Sol and nearby star systems. */
 (() => {
   'use strict';
+  const reducedWarp=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
   const world=window.VexedMirrorWorld, economy=window.nativeSolEconomy,combat=window.nativeCivilianCombatAI;
   const types=[18,23,47,52], homes={18:14,23:47,47:1,52:6};
   const destinations=[2,4,6,14,47];
   const solPorts=[3,4,5,2,1,7,8,9,10];
   const systems=world.systems,neighborCache=new Map();
   const miningVisuals=new Map();
+  const factionPlans=new WeakMap();
   const members=(state,system=state.system)=>window.nativeNpcLives?.members?.(state,system)||initialize(state).ships.filter(ship=>ship.system===system);
   const find=(state,id)=>id==null?null:window.nativeNpcLives?.find?window.nativeNpcLives.find(state,id):initialize(state).ships.find(ship=>String(ship.id)===String(id));
   let selected=null,selectedAt=0;
@@ -19,6 +21,7 @@
   const density=system=>system.trafficSeedCount??(system.id===1?18:Number(system.populationBillions)>=8?4:Number(system.populationBillions)>=2?3:Number(system.populationBillions)>0||system.asteroids?2:1);
   const trafficType=(system,slot)=>{
     const owned={1:47,4:23,7:18,12:52}[Number(system.governmentId)];
+    const federation=window.nativeFederationFleet?.pick(system,slot);if(federation!=null)return federation;
     return slot===0&&owned?owned:types[(system.id+slot*3)%types.length];
   };
   const place=(system,port,id)=>{
@@ -29,7 +32,7 @@
   function note(state,message){const traffic=initialize(state);traffic.log.unshift(message);traffic.log.length=Math.min(traffic.log.length,18);}
   function hail(state,ship,text){
     if(!ship)return;
-    const traffic=state.civilianTraffic;traffic.hails||=[];
+    const traffic=state.civilianTraffic;ship.talkingText=text;ship.talkingUntil=traffic.clock+7;traffic.hails||=[];
     traffic.hails.unshift({clock:traffic.clock,system:ship.system,speaker:ship.id,text});traffic.hails.length=Math.min(traffic.hails.length,12);
     note(state,`${ship.name}: ${text}`);
     window.nativeCivilianTraffic?.onHail?.({system:ship.system,x:ship.x,y:ship.y,text});
@@ -41,10 +44,11 @@
   function create(id,type,system,port,state){
     const seedSystem=system,access=window.nativeCivilianAccess;
     if(access&&!access.inhabited(state,system)){system=access.nearestHome(state,system)??system;port=system===1?3:0;}
-    const hull=stats(type),position=place(system,port,id);return {
+    const hull=stats(type),position=place(system,port,id),federation=Number(world.systems.find(entry=>entry.id===system)?.governmentId)===1&&window.nativeFederationFleet?.has(type);return {
     id,name:`${hull.name} ${String(id+1).padStart(2,'0')}`,shipType:type,ownerGovernmentId:Number(world.systems.find(entry=>entry.id===homes[type])?.governmentId)||1,
     homeSystem:homes[type],seedSystem,stationSystem:system,system,port,x:position.x,y:position.y,heading:-Math.PI/2,phase:'docked',timer:4+(id*7)%15,
-    hull:hull.hull,shields:hull.shields,cargo:null,oreHold:0,credits:100+id*25,legs:0,deliveries:0,mined:0,deals:0
+    hull:hull.hull,shields:hull.shields,cargo:null,oreHold:0,credits:100+id*25,legs:0,deliveries:0,mined:0,deals:0,
+    ...(federation?{federationDutyVersion:1,role:window.nativeFederationFleet.duty(type)}:{})
   };}
   function initialize(state){
     if(!state.civilianTraffic||!Array.isArray(state.civilianTraffic.ships)){
@@ -72,9 +76,34 @@
       }
       traffic.version=2;
     }
+    populate(state,traffic);
     migrateClock(state,traffic);
     window.nativeCombatShots.migrate?.(state);
     return traffic;
+  }
+  function populate(state,traffic){
+    const population=window.nativeCivilianPopulation;
+    if(!population||traffic.population?.version===population.version)return;
+    const plan=population.plan(state),ships=traffic.ships,isMedical=ship=>stats(ship).capabilities.medical===true;
+    let remaining=Math.max(0,population.total-population.medicalTotal-ships.filter(ship=>!isMedical(ship)).length);
+    let id=ships.reduce((n,ship)=>Math.max(n,Number(ship.id)||0),-1)+1,capital=0,added=0;
+    const additions=[];
+    const based=new Map();for(const ship of ships)if(!isMedical(ship)){const base=ship.operatingBase??ship.stationSystem??ship.system;based.set(base,(based.get(base)||0)+1);}
+    for(const row of plan)for(let slot=based.get(row.system)||0;slot<row.ordinary&&remaining>0;slot++){
+      const system=systems.find(s=>s.id===row.system),type=trafficType(system,slot),port=row.system===1?solPorts[slot%solPorts.length]:0;
+      const ship=create(id,type,row.system,port,state),point=window.nativePortDocking.relocate(state,ship,row.system,port);
+      if(!point)continue;
+      Object.assign(ship,{x:point.x,y:point.y,operatingBase:row.system,populationVersion:population.version,
+        credits:1200+(slot%5)*200,timer:1+(slot*17+row.system)%60,
+        role:ship.federationDutyVersion?window.nativeFederationFleet.duty(type):slot%4===0&&stats(ship).npcPolicy.activities.includes('mining')?'mining':slot%3===0?'trading':'freight'});
+      additions.push(ship);capital+=ship.credits;added++;remaining--;id++;
+    }
+    // Publish once so indexed life/docking reads cannot rebuild the whole fleet
+    // after every individual crew added during a live-save migration.
+    ships.push(...additions);
+    traffic.population={version:population.version,target:population.total,medicalTarget:population.medicalTotal,added,
+      bases:plan,ledger:{initialCapital:capital}};
+    if(added){window.nativeNpcLives?.invalidateMembership?.(state);window.nativeShipRepairs?.invalidateMembership?.(state);window.nativeShipSystems?.invalidateShips?.(state);}
   }
   function migrateClock(state,traffic){
     if(traffic.timingVersion===1)return;
@@ -128,7 +157,8 @@
   function warp(state,ship,destination){
     ship.destinationSystem=destination;ship.phase='warp';ship.speed=0;
     ship.timer=9+(ship.id%4)*3;ship.warpDuration=ship.timer;
-    ship.warpVisual={kind:'departure',elapsedMs:0,angle:ship.heading+Math.PI/2};
+    const from=window.nativeManualFlight?.anchor(ship.system),to=window.nativeManualFlight?.anchor(destination);
+    ship.warpVisual={kind:'departure',elapsedMs:0,angle:from&&to?Math.atan2(to.y-from.y-ship.y,to.x-from.x-ship.x)+Math.PI/2:ship.heading+Math.PI/2};
     window.nativeShipSystems?.refreshShip?.(state,ship,'civilian');
     warpSound(state,ship,'departure');
     note(state,`${ship.name} departed ${systemName(ship.system)} for ${systemName(destination)}.`);
@@ -139,8 +169,8 @@
   const canMine=ship=>window.nativeShipDefinitions.get(ship.shipType,'civilian').capabilities.canMine!==false;
   const disabledHull=ship=>Math.max(1,stats(ship).hull*.25);
   const operational=ship=>ship&&!['disabled','destroyed','warp','arriving'].includes(ship.phase)&&ship.hull>disabledHull(ship);
-  const availableForDispute=(traffic,ship)=>operational(ship)&&!ship.disputeId&&!ship.retaliationId&&(ship.disputeCooldownUntil||0)<=traffic.clock;
-  const isMiningRock=(state,id)=>initialize(state).ships.some(ship=>ship.miningRockSlot===id&&['mining-flight','mining','collecting'].includes(ship.phase));
+  const availableForDispute=(traffic,ship)=>operational(ship)&&!window.nativeFactionDefence?.isFaction(ship)&&!ship.disputeId&&!ship.retaliationId&&(ship.disputeCooldownUntil||0)<=traffic.clock;
+  const isMiningRock=(state,id)=>(window.nativeNpcLives?.mining?.(state)||initialize(state).ships).some(ship=>ship.miningRockSlot===id&&['mining-flight','mining','collecting'].includes(ship.phase));
   function availableRock(state,region){
     return (window.nativeSolAsteroids?.placements||[]).find(rock=>rock.region===region&&!rockGone(state,rock)&&!isMiningRock(state,rock.slotId)&&rock.slotId!==window.nativeAsteroidCombat?.miningId)||null;
   }
@@ -217,7 +247,7 @@
       anchor:preview?{...player}:midpoint,bounds:preview?{x:265,y:155}:{x:440,y:330},pending:[],volleys:0,hits:0,misses:0,blocked:0,hails:[],nextHailAt:traffic.clock+3};
     traffic.disputes.push(dispute);
     for(const ship of [a,b]){if(!ship.scriptedDemo)window.nativeNpcLives?.suspendCombat(state,ship,'Combat interrupted work');combat.begin(ship,ship===a?'claimant':'thief',traffic.clock);ship.disputeId=dispute.id;ship.phase='fighting';ship.miningRockSlot=null;miningVisuals.delete(ship.id);window.nativeShipSystems?.refreshShip?.(state,ship,'civilian',ship.system);}
-    hail(state,a,reason.startsWith('theft')?'Return the ore you stole!':'Pay for that delivery!');
+    hail(state,a,reason.startsWith('mining claim')?'This mining claim is reserved. Keep clear.':reason.startsWith('theft')?'Return the ore you stole!':'Pay for that delivery!');
     queueHail(state,dispute,b,'Keep your distance. This cargo is mine.');
     note(state,`${a.name} and ${b.name} opened a dispute over ${reason}. Weapons are targeting engines.`);return true;
   }
@@ -256,11 +286,12 @@
   }
   function combatScene(state,dispute){return window.nativeShipSystems.scene(state,{system:dispute.system});}
   function steeringScene(state,ship,dt){
-    const actor=window.nativeShipDefinitions.describe(state,ship,{category:'civilian'}),definition=actor.definition,size=actor.dimensions,radius=Math.max(7,Math.max(size.width,size.height)*.35);
+    const actor=window.nativeShipSystems.resolve(state,ship.id,ship.system)||window.nativeShipDefinitions.describe(state,ship,{category:'civilian'}),definition=actor.definition,size=actor.dimensions,radius=Math.max(7,Math.max(size.width,size.height)*.35);
     ship.cruiseSpeed=definition.movement.maxSpeed;ship.maxCombatHull=definition.hull;ship.combatRadius=radius;
     const support=Math.max(radius,window.nativeShipMotion.shipRadius?.(actor)||0);
-    const reach=Math.max(300,definition.movement.maxSpeed*6+support+200,Math.hypot(ship.vx||0,ship.vy||0)*.65+support+200);
-    const nearby=window.nativeShipSystems.query?.(state,{system:ship.system,minX:ship.x-reach,minY:ship.y-reach,maxX:ship.x+reach,maxY:ship.y+reach,predictSeconds:6})||combatScene(state,ship);
+    const horizon=window.nativeShipDetail?.lookahead(state)||6;
+    const reach=Math.max(300,definition.movement.maxSpeed*horizon+support+200,Math.hypot(ship.vx||0,ship.vy||0)*.65+support+200);
+    const systems=window.nativeShipSystems,nearby=(systems.neighborhood||systems.query)?.(state,{system:ship.system,minX:ship.x-reach,minY:ship.y-reach,maxX:ship.x+reach,maxY:ship.y+reach,predictSeconds:horizon})||combatScene(state,ship);
     return {...nearby,actor,dt,clock:state.civilianTraffic.clock,hull:definition.hull,shields:definition.shields};
   }
   const tacticallyDetailed=(state,ship)=>window.nativeShipDetail?window.nativeShipDetail.isDetailed(state,ship):window.nativeNpcLives?window.nativeNpcLives.detail(state,ship)==='detailed':ship?.system===state.system;
@@ -275,7 +306,8 @@
     if(ship?.retaliationId===record.id){delete ship.retaliationId;delete ship.retaliationTargetId;
       if(ship.phase==='fighting'){ship.phase='docked';ship.timer=5;}
       if(ship.scriptedDemo==='ore-dispute'||ship.scriptedDemo==='mining'&&ship.miningRockSlot==null)delete ship.scriptedDemo;
-      window.nativeNpcLives?.resumeWork?.(state,ship,'Contact lost outside detailed simulation');
+      const target=window.nativeFactionDefence?.engagement(state,ship);
+      if(!target||!window.nativeNpcLives?.respondToThreat?.(state,ship,target))window.nativeNpcLives?.resumeWork?.(state,ship,'Contact lost outside detailed simulation');
     }
     state.civilianTraffic.retaliations=state.civilianTraffic.retaliations.filter(other=>other!==record);
   }
@@ -283,6 +315,7 @@
     const traffic=state.civilianTraffic;
     for(const dispute of [...traffic.disputes]){
       const a=find(state,dispute.a),b=find(state,dispute.b);
+      if((window.nativeFactionDefence?.isFaction(a)||window.nativeFactionDefence?.isFaction(b))&&window.nativeFactionDefence.friendly(state,a,{sourceId:b?.id,sourceGovernmentId:b?.ownerGovernmentId})){endDispute(state,dispute,a,b);continue;}
       if(!operational(a)||!operational(b)||a.system!==b.system||a.system!==dispute.system||a.disputeId!==dispute.id||b.disputeId!==dispute.id){endDispute(state,dispute,a,b);continue;}
       if(!tacticallyDetailed(state,a)||!tacticallyDetailed(state,b)){endDispute(state,dispute,a,b);continue;}
       if(dispute.combatVersion!==3){
@@ -310,19 +343,47 @@
       if(traffic.clock>=dispute.nextB)dispute.nextB=traffic.clock+fireDisputeShot(state,dispute,b,victim(b)||a);
     }
   }
-  function retaliate(state,ship,sourceId){
+  function retaliate(state,ship,sourceId,{factionAlert=false}={}){
     const traffic=state.civilianTraffic;
     if(!operational(ship)||sourceId==null||sourceId===ship.id)return;
     if(!tacticallyDetailed(state,ship))return;
     const attacker=conflictTarget(state,sourceId,ship.system);
     if(!attacker||attacker.hull<=0||!tacticallyDetailed(state,attacker))return;
+    if(window.nativeFactionDefence?.friendly(state,ship,{sourceId,sourceGovernmentId:attacker.entity?.ownerGovernmentId}))return;
     ship.retaliationTargetId=sourceId;ship.retaliationUntil=traffic.clock+60;
     if(ship.disputeId||ship.retaliationId)return;
     if(!ship.scriptedDemo)window.nativeNpcLives?.suspendCombat(state,ship,'Combat interrupted work');
-    const retaliation={id:'retaliation:'+ship.id,system:ship.system,a:ship.id,b:sourceId,anchor:{x:ship.x,y:ship.y},bounds:{x:650,y:500},pending:[],volleys:0,hits:0,misses:0,blocked:0,nextShotAt:traffic.clock+.35};
+    delete ship.factionResponse;
+    const military=window.nativeFactionDefence?.isFaction(ship);
+    const retaliation={id:'retaliation:'+ship.id,system:ship.system,a:ship.id,b:sourceId,factionAlert,anchor:{x:ship.x,y:ship.y},bounds:{x:650,y:500},pending:[],volleys:0,hits:0,misses:0,blocked:0,nextShotAt:traffic.clock+(military?0:.35)};
     traffic.retaliations.push(retaliation);ship.retaliationId=retaliation.id;
     combat.begin(ship,'defender',traffic.clock);ship.combatAI.lastHitAt=traffic.clock;ship.phase='fighting';ship.miningRockSlot=null;miningVisuals.delete(ship.id);
-    hail(state,ship,stats(ship).npcPolicy.combat.survivalFirst||stats(ship).npcPolicy.combat.protectCargo&&ship.cargo?'Watch your fire! Breaking contact and protecting our crew and cargo.':'Watch your fire! Returning fire on the ship that hit us.');
+    window.nativeNpcLives?.observeMotion?.(state,ship);
+    hail(state,ship,military?'Hostile fire confirmed. Intercepting and engaging.':stats(ship).npcPolicy.combat.survivalFirst||stats(ship).npcPolicy.combat.protectCargo&&ship.cargo?'Watch your fire! Breaking contact and protecting our crew and cargo.':'Watch your fire! Returning fire on the ship that hit us.');
+  }
+  function advanceFactionDefence(state){
+    const defence=window.nativeFactionDefence;if(!defence)return;
+    const ships=members(state),orders=defence.plan(state,ships);
+    if(factionPlans.get(state)===orders)return;
+    factionPlans.set(state,orders);
+    for(const ship of ships){
+      const order=orders.get(String(ship.id)),target=order?.target;
+      if(!target){
+        // Also unwind mass-rally orders saved by the previous implementation.
+        if(ship.factionResponse)window.nativeNpcLives?.resumeWork?.(state,ship,'Defence reserves remain on duty');
+        const record=state.civilianTraffic.retaliations.find(record=>record.a===ship.id&&record.factionAlert);
+        if(record)endRetaliation(state,record,ship);
+        continue;
+      }
+      if(!operational(ship))continue;
+      if(tacticallyDetailed(state,ship)&&tacticallyDetailed(state,target)){
+        if(!ship.retaliationId||ship.retaliationTargetId!==target.id)retaliate(state,ship,target.id,{factionAlert:true});
+        ship.retaliationUntil=state.civilianTraffic.clock+60;
+      }else if(!ship.retaliationId&&!ship.factionResponse){
+        if(window.nativeSimulationFrame?.take&&!window.nativeSimulationFrame.take(state,'factionResponseDispatches',1))continue;
+        window.nativeNpcLives?.respondToThreat?.(state,ship,target);
+      }
+    }
   }
   function advanceRetaliations(state,dt){
     const traffic=state.civilianTraffic;
@@ -332,7 +393,11 @@
       if(!operational(ship)||ship.retaliationId!==retaliation.id||ship.system!==retaliation.system||traffic.clock>ship.retaliationUntil||!tacticallyDetailed(state,ship)){endRetaliation(state,retaliation,ship);continue;}
       const target=conflictTarget(state,ship.retaliationTargetId,retaliation.system);
       if(!target||target.hull<=0||!tacticallyDetailed(state,target)){endRetaliation(state,retaliation,ship);continue;}
-      const attacker=target.hull>0&&!['disabled','destroyed'].includes(target.phase)?target:null;
+      if(retaliation.factionAlert&&!window.nativeFactionDefence?.engagement(state,ship)){endRetaliation(state,retaliation,ship);continue;}
+      if(window.nativeFactionDefence?.friendly(state,ship,{sourceId:target.id,sourceGovernmentId:target.entity?.ownerGovernmentId})){endRetaliation(state,retaliation,ship);continue;}
+      const lethal=target.id==='player'&&window.nativeFactionDefence?.isFaction(ship);
+      const phase=target.entity?.phase??target.phase;
+      const attacker=target.hull>0&&phase!=='destroyed'&&(phase!=='disabled'||lethal)?target:null;
       if(!operational(ship)||!attacker||ship.system!==retaliation.system||traffic.clock>ship.retaliationUntil||window.nativeNpcLives&&retaliation.system!==state.system){
         endRetaliation(state,retaliation,ship);continue;
       }
@@ -350,7 +415,8 @@
       traffic.nextAwarenessAt=clock+.1;
       const projectiles=window.nativeCombatShots.hasActiveProjectiles(state,state.system);
       const origin=playerPosition(state),radius=window.nativeShipDetail?.radius(state)||6500;
-      const local=projectiles?window.nativeShipSystems.query(state,{minX:origin.x-radius,minY:origin.y-radius,maxX:origin.x+radius,maxY:origin.y+radius,categories:['civilian']}).bystanders.map(target=>target.entity):[];let examined=0,scanned=0;
+      const area=window.nativeShipDetail?.bounds(state)||{minX:origin.x-radius,minY:origin.y-radius,maxX:origin.x+radius,maxY:origin.y+radius};
+      const local=projectiles?window.nativeShipSystems.query(state,{...area,categories:['civilian']}).bystanders.map(target=>target.entity):[];let examined=0,scanned=0;
       while(projectiles&&examined++<local.length&&scanned<12){
         const index=(traffic.awarenessCursor||0)%local.length,ship=local[index];traffic.awarenessCursor=index+1;
         if(!operational(ship)||ship.journey||ship.scriptedDemo||ship.disputeId||ship.retaliationId||ship.projectileEvade||!tacticallyDetailed(state,ship))continue;
@@ -462,23 +528,22 @@
     const traffic=initialize(state);if(window.nativeSimulation.blocked()||dt<=0)return;traffic.clock=window.nativeSimulation.seconds(state);
     const lives=window.nativeNpcLives;
     if(lives)lives.advance(state,dt);
+    advanceFactionDefence(state);
     const repairDt=dt;dt=Math.min(dt,.25);
     for(const ship of lives?(lives.controlled?.(state)||members(state)):traffic.ships){
       // Scripted mining demonstrations and active tactical encounters explicitly
       // retain their controller. Ordinary jobs belong to the saved life scheduler.
       if(lives&&!ship.scriptedDemo&&!ship.disputeId&&!ship.retaliationId&&!['fighting','ore-theft'].includes(ship.phase))continue;
-      if(lives&&!tacticallyDetailed(state,ship))continue;
-      ship.previousX=ship.x;ship.previousY=ship.y;
-      if(ship.phase==='disabled'){combat.coast(ship,dt);continue;}
-      if(ship.phase==='destroyed'||ship.phase==='fighting')continue;
-      if(ship.phase==='ore-theft'){advanceOreTheft(state,ship,dt);continue;}
-      if(ship.phase==='docked'){ship.timer-=dt;if(ship.timer<=0)choose(state,ship);continue;}
+      if(lives&&ship.journey)continue;
+      // Legacy controlled travel owns its timed effects even though warp and
+      // arrival deliberately have no tactical hull. Applying the combat-detail
+      // gate first strands a visible departure hull and prevents arrival forever.
       if(ship.phase==='warp'){
-        if(ship.warpVisual){ship.warpVisual.elapsedMs+=dt*1000;if(ship.warpVisual.elapsedMs>=window.vexedRebirthWarp.departureMs){delete ship.warpVisual;window.nativeShipSystems?.refreshShip?.(state,ship,'civilian');}}
-        ship.timer-=dt;if(ship.timer<=0)finishWarp(state,ship);continue;
+        if(ship.warpVisual){ship.warpVisual.elapsedMs+=repairDt*1000;if(ship.warpVisual.elapsedMs>=window.vexedRebirthWarp.departureMs){delete ship.warpVisual;window.nativeShipSystems?.refreshShip?.(state,ship,'civilian');}}
+        ship.timer-=repairDt;if(ship.timer<=0)finishWarp(state,ship);continue;
       }
       if(ship.phase==='arriving'){
-        ship.warpVisual.elapsedMs+=dt*1000;
+        ship.warpVisual.elapsedMs+=repairDt*1000;
         if(ship.warpVisual.elapsedMs>=window.vexedRebirthWarp.arrivalMs){
           ship.phase=ship.warpResumePhase;delete ship.warpResumePhase;delete ship.warpVisual;
           if(ship.phase==='docked')unload(state,ship);
@@ -486,6 +551,12 @@
         }
         continue;
       }
+      if(lives&&!tacticallyDetailed(state,ship))continue;
+      ship.previousX=ship.x;ship.previousY=ship.y;
+      if(ship.phase==='disabled'){combat.coast(ship,dt);continue;}
+      if(ship.phase==='destroyed'||ship.phase==='fighting')continue;
+      if(ship.phase==='ore-theft'){advanceOreTheft(state,ship,dt);continue;}
+      if(ship.phase==='docked'){ship.timer-=dt;if(ship.timer<=0)choose(state,ship);continue;}
       if(ship.phase==='mining'){ship.timer-=dt;if(ship.timer<=0)finishMining(state,ship);continue;}
       if(ship.phase==='collecting'){ship.timer-=dt;if(ship.timer<=0)collectMinedOre(state,ship);continue;}
       if(ship.phase==='cruise'||ship.phase==='mining-flight'||ship.phase==='encounter'){
@@ -497,6 +568,7 @@
       }
     }
     traffic.dealTick=(traffic.dealTick||0)+dt;if(traffic.dealTick>=1){traffic.dealTick%=1;if(!lives)deals(state);}
+    if(lives)lives.social?.(state);
     advanceDisputes(state,dt);
     advanceProjectileAwareness(state,dt);
     advanceRetaliations(state,dt);
@@ -521,14 +593,15 @@
       if(ship.shields<=0&&!ai.shieldWarning){ai.shieldWarning=true;queueHail(state,dispute,ship,'Shields down. Taking evasive action!');}
       if(ship.hull<descriptor.definition.hull*.5&&!ai.engineWarning){ai.engineWarning=true;queueHail(state,dispute,ship,'Engine damage. We are losing speed!');}
     }
+    const attackReputation=result.amount>0?window.nativeFactionDefence?.hit(state,ship,impact):null;
     let reputation=null;
     if(result.destroyed){window.nativeNpcLives?.interrupt(state,ship,'destroyed');ship.phase='destroyed';ship.cargo=null;reputation=impact.source==='ai'?null:window.nativeFactionStanding.shipDestroyed(state,ship.ownerGovernmentId);note(state,`${ship.name} destroyed in ${systemName(ship.system)}.`);if(selected===id)selected=null;}
     else if(result.disabled&&ship.phase!=='disabled'){window.nativeNpcLives?.interrupt(state,ship,'disabled');ship.phase='disabled';window.nativeShipMotion.stop(ship);note(state,`${ship.name} disabled with engines offline.`);}
-    if(result.amount>0)retaliate(state,ship,impact.sourceId??(impact.source==='ai'?null:'player'));
-    return {...result,reputation};
+    if(result.amount>0)retaliate(state,ship,window.nativeFactionDefence?window.nativeFactionDefence.sourceId(impact):impact.sourceId??(impact.source==='ai'?null:'player'));
+    return {...result,reputation:reputation||attackReputation};
   }
   function fire(state,player,shipHeight,onFinish){
-    const victim=target(state);if(!victim)return {ok:false,error:'Choose a civilian ship first.'};
+    const victim=target(state);if(!victim)return {ok:false,error:'Choose a ship first.'};
     return window.nativeCombatShots.fire({state,shipHeight,owner:'civilian',getTarget:()=>window.nativeShipSystems.resolve(state,victim.id),
       dimensions,shielded:ship=>ship.shields>0,
       onResolved(result){if(result.target?.id===victim.id&&result.damage?.ok)onFinish?.(victim,result.damage);}});
@@ -536,24 +609,34 @@
 
   function paint(ctx,{state,ship,cx,cy,w,h,zoom}){
     const viewBounds={minX:ship.x-cx/zoom-64,minY:ship.y-cy/zoom-64,maxX:ship.x+(w-cx)/zoom+64,maxY:ship.y+(h-cy)/zoom+64},origin=window.nativeManualFlight?.anchor(state.system);
-    const local=window.nativeShipSystems.query(state,{...viewBounds,categories:['civilian']}).bystanders,transitShips=origin?window.nativeNpcLives?.queryTransits?.(state,{minX:origin.x+viewBounds.minX,minY:origin.y+viewBounds.minY,maxX:origin.x+viewBounds.maxX,maxY:origin.y+viewBounds.maxY})||[]:[],view={ship,cx,cy,w,h,zoom};
+    const local=window.nativeShipSystems.query(state,{...viewBounds,categories:['civilian']}).bystanders,transitShips=origin?window.nativeNpcLives?.queryTransits?.(state,{minX:origin.x+viewBounds.minX,minY:origin.y+viewBounds.minY,maxX:origin.x+viewBounds.maxX,maxY:origin.y+viewBounds.maxY},{presentation:true})||[]:[],view={ship,cx,cy,w,h,zoom};
     function* visibleCandidates(){yield*local;const seen=new Set(local.map(target=>target.entity));for(const vessel of transitShips)if(!seen.has(vessel)){seen.add(vessel);yield vessel;}}
     for(const candidate of visibleCandidates()){const vessel=candidate.entity||candidate;
       if(vessel.phase==='destroyed')continue;
       const transit=!!vessel.journey&&!!window.nativeNpcLives;
-      if(!transit&&(vessel.system!==state.system||vessel.phase==='warp'&&!vessel.warpVisual))continue;
+      if(!transit&&!vessel.warpVisual&&(vessel.system!==state.system||vessel.phase==='warp'))continue;
       let pose=candidate.entity?(window.nativeSimulationFrame?.renderPose?.(state,candidate)||candidate):vessel;
-      if(transit){const global=window.nativeNpcLives.galaxyPosition(state,vessel);if(!origin)continue;pose={x:global.x-origin.x,y:global.y-origin.y,heading:Math.atan2(vessel.journey.galaxyTo.y-vessel.journey.galaxyFrom.y,vessel.journey.galaxyTo.x-vessel.journey.galaxyFrom.x)};}
+      if(transit){const global=window.nativeNpcLives.galaxyPosition(state,vessel);if(!origin)continue;pose={x:global.x-origin.x,y:global.y-origin.y,heading:window.nativeNpcLives.travelHeading(state,vessel)};}
       else if(!candidate.entity&&vessel.localLeg&&window.nativeNpcLives)pose=window.nativeNpcLives.pose(state,vessel);
       const visual=vessel.warpVisual;
-      const warpEffect=transit?{kind:'transit',angle:pose.heading+Math.PI/2,alpha:1,squeezeX:.85,shipX:pose.x,shipY:pose.y}:visual?window.vexedRebirthWarp.worldEffect(visual.kind,visual.elapsedMs,visual.angle,vessel.x,vessel.y):null;
+      const visualFrame=visual?window.nativeManualFlight?.anchor(vessel.system):null;
+      const departure=transit?window.vexedRebirthWarp.journeyDeparture(vessel.journey,window.nativeSimulation.seconds(state),origin,{reducedMotion:reducedWarp.matches}):null;
+      // Once a ship has vanished, keep it gone from the launch scene. It may
+      // still be observed on its actual route from another place in space.
+      const from=vessel.journey?.galaxyFrom;
+      if(transit&&!departure&&window.nativeSimulation.seconds(state)>=vessel.journey.departedAt+window.vexedRebirthWarp.departureMs/1000&&from&&from.x-origin.x>=viewBounds.minX&&from.x-origin.x<=viewBounds.maxX&&from.y-origin.y>=viewBounds.minY&&from.y-origin.y<=viewBounds.maxY)continue;
+      const warpEffect=departure||(transit?{kind:'transit',angle:pose.heading+Math.PI/2,alpha:1,squeezeX:.85,shipX:pose.x,shipY:pose.y}:visual?window.vexedRebirthWarp.worldEffect(visual.kind,visual.elapsedMs,visual.angle,vessel.x+(visualFrame?.x??origin?.x??0)-(origin?.x??0),vessel.y+(visualFrame?.y??origin?.y??0)-(origin?.y??0),{reducedMotion:reducedWarp.matches}):null);
       const x=cx+(warpEffect?.shipX??pose.x)-ship.x,y=cy+(warpEffect?.shipY??pose.y)-ship.y,d=dimensions(vessel),screenX=cx+(x-cx)*zoom,screenY=cy+(y-cy)*zoom;
-      const drawRing=()=>{if(warpEffect?.ring)window.vexedFlightAssets.drawWarpRing(ctx,{...warpEffect.ring,x:cx+warpEffect.ring.x-ship.x,y:cy+warpEffect.ring.y-ship.y},d.width);};
-      if(window.nativeEffectVisibility?.ship&&!window.nativeEffectVisibility.ship({x:pose.x,y:pose.y,dimensions:d},{...view,x:screenX,y:screenY,warpEffect},64)){drawRing();continue;}
+      const drawWarp=()=>{
+        if(warpEffect?.ring)window.vexedFlightAssets.drawWarpRing(ctx,{...warpEffect.ring,x:cx+(warpEffect.ring.x-ship.x)*zoom,y:cy+(warpEffect.ring.y-ship.y)*zoom},d.width*zoom);
+        if(warpEffect?.flash)window.vexedFlightAssets.drawWarpFlash?.(ctx,{...warpEffect.flash,x:cx+(warpEffect.flash.x-ship.x)*zoom,y:cy+(warpEffect.flash.y-ship.y)*zoom,radius:warpEffect.flash.radius*zoom});
+      };
+      if(warpEffect?.alpha===0){drawWarp();continue;}
+      if(window.nativeEffectVisibility?.ship&&!window.nativeEffectVisibility.ship({x:pose.x,y:pose.y,dimensions:d},{...view,x:screenX,y:screenY,warpEffect},64)){drawWarp();continue;}
       const descriptor=candidate.entity?pose:{...window.nativeShipDefinitions.describe(state,vessel,{category:'civilian'}),x:pose.x,y:pose.y,heading:pose.heading,system:state.system},shown=window.nativeSimulationFrame?.renderPose?.(state,descriptor)||descriptor;
       window.nativeShipEffects.paintShip(ctx,shown,{...view,...(warpEffect?{x:screenX,y:screenY}:{}),warpEffect});
-      drawRing();
-      if(selected===vessel.id&&!warpEffect){window.nativeShipSpriteCache?.flush?.(ctx);window.nativeAsteroidCombat?.drawTargetFrame(ctx,{name:vessel.name,size:Math.hypot(d.width,d.height)/Math.SQRT2,kind:vessel.phase==='disabled'?'DISABLED CIVILIAN':'CIVILIAN',color:'#ffd66e',shield:vessel.shields/Math.max(1,stats(vessel.shipType).shields),hull:vessel.hull/Math.max(1,stats(vessel.shipType).hull),selectedAt},cx+(shown.x-ship.x)*zoom,cy+(shown.y-ship.y)*zoom,zoom,cx);}
+      drawWarp();
+      if(selected===vessel.id&&!warpEffect){window.nativeShipSpriteCache?.flush?.(ctx);window.nativeAsteroidCombat?.drawTargetFrame(ctx,{name:vessel.name,size:Math.hypot(d.width,d.height)/Math.SQRT2,kind:(vessel.phase==='disabled'?'DISABLED ':'')+(window.nativeFactionDefence?.isFaction(vessel)?'FACTION':'CIVILIAN'),color:window.nativeFactionDefence?.hostileToPlayer(state,vessel)?'#ff6570':'#ffd66e',shield:vessel.shields/Math.max(1,stats(vessel.shipType).shields),hull:vessel.hull/Math.max(1,stats(vessel.shipType).hull),selectedAt},cx+(shown.x-ship.x)*zoom,cy+(shown.y-ship.y)*zoom,zoom,cx);}
     }
   }
   function miningIds(state){return (window.nativeNpcLives?.mining?.(state)||members(state)).filter(vessel=>vessel.system===state.system&&vessel.phase==='mining').map(vessel=>vessel.miningRockSlot);}
@@ -576,5 +659,5 @@
   // Explicit diagnostic warm-up, never ordinary visibility. A cached base plate
   // is not proof that the optional damage effects are warm for a benchmark.
   const effectsReady=()=>{const ready=type=>window.nativeShipEffects.optionalReady?.(type,'civilian')??window.nativeShipEffects.ready(type,'civilian');for(const type of types)if(!ready(type))window.nativeShipEffects.prepare(type,'civilian');return types.every(ready);};
-  window.nativeCivilianTraffic={hail,initialize,advance,paint,paintMining,miningIds,isMiningRock,startMiningDemo,startOreDisputeDemo,select,clearTarget,target,hitTest,fire,hit,visualImpact,snapshot,localShips,combatScene,effectsReady};
+  window.nativeCivilianTraffic={hail,initialize,advance,paint,paintMining,miningIds,isMiningRock,startDispute,startMiningDemo,startOreDisputeDemo,select,clearTarget,target,hitTest,fire,hit,visualImpact,snapshot,localShips,combatScene,effectsReady};
 })();

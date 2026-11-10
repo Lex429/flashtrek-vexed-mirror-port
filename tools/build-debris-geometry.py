@@ -20,7 +20,7 @@ DEST = ROOT/'html-games/broken-mirror-port/ship-debris-geometry.js'
 ART = 'html-games/flashtrek-broken-mirror/'
 SOURCE_MODULES = [
     'cthia-effects.js', 'olympic-effects.js', 'tug-effects.js',
-    'constitution-tug-effects.js', 'starter-effects.js', 'earth-profiles.js',
+    'constitution-tug-effects.js', 'starter-effects.js', 'earth-profiles.js', 'federation-profiles.js', 'new-ship-profiles.js',
     'klingon-profiles.js', 'romulan-profiles.js', 'vulcan-profiles.js',
     'cardassian-profiles.js', 'ferengi-dominion-profiles.js',
     'independent-profiles.js', 'earth-effects.js', 'wreckage-effects.js',
@@ -120,7 +120,7 @@ def main():
     finally:
         server.shutdown()
     sources = {ART+file for file in SOURCE_MODULES}
-    sources.update('html-games/broken-mirror-port/'+file for file in ['flight-assets.js', 'world-data.js', 'flight-reference-data.js'])
+    sources.update('html-games/broken-mirror-port/'+file for file in ['flight-assets.js', 'world-data.js', 'flight-reference-data.js', 'federation-ships.js'])
     for row in ships.values():
         sources.update(ART+'showcase-assets/'+file for file in row['frameFiles'])
     hashes = {file: digest(source_bytes(file)) for file in sorted(sources)}

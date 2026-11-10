@@ -2,10 +2,10 @@
    shared motion, damage and effects own every launched Dot. Painting is read-only. */
 (() => {
   'use strict';
-  const BASIC=9001,EPS=1e-7,HULL_PER_TON=5,RATE=1.5,MEDICAL_STOCK=200;
+  const BASIC=9001,EPS=1e-7,HULL_PER_TON=5,RATE=1.5,MEDICAL_STOCK=200,CONDITION_PER_ORE=10,SHIELD_PER_TRELLIUM=10;
   // A maintenance Dot is a small service craft, about 30% of a Runabout.
   const DOT_SIZE=3.5,DOT_SCALE=DOT_SIZE/41.382;
-  const initialized=new WeakSet(),runtimes=new WeakMap(),clock=s=>window.nativeSimulation.seconds(s);
+  const initialized=new WeakSet(),runtimes=new WeakMap(),preparations=new WeakMap(),clock=s=>window.nativeSimulation.seconds(s);
   const qty=n=>Math.max(0,Number(n)||0),alive=e=>e&&e.hull>0&&e.phase!=='destroyed';
   const definition=(s,e,category)=>window.nativeShipDefinitions.forEntity(s,e,{category});
   const medical=e=>definition(null,e,'civilian').capabilities.medical===true;
@@ -38,34 +38,67 @@
     if(category==='tug'&&alive(e))rt.tugs.set(item.key,item);else rt.tugs.delete(item.key);
     if(!alive(e)&&!item.deadHandled)rt.dead.set(item.key,item);else if(alive(e)){rt.dead.delete(item.key);item.deadHandled=false;}
   }
-  function census(s){
+  function census(s){const steps=censusSteps(s);while(!steps.next().done){}}
+  function* censusSteps(s){
     const rt=runtimes.get(s);rt.disabled.clear();rt.medical.clear();rt.tugs.clear();rt.dead.clear();
-    for(const {category,entity} of fleet(s))observe(s,entity,category);
+    for(const {category,entity} of fleet(s)){yield;observe(s,entity,category);}
     rt.dirty=false;
   }
   function invalidateMembership(s){const rt=runtimes.get(s);if(rt)rt.dirty=true;}
 
   function initialize(s){
+    const pending=preparations.get(s);
+    if(pending&&!pending.running){let result;do{result=pending.next();}while(!result.done);return result.value;}
     if(initialized.has(s))return s.shipRepairs;
+    const steps=initializeSteps(s);let result;do{result=steps.next();}while(!result.done);return result.value;
+  }
+  function* prepare(s){
+    let job=preparations.get(s);
+    if(!job&&!initialized.has(s)){
+      const steps=initializeSteps(s);
+      job={running:false,next(){this.running=true;try{const result=steps.next();if(result.done)preparations.delete(s);return result;}finally{this.running=false;}}};
+      preparations.set(s,job);
+    }
+    if(job){let result;while(!(result=job.next()).done)yield;return result.value;}
+    return s.shipRepairs;
+  }
+  function* initializeSteps(s){
     const r=s.shipRepairs||={version:1,sequence:0,calls:[],missions:[],ledger:{consumed:0,lost:0,medicalCapital:0},nextPollAt:clock(s)};
     r.calls||=[];r.missions||=[];r.ledger||={consumed:0,lost:0,medicalCapital:0};
     initialized.add(s);
     runtimes.set(s,{known:new WeakMap(),previousPoses:new WeakMap(),disabled:new Map(),medical:new Map(),tugs:new Map(),dead:new Map(),dirty:false,audit:0});
     // Install medical crews once in the existing persistent fleet. Initial capital
     // is an explicit source; later deuranium comes from paid markets or finite mining.
-    if(!r.medicalFleetVersion&&s.civilianTraffic?.ships){
-      r.medicalFleetVersion=1;
+    const population=window.nativeCivilianPopulation,medicalVersion=population?2:1;
+    if((r.medicalFleetVersion||0)<medicalVersion&&s.civilianTraffic?.ships){
+      r.medicalFleetVersion=medicalVersion;
       let id=Math.max(-1,...s.civilianTraffic.ships.map(e=>e.id))+1;
-      const homes=[1,4,14];
+      const existing=s.civilianTraffic.ships.filter(medical),homes=population?[]:[1,4,14];
+      if(population){
+        let remaining=Math.max(0,population.medicalTotal-existing.length);
+        for(const row of population.plan(s)){
+          const count=existing.filter(e=>(e.operatingBase??e.stationSystem??e.system)===row.system).length;
+          for(let slot=count;slot<row.medical&&remaining>0;slot++,remaining--)homes.push(row.system);
+        }
+        for(const e of existing)e.medicalRegion??=e.operatingBase??e.stationSystem??e.system;
+      }
+      const stationed=new Map();
       for(const home of homes){
         const system=window.nativeCivilianAccess?.nearestHome(s,home)??home,type=definition(s,{shipType:58},'civilian');
         const e={id:id++,shipType:58,name:`Olympic Medical ${id}`,role:'medical',ownerGovernmentId:1,homeSystem:1,stationSystem:system,operatingBase:system,
           system,port:system===1?1:0,x:0,y:0,heading:-Math.PI/2,speed:0,phase:'docked',timer:1,hull:type.hull,shields:type.shields,cargo:null,oreHold:0,credits:15000,legs:0,deliveries:0,mined:0,deals:0};
+        if(population){
+          if(system===1){const slot=existing.filter(e=>e.stationSystem===1).length+(stationed.get(1)||0);e.port=[3,4,5,2,1,7,8,9,10][slot%9];stationed.set(1,(stationed.get(1)||0)+1);}
+          const point=window.nativePortDocking.relocate(s,e,system,e.port);if(!point)continue;
+          Object.assign(e,{x:point.x,y:point.y,medicalRegion:system,repairDeuranium:100,timer:1+(e.id*17)%30});
+          r.ledger.medicalInitialSupplies=qty(r.ledger.medicalInitialSupplies)+100;
+        }
         s.civilianTraffic.ships.push(e);r.ledger.medicalCapital+=15000;
       }
+      window.nativeNpcLives?.invalidateMembership?.(s);window.nativeShipSystems?.invalidateShips?.(s);
     }
-    for(const {category,entity} of fleet(s))bay(s,entity,category);
-    census(s);
+    for(const {category,entity} of fleet(s)){yield;bay(s,entity,category);}
+    yield* censusSteps(s);
     return r;
   }
   function supplies(s,r){return qty(r.category==='player'?s.deuranium:resolve(s,r)?.repairDeuranium);}
@@ -86,11 +119,35 @@
   }
   const active=m=>m.status==='active';
   function missionFor(s,r){return s.shipRepairs.missions.find(m=>active(m)&&key(m.target)===key(r));}
+  function rebaseCivilian(s,e,from,to,moveCivilian){
+    const rt=runtimes.get(s);if(!rt||rt.rebasing||from===to)return;
+    const reference=key(ref('civilian',e)),missions=s.shipRepairs.missions.filter(m=>active(m)&&[m.carrier,m.target].some(r=>key(r)===reference));if(!missions.length)return;
+    const a=window.nativeManualFlight.anchor(from),b=window.nativeManualFlight.anchor(to),dx=a.x-b.x,dy=a.y-b.y;
+    const shiftLeg=leg=>({...leg,start:{x:leg.start.x+dx,y:leg.start.y+dy},goal:{x:leg.goal.x+dx,y:leg.goal.y+dy},...(leg.segments?{segments:leg.segments.map(shiftLeg)}:{})});
+    rt.rebasing=true;
+    try{for(const m of missions){
+      for(const [role,r] of [['carrier',m.carrier],['target',m.target]]){
+        const entity=resolve(s,r);if(r.category!=='civilian'||!entity)continue;
+        if(key(r)!==reference&&entity.system!==from)continue;
+        if(entity.system===from)moveCivilian(s,entity,to);
+        const previous=m[role+'Motion'];if(previous){previous.x+=dx;previous.y+=dy;}
+      }
+      const carrier=resolve(s,m.carrier);
+      for(const d of carrier?.repairBay?.slots||[]){
+        if(!m.drones.includes(d.id)||d.system!==from)continue;
+        d.x+=dx;d.y+=dy;d.previousX=(d.previousX??d.x-dx)+dx;d.previousY=(d.previousY??d.y-dy)+dy;d.system=to;
+        if(d.localLeg)d.localLeg=shiftLeg(d.localLeg);delete d.trafficControl;
+      }
+    }}finally{rt.rebasing=false;}
+    window.nativeShipSystems.invalidateShips(s);
+  }
   function callFor(s,r){return s.shipRepairs.calls.find(c=>['queued','claimed','servicing'].includes(c.status)&&key(c.target)===key(r));}
-  function distress(s,r){
-    if(callFor(s,r))return;
+  function distress(s,r,{playerRequested=false,notify=true}={}){
+    const existing=callFor(s,r);if(existing)return existing;
     const p=pose(s,r),c={id:`distress:${++s.shipRepairs.sequence}`,target:r,system:p.system,x:p.x,y:p.y,createdAt:clock(s),status:'queued',claim:null};
-    s.shipRepairs.calls.push(c);announce(s,r,`Distress signal: disabled, ${supplies(s,r)>EPS?'no operational repair drones':'repair deuranium exhausted'}. Requesting medical assistance.`);
+    if(playerRequested)c.playerRequested=true;
+    s.shipRepairs.calls.push(c);if(notify)announce(s,r,`Distress signal: disabled, ${supplies(s,r)>EPS?'no operational repair drones':'repair deuranium exhausted'}. Requesting medical assistance.`);
+    return c;
   }
   function restock(s,e){
     if(!alive(e)||e.journey||e.phase==='disabled')return 0;
@@ -115,7 +172,12 @@
   }
   function call(s,id){return s.shipRepairs?.calls.find(c=>c.id===id);}
   function claimed(s,e){const c=call(s,e.task?.requirements?.callId);return c&&c.claim===key(ref('civilian',e))&&['claimed','servicing'].includes(c.status)?c:null;}
-  function validCall(s,c){const e=resolve(s,c?.target);return alive(e)&&e.phase==='disabled';}
+  function assistanceTarget(s,r){
+    const e=resolve(s,r);if(!alive(e))return false;
+    return e.phase==='disabled'||r.category==='player'&&callFor(s,r)?.playerRequested===true&&
+      (e.hull<definition(s,e,r.category).hull-EPS||!!missionFor(s,r));
+  }
+  function validCall(s,c){return !!c&&assistanceTarget(s,c.target);}
   function releaseClaim(s,e){const c=claimed(s,e);if(c){c.claim=null;if(validCall(s,c))c.status='queued';else c.status=alive(resolve(s,c.target))?'completed':'lost';}}
   function rendezvous(s,c,e){
     const p=pose(s,c.target),d=window.nativeShipDefinitions.dimensions(e,'civilian');
@@ -154,6 +216,48 @@
     const repairs=initialize(s);repairs.nextPollAt=Math.min(repairs.nextPollAt,clock(s));
     return {ok:true,mode};
   }
+  // Ore costs round up: one ton per 10 condition points, or per 10 missing
+  // shield energy, whichever is larger. Restoring a stored device adds no energy.
+  function deviceRepairQuote(s,instanceId){
+    const owner=window.nativeShipEquipment,equipment=owner.ensure(s),item=equipment.instances[instanceId],condition=owner.condition(item);
+    if(condition===null)return {ok:false,error:'Choose an engine or shield device.'};
+    const installed=equipment.slots[item.category].includes(instanceId),shield=item.category==='shield';
+    const draft={...s,shipEquipment:{...equipment,instances:{...equipment.instances,[instanceId]:{...item,condition:100}}}};
+    const maximum=shield&&installed?definition(draft,draft,'player').shields:0,missing=Math.max(0,maximum-qty(s.shields));
+    const currency=shield?'trellium':'gallicite',damage=100-condition;
+    const cost=s.devMode||(damage<=EPS&&missing<=EPS)?0:Math.max(1,Math.ceil(Math.max(damage/CONDITION_PER_ORE,missing/SHIELD_PER_TRELLIUM)-EPS));
+    const quote={ok:true,condition,damage,maximum,missing,currency,cost,held:qty(s.minerals?.[currency]),instanceId,installed};
+    if(!alive(s))return {...quote,ok:false,error:'Repair the destroyed hull first.'};
+    if(damage<=EPS&&missing<=EPS)return {...quote,ok:false,error:shield&&installed?'Device and shields fully restored.':'Device fully repaired.'};
+    if(quote.held<cost)return {...quote,ok:false,error:`Repair needs ${cost} ${currency} ore; ${quote.held} available.`};
+    return quote;
+  }
+  function repairDevice(s,instanceId,{save}={}){
+    const quote=deviceRepairQuote(s,instanceId);if(!quote.ok)return quote;
+    const item=s.shipEquipment.instances[instanceId],ledger=initialize(s).ledger;
+    const before={shields:s.shields,condition:item.condition,resource:s.minerals?.[quote.currency],ledger:JSON.stringify(ledger)};
+    try{
+      if(quote.cost)s.minerals[quote.currency]-=quote.cost;
+      item.condition=100;
+      if(quote.maximum>0)s.shields=quote.maximum;
+      ledger.deviceRepairs||={trellium:0,gallicite:0,restored:0,condition:0,count:0};
+      ledger.deviceRepairs[quote.currency]+=quote.cost;ledger.deviceRepairs.restored+=quote.missing;
+      ledger.deviceRepairs.condition+=quote.damage;ledger.deviceRepairs.count++;
+      if(save){const result=save();if(!result?.ok)throw Error(result?.error||'Device repair could not be saved.');}
+      window.nativeShipSystems?.refreshShip(s,s,'player');
+      const message=(quote.maximum>0?'Shield device repaired and protection restored.':item.category==='engineering'?'Engine repaired to 100% condition.':'Device repaired to 100% condition.')+
+        (quote.installed&&s.phase==='disabled'?' Hull remains critical. Manual steering and thrust are available.':'');
+      return {ok:true,restored:quote.missing,cost:quote.cost,currency:quote.currency,instanceId,message};
+    }catch(error){
+      item.condition=before.condition;s.shields=before.shields;if(quote.cost)s.minerals[quote.currency]=before.resource;
+      for(const key of Object.keys(ledger))delete ledger[key];Object.assign(ledger,JSON.parse(before.ledger));
+      window.nativeShipSystems?.refreshShip(s,s,'player');
+      return {ok:false,error:error.message};
+    }
+  }
+  const fittedShield=s=>window.nativeShipEquipment.ensure(s).slots.shield.find(Boolean);
+  const shieldRepairQuote=s=>fittedShield(s)?deviceRepairQuote(s,fittedShield(s)):{ok:false,error:'Fit a shield unit first.'};
+  const repairShields=(s,options)=>fittedShield(s)?repairDevice(s,fittedShield(s),options):{ok:false,error:'Fit a shield unit first.'};
   function deploymentStatus(s){
     if(!alive(s))return {ok:false,error:'Hull destroyed',available:0};
     initialize(s);
@@ -173,6 +277,55 @@
     const status=deploymentStatus(s);if(!status.ok)return status;
     const player=ref('player',s),mission=launch(s,player,player,clock(s),{manual:!automatic,automatic});
     return mission?{ok:true,missionId:mission.id,drones:mission.drones.length}:{ok:false,error:'Unable to deploy repair drones.'};
+  }
+  function playerDistressStatus(s){
+    if(!alive(s))return {ok:false,reason:'destroyed',message:'No recoverable hull.'};
+    const player=ref('player',s),pending=s.shipRepairs?.calls?.find(c=>['queued','claimed','servicing'].includes(c.status)&&key(c.target)===key(player));
+    if(pending)return {ok:false,pending:true,reason:pending.status,callId:pending.id,
+      label:pending.status==='queued'?'Distress Sent':pending.status==='claimed'?'Medical En Route':'Medical On Scene',
+      message:pending.status==='queued'?'Distress signal sent. Awaiting an available medical ship.':pending.status==='claimed'?'A medical ship is responding.':'Medical assistance is on scene.'};
+    const needed=Math.max(0,(definition(s,s,'player').hull-qty(s.hull))/HULL_PER_TON),held=qty(s.deuranium);
+    if(needed<=EPS)return {ok:false,reason:'healthy',message:'Hull fully repaired.'};
+    const eq=s.shipEquipment,hasDrone=eq?.slots?.repairDrone?.some(id=>eq.instances[id]?.hull>0&&eq.instances[id].phase!=='destroyed');
+    if(held+EPS<needed||!hasDrone)return {ok:true,reason:hasDrone?'supplies':'drones',needed,held,
+      message:hasDrone?'Not enough deuranium for full hull repairs. Request medical assistance.':'No operational repair DOTs fitted. Request medical assistance.'};
+    return {ok:false,reason:'self-repair',needed,held,message:'Repair DOTs and enough deuranium are available.'};
+  }
+  function requestPlayerDistress(s,{save}={}){
+    const status=playerDistressStatus(s);
+    if(status.pending)return {ok:true,callId:status.callId,message:status.message};
+    if(!status.ok)return {ok:false,error:status.message};
+    const repairs=initialize(s),before={sequence:repairs.sequence,nextPollAt:repairs.nextPollAt};
+    const player=ref('player',s),signal=distress(s,player,{playerRequested:true,notify:false});
+    repairs.nextPollAt=Math.min(repairs.nextPollAt,clock(s));
+    try{
+      if(save){const result=save();if(!result?.ok)throw Error(result?.error||'Distress call could not be saved.');}
+    }catch(error){
+      repairs.calls.splice(repairs.calls.indexOf(signal),1);repairs.sequence=before.sequence;repairs.nextPollAt=before.nextPollAt;
+      return {ok:false,error:error.message};
+    }
+    announce(s,player,'Distress signal: hull repair assistance requested.');
+    return {ok:true,callId:signal.id,message:'Distress signal sent. Awaiting an available medical ship.'};
+  }
+  function recoverPlayer(s){
+    if(!alive(s))return {ok:false,error:'Repair the destroyed hull first.'};
+    if(s.phase!=='disabled')return {ok:false,error:'Hull is not disabled.'};
+    initialize(s);
+    const player=ref('player',s),mission=missionFor(s,player);
+    if(mission||playerDronesDeployed(s))return {ok:true,message:'Hull recovery underway. Manual steering and thrust remain available.'};
+    if(s.hull>=definition(s,s,'player').hull-EPS){
+      resume(s,player);window.nativeShipSystems?.refreshShip(s,s,'player');
+      return {ok:true,message:'Full hull recovery complete.'};
+    }
+    const status=deploymentStatus(s);
+    if(status.ok){
+      const result=deployPlayer(s);
+      return result.ok?{...result,message:'Hull repair drones deployed. Manual steering and thrust remain available.'}:result;
+    }
+    if(['No repair deuranium','No DOTs equipped','No operational DOTs'].includes(status.error)){
+      return requestPlayerDistress(s);
+    }
+    return status;
   }
   function leg(d,goal,at,phase){
     d.localLeg=window.nativeShipMotion.planLeg(d,goal,window.nativeShipDefinitions.get(BASIC,'repair-drone').movement,at);
@@ -197,7 +350,7 @@
     if(missionFor(s,target)||supplies(s,carrier)<=EPS||s.shipRepairs.missions.filter(active).length>=16)return null;
     const playerSelf=carrier.category==='player'&&key(carrier)===key(target);
     const manual=options.manual===true&&playerSelf,automatic=options.automatic===true&&playerSelf;
-    const e=resolve(s,carrier),t=resolve(s,target);if(!alive(e)||!alive(t)||t.phase!=='disabled'&&!manual&&!automatic||t.hull>=definition(s,t,target.category).hull-EPS)return null;
+    const e=resolve(s,carrier),t=resolve(s,target);if(!alive(e)||!alive(t)||!assistanceTarget(s,target)&&!manual&&!automatic||t.hull>=definition(s,t,target.category).hull-EPS)return null;
     const origin=pose(s,carrier),dest=pose(s,target);if(origin.system!==dest.system||Math.hypot(origin.x-dest.x,origin.y-dest.y)>500)return null;
     const drones=bay(s,e,carrier.category).slots.filter(d=>d.hull>0&&d.phase==='stowed');if(!drones.length)return null;
     const m={id:`repair:${++s.shipRepairs.sequence}`,carrier,target,status:'active',startedAt:at,startHull:t.hull,restoredHull:0,spent:0,drones:drones.map(d=>d.id),workVersion:1};
@@ -225,7 +378,7 @@
   }
   function launchAttached(s,carrier,target,at=clock(s)){
     if(missionFor(s,target)||supplies(s,carrier)<=EPS||s.shipRepairs.missions.filter(active).length>=16)return null;
-    const e=resolve(s,carrier),t=resolve(s,target);if(!alive(e)||!alive(t)||t.phase!=='disabled')return null;
+    const e=resolve(s,carrier),t=resolve(s,target);if(!alive(e)||!alive(t)||!assistanceTarget(s,target))return null;
     const origin=pose(s,carrier),dest=pose(s,target);if(origin.system!==dest.system||Math.hypot(origin.x-dest.x,origin.y-dest.y)>500)return null;
     const drones=bay(s,e,carrier.category).slots.filter(d=>d.hull>0&&d.phase==='stowed');if(!drones.length)return null;
     const m={id:`repair:${++s.shipRepairs.sequence}`,carrier,target,status:'active',startedAt:at,startHull:t.hull,restoredHull:0,spent:0,drones:drones.map(d=>d.id),attachmentVersion:1};
@@ -352,7 +505,7 @@
   function resume(s,r){
     const e=resolve(s,r);if(!alive(e)||e.phase!=='disabled')return;
     if(e.hull+EPS<definition(s,e,r.category).hull)return;
-    e.phase=r.category==='player'?'flight':'docked';window.nativeShipMotion.stop(e);
+    e.phase=r.category==='player'?'flight':'docked';if(r.category!=='player')window.nativeShipMotion.stop(e);
     if(r.category==='civilian')window.nativeNpcLives.resumeWork(s,e,'Drone hull repair completed; recover retained cargo');
     if(r.category==='tug')window.nativeSolEconomy.resumeAfterRepair(s,e);
     const c=callFor(s,r);if(c){c.status='completed';c.completedAt=clock(s);c.claim=null;}
@@ -362,7 +515,7 @@
     const carrier=resolve(s,m.carrier),target=resolve(s,m.target),slots=carrier?.repairBay?.slots||[],ds=m.drones.map(id=>slots.find(d=>d.id===id)||carrier?.shipEquipment?.instances[id]).filter(Boolean);
     const carrierPose=alive(carrier)?pose(s,m.carrier):null,targetPose=alive(target)?pose(s,m.target):null;
     const self=key(m.carrier)===key(m.target),playerRepair=(m.manual===true||m.automatic===true)&&self&&m.carrier.category==='player';
-    const valid=alive(target)&&(target.phase==='disabled'||playerRepair)&&alive(carrier)&&(self||carrier.task?.kind==='medical'&&carrier.task.status==='active'&&carrier.phase!=='disabled'&&!carrier.journey&&carrierPose.system===targetPose.system&&Math.hypot(carrierPose.x-targetPose.x,carrierPose.y-targetPose.y)<=1000);
+    const valid=alive(target)&&(assistanceTarget(s,m.target)||playerRepair)&&alive(carrier)&&(self||carrier.task?.kind==='medical'&&carrier.task.status==='active'&&carrier.phase!=='disabled'&&!carrier.journey&&carrierPose.system===targetPose.system&&Math.hypot(carrierPose.x-targetPose.x,carrierPose.y-targetPose.y)<=1000);
     const returning=d=>{
       for(let transitions=0;transitions<4&&d.phase==='returning'&&d.localLeg;transitions++){
         const sampled=window.nativeShipMotion.sampleLeg(d,d.localLeg,at);if(!sampled.arrived&&!sampled.invalid)return;
@@ -440,7 +593,7 @@
     const previousPoses=runtimes.get(s).previousPoses;
     for(const d of ds){let previous=previousPoses.get(d);if(!previous){previous={};previousPoses.set(d,previous);}previous.x=d.x;previous.y=d.y;}
     const carrierPose=alive(carrier)?observedPose(m,'carrierMotion',pose(s,m.carrier),at):null,targetPose=alive(target)?observedPose(m,'targetMotion',pose(s,m.target),at):null;
-    const self=key(m.carrier)===key(m.target),valid=alive(target)&&target.phase==='disabled'&&alive(carrier)&&(self||carrier.task?.kind==='medical'&&carrier.task.status==='active'&&carrier.phase!=='disabled'&&!carrier.journey&&carrierPose.system===targetPose.system&&Math.hypot(carrierPose.x-targetPose.x,carrierPose.y-targetPose.y)<=1000);
+    const self=key(m.carrier)===key(m.target),valid=assistanceTarget(s,m.target)&&alive(carrier)&&(self||carrier.task?.kind==='medical'&&carrier.task.status==='active'&&carrier.phase!=='disabled'&&!carrier.journey&&carrierPose.system===targetPose.system&&Math.hypot(carrierPose.x-targetPose.x,carrierPose.y-targetPose.y)<=1000);
     const returning=d=>{
       if(d.phase!=='returning')return;
       const queue=ds.filter(craft=>craft.phase==='returning'&&craft.hull>0),rank=queue.indexOf(d);
@@ -628,9 +781,11 @@
   const renderer={draw:(...args)=>window.nativeRepairVisuals?.drawDrone(...args),hit:(...args)=>window.nativeRepairVisuals?.hit(...args)};
   window.nativeShipDefinitions.register(BASIC,{name:'Basic Dot repair drone',slots:{weapon:0,repairDrone:0,ability:0},hull:40,shields:0,cargo:0,equipment:[],movement:{maxSpeed:85,acceleration:100,braking:120,turnRate:Infinity,directGoal:true,inertial:true,snap:true,arrivalRadius:.1,serviceApproach:true},artwork:{scale:DOT_SCALE},dimensions:{width:DOT_SIZE,height:DOT_SIZE},
     geometry:{hull:{width:.34,height:.34,minX:0,minY:0}},capabilities:{armed:false,canMine:false,canDock:false,canTrade:false,disableRatio:0},renderer});
-  window.nativeShipSystems.register('repair-drone',{collect:drones,inspect:s=>[],hit,resolve:resolveDrone,visualImpact:(s,t,e)=>window.nativeShipEffects.visualImpact(s,t,e)});
-  window.nativeShipRepairs=Object.freeze({initialize,advance,restock,call,claimed,validCall,releaseClaim,rendezvous,service,ref,key,resolve,pose,launch,deployPlayer,deploymentStatus,playerDronesDeployed,repairMode,setRepairMode,missionFor,supplies,workPoint,stationPoint,bayPoint,bayGeometry,bayPassage,drones,destroyed,observe,invalidateMembership,
+  // advanceMission publishes every changed drone through refreshShip. Its fixed
+  // definition/pose may therefore be retained between reads of the same step.
+  window.nativeShipSystems.register('repair-drone',{collect:drones,inspect:s=>[],hit,resolve:resolveDrone,retainedPose:true,visualImpact:(s,t,e)=>window.nativeShipEffects.visualImpact(s,t,e)});
+  window.nativeShipRepairs=Object.freeze({initialize,prepare,advance,restock,call,claimed,validCall,releaseClaim,rendezvous,service,ref,key,resolve,pose,launch,deployPlayer,recoverPlayer,playerDistressStatus,requestPlayerDistress,deploymentStatus,playerDronesDeployed,repairMode,setRepairMode,deviceRepairQuote,repairDevice,shieldRepairQuote,repairShields,missionFor,rebaseCivilian,supplies,workPoint,stationPoint,bayPoint,bayGeometry,bayPassage,drones,destroyed,observe,invalidateMembership,
     reroute:(s,d,route)=>{if(!d.localLeg||route.valid===false)return false;d.localLeg=route;if(d.bayTransit){d.bayTransit.startedAt=route.startedAt;d.bayTransit.endsAt=route.startedAt+route.duration;}return true;},
     status:(s,e,category)=>({supplies:supplies(s,ref(category,e)),drones:e.repairBay?.slots.filter(d=>d.hull>0).length||0,mission:missionFor(s,ref(category,e))?.id,distress:callFor(s,ref(category,e))?.status}),
-    rules:Object.freeze({hullPerTon:HULL_PER_TON,ratePerDrone:RATE,medicalStock:MEDICAL_STOCK,basicType:BASIC})});
+    rules:Object.freeze({hullPerTon:HULL_PER_TON,ratePerDrone:RATE,medicalStock:MEDICAL_STOCK,basicType:BASIC,conditionPerOre:CONDITION_PER_ORE,shieldPerTrellium:SHIELD_PER_TRELLIUM})});
 })();

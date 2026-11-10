@@ -72,6 +72,7 @@
       id: 'transit-' + Date.now().toString(36) + '-' + Math.floor(random() * 0xffffff).toString(36),
       originId: game.system, originName: systems.get(game.system).name,
       systemId: target.id, systemName: target.name, governmentId,
+      destinationBodyId:journey.bodyId,destinationName:journey.bodyName,
       governmentName: governmentId === 16 ? String(next.government) : governments.get(governmentId),
       standing, prestige: next.localPrestige[target.id], elapsedDays: journey.travelDays, startDay: game.day,
       day: next.day, fuelUsed: game.devMode ? 0 : journey.fuel, fuelRemaining: game.devMode ? '∞' : next.antimatter,

@@ -46,6 +46,7 @@
   }
   function pumpBackground(){
     if(backgroundActive||!background.size)return;
+    if(window.nativeDamageArtPreparation?.backgroundHeld){scheduleBackground();return;}
     // Current appearances outrank optional stages. A stage already in progress
     // shares the cooperative pixel queue, rather than starting another worker.
     if([...stagePending.values()].some(job=>!job.backgroundWork)){scheduleBackground();return;}
@@ -63,11 +64,11 @@
     // cannot keep preparing invisible damage art in the background.
     background.set(cacheKey,{type,category,value});scheduleBackground();
   }
-  function request(type,category='player',{stage=0,visible=false}={}){
+  function request(type,category='player',{stage=0,visible=false,prefetch=false}={}){
     stage=Math.max(0,Math.min(3,Math.floor(stage)||0));const cacheKey=key(type,category),value=valueFor(cacheKey);
     if(!value.assets[stage]&&!loading.has(cacheKey)&&loading.size>=limits.pending)return Promise.resolve(null);
-    const promise=stageRequest(type,category,stage,value,{visible});
-    promise.then(asset=>{if(asset)deferStages(type,category,value);},()=>{counters.failures++;});
+    const promise=stageRequest(type,category,stage,value,{visible,backgroundWork:prefetch});
+    promise.then(asset=>{if(asset&&!prefetch)deferStages(type,category,value);},()=>{counters.failures++;});
     return promise;
   }
   function prepare(type,category='player',{stage=0}={}){
@@ -86,7 +87,7 @@
       const profile=assets[0]?.profile,art=assets.map(asset=>asset.art);
       const started=performance.now(),jobs=[];
       if(profile?.breakAnchors&&window.showcaseStageFragments){const api=window.showcaseStageFragments;
-        jobs.push(Promise.resolve(api.prepareAsync?api.prepareAsync(art,profile.breakAnchors):api.prepare(art,profile.breakAnchors)).then(fragments=>{value.fragments=fragments;}));}
+        jobs.push(Promise.resolve(api.prepareAsync?api.prepareAsync(art,profile.breakAnchors,profile.fragmentOptions):api.prepare(art,profile.breakAnchors,profile.fragmentOptions)).then(fragments=>{value.fragments=fragments;}));}
       if(profile?.destruction&&window.createShipDestruction){const destruction=window.createShipDestruction();
         jobs.push(Promise.resolve(destruction.prepareAsync?destruction.prepareAsync(art,profile.destruction):destruction.prepare(art,profile.destruction)).then(()=>{value.destruction=destruction;}));}
       await Promise.all(jobs);value.optionalReady=true;counters.optionalWallMs+=performance.now()-started;remember(cacheKey,value);return value;
@@ -334,7 +335,7 @@
     const impact=visuals.get(descriptor.entity),barrier=Boolean(view.warpEffect||art?.repairSurface||impact?.flash||impact?.contact);
     if(barrier)window.nativeShipSpriteCache?.flush?.(ctx);
     paintSurface(ctx,descriptor,{...view,asset:art},{front:false});
-    if(art)window.vexedFlightAssets.drawShip(ctx,art,p.x,p.y,d.width*zoom,warp?.angle??descriptor.heading+Math.PI/2,now(descriptor.state),
+    if(art)window.vexedFlightAssets.drawShip(ctx,art,p.x,p.y,d.width*zoom,warp?.angle??descriptor.heading+Math.PI/2,view.visualTime??now(descriptor.state),
       {...warp,height:d.height*zoom,lights:descriptor.entity.phase!=='disabled',damage:!art.repairSurface,lightGain:2.8,lightBloom:2.5,effectRate:descriptor.category==='player'?60:20,
         light:window.vexedSpace?.light,...view.appearance,owner:descriptor.entity,canvasOnly:barrier});
     paintSurface(ctx,descriptor,{...view,asset:art},{front:true});return art;
@@ -370,7 +371,8 @@
       preparation:window.nativeDamageArtPreparation?.snapshot?.()||null};}
   const ready=(type,category='player')=>Boolean(prepared.get(key(type,category))?.assets.some(Boolean));
   const optionalReady=(type,category='player')=>Boolean(prepared.get(key(type,category))?.optionalReady);
-  return Object.freeze({fork,prepare,request,ready,optionalReady,asset,hit,visualImpact,advance,paintShip,paintSurface,paint,reset,snapshot,metrics});
+  const stageReady=(type,stage=0)=>Boolean(prepared.get(key(type))?.assets[stage]||window.vexedFlightAssets?.peekShip?.(type,stage,{markVisible:false}));
+  return Object.freeze({fork,prepare,request,ready,stageReady,optionalReady,asset,hit,visualImpact,advance,paintShip,paintSurface,paint,reset,snapshot,metrics});
   }
   window.nativeShipEffects=fork();
 })();

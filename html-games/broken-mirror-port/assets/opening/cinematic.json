@@ -1113,7 +1113,7 @@
   "audioMix": {
     "duration": 99.31,
     "weaponSounds": false,
-    "explosionEvents": 36,
+    "explosionEvents": 34,
     "maximumConcurrent": 3,
     "defaultGains": {
       "narration": 0.95,
@@ -1124,7 +1124,7 @@
     "musicPeak": 0.4552135467529297,
     "effectsPeak": 0.5078492164611816,
     "defaultMixPeak": 0.6252743005752563,
-    "speechMedianForegroundDb": 12.498075485229492,
+    "speechMedianForegroundDb": 12.604331016540527,
     "clippingSamples": 0
   },
   "effectsSourceFiles": [

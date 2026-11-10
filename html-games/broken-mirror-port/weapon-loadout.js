@@ -25,6 +25,17 @@
   state.devInventoryKitVersion=2;inventoryLayout(state);return {ok:true,added};
  }
  const compatible=(kind,id)=>model(id)?.category===kind;
+ const repairable=item=>['engineering','shield'].includes(item?.category);
+ const condition=item=>repairable(item)?Math.max(0,Math.min(100,Number.isFinite(item.condition)?item.condition:100)):null;
+ // Combat is the only source of wear. A full rated protection/hull pool of
+ // damage removes 100 condition points; storage and ordinary flight are free.
+ function damageDevices(holder,{absorbed=0,hullDamage=0,shieldMaximum=0,hullMaximum=0}={}){
+  const eq=holder.shipEquipment;if(!eq)return;
+  for(const [kind,damage,maximum] of [['shield',absorbed,shieldMaximum],['engineering',hullDamage,hullMaximum]]){
+   const item=eq.instances[eq.slots[kind]?.[0]];
+   if(item&&damage>0&&maximum>0){const next=condition(item)-100*damage/maximum;item.condition=next<1e-7?0:next;}
+  }
+ }
  function fittingChanged(state,holder){
   if(!state)return;
   const category=holder===state?'player':state.solEconomy?.freighters?.includes(holder)?'tug':'civilian';
@@ -57,6 +68,7 @@
  function create(eq,id){
   let key;do{key=(model(id).category==='repairDrone'?'dot:'+eq.owner+':':model(id).category==='weapon'?'weapon:':'equipment:')+eq.nextId++;}while(eq.instances[key]);
   const item=eq.instances[key]={id:key,modelId:id,category:model(id).category,readyAt:0,upgrades:{}};
+  if(repairable(item))item.condition=100;
   if(item.category==='repairDrone')Object.assign(item,{shipType:9001,hull:40,shields:0,phase:'stowed',heading:0,speed:0});return item;
  }
  function project(holder,eq){
@@ -66,7 +78,7 @@
   holder.repairBay={version:2,generation:holder.lifeGeneration||0,capacity:eq.slots.repairDrone.length,slots:eq.slots.repairDrone.map((id,slot)=>{const d=eq.instances[id];if(d)d.slot=slot;return d;}).filter(Boolean)};
  }
  function reconcile(holder,eq){
-  eq.slots||={};eq.instances||={};eq.nextId=Math.max(1,Number(eq.nextId)||1);for(const item of Object.values(eq.instances))item.category=model(item.modelId)?.category||'legacy';
+  eq.slots||={};eq.instances||={};eq.nextId=Math.max(1,Number(eq.nextId)||1);for(const item of Object.values(eq.instances)){item.category=model(item.modelId)?.category||'legacy';if(repairable(item))item.condition=condition(item);}
   const limits=capacities(holder),seen=new Set(),locker=[];
   const stow=id=>{if(id&&eq.instances[id]&&!seen.has(id)){seen.add(id);locker.push(id);}};
   for(const kind of kinds){
@@ -77,6 +89,7 @@
   eq.locker=locker;eq.shipType=holder.shipType??7;project(holder,eq);cache.set(holder,{eq,key:JSON.stringify(limits),type:eq.shipType});return eq;
  }
  function ensure(state,holder=state,defaults){
+  window.nativeShipThrusters?.ensure(holder);
   let eq=holder.shipEquipment;
   if(eq?.version===2){const previous=cache.get(holder),key=JSON.stringify(capacities(holder));if(previous?.eq===eq&&previous.key===key&&previous.type===(holder.shipType??7))return eq;return reconcile(holder,eq);}
   const legacy=holder.weaponLoadout,initial=definition(holder).startingEquipment;
@@ -167,10 +180,10 @@
  }
  function cargoUsed(state,holder=state){const qty=n=>Math.max(0,Number(n)||0);return holder===state?qty(holder.devMode?0:holder.deuranium)+Object.values(holder.solFreightHold||{}).reduce((n,v)=>n+qty(v),0)+(holder.localContracts||[]).reduce((n,j)=>n+qty(j.tons),0)+Object.values(holder.minerals||{}).reduce((n,v)=>n+qty(v),0):qty(holder.cargo?.tons)+qty(holder.oreHold)+qty(holder.tons)+qty(holder.repairDeuranium);}
  function canChangeHull(state,type,{holder=state}={}){const def=window.nativeShipDefinitions.get(type),used=cargoUsed(state,holder);if(!(holder===state&&state.devMode)&&used>def.cargo)return {ok:false,error:`Cargo aboard is ${used} t; ${def.name} holds ${def.cargo} t. Deliver or sell cargo before buying this hull.`};const eq=ensure(state,holder);if(Object.values(eq.instances).some(i=>i.category==='repairDrone'&&!['stowed','destroyed'].includes(i.phase)))return {ok:false,error:'Recover deployed drones before changing hulls.'};return {ok:true};}
- function changeHull(state,type,{holder=state}={}){const allowed=canChangeHull(state,type,{holder});if(!allowed.ok)return allowed;const eq=ensure(state,holder),def=window.nativeShipDefinitions.get(type);holder.shipType=Number(type);delete eq.bayLayout;delete holder.shipRefit;delete holder.shieldResponse;holder.shipClass=def.name;reconcile(holder,eq);holder.hull=window.nativeShipDefinitions.forEntity(state,holder).hull;holder.shields=0;holder.speed=0;holder.vitalsVersion=2;holder.phase='docked';fittingChanged(state,holder);return {ok:true};}
+ function changeHull(state,type,{holder=state}={}){const allowed=canChangeHull(state,type,{holder});if(!allowed.ok)return allowed;const eq=ensure(state,holder),def=window.nativeShipDefinitions.get(type);holder.shipType=Number(type);window.nativeShipThrusters?.reset(holder);delete eq.bayLayout;delete holder.shipRefit;delete holder.shieldResponse;holder.shipClass=def.name;reconcile(holder,eq);holder.hull=window.nativeShipDefinitions.forEntity(state,holder).hull;holder.shields=0;holder.speed=0;holder.vitalsVersion=2;holder.phase='docked';fittingChanged(state,holder);return {ok:true};}
  function refit(state,ids,{holder=state}={}){const eq=ensure(state,holder);for(const kind of ['weapon','ability']){eq.locker.push(...eq.slots[kind].filter(Boolean));eq.slots[kind].fill(null);}for(const id of ids||[]){const kind=model(id)?.category;if(!kind)continue;const slot=eq.slots[kind].findIndex(id=>!id);grant(state,id,{holder,location:slot<0?'locker':'slot',slot});}eq.nextSlot=0;project(holder,eq);return holder.weaponLoadout;}
  function purchase(state,id,{holder=state}={}){const item=model(id);if(!item)return {ok:false,error:'Unknown equipment.'};if(item.shipyardOnly)return {ok:false,error:'Purchase Federation equipment at Mars Orbital Shipyard.'};if((holder===state?state.latinum:holder.credits)<item.price)return {ok:false,error:'Not enough credits for this equipment.'};const result=grant(state,id,{holder});if(result.ok){if(holder===state)state.latinum-=item.price;else holder.credits-=item.price;}return result;}
  const ready=(item,now)=>(Number(item?.readyAt)||0)<=now,consume=(item,spec,now)=>{item.readyAt=now+spec.recharge;};
- window.nativeShipEquipment=Object.freeze({ensure,capacities,model,models,restockDev,compatible,grant,move,inventoryKeys,inventoryLayout,moveInventory,bayLayout,placeBay,equipped,cargoUsed,canChangeHull,changeHull,purchase,kinds,project,has:(s,e,id)=>{const eq=ensure(s,e);return eq.slots[model(id)?.category]?.some(key=>eq.instances[key]?.modelId===id)||false;}});
+ window.nativeShipEquipment=Object.freeze({condition,damageDevices,ensure,capacities,model,models,restockDev,compatible,grant,move,inventoryKeys,inventoryLayout,moveInventory,bayLayout,placeBay,equipped,cargoUsed,canChangeHull,changeHull,purchase,kinds,project,has:(s,e,id)=>{const eq=ensure(s,e);return eq.slots[model(id)?.category]?.some(key=>eq.instances[key]?.modelId===id)||false;}});
  window.nativeWeaponLoadout=Object.freeze({ensure:(s,h=s,d)=>{ensure(s,h,d);return h.weaponLoadout;},equipped,grant,move,refit,ready,consume,project:(h)=>project(h,h.shipEquipment)});
 })();

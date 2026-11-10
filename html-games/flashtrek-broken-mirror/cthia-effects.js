@@ -51,11 +51,14 @@
     if(solidTextures.size>=32)solidTextures.delete(solidTextures.keys().next().value);solidTextures.set(key,c);return c;
   }
   function forEachLightPrimitive(stage,time,options,paint){
-    const gain=options.lightGain||1;
+    const baseGain=options.lightGain||1,charge=Math.max(0,Math.min(1,Number(options.nacelleCharge)||0));let gain=baseGain;
     const image=(art,x,y,w,h,alpha,screen=false)=>paint(art,x,y,w,h,alpha,screen,gain);
     const rectangle=(x,y,w,h,tint,alpha)=>image(solid(tint),x,y,w,h,alpha);
     const glow=(x,y,r,tint,alpha,screen=false,squeeze=1)=>image(glowTexture(tint),x-r*squeeze,y-r,r*2*squeeze,r*2,alpha,screen);
     forEachLight(stage,time,(p,intensity,pulse)=>{
+      const charging=(p.kind==='core'||p.warpCharge===true)&&charge>0;
+      gain=baseGain*(charging?1+5*charge:1);
+      if(charging)intensity=Math.min(1,Math.max(intensity*(1+.7*charge),charge*.85));
       if((config.coreShape==='tube'||p.shape==='tube')&&p.kind==='core'){
         const length=p.h||86;rectangle(p.x-8,p.y-length/2,16,length,'#06324e',.72);
         glow(p.x,p.y,length*.57,p.color||'#159fff',intensity*.8,true,.3);
@@ -73,6 +76,7 @@
         glow(p.x,p.y,36+18*pulse,'#139dff',intensity*.7,true);glow(p.x,p.y,18+3*pulse,'#26caff',intensity,true);glow(p.x,p.y,6+5*pulse,'#a6f4ff',intensity,true);
       }else glow(p.x,p.y,p.r,p.color||'#32cfff',intensity);
       if(p.kind==='strip')rectangle(p.x-9,p.y-.75,18,1.5,'#78efff',intensity*.8);
+      if(charging)glow(p.x,p.y,Math.max(p.r*1.5,Math.min(width,height)*.12),p.color||'#28bfff',charge*.65,true);
     });
   }
   function* unlighting(image,asynchronous=false){
@@ -128,12 +132,14 @@
     ctx.save();ctx.translate(layout.x,layout.y);ctx.rotate(angle);
     ctx.scale(layout.w/width,layout.h/height);ctx.translate(-width/2,-height/2);
     if(options.lights){
-      ctx.save();const gain=options.lightGain||1;if(gain!==1)ctx.filter=`brightness(${gain})`;
+      ctx.save();const gain=options.lightGain||1,charge=Math.max(0,Math.min(1,Number(options.nacelleCharge)||0));if(gain!==1)ctx.filter=`brightness(${gain})`;
       for(const [i,p] of lights.entries()){
         if(s===3&&(p.kind==='core'||p.offSevere))continue;
         let intensity=p.kind==='core'?.18+.82*corePulse(t):p.kind==='running'?(Math.sin(t*4.2+i*.9)>.7?.9:.03):.12+.13*wave(t,1.8,i*.7);
         const failed=s>0&&damage[s].some(b=>Math.hypot(b.x-p.x,b.y-p.y)<b.r+17);
         if(failed)intensity*=Math.sin(t*(s===3?15:9)+i*2)>.3?.55:.02;
+        const charging=(p.kind==='core'||p.warpCharge===true)&&charge>0;
+        if(charging){ctx.save();ctx.filter=`brightness(${gain*(1+5*charge)})`;intensity=Math.min(1,Math.max(intensity*(1+.7*charge),charge*.85));}
         if((config.coreShape==='tube'||p.shape==='tube')&&p.kind==='core'){
           const length=p.h||86;
           ctx.save();ctx.globalAlpha=.72;ctx.fillStyle='#06324e';ctx.fillRect(p.x-8,p.y-length/2,16,length);
@@ -164,6 +170,11 @@
         if(p.kind==='strip'){
           ctx.save();ctx.globalAlpha=intensity*.8;ctx.strokeStyle='#78efff';ctx.lineWidth=1.5;
           ctx.beginPath();ctx.moveTo(p.x-9,p.y);ctx.lineTo(p.x+9,p.y);ctx.stroke();ctx.restore();
+        }
+        if(charging){
+          ctx.save();ctx.globalCompositeOperation='screen';
+          glow(ctx,p.x,p.y,Math.max(p.r*1.5,Math.min(width,height)*.12),p.color||'#28bfff',charge*.65);
+          ctx.restore();ctx.restore();
         }
       }
       ctx.restore();

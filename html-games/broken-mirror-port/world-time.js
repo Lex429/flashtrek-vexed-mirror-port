@@ -16,5 +16,21 @@
     window.nativeCivilianTraffic?.advance(state,elapsed);
     return elapsed;
   }
-  window.nativeWorldTime=Object.freeze({secondsPerDay,advanceDays});
+  // Warp has already advanced the saved clock. Drain only overdue scheduled
+  // freight/production through its owner; civilian scheduling retains its bounded
+  // saved deadlines. Never integrate another second or discard debt.
+  function settleTransit(state,{maxPasses=4096}={}){
+    if(window.nativeSimulation.blocked())throw Error('Transit calendar preparation is paused.');
+    const at=window.nativeSimulation.seconds(state);let passes=0;
+    const pending=()=>window.nativeSolEconomy.calendarPending(state);
+    while(pending()&&passes++<maxPasses){
+      window.nativeSimulationFrame?.begin(state);
+      try{window.nativeSolEconomy.settleCalendar(state);}
+      finally{window.nativeSimulationFrame?.end(state);}
+    }
+    if(window.nativeSimulation.seconds(state)!==at)throw Error('Transit preparation changed the saved clock.');
+    if(pending())throw Error('Destination calendar preparation is still busy. Retry the journey.');
+    return {passes,seconds:at,pending:false};
+  }
+  window.nativeWorldTime=Object.freeze({secondsPerDay,advanceDays,settleTransit});
 })();

@@ -5,7 +5,9 @@
   const wrap=angle=>Math.atan2(Math.sin(angle),Math.cos(angle));
   const velocity=ship=>({x:Number.isFinite(ship.vx)?ship.vx:Math.cos(ship.heading||0)*(Number(ship.speed)||0),y:Number.isFinite(ship.vy)?ship.vy:Math.sin(ship.heading||0)*(Number(ship.speed)||0)});
   function intercept(from,target,speed){
-    const v=velocity(target),dx=target.x-from.x,dy=target.y-from.y;
+    // Aim in the launcher's translating frame; launch adds that velocity back.
+    const targetVelocity=velocity(target),sourceVelocity=velocity(from);
+    const v={x:targetVelocity.x-sourceVelocity.x,y:targetVelocity.y-sourceVelocity.y},dx=target.x-from.x,dy=target.y-from.y;
     const a=v.x*v.x+v.y*v.y-speed*speed,b=2*(dx*v.x+dy*v.y),c=dx*dx+dy*dy;
     let time=0;
     if(Math.abs(a)<1e-6){if(Math.abs(b)>1e-6)time=-c/b;}
@@ -51,7 +53,7 @@
   }
   function fireEligibility(ship,target,spec,aim,rocks=[],bystanders=[]){
     const dx=aim.x-ship.x,dy=aim.y-ship.y;
-    const distance=Math.hypot(dx,dy);
+    const distance=Math.max(Math.hypot(dx,dy),Math.hypot(target.x-ship.x,target.y-ship.y));
     const inRange=distance<=spec.range,inArc=Math.abs(wrap(Math.atan2(dy,dx)-(ship.heading||0)))<=spec.arc;
     if(!inRange)return {ok:false,reason:'range',distance,inRange,inArc};
     if(!inArc)return {ok:false,reason:'arc',distance,inRange,inArc};
@@ -61,9 +63,10 @@
   }
   function launch(ship,target,spec,kind,clock,aimError=0){
     const aim=intercept(ship,target,spec.speed);
-    const angle=Math.atan2(aim.y-ship.y,aim.x-ship.x)+aimError;
+    const angle=Math.atan2(aim.y-ship.y,aim.x-ship.x)+aimError,inherited=velocity(ship);
     return {x:ship.x+Math.cos(ship.heading)*spec.muzzle,y:ship.y+Math.sin(ship.heading)*spec.muzzle,
-      vx:Math.cos(angle)*spec.speed,vy:Math.sin(angle)*spec.speed,age:0,ttl:spec.range/spec.speed+.25,
+      vx:inherited.x+Math.cos(angle)*spec.speed,vy:inherited.y+Math.sin(angle)*spec.speed,
+      inheritedVx:inherited.x,inheritedVy:inherited.y,age:0,ttl:spec.range/spec.speed+.25,
       projectile:true,alive:true,turn:spec.turn,radius:spec.radius,speed:spec.speed,launchedAt:clock,kind};
   }
   // Resolve the first physical contact, including objects that were clear at launch.
@@ -132,9 +135,13 @@
     const from={x:event.x,y:event.y};
     event.previousX=event.x;event.previousY=event.y;
     if(event.turn&&target&&target.targetable!==false){
-      const angle=Math.atan2(event.vy,event.vx),desired=Math.atan2(target.y-event.y,target.x-event.x)+(event.aimError||0)*clamp(Math.hypot(target.x-event.x,target.y-event.y)/(event.spec?.range||Infinity),0,1);
+      // Guidance turns the motor velocity in the launch frame. Old saved shots
+      // have no inherited velocity and keep their saved world speed.
+      const inheritedVx=Number(event.inheritedVx)||0,inheritedVy=Number(event.inheritedVy)||0;
+      const aim=intercept({x:event.x,y:event.y,vx:inheritedVx,vy:inheritedVy},target,event.speed);
+      const angle=Math.atan2(event.vy-inheritedVy,event.vx-inheritedVx),desired=Math.atan2(aim.y-event.y,aim.x-event.x)+(event.aimError||0)*clamp(Math.hypot(target.x-event.x,target.y-event.y)/(event.spec?.range||Infinity),0,1);
       const next=angle+clamp(wrap(desired-angle),-event.turn*dt,event.turn*dt);
-      event.vx=Math.cos(next)*event.speed;event.vy=Math.sin(next)*event.speed;
+      event.vx=inheritedVx+Math.cos(next)*event.speed;event.vy=inheritedVy+Math.sin(next)*event.speed;
     }
     event.x+=event.vx*dt;event.y+=event.vy*dt;event.age+=dt;
     const to={x:event.x,y:event.y};

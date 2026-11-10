@@ -1,0 +1,148 @@
+{
+  "source": "Installed damage showcase, exact original PNG files and measured animation profiles",
+  "ships": [
+    {
+      "id": 433,
+      "name": "U.S.S. Stargazer NCC-82893",
+      "frames": {
+        "new-ship-art/ship-433.png": "461fd99f1744515c390bef0192b282200c51b9d67f1ac515e60ed918f055e519",
+        "new-ship-art/ship-433-light.png": "d28057d007a05d93a363d3db006e6014e414ac892d22879fee8359bf9c1f0532",
+        "new-ship-art/ship-433-heavy.png": "8c5f4aa14fed294c8f6a3d0942f44635791bf916ce9c157789ed1a073331b335",
+        "new-ship-art/ship-433-severe.png": "b168c56950a41cb110221372c9db9eaca63e509f680cae68ae06c0857cae9f4b"
+      },
+      "profileSha256": "45d7577acb1e0882be53baa83dfd7fd58177af0b688cf381411c4758fe4c29dd"
+    },
+    {
+      "id": 434,
+      "name": "NX Class",
+      "frames": {
+        "new-ship-art/ship-434.png": "81eff24b45f8b3a2c1ab115afce187579a284617f60803104c055685b502ca5e",
+        "new-ship-art/ship-434-light.png": "26c70ee1cd77fa0c66f3e5d46e739ce45642622b36368b43799e3441daab68a1",
+        "new-ship-art/ship-434-heavy.png": "0f9e828c361661ccd8c8ab2bb1081f0c2fa85939d7cd1314c566dc973457b0b7",
+        "new-ship-art/ship-434-severe.png": "d620155e5b716f1c3c1b09118ae703052246aefef63842d9e2ca54056f299bb8"
+      },
+      "profileSha256": "27a05ca6e5d90ffecbdb9282573c03e990639dc1cc29cda6d7fc25eb7b3f2523"
+    },
+    {
+      "id": 435,
+      "name": "Archer's Ship - Enterprise NX-01",
+      "frames": {
+        "new-ship-art/ship-435.png": "06d4d4143fcc18d9b5543de58a0632c9f748cc6ae48a4dc4c1f246107e5c3190",
+        "new-ship-art/ship-435-light.png": "555f501d581badb2d7393c751eb7cb6a1446eff75b935c102377d0719d22cf2f",
+        "new-ship-art/ship-435-heavy.png": "5e9bee9622bd127df42617401a3a1e12516cf9e346600c2462b65d4aa3cc230d",
+        "new-ship-art/ship-435-severe.png": "b29beb70d04709b51f025adf1922f7ee89614745fa7213a6f24b606f991496a4"
+      },
+      "profileSha256": "cce7ffcae7aefd7f22fddca3b1c623bb750da2ebab4ff0e8969d5ecd97587324"
+    },
+    {
+      "id": 436,
+      "name": "Class 9 Shuttle",
+      "frames": {
+        "new-ship-art/ship-436.png": "f32fef3142ee72a26d0c2ddd9b7273ec40198ba60b237073ec98fd6816791a8c",
+        "new-ship-art/ship-436-light.png": "0da25991ea31f3c5f66b121fa818fb2db07fa0aeb6bd65332896aca5f125030a",
+        "new-ship-art/ship-436-heavy.png": "9c6e6cb3367cf04d3a26ce9c352770248c71df10f221dc1b8c155605dc7d0bc7",
+        "new-ship-art/ship-436-severe.png": "b52ef6b38efbac9a88255e3285d387b57d35879052f82ef1236b8b05fc27c8a3"
+      },
+      "profileSha256": "5c693fa05a4a5be846540e406d3d26a07aea8a3474dc86f982192ea6478827da"
+    },
+    {
+      "id": 437,
+      "name": "Delta Flyer",
+      "frames": {
+        "new-ship-art/ship-437.png": "5bfacff4908c1a84f60ab55567b3e0ebbfaf6bba53da289e505e8171b1dd4ae0",
+        "new-ship-art/ship-437-light.png": "2af8097608321e169a853765fc6b624e2c63f580648b6fa3e8f5b6b28f6adabb",
+        "new-ship-art/ship-437-heavy.png": "96c11b70bd79c30948d8a7f27dda2315a07c89af3fa752f56169acb46851de04",
+        "new-ship-art/ship-437-severe.png": "5773f4f74a9d8223197d5fbea565b4e6a86befdeb65cab1a6018a3f2aaa579cf"
+      },
+      "profileSha256": "4053c53898fc9b46f58b0afb6f696ad90613f23310562666463487d45f8fce39"
+    },
+    {
+      "id": 438,
+      "name": "Intrepid Class",
+      "frames": {
+        "new-ship-art/ship-438.png": "42347352ae6a77a3a1b1eec46757309c1896bae4b3bcf7db7c3ed4b484410acf",
+        "new-ship-art/ship-438-light.png": "2f76fee26ea59dbbc3eb76d405d9f0e42e50cdacbd17373cfc65744bcdb31777",
+        "new-ship-art/ship-438-heavy.png": "eefd998bd3866c3f05ac058e0222efe0deaf4c4913c5dd76566d9738298de1ed",
+        "new-ship-art/ship-438-severe.png": "be71d2740d5c0bf5c7f9a8455605f4c02a087c2a3c8d75da5bbf625ce9b837bd"
+      },
+      "profileSha256": "6f6962b777466190d1af4fe395b917de7fe1e68f4c987e0696434abd179bc028"
+    },
+    {
+      "id": 439,
+      "name": "U.S.S. Voyager NCC-74656",
+      "frames": {
+        "new-ship-art/ship-439.png": "9f8398c43dbb2d7a010898049b0d0a1ade6bad7dc8c94332884f331f2416bbd8",
+        "new-ship-art/ship-439-light.png": "c1bb4bbf7ac67bdd221394f0cf0a2f7ed21bc1f5df558ca7660c5c63a49a8d29",
+        "new-ship-art/ship-439-heavy.png": "daf3d50313fd230b7a2002a18677b652cb233b49e07bb1711f3edd3cb7dc1707",
+        "new-ship-art/ship-439-severe.png": "93cca7758ae7d63a855d31bd20dce8f0f426f0a75564d60891c3249fe64129d8"
+      },
+      "profileSha256": "269b6e469b5487a8fe067e0197a3878877096821f22e21fac56c9d366cd7034d"
+    },
+    {
+      "id": 440,
+      "name": "Picard's Ship - U.S.S. Enterprise NCC-1701-D",
+      "frames": {
+        "new-ship-art/ship-440.png": "39d6e0a4c70780ce346deecdf2a5e7a4a11d9a2d62991fb210dadab15c24a911",
+        "new-ship-art/ship-440-light.png": "148df4d0d023549bad81e428c60d02b6bd705bfd92a3e6b345c1475c7812e74e",
+        "new-ship-art/ship-440-heavy.png": "f0d0aaea25d4c7719b72a80da4eb5340d5101f58570413cafcbef73dd2388d4e",
+        "new-ship-art/ship-440-severe.png": "59168f463f97b26c2f16bd44a66a1398f0a29fad55fe8fd61710342ee0415985"
+      },
+      "profileSha256": "742cb70ffe746cf49af7b56d976d00f1f70a11f1a2a887d7985f2edc6e3027da"
+    },
+    {
+      "id": 441,
+      "name": "Sulu's Ship - U.S.S. Excelsior NCC-2000",
+      "frames": {
+        "new-ship-art/ship-441.png": "ea900af01f58e15805db6a9979e6b66fc18d9d9bd98d4f1234d856d1f39a32e8",
+        "new-ship-art/ship-441-light.png": "ddf21932c6442b5043887115bc04c0ff643be9d8ea8aa056947451b7422e8c51",
+        "new-ship-art/ship-441-heavy.png": "e13ea97c7cd6ee913e0bae9dff0c5820a187c58679a0001729cb33f2a009e67b",
+        "new-ship-art/ship-441-severe.png": "bd3531358ccdbc433bf5ae821be16685814f88ae6da15be1c3b69f8d011e9f2b"
+      },
+      "profileSha256": "6e6d073b5a8e10206a18addbac6e0ed75c1e2e2f83cc44fefc985453902bcc8f"
+    },
+    {
+      "id": 442,
+      "name": "U.S.S. São Paulo NCC-75633",
+      "frames": {
+        "new-ship-art/ship-442.png": "8220113e53a037db12ab76ca17c1d5816501de542b208a32ed35e9655fa0fc6d",
+        "new-ship-art/ship-442-light.png": "ce148b049875e962534446add3210dc505c01db8294ff1ec991889c0263ed4b9",
+        "new-ship-art/ship-442-heavy.png": "69f8b5091c5b2a0ec2a9e2ca8a1a6841e6675e4c72ebe3fe37303bf1e9a16b24",
+        "new-ship-art/ship-442-severe.png": "48032aed4e053ab3185dc9d4f882bd21c2e3cf10cae069b3e88575d8a19d1501"
+      },
+      "profileSha256": "7f53663bec6d13c7bf0f13f40fde7cef920e36da511685f9f77fd9fa2e870094"
+    },
+    {
+      "id": 443,
+      "name": "Defiant Class",
+      "frames": {
+        "new-ship-art/ship-443.png": "6ea82682c979dca4e102a95dd028d39ffb293dbe355949f271ed8812727afe62",
+        "new-ship-art/ship-443-light.png": "e3baa95765598f43a593cd011d6c8544d2d343b37ac8adc10a618868c5651213",
+        "new-ship-art/ship-443-heavy.png": "44303559c82b50876c993ce0c18c0196aadecadefe152bb722d850d7e7f8add9",
+        "new-ship-art/ship-443-severe.png": "4d5077840d93a32dd3e1ade0308d4420f5a208434d3727b358eeb1ab9b9a51af"
+      },
+      "profileSha256": "e4dffbb77ad49636ed9ccfd772582f3e5514499ae0c3a15629b339ec55f33eab"
+    },
+    {
+      "id": 444,
+      "name": "U.S.S. Defiant NX-74205",
+      "frames": {
+        "new-ship-art/ship-444.png": "7a15c55fa21fc43ad076822cd9f72e8543428fab3b02d9500fa166d70b79dfcc",
+        "new-ship-art/ship-444-light.png": "31ac6370ef11ce15a74ec9eaefd334db388c8536cfa2941d9b5672a7e303a3cd",
+        "new-ship-art/ship-444-heavy.png": "760f768f64412c735355dfcebf9aa60f88bcc086479ca6186f2d8b5b81298bc9",
+        "new-ship-art/ship-444-severe.png": "2c552ce7cdaf4503a879f71c92d5d8171bf15b8460a79ab734f173ee0eebcef2"
+      },
+      "profileSha256": "db0399ad99d574f54bc83ce81e8258bb776a95c96926b4c5c1f80fae23267b28"
+    },
+    {
+      "id": 445,
+      "name": "Sagan Class",
+      "frames": {
+        "new-ship-art/ship-445.png": "d12d29f82f1455214059904e20f1166e07797163f8494b040690f30f14dfe2b4",
+        "new-ship-art/ship-445-light.png": "9e560ef206fc367e4d217168a79abc7412067f86a1b5d9ba3bf712f4b3e8c73e",
+        "new-ship-art/ship-445-heavy.png": "d01a0979e2fb309390eda491fbd0d7b96abdf39098bd6c3524af807feef11e2b",
+        "new-ship-art/ship-445-severe.png": "7ba9bf4460271c896b25f3abe19043b380fefcfe107677235cc4d5bb51275a1e"
+      },
+      "profileSha256": "d687705cdf1b080ff92ae1f2837e104ddc4a619037f839e76e7443c3d43159eb"
+    }
+  ]
+}

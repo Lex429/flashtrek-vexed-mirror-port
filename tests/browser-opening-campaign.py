@@ -18,7 +18,7 @@ with sync_playwright() as p:
     assert initial['ready'],(errors,initial['renderer']['failures'],page.locator('.opening-status').inner_text())
     page.locator('[data-film-action=pause]').click()
     captures=[]
-    for label,t in [('earth',4),('raid-orion',10.9),('raid-vulcan',14.2),('annexation',22.3),('bombardment',27),('revolution',38.5),('klingons',49.2),('war',72.8),('wrecks',76.5),('aftermath',81),('resolve',90.8)]:
+    for label,t in [('earth',4),('raid-orion',10.9),('raid-vulcan',14.2),('annexation',22.3),('bombardment',27),('revolution',38.5),('cloaked',41),('decloaking',43.1),('klingons',49.2),('war',72.8),('wrecks',76.5),('aftermath',81),('resolve',90.8)]:
         page.evaluate('(t)=>nativeOpeningCinematic.seek(t)',t)
         page.wait_for_timeout(250)
         page.screenshot(path=str(OUT/(label+'.png')))
@@ -26,6 +26,8 @@ with sync_playwright() as p:
         print(json.dumps({'label':label,'stats':s['renderer']['campaign']['stats'],'actors':[(a['type'],round(a['hull']),round(a['shields'])) for a in s['renderer']['campaign']['actors']],'errors':errors}),flush=True)
     (OUT/'encounters.json').write_text(json.dumps(captures,indent=2),encoding='utf8')
     stats=captures[-1]['campaign']['stats']
+    cloaked=next(c for c in captures if c['label']=='cloaked')['campaign']
+    assert all(a['shields']==0 and a['cloak']>.99 for a in cloaked['actors'] if a['id'].startswith('film:opponent')),cloaked
     for key in ['shots','shieldHits','shieldCollapses','hullHits','disabled','destroyed','debrisShips','debrisAsteroids','worldHits']:assert stats[key]>0,(key,stats)
     war=next(c for c in captures if c['label']=='war')['campaign']
     hero=next(a for a in war['actors'] if a['id']=='film:imperial0')

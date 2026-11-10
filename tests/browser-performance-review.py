@@ -72,14 +72,15 @@ INSTALL=r"""() => {
   window.__reviewCounters=()=>({canvasAllocations:p.canvasAllocations,offscreenAllocations:p.offscreenAllocations,effectDraws:p.effectDraws,paints:p.paints,acceptedShots:p.acceptedShots||0,
     physicalDebrisAdmissions:p.physicalDebrisAdmissions,environmentalDebrisCalls:p.environmentalDebrisCalls,
     simulationSeconds:nativeSimulation.seconds(nativeNpcDev.getState()),pendingWork:window.nativeSimulationFrame?.pendingWork?.(nativeNpcDev.getState())||{steps:0,tasks:0,cpuMs:0,counters:{}},debris:nativeAsteroidCombat.metrics(),shipParticles:nativeShipEffects.snapshot().particles,asteroids:nativeSolAsteroids.metrics?.(),
-    life:__reviewLife(),sprite:nativeShipSpriteCache.snapshot(),effects:nativeShipEffects.metrics(),loader:vexedFlightAssets.cacheSnapshot?.(),queue:window.nativeDamageArtPreparation?.snapshot?.()});
+    corridorNearbyRocks:window.nativeTravelCorridors?nativeSolAsteroids.nearby(nativeNpcDev.getState().system,nativeNpcDev.getState().system===1?vexedSolFlight.shipPosition(nativeNpcDev.getState()):nativeNpcDev.getState(),500).filter(r=>r.corridor&&!nativeNpcDev.getState().minedAsteroids?.includes(r.slotId)&&!nativeNpcDev.getState().destroyedAsteroids?.includes(r.slotId)).length:0,
+    life:__reviewLife(),region:window.nativeShipDetail?.region?.(nativeNpcDev.getState())||null,save:nativeSaveStorage.metrics?.(),sprite:nativeShipSpriteCache.snapshot(),effects:nativeShipEffects.metrics(),loader:vexedFlightAssets.cacheSnapshot?.(),queue:window.nativeDamageArtPreparation?.snapshot?.()});
 }"""
 
 SCRIPTED_INPUT=r"""() => {
   const p=__renderReview,advance=p.originalAdvance||nativeCivilianTraffic.advance,start=nativeSimulation.seconds(nativeNpcDev.getState());p.originalAdvance=advance;
   let previous='';nativeCivilianTraffic.advance=function(state,dt){
     const elapsed=nativeSimulation.seconds(state)-start,phase=elapsed%10;
-    const desired=window.__reviewMode==='crowdedFlight'?(phase<2?'KeyD':phase<4?'KeyA':phase<4.25?'KeyW':phase<6?'ArrowDown':phase<8?'KeyD':'KeyA'):
+    const desired=['boundaryFlight','corridorFlight'].includes(window.__reviewMode)?'KeyW':window.__reviewMode==='crowdedFlight'?(phase<2?'KeyD':phase<4?'KeyA':phase<4.25?'KeyW':phase<6?'ArrowDown':phase<8?'KeyD':'KeyA'):
       phase<2?'KeyW':phase<4?'KeyD':phase<6?'KeyW':phase<8?'KeyA':'';
     if(desired!==previous){if(previous)document.dispatchEvent(new KeyboardEvent('keyup',{code:previous,bubbles:true}));
       if(desired)document.dispatchEvent(new KeyboardEvent('keydown',{code:desired,bubbles:true}));p.inputs.push({at:elapsed,code:desired});previous=desired;}
@@ -223,11 +224,13 @@ def main():
     parser.add_argument('--source-root',type=Path,default=ROOT)
     parser.add_argument('--label',required=True)
     parser.add_argument('--revision-label',default='working tree')
+    parser.add_argument('--browser-path',type=Path,help='Use an explicit installed browser in an isolated profile')
     parser.add_argument('--fixture',type=Path,default=ROOT/'test-results/performance-review/initial-save.json')
     parser.add_argument('--seconds',type=float,default=20)
     parser.add_argument('--runs',type=int,default=3)
     parser.add_argument('--cold-only',action='store_true')
     parser.add_argument('--warm-only',action='store_true')
+    parser.add_argument('--active-warmup',type=float,default=0,help='Record active startup/debt recovery separately before each steady gameplay window')
     parser.add_argument('--cold-types',default='35,49,59')
     parser.add_argument('--scenarios',default='flight,crowdedFlight,crowdedCombat,miningDebris,warp,devMap')
     parser.add_argument('--seed',type=int,default=4292026)
@@ -252,9 +255,9 @@ def main():
     report={'label':args.label,'revision':args.revision_label,'sourceRoot':str(source),'viewport':{'width':args.width,'height':args.height},'randomSeed':args.seed,
         'harnessHashes':{name:hashlib.sha256((ROOT/'tests'/name).read_bytes()).hexdigest() for name in ['browser-performance-review.py','browser-stability.py','browser-npc-performance.py']},
         'fixtureSettings':{'population':args.population,'visibleShips':args.visible_ships,'mixedShips':args.mixed_ships,'distantSystem':args.distant_system,'activeDistant':args.active_distant,'dpr':args.dpr},
-        'platform':platform.platform(),'secondsPerWindow':args.seconds,'runs':args.runs,'warmupSeconds':3,
+        'platform':platform.platform(),'secondsPerWindow':args.seconds,'runs':args.runs,'warmupSeconds':3,'activeWarmupSeconds':args.active_warmup,'warmups':{},
         'sourceHashes':{str(p.relative_to(source)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest()
-            for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for p in sorted([*(source/folder).glob('*.js'),*(source/folder).glob('*.html')])},
+            for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for p in sorted([*(source/folder).rglob('*.js'),*(source/folder).rglob('*.html')])},
         'scenarios':{},'cold':[],'incomplete':True,'passed':False,'captures':[],'captureErrors':[],'warnings':[], 'notes':['Full saved production fleet remains active. Crowd combat uses the existing12-provoked-NPC/high-player-health stress fixture. Inputs repeat by authoritative simulation time. No other benchmark/test workers should run concurrently; OS activity is uncontrolled.',
         'Canvas counts include main-document HTML and OffscreenCanvas construction, not browser internals or worker-private surfaces. Phase durations are wall times and can overlap; decode() timing is not total browser decoder CPU.',
         'Warmup loads artwork with simulation time frozen; animated phase caches start cold. spriteRebuilds is the complete animated-effect count; profile effectDraws can omit artwork loaded before instrumentation.',
@@ -283,8 +286,11 @@ def main():
     checkpoint('initializing')
     try:
         with sync_playwright() as playwright:
-            channel=os.environ.get('BROWSER_CHANNEL','msedge');browser=playwright.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
-            report.update(browserVersion=browser.version,channel=channel)
+            channel=os.environ.get('BROWSER_CHANNEL','msedge')
+            launch={'executable_path':str(args.browser_path.resolve())} if args.browser_path else ({'channel':channel} if channel else {})
+            browser=playwright.chromium.launch(headless=True,**launch)
+            report['browserExecutable']=str(args.browser_path.resolve()) if args.browser_path else None
+            report.update(browserVersion=browser.version,channel='explicit-executable' if args.browser_path else channel)
             session=browser.new_browser_cdp_session()
             report['graphics']=session.send('SystemInfo.getInfo')
             def page_open(warm=True):
@@ -382,19 +388,30 @@ def main():
                     report['scenarios'][mode]=[]
                     mode_saved=saved
                     descriptions={
-                        'flight':'Production 172-ship save with ordinary flight inputs.',
+                        'flight':'The complete provided production save with ordinary flight inputs.',
+                        'boundaryFlight':'The complete saved fleet with the player starting 100 world units before a chunk boundary, holding normal thrust across it.',
                         'crowdedFlight':'Twelve existing ships placed around the player without provocation; all other civilian lives retained.',
                         'crowdedCombat':'Twelve existing ships provoked with ordinary NPC statistics; high-health player stress fixture; all other civilian lives retained.',
                         'miningDebris':'Existing mining demo plus seeded nearby asteroid destruction every 1.8 simulation seconds; all civilian lives retained.',
                         'warp':'Existing repeated warp visual fixture with ordinary civilian simulation.',
-                        'devMap':'Dev map with ordinary civilian simulation and inspection.'}
+                        'devMap':'Dev map with ordinary civilian simulation and inspection.',
+                        'corridorFlight':'Ordinary manual flight along Sol?Orion through the persistent prospect fields; full saved fleet retained.'}
                     report.setdefault('scenarioFixtures',{})[mode]={'sourceSha256':hashlib.sha256(mode_saved.encode()).hexdigest(),
                         'description':descriptions[mode]}
                     for run in range(args.runs):
                         page=page_open()
                         page.evaluate('()=>{window.__reviewBlocked=nativeSimulation.blocked;window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
-                        population=setup(page,'flight' if mode=='crowdedFlight' else mode)
+                        population=setup(page,'flight' if mode in ['crowdedFlight','boundaryFlight','corridorFlight'] else mode)
                         page.evaluate('(mode)=>{window.__reviewMode=mode;}',mode)
+                        if mode=='boundaryFlight':page.evaluate('''()=>{const s=nativeNpcDev.getState(),region=nativeShipDetail.region(s),p=s.system===1?vexedSolFlight.shipPosition(s):s;
+                          if(!region)throw Error('Boundary gameplay requires the production active-area policy');
+                          nativeShipMotion.stop(s);delete s.localCruise;delete s.arrivalApproach;s.x+=(region.chunkX+1)*region.chunkSize-100-p.x;s.angle=0;
+                          nativeShipSystems.refreshShip(s,s,'player',s.system);}''')
+                        if mode=='corridorFlight':page.evaluate('''warm=>{const s=nativeNpcDev.getState();s.system=1;s.localBody=3;nativeShipMotion.stop(s);delete s.localCruise;delete s.arrivalApproach;
+                          const field={x:-5973.769903634428,y:-779.7608580380111},target=nativeManualFlight.planetPosition(2),angle=Math.atan2(target.y-field.y,target.x-field.x),profile=nativeShipMotion.profiles.manual(nativeShipDefinitions.forEntity(s,s,{category:'player'}));
+                          const elapsed=Math.max(0,warm+(s.shipSimulation.schedule.pendingSeconds||0)),accel=Math.min(elapsed,profile.maxSpeed/profile.acceleration),distance=.5*profile.acceleration*accel*accel+profile.maxSpeed*(elapsed-accel),p=vexedSolFlight.shipPosition(s);
+                          s.x+=field.x-Math.cos(angle)*distance-p.x;s.y+=field.y-Math.sin(angle)*distance-p.y;s.angle=angle;
+                          nativeShipSystems.refreshShip(s,s,'player',s.system);}''',args.active_warmup)
                         capacity_fixture=None
                         if mode=='crowdedFlight' and args.capacity_matrix:
                             capacity_fixture=page.evaluate(CAPACITY_SETUP,{'count':args.visible_ships,'mixed':args.mixed_ships})
@@ -407,9 +424,18 @@ def main():
                         page.wait_for_timeout(3000)
                         page.wait_for_function('()=>!nativeShipEffects.metrics().pending && !vexedFlightAssets.cacheSnapshot().ships.pending && !(nativeShipEffects.metrics().preparation?.pending)',timeout=120000)
                         if mode!='devMap':page.locator('#space').focus()
-                        if mode in ['flight','crowdedFlight'] and not args.stationary_observer:page.evaluate(SCRIPTED_INPUT)
+                        if mode in ['flight','crowdedFlight','boundaryFlight','corridorFlight'] and not args.stationary_observer:page.evaluate(SCRIPTED_INPUT)
                         if mode=='miningDebris':page.evaluate(DEBRIS_INPUT)
                         page.evaluate('()=>{__resetFixtureRandom();__reviewResetDebris();}')
+                        if args.active_warmup>0:
+                            warm_before=page.evaluate('()=>{const s=nativeNpcDev.getState();__stability.frames=[];__stability.longTasks=[];__stability.record=true;__renderReview.warmStarted=performance.now();const before={simulationSeconds:nativeSimulation.seconds(s),physicsDebtSeconds:s.shipSimulation.schedule.pendingSeconds};window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};nativeSimulationHost.checkpoint();return before;}')
+                            page.wait_for_timeout(args.active_warmup*1000)
+                            warm=page.evaluate('()=>{__stability.record=false;window.nativeSimulation={...nativeSimulation,blocked:()=>true};nativeSimulationHost.checkpoint();const s=nativeNpcDev.getState();return {actualSeconds:(performance.now()-__renderReview.warmStarted)/1000,simulationSeconds:nativeSimulation.seconds(s),physicsDebtSeconds:s.shipSimulation.schedule.pendingSeconds,frames:__stability.frames,longTasks:__stability.longTasks};}')
+                            warm_frames=warm.pop('frames');warm.update(run=run+1,before=warm_before,frameStatistics=summarize(warm_frames,warm['actualSeconds']))
+                            report['warmups'].setdefault(mode,[]).append(warm)
+                            (OUTPUT/f'{args.label}-{mode}-{run+1}-startup-frames.json').write_text(json.dumps(warm_frames),encoding='utf-8')
+                            checkpoint('active-startup-recorded',scenario=mode,run=run+1)
+                            page.evaluate('__reviewResetDebris()')
                         before=page.evaluate('__reviewCounters()')
                         if args.capacity_matrix:page.evaluate('()=>{__renderReview.capacity.frames=[];}')
                         page.evaluate('()=>{__stability.frames=[];__stability.longTasks=[];__stability.record=true;__renderReview.inputs=[];__renderReview.measureStarted=performance.now();window.nativeSimulation={...nativeSimulation,blocked:window.__reviewBlocked};window.nativeSimulationHost?.checkpoint();}')

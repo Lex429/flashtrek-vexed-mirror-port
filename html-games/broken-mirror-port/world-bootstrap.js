@@ -1,8 +1,14 @@
 /* Prepare real economic history before inserting a new captain. No artwork. */
 (() => {
   'use strict';
-  const fields=['shipSimulation','civilianTraffic','solEconomy','portDocking','shipRepairs','minedAsteroids','destroyedAsteroids','asteroidOreDrops','asteroidDamage','asteroidMotion','worldBootstrap'];
+  const fields=['shipSimulation','civilianTraffic','solEconomy','portDocking','shipRepairs','minedAsteroids','destroyedAsteroids','asteroidOreDrops','asteroidDamage','asteroidMotion','travelCorridors','worldBootstrap'];
   const copy=value=>JSON.parse(JSON.stringify(value));
+  // Include special hull profiles as well as starterShips. Workers need the
+  // exact source proportions, without importing painting/effect modules.
+  const artworkProfiles=()=>window.nativeShipDefinitions.registered().flatMap(definition=>{
+    const profile=window.nativeShipDefinitions.artworkProfile(definition.id);
+    return profile?[[definition.id,{width:profile.width,height:profile.height,displayRatio:profile.displayRatio}]]:[];
+  });
   let template=null,pending=null,lastError=null,geometryChecked=0;
   function initialize(state,seconds=45){
     if(state.worldBootstrap?.version===1||state.civilianTraffic)return state;
@@ -20,6 +26,12 @@
         window.nativeShipRepairs?.advance(state,1);
         window.nativeShipTraffic?.advance(state,1);window.nativeShipTraffic?.collide(state,1);
       }finally{window.nativeSimulationFrame?.end(state);}
+      // Startup is already on the economic worker. Finish its due jobs in
+      // bounded batches at this same clock, instead of handing flight a backlog.
+      if(window.nativeCivilianPopulation)for(let pass=0;window.nativeNpcLives.metrics(state).backlog>0&&pass<256;pass++){
+        window.nativeSimulationFrame?.begin(state);
+        try{window.nativeNpcLives.advance(state,1);}finally{window.nativeSimulationFrame?.end(state);}
+      }
     }
     const at=window.nativeSimulation.seconds(state);
     for(const ship of state.civilianTraffic.ships)if(ship.localLeg)window.nativeShipMotion.sampleLeg(ship,ship.localLeg,Math.min(at,ship.nextActionAt));
@@ -32,7 +44,7 @@
     if(pending)return pending;
     if(typeof Worker!=='function'||!window.nativeSystemHub?.sol)return Promise.resolve(null);
     pending=new Promise(resolve=>{
-      let worker;try{worker=new Worker('world-bootstrap-worker.js?v=sol-quality-20261025-2');}catch(error){lastError=String(error);resolve(null);return;}
+      let worker;try{worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2');}catch(error){lastError=String(error);resolve(null);return;}
       const timer=setTimeout(()=>{lastError='World preparation exceeded 30 seconds';worker.terminate();resolve(null);},30000);
       worker.onmessage=event=>{
         clearTimeout(timer);worker.terminate();
@@ -45,7 +57,7 @@
         resolve(template);
       };
       worker.onerror=event=>{lastError=event.message;clearTimeout(timer);worker.terminate();resolve(null);};
-      const profiles=[...(window.starterShips||new Map())].map(([id,p])=>[id,{width:p.width,height:p.height,displayRatio:p.displayRatio}]);
+      const profiles=artworkProfiles();
       worker.postMessage({seed:copy(seed),sol:copy(window.nativeSystemHub.sol),profiles:copy(profiles)});
     });
     return pending;
@@ -57,5 +69,49 @@
     return state;
   }
   const snapshot=state=>Object.fromEntries(fields.filter(k=>state[k]!==undefined).map(k=>[k,copy(state[k])]));
-  window.nativeWorldBootstrap=Object.freeze({initialize,prepare,apply,snapshot,ready:()=>!!template,diagnostics:()=>({ready:!!template,error:lastError,geometryChecked})});
+  // Observer proxies are runtime wrappers. Their owners expose the same full
+  // saved collections for native worker cloning, without a large JSON detour.
+  function transportState(state){
+    const result={...state},systems=window.nativeShipSystems,docking=window.nativePortDocking;
+    if(state.civilianTraffic)result.civilianTraffic={...state.civilianTraffic,ships:systems?.saveCollection?.(state.civilianTraffic,'ships')||state.civilianTraffic.ships};
+    if(state.solEconomy)result.solEconomy={...state.solEconomy,freighters:systems?.saveCollection?.(state.solEconomy,'freighters')||state.solEconomy.freighters};
+    if(state.portDocking)result.portDocking=docking?.saveData?.(state)||state.portDocking;
+    return result;
+  }
+  function planTravel(state,journey,{signal}={}){
+    if(typeof Worker!=='function')return Promise.resolve().then(()=>{if(signal?.aborted)throw Error('Travel preparation cancelled.');const planned=window.vexedTravelEvents.plan(state,journey);planned.calendar=window.nativeWorldTime.settleTransit(planned.next);return planned;});
+    return new Promise((resolve,reject)=>{
+      let worker,timer,capture,done=false;const rows=[];
+      const finish=(error,value)=>{if(done)return;done=true;capture?.cancel();clearTimeout(timer);signal?.removeEventListener('abort',abort);worker?.terminate();if(error)reject(error);else resolve(value);};
+      const abort=()=>finish(new Error('Travel preparation cancelled.'));
+      if(signal?.aborted){abort();return;}
+      try{
+        worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-warp-preparation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2');signal?.addEventListener('abort',abort,{once:true});
+        timer=setTimeout(()=>finish(new Error('Travel preparation timed out.')),45000);
+        worker.onerror=event=>finish(new Error(event.message||'Travel preparation failed.'));
+        worker.onmessage=event=>{
+          if(!event.data.ok){finish(new Error(event.data.error));return;}
+          if(event.data.part){for(const row of event.data.part)rows[row.id]=row;return;}
+          if(event.data.streamed){
+            window.nativeSaveSnapshot.restoreAsync(rows,event.data.root,{signal}).then(next=>finish(null,{next,report:event.data.report,calendar:event.data.calendar})).catch(error=>finish(error));return;
+          }
+          try{finish(null,event.data.planned||JSON.parse(event.data.plannedText));}catch(error){finish(error);}
+        };
+        const profiles=artworkProfiles();
+        const message={action:'travel',journey,sol:copy(window.nativeSystemHub.sol),profiles};
+        const direct=()=>{
+          try{worker.postMessage({...message,seed:transportState(state)});}
+          catch(error){if(error.name!=='DataCloneError')throw error;worker.postMessage({...message,text:JSON.stringify(state)});}
+        };
+        if(window.nativeSaveSnapshot?.capture&&window.nativeSaveSnapshot.restoreAsync){
+          capture=window.nativeSaveSnapshot.capture(state,{valid:()=>!done&&!signal?.aborted,
+            part:part=>worker.postMessage({action:'travel-part',rows:part}),
+            complete:root=>{if(!done)worker.postMessage({...message,root,streamed:true});},
+            failed:()=>{if(!done)try{direct();}catch(error){finish(error);}}
+          });
+        }else direct();
+      }catch(error){finish(error);}
+    });
+  }
+  window.nativeWorldBootstrap=Object.freeze({initialize,prepare,apply,snapshot,planTravel,transportState,ready:()=>!!template,diagnostics:()=>({ready:!!template,error:lastError,geometryChecked})});
 })();

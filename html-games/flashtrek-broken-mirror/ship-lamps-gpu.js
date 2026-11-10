@@ -32,6 +32,7 @@
   attach:(canvas,batch)=>owners.set(canvas,batch),detach:canvas=>owners.delete(canvas),
   supports:ctx=>window.nativeShipLampGPUEnabled!==false&&owners.get(ctx.canvas)?.active===true,
   queue:(ctx,...args)=>window.nativeShipLampGPUEnabled!==false&&owners.get(ctx.canvas)?.queue(ctx,...args)||false,
+  prepare:(space,...args)=>owners.get(space)?.prepare(...args)||Promise.resolve(false),
   snapshot:space=>owners.get(space)?.snapshot()||null,
   beginStandalone(ctx,enabled=true){
    if(window.vexedShieldGPU)return;
@@ -69,23 +70,43 @@
   for(const p of [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D_ARRAY,p,gl.LINEAR);
   for(const p of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D_ARRAY,p,gl.CLAMP_TO_EDGE);
   const viewport=gl.getUniformLocation(program,'viewport'),sampler=gl.getUniformLocation(program,'atlas');
-  const cache=new WeakMap(),templates=new WeakMap(),retained=[],scratch=document.createElement('canvas');scratch.width=scratch.height=CELL;
-  const g=scratch.getContext('2d'),stats={frames:0,drawCalls:0,ships:0,lamps:0,uploads:0,evictions:0,fallbacks:0,peakInstances:0};
-  let count=0,serial=0,active=false,disposed=false;
+  const cache=new WeakMap(),templates=new WeakMap(),retained=[],preparations=new WeakMap(),stats={frames:0,drawCalls:0,ships:0,lamps:0,uploads:0,evictions:0,fallbacks:0,coldFallbacks:0,peakInstances:0};
+  let count=0,serial=0,active=false,disposed=false,collecting=null;
   const identity={a:1,b:0,c:0,d:1,e:0,f:0};
   const templateContext={canvas:space,globalCompositeOperation:'source-over',filter:'none',shadowBlur:0,globalAlpha:1,getTransform:()=>identity};
   function layer(image,key,paint){
    let entries=cache.get(image);if(!entries){entries=new Map();cache.set(image,entries);}
    const hit=entries.get(key);if(hit){hit.serial=serial;return hit;}
+   if(collecting){let keys=collecting.seen.get(image);if(!keys)collecting.seen.set(image,keys=new Set());if(!keys.has(key)){keys.add(key);collecting.jobs.push({image,key,paint});}return {slot:0};}
+   // Painting never performs a cold readback/upload. Until preparation finishes,
+   // the ordinary Canvas lighting path paints the same lamps and pulse clock.
+   return null;
+  }
+  function* prepareLayer({image,key,paint}){
+   if(cache.get(image)?.has(key))return true;
+   const scratch=document.createElement('canvas');scratch.width=scratch.height=CELL;
+   const g=scratch.getContext('2d',{willReadFrequently:true});paint(g);yield 'lighting:paint';
+   const pixels=window.nativeDamageArtPreparation?.pixels;let rgba;
+   if(pixels?.readAsync){
+    for(;;){try{rgba=yield pixels.readAsync(scratch);break;}catch(error){
+     if(/staging capacity is full/.test(error.message)){yield new Promise(resolve=>setTimeout(resolve,16));continue;}
+     break;
+    }}
+   }
+   if(!rgba)rgba=pixels?yield* pixels.read(g,CELL,CELL):g.getImageData(0,0,CELL,CELL);
+   if(disposed||gl.isContextLost())return false;
+   let entries=cache.get(image);if(!entries)cache.set(image,entries=new Map());
+   // Another preparation may have filled this recipe while readback waited.
+   if(entries.has(key))return true;
    let slot=retained.length;
    if(slot>=layers){slot=-1;for(let i=0;i<layers;i++)if(retained[i].serial!==serial&&(slot<0||retained[i].serial<retained[slot].serial))slot=i;
     if(slot<0)return null;const old=retained[slot],owner=old.image.deref();if(owner)cache.get(owner)?.delete(old.key);stats.evictions++;}
-   g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.filter='none';g.clearRect(0,0,CELL,CELL);paint(g);
    gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D_ARRAY,texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
-   gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,slot,CELL,CELL,1,gl.RGBA,gl.UNSIGNED_BYTE,scratch);
+   gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,slot,CELL,CELL,1,gl.RGBA,gl.UNSIGNED_BYTE,rgba.data);
    const entry={slot,key,serial,image:new WeakRef(image)};entries.set(key,entry);retained[slot]=entry;stats.uploads++;return entry;
   }
   function emit(m,x,y,w,h,core,glow,pulse,gain,mode,bloom,opacity,light){
+   if(collecting)return true;
    if(count>=LIMIT)return false;
    const o=count++*STRIDE;data[o]=m.a;data[o+1]=m.b;data[o+2]=m.c;data[o+3]=m.d;
    data[o+4]=m.a*x+m.c*y+m.e;data[o+5]=m.b*x+m.d*y+m.f;data[o+6]=w;data[o+7]=h;
@@ -96,7 +117,7 @@
    data[o+20]=light?.x||0;data[o+21]=light?.y||0;data[o+22]=light?.bright||0;data[o+23]=0;return true;
   }
   function queue(ctx,asset,w,h,time,appearance={}){
-   if(!active||disposed||gl.isContextLost()||ctx.canvas!==space||asset.damageStage!==0||asset.repairSurface||appearance.kind||appearance.lights===false||window.nativeFlightLightingEnabled===false)return false;
+   if(!active&&!collecting||disposed||gl.isContextLost()||ctx.canvas!==space||asset.damageStage!==0||asset.repairSurface||appearance.kind||appearance.lights===false||window.nativeFlightLightingEnabled===false)return false;
    const effects=asset.profile?.effects;if(!effects||!effects.forEachLamp&&!effects.forEachLightPrimitive)return false;
    if(ctx.globalCompositeOperation!=='source-over'||ctx.shadowBlur||(ctx.filter&&ctx.filter!=='none'))return false;
    const m=ctx.getTransform(),sx=appearance.templateSX??Math.hypot(m.a,m.b),sy=appearance.templateSY??Math.hypot(m.c,m.d),before=count;
@@ -121,7 +142,7 @@
     count+=instances;
     const light=appearance.localLight;
     if(light){const entry=layer(asset.art,'sun',g=>g.drawImage(asset.art,0,0,CELL,CELL)),extent=Math.max(asset.width,asset.height);
-     if(!entry){count=before;stats.fallbacks++;return false;}
+     if(!entry){count=before;stats.coldFallbacks++;prepare(asset,w,h,{...appearance,templateSX:sx,templateSY:sy}).catch(()=>{});return false;}
      emit(m,0,0,w,h,entry.slot,entry.slot,1,1,2,0,opacity,{...light,x:Math.cos(light.direction)*asset.width/extent,y:Math.sin(light.direction)*asset.height/extent});}
     stats.ships++;stats.lamps+=count-before;return true;
    }
@@ -130,7 +151,7 @@
     const pad=Math.ceil(4*bloom*2*3),cw=rw+pad*2,ch=rh+pad*2,key=[rw,rh,gain,bloom].join(':');
     const core=layer(textures.lit,'core:'+key,g=>g.drawImage(textures.lit,pad/cw*CELL,pad/ch*CELL,rw/cw*CELL,rh/ch*CELL));
     const glow=layer(textures.lit,'glow:'+key,g=>{
-     const c=document.createElement('canvas');c.width=cw;c.height=ch;const b=c.getContext('2d');
+     const c=document.createElement('canvas');c.width=cw;c.height=ch;const b=c.getContext('2d',{willReadFrequently:true});
      b.filter=`brightness(${gain}) blur(${4*bloom*2}px)`;b.drawImage(textures.lit,pad,pad,rw,rh);g.drawImage(c,0,0,CELL,CELL);
     });
     ok=!!core&&!!glow&&emit(m,(p.left+p.w/2)/pw*w-w/2,(p.top+p.h/2)/ph*h-h/2,cw/(2*sx),ch/(2*sy),core.slot,glow.slot,pulse,gain,0,bloom,opacity);
@@ -142,8 +163,20 @@
    const light=appearance.localLight;
    if(ok&&light){const entry=layer(asset.art,'sun',g=>g.drawImage(asset.art,0,0,CELL,CELL)),extent=Math.max(asset.width,asset.height);
     ok=!!entry&&emit(m,0,0,w,h,entry.slot,entry.slot,1,1,2,0,opacity,{...light,x:Math.cos(light.direction)*asset.width/extent,y:Math.sin(light.direction)*asset.height/extent});}
-   if(!ok){count=before;stats.fallbacks++;return false;}
+   if(!ok){count=before;stats.coldFallbacks++;prepare(asset,w,h,{...appearance,templateSX:sx,templateSY:sy}).catch(()=>{});return false;}
    return true;
+  }
+  function prepare(asset,w,h,appearance={}){
+   if(disposed||gl.isContextLost()||asset.damageStage!==0)return Promise.resolve(false);
+   const sx=appearance.templateSX??appearance.scale??1,sy=appearance.templateSY??appearance.scale??1,key=[w,h,sx,sy,appearance.lightGain??2.8,appearance.lightBloom??2.5,!!appearance.localLight].join(':');
+   let groups=preparations.get(asset);if(!groups)preparations.set(asset,groups=new Map());if(groups.has(key))return groups.get(key);
+   const batch={jobs:[],seen:new WeakMap()},before=count;collecting=batch;
+   try{queue(templateContext,asset,w,h,0,{...appearance,lampTemplate:true,templateSX:sx,templateSY:sy});}finally{collecting=null;count=before;}
+   if(!batch.jobs.length)return Promise.resolve(true);
+   const iterator=(function*(){for(const job of batch.jobs){if(disposed||gl.isContextLost())return false;if(!(yield* prepareLayer(job)))return false;yield 'lighting:atlas';}return true;})();
+   const run=window.nativeDamageArtPreparation?.run;
+   const promise=(run?run(iterator,{priority:1,label:'lighting:atlas'}):new Promise((resolve,reject)=>{const next=()=>{try{const value=iterator.next();if(value.done)resolve(value.value);else setTimeout(next,0);}catch(error){reject(error);}};setTimeout(next,0);})).finally(()=>groups.delete(key));
+   groups.set(key,promise);return promise;
   }
   function render(){
    active=false;if(!count||disposed)return 0;
@@ -152,7 +185,7 @@
    gl.bufferSubData(gl.ARRAY_BUFFER,0,data,0,count*STRIDE);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.drawArraysInstanced(gl.TRIANGLES,0,6,count);
    stats.drawCalls++;stats.peakInstances=Math.max(stats.peakInstances,count);return count;
   }
-  const api=Object.freeze({queue,render,begin(enabled){serial++;count=0;active=enabled&&!disposed;stats.frames++;},get active(){return active&&!disposed&&!gl.isContextLost();},
+  const api=Object.freeze({queue,prepare,render,begin(enabled){serial++;count=0;active=enabled&&!disposed;stats.frames++;},get active(){return active&&!disposed&&!gl.isContextLost();},
    snapshot:()=>({...stats,lastInstances:count,layers:retained.length,textureBytes:CELL*CELL*layers*4,bufferBytes:data.byteLength,limits:{instances:LIMIT,layers}}),
    destroy(){if(disposed)return;disposed=true;active=false;owners.delete(space);gl.deleteProgram(program);gl.deleteBuffer(quad);gl.deleteBuffer(buffer);gl.deleteTexture(texture);gl.deleteVertexArray(vao);retained.length=0;}
   });owners.set(space,api);return api;

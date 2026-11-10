@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 import threading
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'test-results' / 'manual-repair'
@@ -28,6 +28,35 @@ try:
         page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
         page.evaluate('startNativeDevGame()')
         page.wait_for_function('()=>nativeNpcDev.getState() && nativeSolAsteroids.placements.length', timeout=120000)
+        # The real Dev Repair button must recover disabled/destroyed hulls too.
+        page.evaluate("""()=>{
+          window.__devRepairState=nativeNpcDev.getState();
+          window.nativeSimulation={...nativeSimulation,blocked:()=>true};nativeSimulationHost.checkpoint();
+          const s=__devRepairState,eq=nativeShipEquipment.ensure(s),shield=nativeShipEquipment.grant(s,'advanced-shield').instance;
+          const result=nativeShipEquipment.move(s,{category:'shield',fromType:'locker',fromIndex:eq.locker.indexOf(shield.id),toType:'slot',toIndex:0});
+          if(!result.ok)throw Error(result.error);
+          Object.assign(s,{latinum:0,deuranium:0,landed:false,localCruise:null,arrivalApproach:null});
+        }""")
+        dev_repairs=[]
+        for phase,hull in [('flight',30),('disabled',10),('destroyed',0)]:
+            before=page.evaluate("""value=>{
+              const s=__devRepairState;Object.assign(s,{phase:value.phase,hull:value.hull,shields:0});
+              nativeShipSystems.refreshShip(s,s,'player');
+              const d=nativeShipDefinitions.forEntity(s);
+              return {hull:d.hull,shields:d.shields,equipment:JSON.stringify(s.shipEquipment)};
+            }""",{'phase':phase,'hull':hull})
+            page.locator('#repairBtn').click()
+            result=page.evaluate("""()=>{
+              const s=__devRepairState,saved=nativeSaveStorage.read('dev');
+              return {hull:s.hull,shields:s.shields,phase:s.phase,latinum:s.latinum,deuranium:s.deuranium,
+                equipment:JSON.stringify(s.shipEquipment),savedHull:saved.hull,savedShields:saved.shields,savedPhase:saved.phase};
+            }""")
+            assert result['hull']==result['savedHull']==before['hull'],result
+            assert result['shields']==result['savedShields']==before['shields'],result
+            assert result['phase']==result['savedPhase']=='flight',result
+            assert result['latinum']==result['deuranium']==0,result
+            assert result['equipment']==before['equipment'],'Dev repair changed owned equipment'
+            dev_repairs.append({'from':phase,'hull':result['hull'],'shields':result['shields'],'saved':True})
         page.evaluate("""()=>{
           const s=JSON.parse(JSON.stringify(nativeNpcDev.getState()));
           Object.assign(s,{devMode:false,captain:'Inventory regression',shipName:'USS Danube',shipType:7,system:1,localBody:3,
@@ -37,6 +66,16 @@ try:
           const restore=nativeCombatShots.restore;nativeCombatShots.restore=function(s){window.__inventoryState=s;return restore(s);};
           nativeSaveStorage.write(s);resumeNativeGame('normal');window.nativeSimulation={...nativeSimulation,blocked:()=>true};
         }""")
+        normal_vitals=page.evaluate('()=>{const s=__inventoryState;return {phase:s.phase,hull:s.hull,shields:s.shields,latinum:s.latinum,deuranium:s.deuranium};}')
+        # Disabled-hull Repair now starts an owned DOT mission; the engine-failure
+        # browser regression follows that mission through restored flight input.
+        for phase,hull,money,material in [('flight',30,10000,12),('destroyed',0,10000,12),('flight',30,0,0)]:
+            page.evaluate('v=>{Object.assign(__inventoryState,v);nativeShipSystems.refreshShip(__inventoryState,__inventoryState,"player");}',{'phase':phase,'hull':hull,'shields':0,'latinum':money,'deuranium':material})
+            page.locator('#repairBtn').click()
+            actual=page.evaluate('()=>{const s=__inventoryState;return {phase:s.phase,hull:s.hull,shields:s.shields,latinum:s.latinum,deuranium:s.deuranium};}')
+            allowed=phase=='flight' and money>=40 and material>=10
+            assert actual=={'phase':phase,'hull':43 if allowed else hull,'shields':13 if allowed else 0,'latinum':money-40 if allowed else money,'deuranium':material-10 if allowed else material},actual
+        page.evaluate('v=>{Object.assign(__inventoryState,v);nativeShipSystems.refreshShip(__inventoryState,__inventoryState,"player");}',normal_vitals)
         page.locator('#inventoryBtn').click()
         page.wait_for_selector('#ship-inventory canvas.ready')
 
@@ -60,10 +99,13 @@ try:
         assert page.locator('#inventory-deploy-status').inner_text()=='No repair deuranium'
         page.evaluate("()=>{__inventoryState.deuranium=12;nativeShipInventory.refresh();}")
         dot=page.locator('[data-equipment-kind="repairDrone"][data-equipment-place="slot"]')
-        dot.drag_to(page.locator('[data-inventory-cell="23"]'))
+        page.wait_for_selector('#ship-inventory canvas.ready')
+        storage_cell=page.locator('[data-inventory-cell]').last.get_attribute('data-inventory-cell')
+        stored_dot=page.locator(f'[data-inventory-cell="{storage_cell}"]')
+        dot.drag_to(stored_dot)
         assert deploy.is_disabled()
         assert page.locator('#inventory-deploy-status').inner_text()=='No DOTs equipped'
-        page.locator('[data-inventory-cell="23"]').drag_to(dot)
+        stored_dot.drag_to(dot)
         assert deploy.is_enabled()
         page.evaluate("()=>{__inventoryState.repairBay.slots[0].hull=0;nativeShipInventory.refresh();}")
         assert deploy.is_disabled()
@@ -76,7 +118,21 @@ try:
                 page.set_viewport_size({'width':width,'height':height})
                 if width<=760:page.locator('[data-inventory-view="loadout"]').click()
                 assert page.locator('.inventory-dot-slot').count()==count
-                fits=page.evaluate("""()=>{const panel=document.querySelector('.inventory-loadout').getBoundingClientRect();return [...document.querySelectorAll('.inventory-slot,.inventory-vitals,[data-deploy-repair-drones],[data-repair-mode]')].filter(el=>el.getClientRects().length).every(el=>{const r=el.getBoundingClientRect();return r.top>=panel.top-1&&r.bottom<=panel.bottom+1&&r.left>=panel.left-1&&r.right<=panel.right+1;});}""")
+                # Viewport changes schedule measured bay pagination on RAF.
+                # Check the settled layout rather than the preceding frame's bays.
+                fit_script="""()=>{const panel=document.querySelector('.inventory-loadout').getBoundingClientRect();return [...document.querySelectorAll('.inventory-slot,.inventory-vitals,[data-deploy-repair-drones],[data-repair-mode],[data-request-distress]')].filter(el=>el.getClientRects().length).every(el=>{const r=el.getBoundingClientRect();return r.top>=panel.top-1&&r.bottom<=panel.bottom+1&&r.left>=panel.left-1&&r.right<=panel.right+1;});}"""
+                try:
+                    page.wait_for_function(fit_script,timeout=5000)
+                    fits=True
+                except PlaywrightTimeoutError:
+                    fits=False
+                if not fits:
+                    page.screenshot(path=str(OUTPUT/'layout-overflow.png'))
+                    print(json.dumps(page.evaluate("""()=>{
+                      const panel=document.querySelector('.inventory-loadout');
+                      return {panel:panel.getBoundingClientRect().toJSON(),scrollHeight:panel.scrollHeight,
+                        controls:[...panel.querySelectorAll('.inventory-drone-controls,.inventory-drone-controls>*,.inventory-vitals')].filter(e=>e.getClientRects().length).map(e=>({label:e.textContent,bounds:e.getBoundingClientRect().toJSON()}))};
+                    }""")),flush=True)
                 assert fits,(hull,width,height)
         page.evaluate("()=>{nativeShipEquipment.changeHull(__inventoryState,7);__inventoryState.hull=40;nativeShipInventory.refresh();}")
         page.screenshot(path=str(OUTPUT/'deploy-ready-mobile.png'))
@@ -149,7 +205,7 @@ try:
         assert page.evaluate('__inventoryState.shipRepairs.missions.filter(m=>m.carrier.category==="player").length')==count
         assert page.evaluate('nativeShipRepairs.playerDronesDeployed(__inventoryState)') is False
         assert not errors,errors
-        report={'passed':True,'buttonEligibility':True,'realClickLaunchesOwnedDrones':True,'pauseStopsRepairs':True,'midwayReload':True,'exactMaterialCost':True,'desktopAndMobileFit':True,'modeTogglePersists':True,'autoStartsOnDamage':True,'activeJobFinishesAfterManualSwitch':True,'manualBlocksDisabledLaunch':True,'javascriptErrors':errors}
+        report={'passed':True,'devRepairs':dev_repairs,'normalRepairRules':True,'buttonEligibility':True,'realClickLaunchesOwnedDrones':True,'pauseStopsRepairs':True,'midwayReload':True,'exactMaterialCost':True,'desktopAndMobileFit':True,'modeTogglePersists':True,'autoStartsOnDamage':True,'activeJobFinishesAfterManualSwitch':True,'manualBlocksDisabledLaunch':True,'javascriptErrors':errors}
         (OUTPUT/'report.json').write_text(json.dumps(report,indent=2))
         print(json.dumps(report))
         browser.close()

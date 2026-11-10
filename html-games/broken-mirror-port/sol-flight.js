@@ -9,6 +9,7 @@
   const retryAfter = new Map();
   const sizes = {0:266, 1:87, 2:147, 3:180, 4:67, 5:119, 6:147, 7:231, 8:217, 9:157, 10:154, 11:56};
   const requested = new Set();
+  const pendingArt=new Map();
   let targetId = 3;
 
   function shipPosition(state) {
@@ -54,8 +55,21 @@
     }
     return window.vexedFlightAssets.localBody(id);
   }
+  function prepareArt(id,system=1){
+    const body=forSystem(system).find(body=>body.id===Number(id));
+    if(!body)return Promise.reject(new Error('Unknown arrival body.'));
+    const local=system===1&&id>0&&id<12,key=system+':'+id;
+    const cached=local?window.vexedFlightAssets.localBody(id):artwork.get(body.art);
+    if(cached)return Promise.resolve(cached);
+    if(pendingArt.has(key))return pendingArt.get(key);
+    const promise=(local?window.vexedFlightAssets.loadLocalBody(id):window.vexedFlightAssets.loadImage(body.art)).then(image=>{
+      if(!local){while(artwork.size>=8)artwork.delete(artwork.keys().next().value);artwork.set(body.art,image);}
+      return image;
+    }).finally(()=>pendingArt.delete(key));
+    pendingArt.set(key,promise);return promise;
+  }
   function nearestArrival(state) {
-    if (state.localCruise || state.landed) return null;
+    if (state.localCruise || state.arrivalApproach || state.landed) return null;
     const ship = shipPosition(state);
     let nearest = null, distance = Infinity;
     for (const body of forSystem(state)) {
@@ -68,5 +82,5 @@
     return nearest;
   }
   function setTarget(id,system=1) { if (forSystem(system).some(body=>body.id===Number(id))) targetId = Number(id); }
-  window.vexedSolFlight = {bodies,forSystem,shipPosition,bodyPosition,visibleBodies,bodySize,art,nearestArrival,setTarget,get targetId(){return targetId},get artCacheSize(){return artwork.size}};
+  window.vexedSolFlight = {bodies,forSystem,shipPosition,bodyPosition,visibleBodies,bodySize,art,prepareArt,nearestArrival,setTarget,get targetId(){return targetId},get artCacheSize(){return artwork.size}};
 })();

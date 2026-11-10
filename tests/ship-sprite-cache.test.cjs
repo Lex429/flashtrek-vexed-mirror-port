@@ -102,6 +102,35 @@ test('lit healthy NPCs retain 20Hz while players, damage and warp retain 60Hz',(
   }
 });
 
+test('warp camera zoom reuses one maximum-size raster while shared lighting stays at 60Hz',()=>{
+  const {cache,ctx,asset,effects,canvases}=fixture(),ratio=asset.height/asset.width;
+  const appearance={kind:'cruise',rasterWidth:100,rasterHeight:100*ratio,effectRate:60};
+  for(let frame=0;frame<60;frame++){
+    const width=7.2+(100-7.2)*frame/59;
+    assert.equal(cache.draw(ctx,asset,width,width*ratio,frame*1000/60+.01,appearance),true);
+  }
+  const ready=cache.snapshot();
+  assert.equal(ready.counters.spriteMisses,1);assert.equal(ready.counters.compositionMisses,1);
+  assert.equal(canvases.length,2);assert.equal(ready.counters.evictions,0);assert.equal(effects.length,60);
+  assert.ok(ready.bytes<=ready.limits.bytes);
+  // A resize invalidates the actual raster once; subsequent camera zooms reuse it.
+  ctx.getTransform=()=>({a:2,b:0,c:0,d:2});
+  for(const width of [100,75,20,100])cache.draw(ctx,asset,width,width*ratio,1000,appearance);
+  assert.equal(cache.snapshot().counters.spriteMisses,2);assert.equal(canvases.length,4);
+  assert.equal(effects.length,61,'Paused display-size changes cannot replay the lights');
+  // Other callers retain their ordinary size-dependent cache contract.
+  cache.draw(ctx,asset,20,20*ratio,1000,{rasterWidth:100});
+  cache.draw(ctx,asset,40,40*ratio,1000,{rasterWidth:100});
+  assert.equal(cache.snapshot().counters.spriteMisses,4);
+});
+test('charging nacelles update their shared effect surface without growing the cache or leaking into another appearance',()=>{
+ const {cache,ctx,asset,effects,canvases}=fixture(),appearance={kind:'charging',effectRate:60,nacelleCharge:0};
+ for(const nacelleCharge of [0,.25,.5,.75,1,0])cache.draw(ctx,asset,40,60,1000,{...appearance,nacelleCharge});
+ assert.equal(canvases.length,2);assert.equal(cache.snapshot().counters.spriteMisses,1);assert.equal(effects.length,6);
+ assert.deepEqual(effects.map(args=>args[5].nacelleCharge),[0,.25,.5,.75,1,0]);
+ cache.draw(ctx,asset,40,60,1000,appearance);assert.equal(effects.length,6);
+});
+
 test('direct lit previews retain 60Hz without requiring a player-only caller flag',()=>{
   const {cache,ctx,asset,effects}=fixture();
   for(let i=0;i<60;i++)cache.draw(ctx,asset,68,110,i*1000/60+.01,

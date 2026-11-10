@@ -57,12 +57,15 @@ try:
           function fresh(){
             nativeShipEffects.reset();nativeCombatShots.reset();nativeEnvironmentalImpacts.reset();
             const s=copy(original);Object.assign(s,{system:1,x:10000,y:10000,speed:0,vx:0,vy:0,hull:1000,shields:1000,landed:false,localCruise:null,arrivalApproach:null});
-            s.civilianTraffic.ships=[];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.solEconomy.freighters=[];return s;
+            s.civilianTraffic.ships=[];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.solEconomy.freighters=[];
+            // Contact fixtures live at the origin, inside the observer's active
+            // buffer. They may be off camera while keeping physical simulation.
+            const observer=vexedSolFlight.shipPosition(s);s.x-=observer.x;s.y+=700-observer.y;return s;
           }
           function putPlayer(s,x,y){const p=vexedSolFlight.shipPosition(s);s.x+=x-p.x;s.y+=y-p.y;}
           function put(s,category,id,x,heading,shielded){
             const e=category==='player'?s:copy(templates[category]);
-            for(const k of ['localLeg','lifeLeg','journey','disputeId','retaliationId','motionKick','scriptedDemo','dockingMove'])delete e[k];
+            for(const k of ['localLeg','lifeLeg','journey','disputeId','retaliationId','motionKick','motionSpin','motionTime','trafficControl','scriptedDemo','dockingMove'])delete e[k];
             Object.assign(e,{id,system:1,phase:category==='tug'?'waiting':'docked',heading,angle:heading,dimensions:{width:30,height:60},hull:1000,shields:shielded?1000:0,speed:id===1?100:0,vx:id===1?100:0,vy:0,credits:1200,cargo:{good:5,tons:4}});
             if(category==='player')putPlayer(s,x,0);else{e.x=x;e.y=0;(category==='tug'?s.solEconomy.freighters:s.civilianTraffic.ships).push(e);}
             e.previousX=x-(id===1?40:0);e.previousY=0;return e;

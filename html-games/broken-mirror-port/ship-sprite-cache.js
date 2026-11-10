@@ -195,10 +195,16 @@
     // Every profiled ship is supersampled at 2x its actual screen size.
     // Rotation reuses the same raster; squeeze affects raster size.
     const quality=asset.profile||warp||light?2:1;
-    const requestedWidth=width*sx*quality,requestedHeight=height*sy*quality;
+    // A cinematic camera can change presentation size while retaining the
+    // largest shared raster. Live effects keep their ordinary 60-Hz clock.
+    const fixedRaster=warp&&Number.isFinite(appearance.rasterWidth)&&appearance.rasterWidth>0;
+    const rasterWidth=fixedRaster?appearance.rasterWidth:width;
+    const rasterHeight=fixedRaster?(Number.isFinite(appearance.rasterHeight)&&appearance.rasterHeight>0?appearance.rasterHeight:height*rasterWidth/width):height;
+    const requestedWidth=rasterWidth*sx*quality,requestedHeight=rasterHeight*sy*quality;
     const rasterScale=Math.min(1,768/Math.max(requestedWidth,requestedHeight));
     const rw=Math.max(1,Math.round(requestedWidth*rasterScale)),rh=Math.max(1,Math.round(requestedHeight*rasterScale));
-    const pad=warp?Math.ceil(32*Math.max(rw/asset.width,rh/asset.height)):
+    const chargeCapable=appearance.nacelleCharge!==undefined;
+    const pad=warp?Math.ceil(Math.max(32*Math.max(rw/asset.width,rh/asset.height),chargeCapable?64:0)):
       Math.ceil(Math.max(32*quality,Math.max(rw,rh)*.35));
     const cw=rw+pad*2,ch=rh+pad*2,area=cw*ch;
     if(area*(gpu?1:2)>maxPixels){counters.rejected++;return false;}
@@ -208,7 +214,7 @@
     // their established 60Hz default, as do player, damaged and warp effects.
     // Keep rates in the key when a player and an NPC share the same artwork.
     const rate=asset.damageStage>0||warp||appearance.effectRate===60||(light&&appearance.effectRate!==20)?60:20;
-    const key=[identity(asset),rw,rh,lights,damage,gain,bloom,warp?'warp':'local',rate,gpu?'gpu':'canvas'].join(':');
+    const key=[identity(asset),rw,rh,lights,damage,gain,bloom,warp?'warp':'local',rate,gpu?'gpu':'canvas',chargeCapable?'charge':'ordinary'].join(':');
     let entry=sprites.get(key);
     if(!entry){
       const started=performance.now();
@@ -218,7 +224,8 @@
         fullBounds:{x:0,y:0,width:cw,height:ch},bounds:null};sprites.set(key,entry);pixels+=area;
       counters.spriteMisses++;counters.spriteBuildMs+=performance.now()-started;
     }else{counters.spriteHits++;entry.stamp=++stamp;sprites.delete(key);sprites.set(key,entry);}
-    const frame=Math.floor((Number.isFinite(time)?time:0)*rate/1000),animated=entry.frame!==frame;
+    const charge=Math.round(Math.max(0,Math.min(1,Number(appearance.nacelleCharge)||0))*32)/32;
+    const frame=Math.floor((Number.isFinite(time)?time:0)*rate/1000),animated=entry.frame!==frame||entry.charge!==charge;
     if(animated){
       const started=performance.now(),g=entry.effectsCtx;
       g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,cw,ch);
@@ -226,8 +233,8 @@
       const ew=warp?asset.width:width,eh=warp?asset.height:height;
       g.scale(rw/ew,rh/eh);
       asset.profile?.effects.draw(g,{x:0,y:0,w:ew,h:eh},0,asset.damageStage,frame*1000/rate,
-        {lights,damage,lightGain:gain,lightBloom:bloom,rasterScale:warp?Math.min(rw/asset.width,rh/asset.height):quality*rasterScale});
-      g.restore();entry.frame=frame;counters.spriteRebuilds++;const elapsed=performance.now()-started;counters.effectBuildMs+=elapsed;counters.spriteBuildMs+=elapsed;
+        {lights,damage,lightGain:gain,lightBloom:bloom,nacelleCharge:charge,rasterScale:warp?Math.min(rw/asset.width,rh/asset.height):quality*rasterScale});
+      g.restore();entry.frame=frame;entry.charge=charge;counters.spriteRebuilds++;const elapsed=performance.now()-started;counters.effectBuildMs+=elapsed;counters.spriteBuildMs+=elapsed;
     }
     const px=pad*width/rw,py=pad*height/rh;
     if(gpu){
@@ -247,13 +254,13 @@
       const released=[];while(compositions.size>=maxCompositions)discardComposition(compositions.keys().next().value,released);makeRoom(area,released);
       const canvas=surface(cw,ch,released);composed={canvas,ctx:canvas.getContext('2d'),frame:-1,shadeKey:null,pixels:area,stamp:++stamp};compositions.set(compositionKey,composed);pixels+=area;counters.compositionMisses++;
     }else{composed.stamp=++stamp;compositions.delete(compositionKey);compositions.set(compositionKey,composed);counters.compositionHits++;}
-    if(composed.frame!==frame||composed.shadeKey!==compositeShade){
+    if(composed.frame!==frame||composed.shadeKey!==compositeShade||composed.charge!==charge){
       const started=performance.now(),g=composed.ctx;
       g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,cw,ch);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
       g.drawImage(asset.art,pad,pad,rw,rh);
       if(shade&&!warp)g.drawImage(shade.canvas,pad,pad,rw,rh);
       g.drawImage(entry.effects,0,0);
-      composed.frame=frame;composed.shadeKey=compositeShade;counters.spriteCompositions++;counters.compositionTargetPixels+=area;const elapsed=performance.now()-started;counters.compositionBuildMs+=elapsed;counters.spriteBuildMs+=elapsed;
+      composed.frame=frame;composed.charge=charge;composed.shadeKey=compositeShade;counters.spriteCompositions++;counters.compositionTargetPixels+=area;const elapsed=performance.now()-started;counters.compositionBuildMs+=elapsed;counters.spriteBuildMs+=elapsed;
     }
     if(bounds.x===0&&bounds.y===0&&bounds.width===cw&&bounds.height===ch)ctx.drawImage(composed.canvas,-width/2-px,-height/2-py,width+px*2,height+py*2);
     else if(appearance.sourceCrop)ctx.drawImage(composed.canvas,bounds.x,bounds.y,bounds.width,bounds.height,-width/2+(bounds.x-pad)*width/rw,-height/2+(bounds.y-pad)*height/rh,bounds.width*width/rw,bounds.height*height/rh);

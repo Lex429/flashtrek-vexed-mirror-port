@@ -1,4 +1,4 @@
-/* Civilian tactical intent. Shared motion, live shots and equipment own mechanics. */
+/* Shared military pursuit and civilian survival intent; common ship mechanics. */
 (() => {
   'use strict';
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -6,12 +6,15 @@
   const {intercept,weaponSpec,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile}=window.nativeWeaponRules;
   const defaults={caution:.55,aggression:.55,retreatHull:.48,retreatShield:.12,protectCargo:false,distanceFactor:.7};
   const commands=new WeakMap();
-  const profile=type=>({...defaults,...window.nativeShipDefinitions?.get(type,'civilian').npcPolicy?.combat});
+  const profile=ship=>{
+    const type=typeof ship==='object'?ship.shipType:ship,p={...defaults,...window.nativeShipDefinitions?.get(type,'civilian').npcPolicy?.combat};
+    return typeof ship==='object'&&window.nativeFactionDefence?.isFaction(ship)?{...p,pursuit:true,protectCargo:false,survivalFirst:false,retreatHull:0,retreatShield:0}:p;
+  };
   function traits(ship){
     if(ship.crewTraits?.version===1)return ship.crewTraits;
     // One stable migration, then saved crew data. Identity never chooses a maneuver.
     let seed=2166136261;for(const char of `${ship.name||''}:${ship.id}`)seed=Math.imul(seed^char.charCodeAt(0),16777619)>>>0;
-    const p=profile(ship.shipType),variation=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296-.5;};
+    const p=profile(ship),variation=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296-.5;};
     return ship.crewTraits={version:1,caution:clamp(p.caution+variation()*.24,.05,.98),aggression:clamp(p.aggression+variation()*.24,.02,.95)};
   }
   function begin(ship,role,clock){
@@ -24,8 +27,14 @@
   }
   function combatRange(state,ship){
     const weapons=loadout(state,ship);if(!weapons.length)return {range:0,preferred:0,beam:false};
-    const weight=weapons.reduce((sum,w)=>sum+w.spec.damage,0)||1,p=profile(ship.shipType);
+    const weight=weapons.reduce((sum,w)=>sum+w.spec.damage,0)||1,p=profile(ship);
     return {range:Math.max(...weapons.map(w=>w.spec.range)),preferred:weapons.reduce((sum,w)=>sum+w.spec.range*w.spec.damage,0)/weight*p.distanceFactor,beam:weapons.some(w=>w.spec.kind==='beam')};
+  }
+  function pursuitPoint(ship,target,speed){
+    // Intent only: lead a moving target briefly, using the hull's real speed.
+    // Shared motion still owns turning, acceleration, avoidance and contacts.
+    const seconds=clamp(Math.hypot(target.x-ship.x,target.y-ship.y)/Math.max(1,Number(speed)||1),0,1.25);
+    return {x:target.x+(Number(target.vx)||0)*seconds,y:target.y+(Number(target.vy)||0)*seconds};
   }
   function incomingThreat(state,ship,ai,clock,provided){
     if(!state||!window.nativeCombatShots?.threats)return null;
@@ -52,17 +61,22 @@
     if(!ship.combatAI)begin(ship,ship.id===dispute.b?'thief':'claimant',clock);
     const ai=ship.combatAI;
     if(ai.version!==2){const old=ai;begin(ship,old.role||'defender',clock);ship.combatAI.lastHitAt=old.lastHitAt??-100;ship.combatAI.shots=old.shots||0;return decide(ship,target,dispute,{state,clock,hull,shields,rocks,bystanders,bodies,actor});}
-    const crew=traits(ship),p=profile(ship.shipType),dx=target.x-ship.x,dy=target.y-ship.y,distance=Math.hypot(dx,dy)||1,ux=dx/distance,uy=dy/distance;
+    const crew=traits(ship),p=profile(ship),dx=target.x-ship.x,dy=target.y-ship.y,distance=Math.hypot(dx,dy)||1,ux=dx/distance,uy=dy/distance;
     const hp=ship.hull/Math.max(1,hull),shield=shields?ship.shields/shields:1,range=combatRange(state,ship),incoming=incomingThreat(state,ship,ai,clock,actor);
     if(state&&ai.threatId!=null&&!window.nativeCombatShots.activeProjectile(state,ai.threatId)){ai.dodgeUntil=clock;delete ai.threatId;}
     const loaded=!!(ship.cargo?.tons||ship.oreHold||ship.repairDeuranium),hurt=clock-ai.lastHitAt<3;
+    const pursuing=p.pursuit&&range.range>0;
+    if(pursuing&&(ai.disengaging||ai.escaped)){
+      // Old saves may contain a civilian escape commitment on a military crew.
+      delete ai.disengaging;delete ai.disengagedAt;delete ai.escapeGoal;delete ai.reason;ai.escaped=false;
+    }
     const retreatAt=p.retreatHull+(crew.caution-.5)*.15;
-    if(!ai.disengaging&&(hp<retreatAt||!range.range||p.protectCargo&&loaded||p.survivalFirst||shield<p.retreatShield&&hurt&&crew.caution>crew.aggression)){
+    if(!ai.disengaging&&(!range.range||!pursuing&&(hp<retreatAt||p.protectCargo&&loaded||p.survivalFirst||shield<p.retreatShield&&hurt&&crew.caution>crew.aggression))){
       ai.disengaging=true;ai.disengagedAt=clock;ai.escapeGoal=window.nativeNpcLives?.escapeRoute?.(state,ship,target)||{x:ship.x-ux*1600,y:ship.y-uy*1600};
       ai.reason=p.survivalFirst?'Protect medical crew and repair supplies':p.protectCargo&&loaded?'Protect the cargo and reach safety':!range.range?'No fitted combat weapon':'Damage makes continued combat unsafe';
     }
     const preferred=range.preferred*(.9+crew.caution*.2-crew.aggression*.1),minimum=Math.max(70,(ship.combatRadius||15)*2+(target.radius||20));
-    ai.desiredRange=Math.max(minimum,preferred);ai.weaponRange=range.range;
+    ai.desiredRange=Math.max(minimum,pursuing?Math.min(450,preferred):preferred);ai.weaponRange=range.range;
     let desired={x:ux,y:uy},throttle=.85,mode='approach',reason='Close to the effective range of fitted weapons';
     if(!ai.side){const cross=ux*(ship.vy||Math.sin(ship.heading||0))-uy*(ship.vx||Math.cos(ship.heading||0));ai.side=cross<0?-1:1;}
     if(ai.disengaging){
@@ -81,18 +95,27 @@
       // Safety is physical. An attacker on the route bends the initial course away.
       const away=distance<range.range+150?.9:.25;
       desired={x:gx/length-ux*away,y:gy/length-uy*away};throttle=1;mode='disengage';reason=ai.reason;
+    }else if(pursuing){
+      const movingAway=(Number(target.vx)||0)*ux+(Number(target.vy)||0)*uy>5;
+      if(distance>ai.desiredRange||movingAway&&distance>minimum*1.2){
+        const lead=pursuitPoint(ship,target,actor?.definition?.movement.maxSpeed||ship.cruiseSpeed||200);
+        desired={x:lead.x-ship.x,y:lead.y-ship.y};throttle=1;mode='pursuit';reason='Intercept the hostile ship and maintain weapon pressure';
+      }else{
+        desired={x:ux*.85-uy*ai.side*.4,y:uy*.85+ux*ai.side*.4};throttle=.65;mode='attack-pass';reason='Keep firing while maneuvering around the hostile hull';
+      }
     }else if(distance<ai.desiredRange*.78){desired={x:-ux-uy*ai.side*.2,y:-uy+ux*ai.side*.2};throttle=.8;mode='open-range';reason='Too close for fitted weapons and hull clearance';}
     else if(distance<=ai.desiredRange*1.15){
       const radial=clamp((distance-ai.desiredRange)/100,-.45,.5);
       desired={x:ux*radial-uy*ai.side*.4,y:uy*radial+ux*ai.side*.4};throttle=.4;mode='hold-range';reason='Maintain useful weapon distance';
     }else if(!range.beam){const lead=intercept(ship,target,range.range?loadout(state,ship)[0].spec.speed:340);desired={x:lead.x-ship.x,y:lead.y-ship.y};}
-    if(incoming){
+    if(incoming&&(!pursuing||clock>=(ai.nextDodgeAt??-Infinity))){
       const length=Math.hypot(incoming.vx,incoming.vy)||1;
       const choices=[-1,1].map(side=>{const x=-incoming.vy/length*side,y=incoming.vx/length*side;return {side,x,y,score:clearance({x:ship.x+x*130,y:ship.y+y*130},rocks,bodies,ship.combatRadius||15)+(x*desired.x+y*desired.y)*25+(side===ai.side?10:0)};}).sort((a,b)=>b.score-a.score);
-      const dodge=choices[0];ai.side=dodge.side;ai.dodgeDirection={x:dodge.x,y:dodge.y};ai.dodgeUntil=clock+.55;ai.threatId=incoming.id;
+      const dodge=choices[0];ai.side=dodge.side;ai.dodgeDirection={x:dodge.x,y:dodge.y};ai.dodgeUntil=clock+(pursuing?.3:.55);ai.threatId=incoming.id;
+      if(pursuing)ai.nextDodgeAt=clock+.7;
     }
-    if(ai.dodgeUntil>clock&&ai.dodgeDirection){desired={x:ai.dodgeDirection.x+desired.x*.35,y:ai.dodgeDirection.y+desired.y*.35};throttle=1;mode='dodge';reason='Evade a live projectile predicted to intersect this ship';}
-    if(ai.lineBlockedUntil>clock&&!ai.disengaging){desired={x:ux*.2-uy*ai.side,y:uy*.2+ux*ai.side};mode='clear-line';reason='Move to a clear firing line';}
+    if(ai.dodgeUntil>clock&&ai.dodgeDirection){const pressure=pursuing?.85:.35;desired={x:ai.dodgeDirection.x+desired.x*pressure,y:ai.dodgeDirection.y+desired.y*pressure};throttle=1;mode='dodge';reason='Evade a live projectile predicted to intersect this ship';}
+    if(ai.lineBlockedUntil>clock&&!ai.disengaging){const forward=pursuing?.85:.2,sideways=pursuing?.6:1;desired={x:ux*forward-uy*ai.side*sideways,y:uy*forward+ux*ai.side*sideways};mode='clear-line';reason='Move to a clear firing line';}
     const length=Math.hypot(desired.x,desired.y)||1;desired.x/=length;desired.y/=length;
     const look={x:ship.x+(ship.vx||0)*.65+desired.x*80,y:ship.y+(ship.vy||0)*.65+desired.y*80};
     const avoid=(other,radius)=>{const ox=look.x-other.x,oy=look.y-other.y,d=Math.hypot(ox,oy)||1;if(d<radius){const strength=(1-d/radius)*3;desired.x+=ox/d*strength;desired.y+=oy/d*strength;}};
@@ -125,5 +148,5 @@
     ship.motionTime=scene.clock;window.nativeShipMotion.step(ship,command,movement,scene.dt);return ship.combatAI;
   }
   function coast(ship,dt){if(ship.combatAI)window.nativeShipMotion.step(ship,{coast:true},window.nativeShipMotion.profiles.coast(),dt);}
-  window.nativeCivilianCombatAI={profile,traits,begin,decide,observe,combatRange,intercept,weaponSpec,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile,steer,coast,wrap};
+  window.nativeCivilianCombatAI={profile,traits,begin,decide,observe,combatRange,pursuitPoint,intercept,weaponSpec,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile,steer,coast,wrap};
 })();

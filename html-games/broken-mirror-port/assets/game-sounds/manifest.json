@@ -1,0 +1,1720 @@
+{
+  "source": "Downloaded TrekCore Audio library and user-provided gameplay effects",
+  "sourceIndex": "https://www.trekcore.com/audio/",
+  "notes": "Original recordings are preserved. Generated combat banks use locally processed source recordings; their audible attacks begin at launch/contact. Null duration preserves each complete recording. Only generated variations play in the phaser bank: the actual TOS ship beam at its natural pitch, with a crossfaded body, soft high frequencies and a complete release. The original TNG recording remains archived. Selection shuffles with private audio state.",
+  "clips": {
+    "click": {
+      "file": "computerbeep_5.mp3",
+      "title": "Computer Beep 5",
+      "source": "https://www.trekcore.com/audio/computer/computerbeep_5.mp3",
+      "sha256": "be34fa952dde7d018c837c4ffdc072e7abb9478cb107c5c9699035fdffa25dc8",
+      "bytes": 2337,
+      "peak": 0.12,
+      "duration": 0.07,
+      "offset": 0
+    },
+    "navigation": {
+      "file": "tng_viewscreen_on.mp3",
+      "title": "TNG Viewscreen On",
+      "source": "https://www.trekcore.com/audio/viewscreen/tng_viewscreen_on.mp3",
+      "sha256": "d438a02dbd81afce603e7361330fe536bc4440804a56e039b013322f9446aeae",
+      "bytes": 15393,
+      "peak": 0.15,
+      "duration": 0.38,
+      "offset": 0
+    },
+    "close": {
+      "file": "tng_viewscreen_off.mp3",
+      "title": "TNG Viewscreen Off",
+      "source": "https://www.trekcore.com/audio/viewscreen/tng_viewscreen_off.mp3",
+      "sha256": "8602a6579627f4515615b09384948d1178c7b4581ba688af2a7c735944f5422a",
+      "bytes": 22113,
+      "peak": 0.12,
+      "duration": 0.38,
+      "offset": 0
+    },
+    "inventory": {
+      "file": "computerbeep_11.mp3",
+      "title": "Computer Beep 11",
+      "source": "https://www.trekcore.com/audio/computer/computerbeep_11.mp3",
+      "sha256": "dc90de4c8bc695603625abb6562199956fa01c1df922260ef467be24ccf42434",
+      "bytes": 5409,
+      "peak": 0.16,
+      "duration": 0.16,
+      "offset": 0
+    },
+    "scan": {
+      "file": "computerbeep_4.mp3",
+      "title": "Computer Beep 4",
+      "source": "https://www.trekcore.com/audio/computer/computerbeep_4.mp3",
+      "sha256": "687132866bf9d414081cbe4ee78953f9de6b9422d43255c6bf690ddac19661cc",
+      "bytes": 7713,
+      "peak": 0.16,
+      "duration": 0.23,
+      "offset": 0
+    },
+    "trade": {
+      "file": "computerbeep_23.mp3",
+      "title": "Computer Beep 23",
+      "source": "https://www.trekcore.com/audio/computer/computerbeep_23.mp3",
+      "sha256": "b627ada087d69f19ab1d52dab6139e338baf0310713e666d53c0bb8635f17a4e",
+      "bytes": 4641,
+      "peak": 0.16,
+      "duration": 0.14,
+      "offset": 0
+    },
+    "confirm": {
+      "file": "computerbeep_12.mp3",
+      "title": "Computer Beep 12",
+      "source": "https://www.trekcore.com/audio/computer/computerbeep_12.mp3",
+      "sha256": "d92ebb059752e41ef4733129e0329009af6e2edeb397777420520f3d08fccc48",
+      "bytes": 5409,
+      "peak": 0.17,
+      "duration": 0.16,
+      "offset": 0
+    },
+    "repair": {
+      "file": "computerbeep_38.mp3",
+      "title": "Computer Beep 38",
+      "source": "https://www.trekcore.com/audio/computer/computerbeep_38.mp3",
+      "sha256": "2287f064e2d8df3e41bb22e2a4821b6541c168264eb133f0f5050684d4e083d4",
+      "bytes": 3873,
+      "peak": 0.16,
+      "duration": 0.115,
+      "offset": 0
+    },
+    "comms": {
+      "file": "communications_start_transmission.mp3",
+      "title": "Communications - Star Trransmission",
+      "source": "https://www.trekcore.com/audio/computer/communications_start_transmission.mp3",
+      "sha256": "62eb2fcf7013963cd43b37ce9491ba9896df4aa4c5e5ef61baf5a09a8539becb",
+      "bytes": 11553,
+      "peak": 0.17,
+      "duration": 0.35,
+      "offset": 0
+    },
+    "deny": {
+      "file": "denybeep1.mp3",
+      "title": "Deny Beep 1",
+      "source": "https://www.trekcore.com/audio/computer/denybeep1.mp3",
+      "sha256": "d6f29d6df17d72eec41e500f9114d186c83f72210ce9f1e6fcac61ba195558e0",
+      "bytes": 26913,
+      "peak": 0.12,
+      "duration": 0.52,
+      "offset": 0
+    },
+    "transport": {
+      "file": "tng_transporter2_clean_top.mp3",
+      "title": "TNG Transporter 2",
+      "source": "https://www.trekcore.com/audio/transporters/tng_transporter2_clean_top.mp3",
+      "sha256": "7026c4fdbf2ed93df4f094f596809bd87b00df74282b123bc110e4f1034b859f",
+      "bytes": 159393,
+      "peak": 0.23,
+      "duration": null,
+      "offset": 0
+    },
+    "phaser": {
+      "file": "tng_phaser_clean.mp3",
+      "title": "TNG Phaser 1",
+      "source": "https://www.trekcore.com/audio/weapons/tng_phaser_clean.mp3",
+      "sha256": "2ade1875efefca3f60d83777c909dd0105282f7b5ca9e318312e93904ffa52e2",
+      "bytes": 64353,
+      "peak": 0.24,
+      "duration": null,
+      "offset": 0.0228125,
+      "metrics": {
+        "durationSeconds": 1.585187,
+        "peak": 0.668488,
+        "rms": 0.136642,
+        "onsetMs": 2.875
+      }
+    },
+    "laser": {
+      "file": "tos_ship_phaser_1.mp3",
+      "title": "TOS Ship Phaser 1",
+      "source": "https://www.trekcore.com/audio/weapons/tos_ship_phaser_1.mp3",
+      "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d",
+      "bytes": 149793,
+      "peak": 0.21,
+      "duration": 0.7,
+      "offset": 0
+    },
+    "disruptor": {
+      "file": "tng_disruptor_clean.mp3",
+      "title": "TNG Disruptor",
+      "source": "https://www.trekcore.com/audio/weapons/tng_disruptor_clean.mp3",
+      "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b",
+      "bytes": 24993,
+      "peak": 0.24,
+      "duration": 0.6,
+      "offset": 0
+    },
+    "pulse": {
+      "file": "tos_phaser_4.mp3",
+      "title": "TOS Phaser 4",
+      "source": "https://www.trekcore.com/audio/weapons/tos_phaser_4.mp3",
+      "sha256": "bb3c5beef76f14d4e8a2ba8102bd484a277dd3c0cda49f3230e25393c82e8ea6",
+      "bytes": 36513,
+      "peak": 0.21,
+      "duration": 0.35,
+      "offset": 0
+    },
+    "torpedo": {
+      "file": "tng_torpedo_clean.mp3",
+      "title": "TNG Torpedo 1",
+      "source": "https://www.trekcore.com/audio/weapons/tng_torpedo_clean.mp3",
+      "sha256": "f3d1901b2c51410fdcb63bcd383ec2d2e6b538e3fca664a39defd5e30fd9bf2c",
+      "bytes": 50913,
+      "peak": 0.27,
+      "duration": 0.95,
+      "offset": 0
+    },
+    "quantum": {
+      "file": "quantumtorpedoes.mp3",
+      "title": "Quantum Torpedoes 1",
+      "source": "https://www.trekcore.com/audio/weapons/quantumtorpedoes.mp3",
+      "sha256": "41572519440b9ef9af396ee513968264cb418ecb6c21036b0203f2ddffb10dbf",
+      "bytes": 35553,
+      "peak": 0.27,
+      "duration": 0.85,
+      "offset": 0
+    },
+    "shield": {
+      "file": "shield_sizzle.mp3",
+      "title": "Shield Impact Sizzle",
+      "source": "https://www.trekcore.com/audio/explosions/shield_sizzle.mp3",
+      "sha256": "cb43a798ced30c59175ff89cc8f49cb33ba2f98b2807136c6729e1175a04aaf1",
+      "bytes": 79910,
+      "peak": 0.23,
+      "duration": 0.55,
+      "offset": 0
+    },
+    "hull": {
+      "file": "tng_phaser_strike.mp3",
+      "title": "TNG Phaser Strike",
+      "source": "https://www.trekcore.com/audio/explosions/tng_phaser_strike.mp3",
+      "sha256": "4cff959725e09b37eefec0b5bac454a830019721665663ccd6697a9485f3d3b1",
+      "bytes": 64419,
+      "peak": 0.22,
+      "duration": 0.55,
+      "offset": 0
+    },
+    "explosion": {
+      "file": "smallexplosion3.mp3",
+      "title": "Small Explosion 3",
+      "source": "https://www.trekcore.com/audio/explosions/smallexplosion3.mp3",
+      "sha256": "b1a0c78bc3547e3cc770b24c55bd8f5c2bfe55d9db5f1df0be8ff0853a4b22db",
+      "bytes": 91233,
+      "peak": 0.25,
+      "duration": 1.1,
+      "offset": 0
+    },
+    "asteroidHit": {
+      "file": "asteroid-hit.mp3",
+      "title": "Asteroid impact",
+      "source": "User-provided Downloads/astroid hit.mp3",
+      "sha256": "2798a77b78dac6da30b0c1f59108d152ac2bfb7fc79b306d6c496d64cbf07291",
+      "bytes": 163004,
+      "peak": 0.17,
+      "duration": null,
+      "offset": 0
+    },
+    "asteroidExplosion": {
+      "file": "asteroid-explosion-1.mp3",
+      "title": "Asteroid explosion 1",
+      "source": "User-provided Downloads/astroid explode one.mp3",
+      "sha256": "f2b45b2d92cae20ddb1c4100aeac67e49372ed8cbd128e22ba2d3b32b9e84634",
+      "bytes": 83040,
+      "peak": 0.24,
+      "duration": null,
+      "offset": 0
+    },
+    "asteroidExplosionAlt": {
+      "file": "asteroid-explosion-2.mp3",
+      "title": "Asteroid explosion 2",
+      "source": "User-provided Downloads/astroid explode 2.mp3",
+      "sha256": "b5f8fe0c93ea5f99ba9ee7713cb0335dfefd6c7622ef2e5e1d0e6fa8027d8cd4",
+      "bytes": 119040,
+      "peak": 0.24,
+      "duration": null,
+      "offset": 0
+    },
+    "shipAsteroidHit": {
+      "file": "ship-asteroid-hit.mp3",
+      "title": "Ship colliding with an asteroid",
+      "source": "User-provided Downloads/ship hits astroid.mp3",
+      "sha256": "df85f0d7bc4b720767276e18f33a985ccdaacf41b9e873c0236bf0f43d8257c8",
+      "bytes": 28421,
+      "peak": 0.22,
+      "duration": null,
+      "offset": 0
+    },
+    "shipExplosion": {
+      "file": "ship-explosion-1.mp3",
+      "title": "Large ship explosion",
+      "source": "User-provided Downloads/explosion.mp3",
+      "sha256": "eaf980b74a3534f0665de35193fa4f172363505e63a4ebe602920621314b1462",
+      "bytes": 296640,
+      "peak": 0.28,
+      "duration": null,
+      "offset": 0
+    },
+    "shipExplosionAlt": {
+      "file": "ship-explosion-2.mp3",
+      "title": "Small ship explosion",
+      "source": "User-provided Downloads/explosion 2.mp3",
+      "sha256": "79725ce9fa7fcb3d226532b08e0b8613ed4183ec479d59cfac0859fac8dbbbbd",
+      "bytes": 39360,
+      "peak": 0.25,
+      "duration": null,
+      "offset": 0
+    },
+    "phaserVariant1": {
+      "file": "generated/phaser-1.mp3",
+      "title": "phaser variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 1,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.48,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 0,
+        "bodyJoin": 0.4,
+        "lowpassHz": 3400,
+        "attackMs": 4,
+        "releaseMs": 55
+      },
+      "sha256": "231a22e87a630587daba7e08448533e40dc619a82d5b985849ad9664469035cc",
+      "bytes": 6957,
+      "peak": 0.11,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.48,
+        "peak": 0.683377,
+        "rms": 0.304935,
+        "onsetMs": 1.75
+      }
+    },
+    "phaserVariant2": {
+      "file": "generated/phaser-2.mp3",
+      "title": "phaser variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 2,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.54,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 12,
+        "bodyJoin": 0.32,
+        "lowpassHz": 3650,
+        "attackMs": 5,
+        "releaseMs": 66
+      },
+      "sha256": "9561c214b881ca00a0ba64254b4674d619fb93ece54debcec49e99c4081f53a5",
+      "bytes": 7389,
+      "peak": 0.108,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.54,
+        "peak": 0.684417,
+        "rms": 0.306465,
+        "onsetMs": 0.812
+      }
+    },
+    "phaserVariant3": {
+      "file": "generated/phaser-3.mp3",
+      "title": "phaser variation 3",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 3,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.42,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 25,
+        "bodyJoin": 0.51,
+        "lowpassHz": 3150,
+        "attackMs": 3,
+        "releaseMs": 45
+      },
+      "sha256": "3f298fd17e5ddcb4f3563ef7d8379e4b8c352d13f6ef0f9a899fe385e4847c1f",
+      "bytes": 6093,
+      "peak": 0.112,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.42,
+        "peak": 0.684255,
+        "rms": 0.301953,
+        "onsetMs": 0.844
+      }
+    },
+    "laserVariant1": {
+      "file": "generated/laser-1.mp3",
+      "title": "laser variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        },
+        {
+          "file": "tng_phaser_clean.mp3",
+          "sha256": "2ade1875efefca3f60d83777c909dd0105282f7b5ca9e318312e93904ffa52e2"
+        }
+      ],
+      "recipe": {
+        "profile": "laser",
+        "variant": 1,
+        "coreMs": 180,
+        "sampleRate": 32000
+      },
+      "sha256": "733a24d62742244905f366c335dbd64e039a338f209a8110f0b746f3f995d2ed",
+      "bytes": 5229,
+      "peak": 0.23,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.339938,
+        "peak": 0.678555,
+        "rms": 0.028882,
+        "onsetMs": 1.0
+      }
+    },
+    "laserVariant2": {
+      "file": "generated/laser-2.mp3",
+      "title": "laser variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        },
+        {
+          "file": "tng_phaser_clean.mp3",
+          "sha256": "2ade1875efefca3f60d83777c909dd0105282f7b5ca9e318312e93904ffa52e2"
+        }
+      ],
+      "recipe": {
+        "profile": "laser",
+        "variant": 2,
+        "coreMs": 180,
+        "sampleRate": 32000
+      },
+      "sha256": "6d8c4c8833eb734083ed4e748bbc9887bd9498ab0886d214ee4bcdc6b58daa19",
+      "bytes": 5229,
+      "peak": 0.23,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.339938,
+        "peak": 0.685083,
+        "rms": 0.027311,
+        "onsetMs": 1.0
+      }
+    },
+    "laserVariant3": {
+      "file": "generated/laser-3.mp3",
+      "title": "laser variation 3",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        },
+        {
+          "file": "tng_phaser_clean.mp3",
+          "sha256": "2ade1875efefca3f60d83777c909dd0105282f7b5ca9e318312e93904ffa52e2"
+        }
+      ],
+      "recipe": {
+        "profile": "laser",
+        "variant": 3,
+        "coreMs": 180,
+        "sampleRate": 32000
+      },
+      "sha256": "9e8b4c8ea5e64f8ef8f4d071f76e51bf5fda570ad0af9e7ea81876d72e7f3db0",
+      "bytes": 5229,
+      "peak": 0.23,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.339969,
+        "peak": 0.687518,
+        "rms": 0.037182,
+        "onsetMs": 1.0
+      }
+    },
+    "disruptorVariant1": {
+      "file": "generated/disruptor-1.mp3",
+      "title": "disruptor variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        },
+        {
+          "file": "tos_phaser_4.mp3",
+          "sha256": "bb3c5beef76f14d4e8a2ba8102bd484a277dd3c0cda49f3230e25393c82e8ea6"
+        }
+      ],
+      "recipe": {
+        "profile": "disruptor",
+        "variant": 1,
+        "coreMs": 70,
+        "sampleRate": 32000
+      },
+      "sha256": "ecd98ed0d337071b1786fa06858aca7eb7da61b0719d7fc1310433778eea04b9",
+      "bytes": 3933,
+      "peak": 0.24,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.24,
+        "peak": 0.702503,
+        "rms": 0.146614,
+        "onsetMs": 1.188
+      }
+    },
+    "disruptorVariant2": {
+      "file": "generated/disruptor-2.mp3",
+      "title": "disruptor variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        },
+        {
+          "file": "tos_phaser_4.mp3",
+          "sha256": "bb3c5beef76f14d4e8a2ba8102bd484a277dd3c0cda49f3230e25393c82e8ea6"
+        }
+      ],
+      "recipe": {
+        "profile": "disruptor",
+        "variant": 2,
+        "coreMs": 70,
+        "sampleRate": 32000
+      },
+      "sha256": "c8b8d55d32c067ef36aea91ae925fdd0452a6027531f22cf393144ecb73b5899",
+      "bytes": 3933,
+      "peak": 0.24,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.24,
+        "peak": 0.709833,
+        "rms": 0.135967,
+        "onsetMs": 1.281
+      }
+    },
+    "disruptorVariant3": {
+      "file": "generated/disruptor-3.mp3",
+      "title": "disruptor variation 3",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        },
+        {
+          "file": "tos_phaser_4.mp3",
+          "sha256": "bb3c5beef76f14d4e8a2ba8102bd484a277dd3c0cda49f3230e25393c82e8ea6"
+        }
+      ],
+      "recipe": {
+        "profile": "disruptor",
+        "variant": 3,
+        "coreMs": 70,
+        "sampleRate": 32000
+      },
+      "sha256": "7128d1112ea8ec5ffe3c3c01e1337203aac169da7fdb158e942ac40499fec099",
+      "bytes": 3933,
+      "peak": 0.24,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.24,
+        "peak": 0.697799,
+        "rms": 0.1459,
+        "onsetMs": 1.25
+      }
+    },
+    "pulseVariant1": {
+      "file": "generated/pulse-1.mp3",
+      "title": "pulse variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tos_phaser_4.mp3",
+          "sha256": "bb3c5beef76f14d4e8a2ba8102bd484a277dd3c0cda49f3230e25393c82e8ea6"
+        },
+        {
+          "file": "tng_phaser_clean.mp3",
+          "sha256": "2ade1875efefca3f60d83777c909dd0105282f7b5ca9e318312e93904ffa52e2"
+        }
+      ],
+      "recipe": {
+        "profile": "pulse",
+        "variant": 1,
+        "coreMs": 45,
+        "sampleRate": 32000
+      },
+      "sha256": "6f2254b0f9e309e3eb1888b672130c42442ec78bd4ddd1d663a78ecb683e36aa",
+      "bytes": 3069,
+      "peak": 0.21,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.18,
+        "peak": 0.702289,
+        "rms": 0.243526,
+        "onsetMs": 0.844
+      }
+    },
+    "pulseVariant2": {
+      "file": "generated/pulse-2.mp3",
+      "title": "pulse variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tos_phaser_4.mp3",
+          "sha256": "bb3c5beef76f14d4e8a2ba8102bd484a277dd3c0cda49f3230e25393c82e8ea6"
+        },
+        {
+          "file": "tng_phaser_clean.mp3",
+          "sha256": "2ade1875efefca3f60d83777c909dd0105282f7b5ca9e318312e93904ffa52e2"
+        }
+      ],
+      "recipe": {
+        "profile": "pulse",
+        "variant": 2,
+        "coreMs": 45,
+        "sampleRate": 32000
+      },
+      "sha256": "f282d9f8c8445603dae3904c61154d5d79e6a557a7ee0b6fc09037fadfc7429e",
+      "bytes": 3069,
+      "peak": 0.21,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.18,
+        "peak": 0.711203,
+        "rms": 0.242218,
+        "onsetMs": 0.875
+      }
+    },
+    "pulseVariant3": {
+      "file": "generated/pulse-3.mp3",
+      "title": "pulse variation 3",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tos_phaser_4.mp3",
+          "sha256": "bb3c5beef76f14d4e8a2ba8102bd484a277dd3c0cda49f3230e25393c82e8ea6"
+        },
+        {
+          "file": "tng_phaser_clean.mp3",
+          "sha256": "2ade1875efefca3f60d83777c909dd0105282f7b5ca9e318312e93904ffa52e2"
+        }
+      ],
+      "recipe": {
+        "profile": "pulse",
+        "variant": 3,
+        "coreMs": 45,
+        "sampleRate": 32000
+      },
+      "sha256": "93ae257c933d32a4ecf9e8158ccc324211e0ef8d25a8ddf4bf85de942e25b2e1",
+      "bytes": 3069,
+      "peak": 0.21,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.18,
+        "peak": 0.678134,
+        "rms": 0.229616,
+        "onsetMs": 0.875
+      }
+    },
+    "torpedoVariant1": {
+      "file": "generated/torpedo-1.mp3",
+      "title": "torpedo variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_torpedo_clean.mp3",
+          "sha256": "f3d1901b2c51410fdcb63bcd383ec2d2e6b538e3fca664a39defd5e30fd9bf2c"
+        },
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        }
+      ],
+      "recipe": {
+        "profile": "torpedo",
+        "variant": 1,
+        "coreMs": 60,
+        "sampleRate": 32000
+      },
+      "sha256": "16cb4b58302e022f797b14e3396c00f75038598774e3bb0aa8c66999bdfd0aad",
+      "bytes": 6093,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.4,
+        "peak": 0.686144,
+        "rms": 0.149535,
+        "onsetMs": 0.812
+      }
+    },
+    "torpedoVariant2": {
+      "file": "generated/torpedo-2.mp3",
+      "title": "torpedo variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_torpedo_clean.mp3",
+          "sha256": "f3d1901b2c51410fdcb63bcd383ec2d2e6b538e3fca664a39defd5e30fd9bf2c"
+        },
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        }
+      ],
+      "recipe": {
+        "profile": "torpedo",
+        "variant": 2,
+        "coreMs": 60,
+        "sampleRate": 32000
+      },
+      "sha256": "a1d6cc84c722768811a3633015f8b282571d9090f86d5ca90c0254cae2153bcd",
+      "bytes": 6093,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.4,
+        "peak": 0.678813,
+        "rms": 0.157309,
+        "onsetMs": 1.219
+      }
+    },
+    "torpedoVariant3": {
+      "file": "generated/torpedo-3.mp3",
+      "title": "torpedo variation 3",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_torpedo_clean.mp3",
+          "sha256": "f3d1901b2c51410fdcb63bcd383ec2d2e6b538e3fca664a39defd5e30fd9bf2c"
+        },
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        }
+      ],
+      "recipe": {
+        "profile": "torpedo",
+        "variant": 3,
+        "coreMs": 60,
+        "sampleRate": 32000
+      },
+      "sha256": "08bbcfc660da4fb09c3b1a82a0a21b5b3f74f28302d9daa3cfa63870d56b5338",
+      "bytes": 6093,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.4,
+        "peak": 0.69264,
+        "rms": 0.15434,
+        "onsetMs": 0.906
+      }
+    },
+    "quantumVariant1": {
+      "file": "generated/quantum-1.mp3",
+      "title": "quantum variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "quantumtorpedoes.mp3",
+          "sha256": "41572519440b9ef9af396ee513968264cb418ecb6c21036b0203f2ddffb10dbf"
+        },
+        {
+          "file": "tng_torpedo_clean.mp3",
+          "sha256": "f3d1901b2c51410fdcb63bcd383ec2d2e6b538e3fca664a39defd5e30fd9bf2c"
+        }
+      ],
+      "recipe": {
+        "profile": "quantum",
+        "variant": 1,
+        "coreMs": 55,
+        "sampleRate": 32000
+      },
+      "sha256": "1acffdb9f664d019623656348248944779991da0b424235a6baaa666d989310f",
+      "bytes": 6093,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.42,
+        "peak": 0.677792,
+        "rms": 0.150316,
+        "onsetMs": 1.031
+      }
+    },
+    "quantumVariant2": {
+      "file": "generated/quantum-2.mp3",
+      "title": "quantum variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "quantumtorpedoes.mp3",
+          "sha256": "41572519440b9ef9af396ee513968264cb418ecb6c21036b0203f2ddffb10dbf"
+        },
+        {
+          "file": "tng_torpedo_clean.mp3",
+          "sha256": "f3d1901b2c51410fdcb63bcd383ec2d2e6b538e3fca664a39defd5e30fd9bf2c"
+        }
+      ],
+      "recipe": {
+        "profile": "quantum",
+        "variant": 2,
+        "coreMs": 55,
+        "sampleRate": 32000
+      },
+      "sha256": "e682f74b95cbf61089fd27814bc71d7c0d6106b659687ac665b1bdf35ee6702a",
+      "bytes": 6093,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.42,
+        "peak": 0.695524,
+        "rms": 0.146733,
+        "onsetMs": 1.031
+      }
+    },
+    "quantumVariant3": {
+      "file": "generated/quantum-3.mp3",
+      "title": "quantum variation 3",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "quantumtorpedoes.mp3",
+          "sha256": "41572519440b9ef9af396ee513968264cb418ecb6c21036b0203f2ddffb10dbf"
+        },
+        {
+          "file": "tng_torpedo_clean.mp3",
+          "sha256": "f3d1901b2c51410fdcb63bcd383ec2d2e6b538e3fca664a39defd5e30fd9bf2c"
+        }
+      ],
+      "recipe": {
+        "profile": "quantum",
+        "variant": 3,
+        "coreMs": 55,
+        "sampleRate": 32000
+      },
+      "sha256": "27cf98d0ab09539c45d5c9618d552675a425ecda7f680a5af5ba62929d0336d8",
+      "bytes": 6093,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.42,
+        "peak": 0.679217,
+        "rms": 0.13523,
+        "onsetMs": 1.094
+      }
+    },
+    "shieldLightVariant1": {
+      "file": "generated/shieldLight-1.mp3",
+      "title": "shieldLight variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "shield_sizzle.mp3",
+          "sha256": "cb43a798ced30c59175ff89cc8f49cb33ba2f98b2807136c6729e1175a04aaf1"
+        },
+        {
+          "file": "tng_phaser_clean.mp3",
+          "sha256": "2ade1875efefca3f60d83777c909dd0105282f7b5ca9e318312e93904ffa52e2"
+        }
+      ],
+      "recipe": {
+        "profile": "shieldLight",
+        "variant": 1,
+        "coreMs": 25,
+        "sampleRate": 32000
+      },
+      "sha256": "b60aadd10255470db67e781749973151963e3cbb98b19b6d8ed4ebf799daa085",
+      "bytes": 4365,
+      "peak": 0.18,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.28,
+        "peak": 0.654474,
+        "rms": 0.103272,
+        "onsetMs": 0.25
+      }
+    },
+    "shieldLightVariant2": {
+      "file": "generated/shieldLight-2.mp3",
+      "title": "shieldLight variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "shield_sizzle.mp3",
+          "sha256": "cb43a798ced30c59175ff89cc8f49cb33ba2f98b2807136c6729e1175a04aaf1"
+        },
+        {
+          "file": "tng_phaser_clean.mp3",
+          "sha256": "2ade1875efefca3f60d83777c909dd0105282f7b5ca9e318312e93904ffa52e2"
+        }
+      ],
+      "recipe": {
+        "profile": "shieldLight",
+        "variant": 2,
+        "coreMs": 25,
+        "sampleRate": 32000
+      },
+      "sha256": "46d454d2f056c21d61161d19eff6a729886aa0e1f287d49cba3b46368d541ebb",
+      "bytes": 4365,
+      "peak": 0.18,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.28,
+        "peak": 0.695676,
+        "rms": 0.095992,
+        "onsetMs": 0.625
+      }
+    },
+    "shieldHeavyVariant1": {
+      "file": "generated/shieldHeavy-1.mp3",
+      "title": "shieldHeavy variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "shield_sizzle.mp3",
+          "sha256": "cb43a798ced30c59175ff89cc8f49cb33ba2f98b2807136c6729e1175a04aaf1"
+        },
+        {
+          "file": "tng_phaser_strike.mp3",
+          "sha256": "4cff959725e09b37eefec0b5bac454a830019721665663ccd6697a9485f3d3b1"
+        }
+      ],
+      "recipe": {
+        "profile": "shieldHeavy",
+        "variant": 1,
+        "coreMs": 35,
+        "sampleRate": 32000
+      },
+      "sha256": "846a2386b4e48ee79f3457b3229b285da21aff1ef89d5fe778c10caf4dba1120",
+      "bytes": 6525,
+      "peak": 0.25,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.46,
+        "peak": 0.666974,
+        "rms": 0.117169,
+        "onsetMs": 0.531
+      }
+    },
+    "shieldHeavyVariant2": {
+      "file": "generated/shieldHeavy-2.mp3",
+      "title": "shieldHeavy variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "shield_sizzle.mp3",
+          "sha256": "cb43a798ced30c59175ff89cc8f49cb33ba2f98b2807136c6729e1175a04aaf1"
+        },
+        {
+          "file": "tng_phaser_strike.mp3",
+          "sha256": "4cff959725e09b37eefec0b5bac454a830019721665663ccd6697a9485f3d3b1"
+        }
+      ],
+      "recipe": {
+        "profile": "shieldHeavy",
+        "variant": 2,
+        "coreMs": 35,
+        "sampleRate": 32000
+      },
+      "sha256": "c21255165ff03bec83fe625f01281134b123d7b9553847ad22096eb3a720386d",
+      "bytes": 6525,
+      "peak": 0.25,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.46,
+        "peak": 0.694449,
+        "rms": 0.118812,
+        "onsetMs": 0.625
+      }
+    },
+    "shieldBreakVariant1": {
+      "file": "generated/shieldBreak-1.mp3",
+      "title": "shieldBreak variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "shield_sizzle.mp3",
+          "sha256": "cb43a798ced30c59175ff89cc8f49cb33ba2f98b2807136c6729e1175a04aaf1"
+        },
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        }
+      ],
+      "recipe": {
+        "profile": "shieldBreak",
+        "variant": 1,
+        "coreMs": 30,
+        "sampleRate": 32000
+      },
+      "sha256": "4d076a72a452d17953d7bd806a87caeb44086365a68539562944ce5d828cee51",
+      "bytes": 9117,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.68,
+        "peak": 0.697631,
+        "rms": 0.103025,
+        "onsetMs": 0.812
+      }
+    },
+    "shieldBreakVariant2": {
+      "file": "generated/shieldBreak-2.mp3",
+      "title": "shieldBreak variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "shield_sizzle.mp3",
+          "sha256": "cb43a798ced30c59175ff89cc8f49cb33ba2f98b2807136c6729e1175a04aaf1"
+        },
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        }
+      ],
+      "recipe": {
+        "profile": "shieldBreak",
+        "variant": 2,
+        "coreMs": 30,
+        "sampleRate": 32000
+      },
+      "sha256": "ada665781dec858087526e07c64a57bb5c571715108dd0abc909880e5f584188",
+      "bytes": 9117,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.68,
+        "peak": 0.691668,
+        "rms": 0.098446,
+        "onsetMs": 0.719
+      }
+    },
+    "hullLightVariant1": {
+      "file": "generated/hullLight-1.mp3",
+      "title": "hullLight variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_phaser_strike.mp3",
+          "sha256": "4cff959725e09b37eefec0b5bac454a830019721665663ccd6697a9485f3d3b1"
+        },
+        {
+          "file": "tos_phaser_4.mp3",
+          "sha256": "bb3c5beef76f14d4e8a2ba8102bd484a277dd3c0cda49f3230e25393c82e8ea6"
+        }
+      ],
+      "recipe": {
+        "profile": "hullLight",
+        "variant": 1,
+        "coreMs": 20,
+        "sampleRate": 32000
+      },
+      "sha256": "a80e185f0ca018a3efadb3871c34bceef1d4c5827293e641b888206701b9e9df",
+      "bytes": 4797,
+      "peak": 0.18,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.31,
+        "peak": 0.692649,
+        "rms": 0.122893,
+        "onsetMs": 1.031
+      }
+    },
+    "hullLightVariant2": {
+      "file": "generated/hullLight-2.mp3",
+      "title": "hullLight variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_phaser_strike.mp3",
+          "sha256": "4cff959725e09b37eefec0b5bac454a830019721665663ccd6697a9485f3d3b1"
+        },
+        {
+          "file": "tos_phaser_4.mp3",
+          "sha256": "bb3c5beef76f14d4e8a2ba8102bd484a277dd3c0cda49f3230e25393c82e8ea6"
+        }
+      ],
+      "recipe": {
+        "profile": "hullLight",
+        "variant": 2,
+        "coreMs": 20,
+        "sampleRate": 32000
+      },
+      "sha256": "5ba62182325e834c8f81c63fe2d1431032b50711ab487ffc9423fc8a3c95fafd",
+      "bytes": 4797,
+      "peak": 0.18,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.31,
+        "peak": 0.684615,
+        "rms": 0.125908,
+        "onsetMs": 1.031
+      }
+    },
+    "hullHeavyVariant1": {
+      "file": "generated/hullHeavy-1.mp3",
+      "title": "hullHeavy variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_phaser_strike.mp3",
+          "sha256": "4cff959725e09b37eefec0b5bac454a830019721665663ccd6697a9485f3d3b1"
+        },
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        }
+      ],
+      "recipe": {
+        "profile": "hullHeavy",
+        "variant": 1,
+        "coreMs": 25,
+        "sampleRate": 32000
+      },
+      "sha256": "c7318da8b9706e0e51230ad4290f7ef0e20442544945e507edcc7e83953111d7",
+      "bytes": 8253,
+      "peak": 0.25,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.58,
+        "peak": 0.679982,
+        "rms": 0.104317,
+        "onsetMs": 0.75
+      }
+    },
+    "hullHeavyVariant2": {
+      "file": "generated/hullHeavy-2.mp3",
+      "title": "hullHeavy variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_phaser_strike.mp3",
+          "sha256": "4cff959725e09b37eefec0b5bac454a830019721665663ccd6697a9485f3d3b1"
+        },
+        {
+          "file": "tng_disruptor_clean.mp3",
+          "sha256": "acaec2cf618db2a80e31ca6d600f8591c5f39466dc1bc73d2c7d2a139e1ca17b"
+        }
+      ],
+      "recipe": {
+        "profile": "hullHeavy",
+        "variant": 2,
+        "coreMs": 25,
+        "sampleRate": 32000
+      },
+      "sha256": "4108e385164d12f89def6f6de575b1d0735bb3cd9e7641692095a17cf6f0551a",
+      "bytes": 8253,
+      "peak": 0.25,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.58,
+        "peak": 0.682055,
+        "rms": 0.125016,
+        "onsetMs": 0.656
+      }
+    },
+    "hullTorpedoVariant1": {
+      "file": "generated/hullTorpedo-1.mp3",
+      "title": "hullTorpedo variation 1",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_phaser_strike.mp3",
+          "sha256": "4cff959725e09b37eefec0b5bac454a830019721665663ccd6697a9485f3d3b1"
+        },
+        {
+          "file": "tng_torpedo_clean.mp3",
+          "sha256": "f3d1901b2c51410fdcb63bcd383ec2d2e6b538e3fca664a39defd5e30fd9bf2c"
+        }
+      ],
+      "recipe": {
+        "profile": "hullTorpedo",
+        "variant": 1,
+        "coreMs": 25,
+        "sampleRate": 32000
+      },
+      "sha256": "5ef99c06f81b281de5cd06b8d6a4d06feccb4fa13fda18cd877205d98619956a",
+      "bytes": 10413,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.789281,
+        "peak": 0.695777,
+        "rms": 0.0929,
+        "onsetMs": 1.125
+      }
+    },
+    "hullTorpedoVariant2": {
+      "file": "generated/hullTorpedo-2.mp3",
+      "title": "hullTorpedo variation 2",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "tng_phaser_strike.mp3",
+          "sha256": "4cff959725e09b37eefec0b5bac454a830019721665663ccd6697a9485f3d3b1"
+        },
+        {
+          "file": "tng_torpedo_clean.mp3",
+          "sha256": "f3d1901b2c51410fdcb63bcd383ec2d2e6b538e3fca664a39defd5e30fd9bf2c"
+        }
+      ],
+      "recipe": {
+        "profile": "hullTorpedo",
+        "variant": 2,
+        "coreMs": 25,
+        "sampleRate": 32000
+      },
+      "sha256": "fb805e3adf4ac670f67cbb2aecf477f537f171bd70dd61c10885fbf19777b532",
+      "bytes": 10413,
+      "peak": 0.27,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.79,
+        "peak": 0.669629,
+        "rms": 0.093172,
+        "onsetMs": 1.5
+      }
+    },
+    "phaserVariant4": {
+      "file": "generated/phaser-4.mp3",
+      "title": "phaser variation 4",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 4,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.59,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 6,
+        "bodyJoin": 0.28,
+        "lowpassHz": 3850,
+        "attackMs": 6,
+        "releaseMs": 72
+      },
+      "sha256": "4b9f5d6e835dd35d6cf0231a9467209bf6511c595b75704c7a179975d3a855a2",
+      "bytes": 8253,
+      "peak": 0.107,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.59,
+        "peak": 0.684903,
+        "rms": 0.308251,
+        "onsetMs": 1.406
+      }
+    },
+    "phaserVariant5": {
+      "file": "generated/phaser-5.mp3",
+      "title": "phaser variation 5",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 5,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.46,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 32,
+        "bodyJoin": 0.46,
+        "lowpassHz": 3300,
+        "attackMs": 4,
+        "releaseMs": 50
+      },
+      "sha256": "3706c6fe8facff0a1fccaec3e4a87a38f16036f7e4c416a27bacaecd5194a970",
+      "bytes": 6525,
+      "peak": 0.113,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.46,
+        "peak": 0.684007,
+        "rms": 0.303425,
+        "onsetMs": 0.5
+      }
+    },
+    "phaserVariant6": {
+      "file": "generated/phaser-6.mp3",
+      "title": "phaser variation 6",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 6,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.61,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 16,
+        "bodyJoin": 0.56,
+        "lowpassHz": 3600,
+        "attackMs": 5,
+        "releaseMs": 64
+      },
+      "sha256": "c9acdba79ed36225d300ff491e59292516acba1afe2e1bf2e8f7e53b7f961c10",
+      "bytes": 8253,
+      "peak": 0.109,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.61,
+        "peak": 0.684055,
+        "rms": 0.308591,
+        "onsetMs": 0.938
+      }
+    },
+    "phaserVariant7": {
+      "file": "generated/phaser-7.mp3",
+      "title": "phaser variation 7",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 7,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.44,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 9,
+        "bodyJoin": 0.34,
+        "lowpassHz": 3950,
+        "attackMs": 3,
+        "releaseMs": 43
+      },
+      "sha256": "50d6667a13eefa1520d3e2cba839f09638cb7045c780316fa608130e4f0c986d",
+      "bytes": 6525,
+      "peak": 0.111,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.44,
+        "peak": 0.684502,
+        "rms": 0.310206,
+        "onsetMs": 0.531
+      }
+    },
+    "phaserVariant8": {
+      "file": "generated/phaser-8.mp3",
+      "title": "phaser variation 8",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 8,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.56,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 28,
+        "bodyJoin": 0.49,
+        "lowpassHz": 3250,
+        "attackMs": 6,
+        "releaseMs": 68
+      },
+      "sha256": "69cad3148bedaf02747a690bff2c858d2235240b6c5865115420058c301348ba",
+      "bytes": 7821,
+      "peak": 0.106,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.56,
+        "peak": 0.683593,
+        "rms": 0.302825,
+        "onsetMs": 0.844
+      }
+    },
+    "phaserVariant9": {
+      "file": "generated/phaser-9.mp3",
+      "title": "phaser variation 9",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 9,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.5,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 19,
+        "bodyJoin": 0.3,
+        "lowpassHz": 3750,
+        "attackMs": 4,
+        "releaseMs": 58
+      },
+      "sha256": "bd1fc47216c0037b4491f9be21b2a4da07be81a179181c3d2336857e53e0bdaf",
+      "bytes": 6957,
+      "peak": 0.114,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.5,
+        "peak": 0.683199,
+        "rms": 0.308569,
+        "onsetMs": 0.75
+      }
+    },
+    "phaserVariant10": {
+      "file": "generated/phaser-10.mp3",
+      "title": "phaser variation 10",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 10,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.58,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 3,
+        "bodyJoin": 0.53,
+        "lowpassHz": 3450,
+        "attackMs": 5,
+        "releaseMs": 75
+      },
+      "sha256": "cf99fd9a11c7c6d32d9c1854515b70dc5ac9af329492c44207e7c8f2e2a08491",
+      "bytes": 8253,
+      "peak": 0.108,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.58,
+        "peak": 0.684297,
+        "rms": 0.305107,
+        "onsetMs": 0.75
+      }
+    },
+    "phaserVariant11": {
+      "file": "generated/phaser-11.mp3",
+      "title": "phaser variation 11",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 11,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.43,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 35,
+        "bodyJoin": 0.38,
+        "lowpassHz": 3550,
+        "attackMs": 3,
+        "releaseMs": 48
+      },
+      "sha256": "65089b593e1f654ef8a3e0d36b7674091235f2bc4401e1ec174369d8d0152c14",
+      "bytes": 6093,
+      "peak": 0.112,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.43,
+        "peak": 0.684299,
+        "rms": 0.305879,
+        "onsetMs": 0.438
+      }
+    },
+    "phaserVariant12": {
+      "file": "generated/phaser-12.mp3",
+      "title": "phaser variation 12",
+      "generator": "build-combat-audio.py",
+      "generatorVersion": 6,
+      "derivedFrom": [
+        {
+          "file": "tos_ship_phaser_1.mp3",
+          "sha256": "7c2b2c5d6f8fba356be49ee3088cde5f3481958b6df45c2acdb6c9098bebbf4d"
+        }
+      ],
+      "recipe": {
+        "profile": "phaser",
+        "variant": 12,
+        "coreMs": 180,
+        "sampleRate": 32000,
+        "character": "smooth-tos-ship-beam",
+        "outputSeconds": 0.52,
+        "pitch": 1,
+        "sourceTreatment": "body-crossfade",
+        "recordedEntryMs": 22,
+        "bodyJoin": 0.57,
+        "lowpassHz": 3900,
+        "attackMs": 5,
+        "releaseMs": 62
+      },
+      "sha256": "3aced9d3c04b4b6ba19290eb27fdb14f3e81d8bcc6f9191861ad71847e79dae7",
+      "bytes": 7389,
+      "peak": 0.11,
+      "duration": null,
+      "offset": 0,
+      "metrics": {
+        "durationSeconds": 0.52,
+        "peak": 0.679478,
+        "rms": 0.308504,
+        "onsetMs": 1.125
+      }
+    },
+    "payment": {
+      "file": "generated/cargo-payment.mp3",
+      "title": "Cargo payment confirmed",
+      "generator": "build-payment-audio.py",
+      "generatorVersion": 1,
+      "derivedFrom": [
+        {
+          "file": "computerbeep_23.mp3",
+          "sha256": "b627ada087d69f19ab1d52dab6139e338baf0310713e666d53c0bb8635f17a4e"
+        },
+        {
+          "file": "computerbeep_12.mp3",
+          "sha256": "d92ebb059752e41ef4733129e0329009af6e2edeb397777420520f3d08fccc48"
+        },
+        {
+          "file": "tng_viewscreen_on.mp3",
+          "sha256": "d438a02dbd81afce603e7361330fe536bc4440804a56e039b013322f9446aeae"
+        }
+      ],
+      "sha256": "eee261d18ec42abef3582cd7d1a0d47e952873f5edc66fd11d45c70649b15a29",
+      "bytes": 14733,
+      "peak": 0.21,
+      "duration": null,
+      "offset": 0,
+      "recipe": {
+        "character": "starship-credit-transfer",
+        "confirmationMs": 560,
+        "countCompleteMs": 620
+      },
+      "metrics": {
+        "durationSeconds": 1.12,
+        "onsetMs": 1.25,
+        "peak": 0.68498
+      }
+    }
+  },
+  "banks": {
+    "phaser": [
+      "phaserVariant1",
+      "phaserVariant2",
+      "phaserVariant3",
+      "phaserVariant4",
+      "phaserVariant5",
+      "phaserVariant6",
+      "phaserVariant7",
+      "phaserVariant8",
+      "phaserVariant9",
+      "phaserVariant10",
+      "phaserVariant11",
+      "phaserVariant12"
+    ],
+    "laser": [
+      "laserVariant1",
+      "laserVariant2",
+      "laserVariant3"
+    ],
+    "disruptor": [
+      "disruptorVariant1",
+      "disruptorVariant2",
+      "disruptorVariant3"
+    ],
+    "pulse": [
+      "pulseVariant1",
+      "pulseVariant2",
+      "pulseVariant3"
+    ],
+    "torpedo": [
+      "torpedoVariant1",
+      "torpedoVariant2",
+      "torpedoVariant3"
+    ],
+    "quantum": [
+      "quantumVariant1",
+      "quantumVariant2",
+      "quantumVariant3"
+    ],
+    "shieldLight": [
+      "shieldLightVariant1",
+      "shieldLightVariant2"
+    ],
+    "shieldHeavy": [
+      "shieldHeavyVariant1",
+      "shieldHeavyVariant2"
+    ],
+    "shieldBreak": [
+      "shieldBreakVariant1",
+      "shieldBreakVariant2"
+    ],
+    "hullLight": [
+      "hullLightVariant1",
+      "hullLightVariant2"
+    ],
+    "hullHeavy": [
+      "hullHeavyVariant1",
+      "hullHeavyVariant2"
+    ],
+    "hullTorpedo": [
+      "hullTorpedoVariant1",
+      "hullTorpedoVariant2"
+    ]
+  }
+}

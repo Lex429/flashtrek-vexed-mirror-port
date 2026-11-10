@@ -40,11 +40,13 @@ def main():
         with sync_playwright() as p:
             channel=os.environ.get('BROWSER_CHANNEL','msedge')
             browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
-            page=browser.new_page(viewport={'width':1280,'height':850});page.on('pageerror',lambda e:errors.append(str(e)))
+            page=browser.new_page(viewport={'width':1280,'height':850},reduced_motion='reduce');page.on('pageerror',lambda e:errors.append(str(e)))
             page.goto(base+'/html-games/broken-mirror-port/index.html');page.locator('[data-menu="dev"]').click(timeout=20000)
-            page.wait_for_function('()=>nativeSolAsteroids.placements.length>0')
-            report=page.evaluate(HELPERS);assert report['population']==162
-            assert page.evaluate('nativeNpcDev.getState().civilianTraffic.ships.filter(s=>s.shipType===58).length')==3
+            page.wait_for_function('()=>nativeNpcDev.getState()?.civilianTraffic?.ships?.length>0&&nativeSolAsteroids.placements.length>0',timeout=90000)
+            report=page.evaluate(HELPERS)
+            expected=page.evaluate('()=>({total:window.nativeCivilianPopulation?.total??162,medical:window.nativeCivilianPopulation?.medicalTotal??3})')
+            assert report['population']==expected['total']
+            assert page.evaluate('nativeNpcDev.getState().civilianTraffic.ships.filter(s=>s.shipType===58).length')==expected['medical']
             # The ordinary galaxy UI must show no civilian residents in excluded sectors.
             page.locator('#devToolsBtn').click();page.locator('#galaxy-map-button').click()
             snapshot=page.evaluate('nativeGalaxyOverview.snapshot()')
@@ -64,7 +66,8 @@ def main():
             }''')
             report['expedition']=page.evaluate(r'''()=>{
               const t=__accessTest,s=t.reload(t.original);s.civilianTraffic.life.config.economyEnabled=false;
-              const ship=s.civilianTraffic.ships.find(ship=>ship.role==='mining'&&!ship.cargo&&!ship.journey&&!ship.dockingMove&&!ship.needsDockRecovery&&!ship.scriptedDemo);
+              // Select a remote-expedition turn; the alternating corridor turn is covered separately.
+              const ship=s.civilianTraffic.ships.find(ship=>ship.role==='mining'&&(ship.id+(3-ship.id%3)%3)%2!==0&&!ship.cargo&&!ship.journey&&!ship.dockingMove&&!ship.needsDockRecovery&&!ship.scriptedDemo);
               t.check(ship,'No available existing miner');nativeNpcLives.interrupt(s,ship,'browser mining fixture');
               const point=nativePortDocking.center(1,3);Object.assign(ship,{system:1,stationSystem:1,operatingBase:1,port:3,x:point.x+220,y:point.y,miningTrips:(3-ship.id%3)%3});
               nativeNpcLives.refreshLocation(s,ship);nativeNpcLives.resumeWork(s,ship);

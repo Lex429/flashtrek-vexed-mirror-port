@@ -8,7 +8,7 @@
   root.setAttribute('aria-modal', 'true');
   root.setAttribute('aria-label', 'Navigation map');
   document.getElementById('game').append(root);
-  root.innerHTML = `<header class="map-header"><div><h2>Map</h2><p class="map-location"></p></div><div class="map-controls"><button type="button" data-action="center">Center on ship</button><div class="map-zoom"><button type="button" data-action="out" aria-label="Zoom out">−</button><button type="button" data-action="in" aria-label="Zoom in">+</button></div><button type="button" data-action="close" class="map-close">Close <span>Esc</span></button></div></header><div class="map-viewport"><svg class="map-chart" role="group" aria-label="Ship position and destinations"></svg><div class="map-scale"></div><div class="map-legend" aria-label="System relationship colors"></div><p class="map-help">Scroll to zoom · Drag to move · Click a destination</p></div><footer class="map-destination"><div class="map-destination-info"><div class="map-destination-heading"><h3></h3><span class="map-welcome"></span><span class="map-system-status" hidden></span></div><p class="map-destination-meta"></p><dl class="map-system-facts" aria-label="System information"></dl><p class="map-message" role="status" aria-live="polite"></p></div><div class="map-actions"><button type="button" data-action="marker" class="map-marker" aria-label="Set marker" title="Set marker">⚑</button><button type="button" data-action="cruise" class="map-primary">Cruise to</button><button type="button" data-action="warp" class="map-primary">Warp to</button><button type="button" data-action="navigate">Select for navigation</button></div></footer>`;
+  root.innerHTML = `<header class="map-header"><div><h2>Map</h2><p class="map-location"></p><p class="map-coordinates" title="Your ship's coordinates"><span data-coordinate="x"></span><span data-coordinate="y"></span></p></div><div class="map-controls"><button type="button" data-action="center">Center on ship</button><div class="map-zoom"><button type="button" data-action="out" aria-label="Zoom out">−</button><button type="button" data-action="in" aria-label="Zoom in">+</button></div><button type="button" data-action="close" class="map-close">Close <span>Esc</span></button></div></header><div class="map-viewport"><svg class="map-chart" role="group" aria-label="Ship position and destinations"></svg><div class="map-scale"></div><div class="map-legend" aria-label="System relationship colors"></div><p class="map-help">Scroll to zoom · Drag to move · Click a destination</p></div><footer class="map-destination"><div class="map-destination-info"><div class="map-destination-heading"><h3></h3><span class="map-welcome"></span><span class="map-system-status" hidden></span></div><p class="map-destination-meta"></p><dl class="map-system-facts" aria-label="System information"></dl><p class="map-message" role="status" aria-live="polite"></p></div><div class="map-actions"><button type="button" data-action="marker" class="map-marker" aria-label="Set marker" title="Set marker">⚑</button><button type="button" data-action="cruise" class="map-primary">Cruise to</button><button type="button" data-action="warp" class="map-primary">Warp to</button><button type="button" data-action="navigate">Select for navigation</button></div></footer>`;
   const svg = root.querySelector('svg');
   const viewport = root.querySelector('.map-viewport');
   const hover=document.createElement('div');hover.className='map-hover';hover.hidden=true;hover.setAttribute('role','tooltip');viewport.append(hover);
@@ -16,11 +16,13 @@
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const number = value => Math.round(value).toLocaleString();
+  const coordinateFormat = new Intl.NumberFormat('en-US', {maximumFractionDigits:0});
+  const coordinate = value => coordinateFormat.format(Math.round(Number(value) || 0) || 0);
   const call = (action, value = 0) => window.nativeNavigation.call(action, value);
   const systemName = node => node?.known && window.nativeSystemCatalog ? window.nativeSystemCatalog.name(node.id) : node?.id === 1 && node.known ? 'Sol' : node?.name || 'Unknown system';
   const populationNumber = new Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1});
   const labelMeasure=document.createElement('canvas').getContext('2d');
-  const mapColors={Allied:'#4ab3ff',Hostile:'#ff0000','Your territory':'#0fff0f',Neutral:'#cacaca',Forbidden:'#ffed15',Uninhabited:'#eda91d',Unknown:'#858585'};
+  const mapColors=window.nativeFactionStanding.colors;
   const signed=value=>`${value>0?'+':''}${number(value)}`;
   const blend=(a,b,t)=>a+(b-a)*t;
   const smooth=(a,b,value)=>{const t=clamp((value-a)/(b-a),0,1);return t*t*(3-2*t);};
@@ -99,7 +101,7 @@
   function requestDraw() { if (!frame && !root.hidden) frame = requestAnimationFrame(draw); }
   function refresh() {
     if (root.hidden) return;
-    const next = call('state', selected.system);
+    const next = call('state', selected);
     if (!next?.ok) { close(false); return; }
     state = next;
     followGoal();loadMapShip();
@@ -115,6 +117,7 @@
     const ship = state.shipPosition || state.nodes.find(node => node.current);
     camera = {x:ship.x, y:ship.y, span:6}; goal = {...camera};
     followShip = true; overviewFollow=true;lastFrame=0; message = ''; drag = null; root.hidden = false;
+    window.nativeGameSounds?.ui('map');
     clearInterval(timer); timer = setInterval(refresh, 500);
     refresh(); root.querySelector('.map-close').focus({preventScroll:true});
   }
@@ -126,6 +129,7 @@
     cancelAnimationFrame(frame); frame = 0;
     if (!wasOpen) return;
     call('close');
+    if (focus) window.nativeGameSounds?.ui('close');
     if (focus) (returnFocus?.isConnected ? returnFocus : mapButton).focus({preventScroll:true});
   }
   function centerOnShip() {
@@ -153,8 +157,11 @@
     const node = selectedNode();
     if (!node) return;
     const current = state.nodes.find(node => node.current);
-    const local = selected.system === state.current && (selected.body !== undefined || state.current !== 1);
-    root.querySelector('.map-location').textContent = `${systemName(current)} solar system${state.inLocalTransit ? ' · Cruising' : ''}`;
+    const local = state.selected.inLocalSystem;
+    root.querySelector('.map-location').textContent = `${state.region?.kind==='interstellar'?'Interstellar space':systemName(state.nodes.find(node=>node.id===state.region?.system)||current)+' solar system'}${state.inLocalTransit ? ' · Cruising' : ''}`;
+    root.querySelector('[data-coordinate="x"]').textContent = `X: ${coordinate(state.galaxyShipPosition.x)}`;
+    root.querySelector('[data-coordinate="y"]').textContent = `Y: ${coordinate(state.galaxyShipPosition.y)}`;
+    root.querySelector('.map-coordinates').title = "Your ship's galactic coordinates";
     root.querySelector('.map-destination-info h3').textContent = selected.body !== undefined ? node.name : `${systemName(node)} system`;
     const distance = selected.body !== undefined ? Math.hypot(node.x-state.shipPosition.x, node.y-state.shipPosition.y)*1000 : state.selected.manualDistance;
     root.querySelector('.map-destination-meta').textContent = selected.body !== undefined
@@ -180,14 +187,15 @@
     const cruise = root.querySelector('[data-action="cruise"]');
     const warp = root.querySelector('[data-action="warp"]');
     const nav = root.querySelector('[data-action="navigate"]');
-    cruise.hidden = !local;
-    cruise.disabled = state.inLocalTransit;
-    warp.hidden = local || selected.system === state.current;
-    warp.textContent = selected.body !== undefined && !local ? 'Warp to '+systemName(state.selected) : 'Warp to';
-    warp.disabled = state.inLocalTransit || !state.selected.canTravel;
-    warp.title = state.selected.canTravel ? `Warp to ${systemName(state.selected)}` : state.selected.error;
-    nav.disabled = state.inLocalTransit;
-    root.querySelector('.map-message').textContent = message || (state.inLocalTransit ? 'Current cruise is in progress.' : !warp.hidden && !state.selected.canTravel ? state.selected.error : '');
+    cruise.hidden = !local&&!state.selected.canCruise;
+    cruise.disabled = !state.selected.canCruise;
+    cruise.title = state.selected.cruiseError||`Cruise to ${state.selected.bodyName}`;
+    warp.hidden = local||state.selected.canCruise;
+    warp.textContent = 'Warp to';
+    warp.disabled = !state.selected.canTravel;
+    warp.title = state.selected.canTravel ? `Warp to ${state.selected.bodyName}` : state.selected.error;
+    nav.disabled = false;
+    root.querySelector('.map-message').textContent = message || (!warp.hidden && !state.selected.canTravel ? state.selected.error : cruise.disabled&&local ? state.selected.cruiseError : state.inLocalTransit ? 'Cruise active. You can change destination or cancel cruise in flight [C].' : '');
     const marked = !!markers[markerID()];
     const marker = root.querySelector('[data-action="marker"]');
     marker.classList.toggle('marked', marked);
@@ -198,15 +206,15 @@
   function travel(action) {
     let result;
     if (action === 'warp') {
-      const destination = selected.system;
+      const destination = {...selected};
       close(false);
       requestAnimationFrame(() => requestAnimationFrame(() => {
         result = call('course', destination);
-        if (!result?.ok) { open(); selected = {system:destination}; message = result?.error || 'Unable to warp here.'; refresh(); }
+        if (!result?.ok) { open(); selected = destination; message = result?.error || 'Unable to warp here.'; refresh(); }
       }));
       return;
     }
-    result = action === 'cruise' ? call('cruise', selected.body ?? 0) : selected.body !== undefined && selected.system === state.current ? call('local-target', selected.body) : call('track', selected.system);
+    result = action === 'cruise' ? call('cruise', selected) : selected.body !== undefined && selected.system === state.current ? call('local-target', selected.body) : call('track', selected.system);
     if (result?.ok) { close(false); document.getElementById('space').focus({preventScroll:true}); }
     else { message = result?.error || 'Unable to set this destination.'; updateInfo(); }
   }
@@ -254,7 +262,8 @@
     }
     labelMeasure.font=`${fontSize}px system-ui`;
     let route;
-    if(state.manualTargetSystem)route=state.nodes.find(node=>node.id===state.manualTargetSystem);
+    if(state.cruiseTarget)route=solBodies(state.cruiseTarget.system).find(body=>body.id===state.cruiseTarget.body);
+    else if(state.manualTargetSystem)route=state.nodes.find(node=>node.id===state.manualTargetSystem);
     else route=solBodies(state.current).find(body=>body.id===state.localNavTarget);
     if(route){const end=project(route);markup+=`<path class="map-navigation-line" d="M ${ship.x} ${ship.y} L ${end.x} ${end.y}"/>`;}
     const items=[];

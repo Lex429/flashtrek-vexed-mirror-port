@@ -3,6 +3,14 @@
 (() => {
   'use strict';
   let loading=null,art=null;
+  const fogAssets=new Map();
+  function fogArtwork(d){
+    if(!art)return null;const stage=art.sprites.stage(d.entity.hull,40);if(fogAssets.has(stage))return fogAssets.get(stage);
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=512;
+    art.sprites.drawSurface(canvas.getContext('2d'),'basic',{role:'repair',health:d.entity.hull,maxHealth:40,time:0,lights:false,effects:false,thrust:0,activity:0});
+    const pivot=art.sprites.definitions.repair.basic.pivot,asset={art:canvas,fogPivot:{forward:pivot[1]/1254-.5,side:.5-pivot[0]/1254}};
+    fogAssets.set(stage,asset);return asset;
+  }
   const surfaces=new Map(),states=new WeakMap();
   const time=s=>window.nativeSimulation.now(s);
   function ensure(){
@@ -96,6 +104,6 @@
     // and zoom. No completion, health or resource mutation occurs here.
     const r=states.get(s);if(r){const visible=(x,y,radius)=>!visibility?.worldCircle||visibility.worldCircle(x,y,radius,view);ctx.save();ctx.translate(view.cx,view.cy);ctx.scale(z,z);ctx.translate(-view.ship.x,-view.ship.y);r.damage?.draw(ctx,time(s),{visible});r.destruction?.draw(ctx,time(s),{visible});ctx.restore();}
   }
-  window.nativeRepairVisuals=Object.freeze({ensure,drawDrone,hit,advance,requiredStages,surface,paint,beam,ready:()=>!!art,
+  window.nativeRepairVisuals=Object.freeze({ensure,drawDrone,fogArtwork,hit,advance,requiredStages,surface,paint,beam,ready:()=>!!art,
     snapshot:s=>({ready:!!art,surfaces:surfaces.size,destruction:states.get(s)?.destruction?.snapshot()||null})});
 })();

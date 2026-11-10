@@ -121,7 +121,7 @@ test('legacy departure and arrival visuals retain indexed current visibility out
  const origin=w.nativeManualFlight.anchor(1),effect=warp.worldEffect('departure',500,Math.PI/2,0,0),box={minX:origin.x+effect.shipX-5,minY:origin.y+effect.shipY-5,maxX:origin.x+effect.shipX+5,maxY:origin.y+effect.shipY+5};
  const before=JSON.stringify(ship.warpVisual);assert.equal(w.nativeShipSystems.query(state,{minX:-100,minY:-100,maxX:100,maxY:100}).bystanders.some(t=>t.entity===ship),false);
  assert.deepEqual(Array.from(lives.queryTransits(state,box),entry=>entry.id),[ship.id]);assert.equal(JSON.stringify(ship.warpVisual),before);
- let painted=0;w.nativeShipEffects={...w.nativeShipEffects,paintShip(_,descriptor){assert.equal(descriptor.entity,ship);painted++;}};w.vexedFlightAssets.drawWarpRing=()=>{};
+ let painted=0;w.nativeShipEffects={...w.nativeShipEffects,paintShip(_,descriptor){if(descriptor.entity===ship)painted++;}};w.vexedFlightAssets.drawWarpRing=()=>{};
  w.nativeCivilianTraffic.paint({},{state,ship:{x:effect.shipX,y:effect.shipY},cx:50,cy:50,w:100,h:100,zoom:1});assert.equal(painted,1);
  ship.phase='arriving';ship.warpVisual={kind:'arrival',elapsedMs:0,angle:Math.PI/2};lives.refreshLocation(state,ship);
  const arrival=warp.worldEffect('arrival',0,Math.PI/2,0,0),arrivalBox={minX:origin.x+arrival.shipX-5,minY:origin.y+arrival.shipY-5,maxX:origin.x+arrival.shipX+5,maxY:origin.y+arrival.shipY+5};

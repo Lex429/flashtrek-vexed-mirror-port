@@ -8,6 +8,9 @@
   let model=window.vexedSpaceModel.create(initialSystem),starSprites=new Map(),light,lastShadow=-Infinity,shadowPaths=[],shadowSignature='',lastView=null;
   let brightTravelX=0,brightTravelY=0,opticalX=0,opticalY=0;
   let skyOrigin=null,initialBright=model.state.stars.filter(star=>star.layer===5).map(star=>({x:star.x,y:star.y}));
+  let prepared=null,preparationSerial=0,systemSuns=[];
+  const regionalStars=window.nativeRegionalStarfield?.create();
+  const backgroundNebulae=window.nativeParallaxNebulae?.create();
   const rgba=(tint,alpha)=>{const value=Number(tint);return `rgba(${value>>16&255},${value>>8&255},${value&255},${alpha})`;};
   const random=seed=>{const value=Math.sin(seed*127.1)*43758.5453;return value-Math.floor(value);};
   const clamp=value=>Math.max(0,Math.min(1,value));
@@ -41,7 +44,9 @@
     return {x:planet.x+(artReady?profile.ox||0:0)*planet.width,y:planet.y+(artReady?profile.oy||0:0)*planet.height,
       rx:planet.width*(artReady?profile.rx:fallback),ry:planet.height*(artReady?profile.ry:fallback),profile,artReady};
   }
-  function systemLight(view){
+  function systemLight(view,suns=[]){
+    const primary=suns.find(sun=>sun.primary);
+    if(primary)return {x:primary.x,y:primary.y,color:primary.color,worldX:primary.worldX,worldY:primary.worldY,bodyId:primary.id,background:true};
     const definition=systemStars[model.state.system]||systemStars.default;
     if(definition.direction!==undefined)return definition;
     const body=window.vexedSolFlight?.bodies.find(body=>body.id===definition.bodyId);
@@ -85,15 +90,15 @@
     const canvas=document.createElement('canvas');canvas.width=w*2;canvas.height=h*2;
     const ctx=canvas.getContext('2d');ctx.scale(2,2);ctx.translate(x,y);draw(ctx);return {canvas,w,h,x,y};
   }
-  function starSprite(star){
-    if(!starSprites.has(star)){
+  function starSprite(star,sprites=starSprites){
+    if(!sprites.has(star)){
       const pad=star.layer===5?80:Math.ceil(star.radius+1);
-      starSprites.set(star,texture(pad*2,pad*2,pad,pad,ctx=>{
+      sprites.set(star,texture(pad*2,pad*2,pad,pad,ctx=>{
         disc(ctx,0,0,star.radius,star.color,100);
         if(star.layer>=3)disc(ctx,0,0,star.radius*.45,16777215,100);
       }));
     }
-    return starSprites.get(star);
+    return sprites.get(star);
   }
   function tiles(x,y,periodX,periodY,w,h,margin,draw){
     const minX=Math.ceil((-margin-x)/periodX),maxX=Math.floor((w+margin-x)/periodX);
@@ -169,17 +174,38 @@
     }
     ctx.restore();
   }
+  async function prepareSystem(id,{signal}={}){
+    const token=++preparationSerial,candidate=window.vexedSpaceModel.create(id),sprites=new Map();
+    const check=()=>{if(signal?.aborted||token!==preparationSerial)throw Error('Sky preparation cancelled.');};
+    await Promise.all([window.nativeStellarBackground?.prepare(id,{signal}),backgroundNebulae?.prepare(id,{signal})]);check();
+    regionalStars?.prepare();
+    let count=0;
+    for(const star of regionalStars?[]:candidate.state.stars){
+      check();if(star.layer===5)continue;
+      starSprite(star,sprites);
+      if(++count%16===0)await new Promise(resolve=>requestAnimationFrame(resolve));
+    }
+    check();prepared={model:candidate,sprites,signal};
+    return {system:candidate.state.system,textures:regionalStars?210:sprites.size};
+  }
   function enterSystem(id,force=false){
     if(!force&&model.state.system===Number(id))return;
-    model=window.vexedSpaceModel.create(id);starSprites.clear();light=null;shadowPaths=[];shadowSignature='';
+    const ready=prepared?.model.state.system===Number(id)&&!prepared.signal?.aborted?prepared:null;
+    ++preparationSerial;prepared=null;
+    regionalStars?.rebase(model.state);
+    backgroundNebulae?.rebase(model.state);
+    model=ready?.model||window.vexedSpaceModel.create(id);starSprites=ready?.sprites||new Map();light=null;systemSuns=[];shadowPaths=[];shadowSignature='';
     brightTravelX=0;brightTravelY=0;opticalX=0;opticalY=0;
     skyOrigin=null;initialBright=model.state.stars.filter(star=>star.layer===5).map(star=>({x:star.x,y:star.y}));
   }
   function render(ctx,view,objects=[]){
     const {w,h}=view,ox=(w-600)/2,oy=(h-450)/2,state=model.state;
-    light=systemLight(view);
+    systemSuns=window.nativeStellarBackground?.project(state.system,view)||[];
+    light=systemLight(view,systemSuns);
     ctx.save();ctx.globalAlpha=1;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
-    for(const star of state.stars){
+    backgroundNebulae?.render(ctx,view,state);
+    regionalStars?.render(ctx,view,state);
+    for(const star of regionalStars?[]:state.stars){
       if(star.layer===5)continue;
       const plane=state.planes[star.layer],sprite=starSprite(star);
       ctx.globalAlpha=Math.min(1,star.alpha/100);
@@ -230,7 +256,7 @@
         const dx=w/2-star.x,dy=h/2-star.y,d=dx*dx+dy*dy;
         if(d<best){best=d;nearest={x:star.x,y:star.y,color:star.color};}
       }
-      light=systemLight(view);
+      light=systemLight(view,systemSuns);
       if(state.elapsed-lastShadow>.4){lastShadow=state.elapsed;updateShadows(objects);}
       for(const path of shadowPaths){ctx.globalAlpha=path.alpha/100;ctx.fillStyle=color(777);ctx.beginPath();path.points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.fill();}
     }
@@ -241,6 +267,7 @@
       const engagement=approach(star,view)*(.12+(view.reducedMotion?0:.88*state.speedEffect));
       if(visibility>0)flare(ctx,star,w,h,state.elapsed,view.reducedMotion,view.warpPulse,engagement,visibility);
     }
+    window.nativeStellarBackground?.render(ctx,systemSuns,view,objects,sourceVisibility,{elapsed:state.elapsed,opticalX,opticalY});
     ctx.restore();
   }
   function updateShadows(objects){
@@ -282,7 +309,7 @@
     ctx.globalAlpha=1;ctx.fillStyle=daylight;ctx.fillRect(-1,-1,2,2);
     ctx.restore();
   }
-  return {create,enterSystem,update(dt,input){
+  return {create,enterSystem,prepareSystem,update(dt,input){
       model.update(dt,input);
       if(!(dt>0))return;
       brightTravelX=model.state.travelX*.05;brightTravelY=model.state.travelY*.05;
@@ -291,7 +318,7 @@
       opticalY+=(Math.max(-8,Math.min(8,dy*13*.04))-opticalY)*blend;
     },render,
     planetGlow,planetHalo,planetLight,bodyDisk,bodyProfile,systemStars,sourceVisibility,
-    get state(){return model.state;},get light(){return light;}};
+    get state(){return model.state;},get light(){return light;},get suns(){return systemSuns;},get starfield(){return regionalStars?.metrics()||null;},get nebulae(){return backgroundNebulae?.metrics()||null;}};
   }
   window.vexedSpace=create();
 })();

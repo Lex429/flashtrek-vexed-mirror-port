@@ -414,8 +414,8 @@
     const player=window.vexedSolFlight?.shipPosition(state)||state;
     return Math.hypot(ship.x-player.x,ship.y-player.y)<2400?'detailed':'distant';
   }
-  function advance(state,dt) {
-    if(window.nativeSimulation.blocked()||!Number.isFinite(dt)||dt<=0)return false;
+  function advance(state,dt,{catchUp=false}={}) {
+    if(window.nativeSimulation.blocked()||!Number.isFinite(dt)||dt<0||dt===0&&!catchUp)return false;
     const economy=initialize(state),before=economy.lifeClock,now=Math.max(before+dt,window.nativeSimulation.seconds(state));
     economy.lifeClock=now;economy.clock+=now-before;
     let changed=false,production=0;
@@ -424,9 +424,11 @@
     const metrics=economy.lifeMetrics;metrics.detailed=0;metrics.distant=0;metrics.deferred=0;metrics.scheduledEvents=0;metrics.distantUpdates=0;
     const rt=runtime(state,economy);
     for(const ship of rt.unscheduled){rt.unscheduled.delete(ship);if(ship.lifeEventAt==null&&ship.phase!=='disabled'&&rt.byId.get(Number(ship.id))===ship)scheduleTug(economy,ship,before);}
-    if(now-rt.detailAt>=.2-1e-8){rt.detailAt=now;for(const ship of rt.detailed)ship.simulationDetail='distant';rt.detailed=[];
+    const activeRegion=window.nativeShipDetail?.region(state),regionChanged=activeRegion&&rt.region!==activeRegion;
+    if(regionChanged||now-rt.detailAt>=.2-1e-8){rt.region=activeRegion;rt.detailAt=now;for(const ship of rt.detailed)ship.simulationDetail='distant';rt.detailed=[];
       if(state.system===1){const player=window.vexedSolFlight?.shipPosition(state)||state,radius=window.nativeShipDetail?.radius(state)||6500;
-        const local=window.nativeShipSystems?.query?window.nativeShipSystems.query(state,{minX:player.x-radius,minY:player.y-radius,maxX:player.x+radius,maxY:player.y+radius,categories:['tug']}).bystanders.map(target=>target.entity):economy.freighters;
+        const area=window.nativeShipDetail?.bounds(state)||{minX:player.x-radius,minY:player.y-radius,maxX:player.x+radius,maxY:player.y+radius};
+        const local=window.nativeShipSystems?.query?window.nativeShipSystems.query(state,{...area,categories:['tug']}).bystanders.map(target=>target.entity):economy.freighters;
         for(const ship of local)if(detail(state,ship)==='detailed'){ship.simulationDetail='detailed';rt.detailed.push(ship);}
       }
     }
@@ -443,7 +445,7 @@
       window.nativeShipSystems?.refreshShip?.(state,next,'tug',1);
       metrics.scheduledEvents++;if(next.simulationDetail==='distant')metrics.distantUpdates++;changed=true;
     }
-    const distant=now-rt.distantAt>=1-1e-8;if(distant)rt.distantAt=now;
+    const distant=!activeRegion&&now-rt.distantAt>=1-1e-8;if(distant)rt.distantAt=now;
     for(const ship of distant?rt.mobile:rt.detailed){
       if(ship.lifeLeg&&(ship.simulationDetail==='detailed'||distant)){
         const before={x:ship.x,y:ship.y,heading:ship.heading,system:1,shipType:ship.shipType,speed:ship.speed,vx:ship.vx,vy:ship.vy};
@@ -487,13 +489,15 @@
   }
   function price(state,port,good,buy){return quote(state,port,good,buy).total;}
   function used(state) {if(window.nativeShipEquipment)return window.nativeShipEquipment.cargoUsed(state);return Object.values(state.solFreightHold||{}).reduce((n,value)=>n+qty(value),0)+(state.localContracts||[]).reduce((n,job)=>n+qty(job.tons),0);}
+  // Local and interstellar hauling both price distance in continuous flight units.
+  const freightRate=(good,flightDistance)=>basePrices[good]*.25+Math.max(0,flightDistance)/400;
   function deliveryOffer(state,economy,from,to,good,surplusOnly=false) {
     const capacity=window.nativeShipDefinitions.forEntity(state).cargo||0;
-    const committed=(state.localContracts||[]).reduce((total,job)=>total+(Number(job.to)===to&&Number(job.good)===good?qty(job.tons):0),0);
-    const demand=Math.max(0,targetStock[to][good]*5-stock(economy,to,good)-committed);
+    const committed=(state.localContracts||[]).reduce((total,job)=>total+(job.kind!=='interstellar'&&Number(job.to)===to&&Number(job.good)===good?qty(job.tons):0),0);
+    const demand=Math.max(0,targetStock[to][good]*5-stock(economy,to,good)-committed-qty(economy.incomingReserved?.[to]?.[good]));
     const available=Math.max(0,availableStock(economy,from,good)-(surplusOnly?targetStock[from][good]:0));
     const maxLoad=Math.max(0,Math.min(available,demand,capacity-used(state)));
-    const rate=basePrices[good]*.25+distance(from,to)/400;
+    const rate=freightRate(good,distance(from,to));
     return {demand,available,maxLoad,rate};
   }
   function deliveryLanes(state,economy,from) {
@@ -532,17 +536,22 @@
     if(tons>offer.available) return {ok:false,error:'This port must produce more cargo before it can load that shipment.'};
     if(tons>offer.demand) return {ok:false,error:`${names[to]} only needs ${offer.demand} t of ${goods[good]} right now.`};
     if(tons>offer.maxLoad) return {ok:false,error:'Not enough space in your cargo hold.'};
-    economy.ports[from][good]-=tons;
     const pay=Math.round(tons*offer.rate);
-    state.localContracts.push({id:Date.now()+Math.random(),from,to,good,tons,pay});
+    const job={id:Date.now()+Math.random(),from,to,good,tons,pay};
+    const authorized=window.nativeCargoPermits?.authorize(state,job);if(authorized&&!authorized.ok)return authorized;
+    economy.ports[from][good]-=tons;
+    (state.localContracts||=[]).push(job);
     return {ok:true,message:`Loaded ${tons} t of ${goods[good]} for ${names[to]}. Payment: ${pay} latinum.`};
   }
   function deliver(state,id) {
     const economy=initialize(state),job=state.localContracts?.find(c=>Number(c.id)===Number(id));
     if(!job) return {ok:false,error:'Shipment unavailable.'};
+    if(job.kind==='interstellar')return {ok:false,error:'This shipment uses interstellar settlement.'};
+    if(window.nativeCargoPermits&&!window.nativeCargoPermits.validShipment(job))return {ok:false,error:'The paperwork does not match this shipment.'};
     if(Number.isInteger(job.good)){const delivered=stock(economy,job.to,job.good)+job.tons;economy.ports[job.to][job.good]=Math.min(9999,delivered);economy.flows.lost[job.good]+=Math.max(0,delivered-9999);}
     state.localContracts=state.localContracts.filter(c=>c!==job);state.latinum+=job.pay;
     economy.flows.externalPlayerPayments=(economy.flows.externalPlayerPayments||0)+job.pay;
+    window.nativeCargoPermits?.complete(state,job);
     note(economy,`Your Tug delivered ${job.tons} t${goods[job.good]?' of '+goods[job.good]:''} to ${names[job.to]}.`);
     return {ok:true,message:`Delivered ${job.tons} t to ${names[job.to]}. ${job.pay} latinum received.`};
   }
@@ -617,7 +626,8 @@
     return {ok:true};
   }
   function invalidateMembership(state){const rt=state.solEconomy&&runtimes.get(state.solEconomy);if(rt)rt.revision=-1;}
+  function calendarPending(state){const economy=initialize(state),at=window.nativeSimulation.seconds(state);return economy.clock>=30||economy.freighters.some(ship=>ship.lifeEventAt!==null&&Number.isFinite(ship.lifeEventAt)&&ship.lifeEventAt<=at);}
   function observeMotion(state,ship){const rt=state.solEconomy&&runtimes.get(state.solEconomy);if(!rt)return;const moving=ship.hull>0&&ship.phase!=='destroyed'&&!!(ship.lifeLeg||ship.motionKick||ship.motionSpin||ship.speed>0);if(rt.mobile.has(ship)!==moving){if(moving)rt.mobile.add(ship);else rt.mobile.delete(ship);rt.mobileView=null;}}
-  window.nativeSolEconomy={goods,ports,names,roles,lanes,initialize,advance,snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute,resumeAfterRepair,consumeMaterials,find,invalidateMembership,
+  window.nativeSolEconomy={freightRate,goods,ports,names,roles,lanes,initialize,advance,calendarPending,settleCalendar:state=>advance(state,0,{catchUp:true}),snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute,resumeAfterRepair,consumeMaterials,find,invalidateMembership,
     members:(state,system=1)=>system===1?initialize(state).freighters:[],revision:state=>runtime(state,initialize(state)).revision,inspect:(state,id)=>{const ship=find(state,id);return ship?lifeDescriptor(state,ship):null;},observeMotion,mobile:state=>{const rt=runtime(state,initialize(state));return rt.mobileView||=Object.freeze(Array.from(rt.mobile));}};
 })();

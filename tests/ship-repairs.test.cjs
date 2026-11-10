@@ -82,6 +82,26 @@ test('one Olympic claims a hail, physically travels through the saved scheduler 
  assert.equal(f.state.shipRepairs.calls[0].status,'completed');assert.equal(f.state.shipRepairs.missions.length,1);assert.equal(f.lives.find(f.state,id).cargo.tons,4);
 });
 
+test('a player short of repair material can explicitly summon a real medical ship before hull disablement',async()=>{
+ let f=await small(),s=f.state;
+ Object.assign(s,{system:1,x:900,y:500,angle:0,speed:0,vx:0,vy:0,hull:35,shields:18,phase:'flight',deuranium:2,repairDroneMode:'manual',landed:false});
+ const medics=s.civilianTraffic.ships.filter(e=>e.shipType===58);
+ for(const e of medics){e.system=2;e.x=100;e.y=0;e.repairDeuranium=100;}
+ const fleet=s.civilianTraffic.ships.map(e=>e.id),money=s.latinum;
+ const result=f.repairs.requestPlayerDistress(s);assert.ok(result.ok);assert.equal(s.phase,'flight');
+ f.step(.25);const call=s.shipRepairs.calls.find(c=>c.id===result.callId);assert.equal(call.status,'claimed');
+ const responder=medics.find(e=>f.repairs.key(f.repairs.ref('civilian',e))===call.claim),id=responder.id;
+ assert.equal(responder.system,2);assert.equal(responder.task.phase,'rescue-transit');
+ until(f,()=>s.shipRepairs.missions.some(m=>m.target.category==='player'&&m.restoredHull>1));
+ const mission=s.shipRepairs.missions.find(m=>m.target.category==='player');assert.equal(mission.drones.length,6);
+ const missionId=mission.id;f=await small(copy(s));s=f.state;
+ until(f,()=>s.shipRepairs.missions.find(m=>m.id===missionId)?.status==='completed');
+ until(f,()=>s.shipRepairs.calls.find(c=>c.id===result.callId)?.status==='completed');
+ near(s.hull,50,'assisted player hull');assert.equal(s.phase,'flight');assert.equal(s.deuranium,2);assert.equal(s.latinum,money);
+ near(f.lives.find(s,id).repairDeuranium,97,'responder finite repair stock');near(s.shipRepairs.ledger.consumed,3,'medical material consumed');
+ assert.deepEqual(s.civilianTraffic.ships.map(e=>e.id),fleet);assert.equal(s.shipRepairs.calls.length,1);
+});
+
 test('destroying a casualty or responder cancels repair without resurrection, refunds or duplicate claims',async()=>{
  const f=await small();disable(f,f.ship);const e=f.state.civilianTraffic.ships.find(e=>e.shipType===58);e.system=1;e.repairDeuranium=100;
  until(f,()=>f.state.shipRepairs.missions.some(m=>m.restoredHull>1));const before=f.state.shipRepairs.ledger.consumed;

@@ -19,6 +19,9 @@ the definition-owned shield radii and authoritative shared contacts. See
 | Behavior | Authoritative owner | Controller responsibility |
 | --- | --- | --- |
 | Ship statistics, equipment, dimensions, role capabilities, emitters, collision geometry | `ship-definitions.js`, using the existing `world-data.js`, flight reference and artwork profiles | Select a registered definition/profile |
+| Permanent hull thruster profile, saved hull-local level and upgrade quotes | `ship-definitions.js` (`nativeShipThrusters`); `shipyard-refits.js` owns atomic paid upgrades | Request upgrades at an authorized port or docked shipyard; equipment changes retain the level and hull replacement resets it |
+| Hull/shield HUD values and bounded impact feedback | `ship-vitals.js`, observing effective definitions and the completed `ship-damage.apply` result | The host draw supplies visibility, pause and safe footer inset; display code never applies damage or changes saved state |
+| Weapon/resource HUD artwork, recharge display and change feedback | `native-hud.js`, reading typed equipment, shared weapon specifications, saved `readyAt` and resources | The host calls `vexedHud.frame`; HUD code cannot fit equipment, fire, spend resources or advance simulation |
 | World targets, category adapters and collision dispatch | `ship-systems.js` | Register business consequences and which entities currently exist |
 | Acceleration, turning, braking, speed constraints, goal arrival, path following and inertial steering | `ship-motion.js` | Choose commands and a named movement profile |
 | Saved simulation time and pause gate | `simulation-clock.js` | Use shared seconds/deadlines and report actual gate changes |
@@ -218,6 +221,17 @@ The standard damage stages are hull fractions below .75, .5 and .25. The old tug
 implementation alone switched its last frame at exactly .25; all ships now use
 the canonical flight-art threshold `< .25`. The disabled threshold remains its
 separate explicit capability, normally .25 for all ordinary hulls, regardless of controller. Disabling and a damage-stage frame are separate results.
+
+A surviving player's manual flight remains available below that threshold.
+`native-game` forwards real flight-control intent and `ship-systems.move` permits
+`manualFlight` commands using the same definition-owned engine/thruster profile.
+It keeps the saved critical phase for repair, weapon and autopilot policies;
+non-manual goals and disabled NPCs still coast. Destroyed hulls cannot thrust.
+Player critical hits preserve commanded momentum and held steering; full hull
+recovery also preserves the player's current velocity. There is no second motion
+integrator or save migration. The engine-failure Node/browser checks cover 10%
+hull with repaired engines, emergency thrusters and no active drones, including
+Continue before hull repair.
 
 Controllers may set goals, choose paths, select movement profiles, choose a
 target/weapon and react to completed commands. They may not introduce private

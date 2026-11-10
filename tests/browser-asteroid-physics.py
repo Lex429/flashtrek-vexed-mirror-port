@@ -72,7 +72,7 @@ try:
             Object.assign(entity,{shields:shielded?1000:0,angle:.65,heading:.65,vx:Math.cos(.65)*45,vy:Math.sin(.65)*45,speed:45});
             let d=nativeShipDefinitions.describe(s,entity,{category});
             const distance=d.hullRadii.ry+r.size*.43-.5,n={x:Math.cos(.65),y:Math.sin(.65)},x=r.x-n.x*distance,y=r.y-n.y*distance;
-            if(category==='player')putPlayer(s,x,y);else Object.assign(entity,{x,y});
+            if(category==='player')putPlayer(s,x,y);else{Object.assign(entity,{x,y});putPlayer(s,r.x+1000,r.y+1000);}
             entity.previousX=x-n.x*5;entity.previousY=y-n.y*5;
             d=nativeShipDefinitions.describe(s,entity,{category});await nativeShipEffects.prepare(d.shipType,category);
             nativeAsteroidMotion.collide(s,.12);
@@ -174,7 +174,7 @@ try:
             nativeAsteroidMotion.ensure(s);r.size=size;
             let entity=s;if(category!=='player'){entity={...isolated(category),id:8899,system:1,phase:'cruise',hull:1000};if(category==='tug')s.solEconomy.freighters=[entity];else s.civilianTraffic.ships=[entity];}
             Object.assign(entity,{shields:1000,vx:0,vy:0,speed:0,heading:0,angle:0});
-            if(category==='player')putPlayer(s,x,y);else Object.assign(entity,{x,y});entity.previousX=x;entity.previousY=y;
+            if(category==='player')putPlayer(s,x,y);else{Object.assign(entity,{x,y});putPlayer(s,x+1000,y+1000);}entity.previousX=x;entity.previousY=y;
             await nativeShipEffects.prepare(nativeShipDefinitions.describe(s,entity,{category}).shipType,category);
             let steps=0;
             const tick=()=>{nativeSimulation.advance(s,1/60);nativeAsteroidMotion.advance(s,1/60);nativeShipSystems.move(s,entity,category,{},undefined,1/60);nativeAsteroidMotion.collide(s,1/60);nativeShipEffects.advance(s,1/60);};
@@ -190,7 +190,8 @@ try:
           for(const category of ['player','civilian','tug']){const cases=incoming.filter(c=>c.category===category);check(cases[1].velocity>cases[0].velocity,'Larger rock did not push '+category+' harder');}
           const chainState=fresh(),chainRocks=nativeSolAsteroids.forSystem(43).slice(0,3),at=nativeSimulation.seconds(chainState),positions=[0];
           for(let i=1;i<3;i++)positions.push(positions[i-1]+(chainRocks[i-1].size+chainRocks[i].size)*.43+8);
-          const chained={...chainState,asteroidMotion:{version:1,rocks:Object.fromEntries(chainRocks.map((r,i)=>[r.slotId,{system:43,x:positions[i],y:0,angle:r.angle,vx:i?0:120,vy:0,spin:0,at}]))}};
+          // Keep this off-camera chain inside the production simulation buffer.
+          const chained={...chainState,system:43,x:0,y:600,asteroidMotion:{version:1,rocks:Object.fromEntries(chainRocks.map((r,i)=>[r.slotId,{system:43,x:positions[i],y:0,angle:r.angle,vx:i?0:120,vy:0,spin:0,at}]))}};
           chained.minedAsteroids=[...chainState.minedAsteroids,...nativeSolAsteroids.forSystem(43).filter(r=>!chainRocks.includes(r)).map(r=>r.slotId)];
           nativeAsteroidMotion.ensure(chained);
           for(let i=0;i<180;i++){nativeSimulation.advance(chained,1/60);nativeAsteroidMotion.advance(chained,1/60);}

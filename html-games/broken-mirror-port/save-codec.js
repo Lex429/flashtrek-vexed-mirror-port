@@ -180,7 +180,8 @@
     if(at!==bytes)throw Error('Trailing compact save bytes');if(codes.length)parts.push(String.fromCharCode(...codes));
     const result=parts.join('');if(!result.startsWith(compressedPrefix))throw Error('Unsupported compact save');return result;
   }
-  function stringify(state){if(!large(state))return JSON.stringify({...state,saveSlotVersion:1});const text=compress(JSON.stringify({...state,saveSlotVersion:3}));return text.length>1_000_000?compactUnits(text):text;}
+  function encodeText(json){const text=compress(json);return text.length>1_000_000?compactUnits(text):text;}
+  function stringify(state){if(!large(state))return JSON.stringify({...state,saveSlotVersion:1});return encodeText(JSON.stringify({...state,saveSlotVersion:3}));}
   function parse(text){if(typeof text==='string'&&text.startsWith('VM4:'))text=expandUnits(text);const compressed=typeof text==='string'&&text.startsWith(compressedPrefix),value=unpack(JSON.parse(compressed?decompress(text):jsonText(text)));if(compressed&&value?.saveSlotVersion!==3)throw Error('Unsupported compressed save');return value;}
-  window.nativeSaveCodec=Object.freeze({pack,unpack,stringify,parse,compress,decompress,compactUnits,expandUnits,version,slotVersion:3,format,limits:Object.freeze({maxNodes,maxShapes,maxStrings,maxTextUnits})});
+  window.nativeSaveCodec=Object.freeze({pack,unpack,stringify,parse,compress,decompress,encodeText,compactUnits,expandUnits,version,slotVersion:3,format,limits:Object.freeze({maxNodes,maxShapes,maxStrings,maxTextUnits})});
 })();

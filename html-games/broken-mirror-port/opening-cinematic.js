@@ -67,9 +67,10 @@
       if(run.time>=manifest.duration-.06){finish('complete');return;}
     }
     run.last=now;
-    const period=1000/30,elapsed=now-(run.lastPaint??now);
-    if(!run.painted||run.ready&&!paused()&&elapsed>=period-.75){
-      paint();run.lastPaint=run.painted?run.lastPaint+Math.max(1,Math.floor((elapsed+.75)/period))*period:now;run.painted=true;
+    // Present on every display callback. The audio clock and campaign's fixed
+    // simulation steps remain authoritative at any display refresh rate.
+    if(!run.painted||run.ready&&!paused()){
+      paint();run.painted=true;
     }
     frame=requestAnimationFrame(animate);
   }
@@ -115,7 +116,7 @@
       await renderer.warm(manifest,()=>run===ticket);if(run!==ticket)return;
       ticket.ready=true;ticket.last=performance.now();audio.currentTime=0;status('');syncPause();paint();
     }).catch(error=>{
-      if(run!==ticket)return;status('The opening film could not load. Select Skip to continue.');console.warn(error.message);
+      if(run!==ticket)return;status('The opening film could not load. Select Skip to continue.');console.warn('Opening film preparation failed:',error);
     });
     return true;
   }

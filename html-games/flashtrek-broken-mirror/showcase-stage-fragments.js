@@ -7,16 +7,18 @@
   // pixel operation inside a generator does not make that operation resumable.
   const queue=[],statistics={completed:0,failed:0,workMs:0,maxSliceMs:0,maxStepMs:0,slices:0,steps:0,peakPending:0,readbackFallbacks:0,optionalWorkerFallbacks:0},operations=new Map(),limits={sliceMs:2,maxPending:64,maxSteps:64,pixelChunk:4096};
   let scheduled=false,waiting=0,readback=null,suspended=false;
+  const backgroundHolds=new Set(),runnable=()=>queue.length&&(!backgroundHolds.size||queue.some(task=>task.priority>0));
   const clock=()=>performance.now();
   const count=()=>queue.length+waiting;
-  function schedule(){if(!suspended&&!scheduled&&queue.length){scheduled=true;setTimeout(pump,0);}}
+  function schedule(){if(!suspended&&!scheduled&&runnable()){scheduled=true;setTimeout(pump,0);}}
   function resume(task,value,error=false){waiting--;task.value=value;task.error=error;queue.push(task);schedule();}
   function pump(){
     scheduled=false;if(suspended)return;const started=clock();let steps=0;
     do{
       // Current appearances can pass optional wreck/fragment work, while every
       // eighth step still serves the oldest task so background work progresses.
-      const foreground=statistics.steps%8!==7?queue.findIndex(task=>task.priority>0):-1;
+      const foreground=backgroundHolds.size||statistics.steps%8!==7?queue.findIndex(task=>task.priority>0):-1;
+      if(backgroundHolds.size&&foreground<0)break;
       const task=queue.splice(foreground<0?0:foreground,1)[0];if(!task)break;
       const stepStarted=clock();let operation=task.label;
       try{const result=task.error?task.iterator.throw(task.value):task.iterator.next(task.value);task.value=undefined;task.error=false;
@@ -29,7 +31,7 @@
       const elapsed=clock()-stepStarted,row=operations.get(operation)||{steps:0,workMs:0,maxStepMs:0};row.steps++;row.workMs+=elapsed;row.maxStepMs=Math.max(row.maxStepMs,elapsed);operations.set(operation,row);
       statistics.steps++;statistics.maxStepMs=Math.max(statistics.maxStepMs,elapsed);
       steps++;
-    }while(queue.length&&steps<limits.maxSteps&&clock()-started<limits.sliceMs);
+    }while(runnable()&&steps<limits.maxSteps&&clock()-started<limits.sliceMs);
     const elapsed=clock()-started;statistics.workMs+=elapsed;statistics.maxSliceMs=Math.max(statistics.maxSliceMs,elapsed);statistics.slices++;
     schedule();
   }
@@ -64,9 +66,13 @@
     }catch(error){statistics.optionalWorkerFallbacks++;return Promise.reject(error);}
   }
   const pixels=Object.freeze({read:readPixels,write:writePixels,readAsync});
-  window.nativeDamageArtPreparation=Object.freeze({run,finish,pixels,optional,setPaused(value){suspended=!!value;if(!suspended)schedule();},snapshot:()=>({...statistics,suspended,pending:count(),queued:queue.length,waiting,limits:{...limits},readback:readback?.snapshot()||{initialized:false,pending:0},operations:Object.fromEntries([...operations].map(([name,row])=>[name,{...row}]))}),
+  window.nativeDamageArtPreparation=Object.freeze({run,finish,pixels,optional,
+    holdBackground(){const owner={};backgroundHolds.add(owner);return ()=>{backgroundHolds.delete(owner);schedule();};},get backgroundHeld(){return backgroundHolds.size>0;},
+    setPaused(value){suspended=!!value;if(!suspended)schedule();},snapshot:()=>({...statistics,suspended,backgroundHeld:backgroundHolds.size>0,pending:count(),queued:queue.length,waiting,limits:{...limits},readback:readback?.snapshot()||{initialized:false,pending:0},operations:Object.fromEntries([...operations].map(([name,row])=>[name,{...row}]))}),
     resetMetrics(){for(const field of Object.keys(statistics))statistics[field]=0;statistics.peakPending=count();operations.clear();readback?.resetMetrics?.();}});
-  function* preparation(frames,anchors) {
+  function* preparation(frames,configuration) {
+    const anchors=Array.isArray(configuration)?configuration:configuration.anchors;
+    const options=Array.isArray(configuration)?{}:configuration.options||{};
     const w=frames[0].width,h=frames[0].height;
     function* read(image){
       const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
@@ -79,13 +85,21 @@
       const groups=anchors.map(()=>[]),before=framePixels[stage-1],after=framePixels[stage],beforeWords=new Uint32Array(before.buffer,before.byteOffset,before.length/4);
       for(let pixel=0;pixel<w*h;pixel++){
         if((pixel&1023)===1023)yield;
-        const i=pixel*4;if(before[i+3]<100||after[i+3]>40)continue;
+        const i=pixel*4;if(before[i+3]<(options.minimumAlpha||100))continue;
         const x=pixel%w,y=Math.floor(pixel/w);
+        if(after[i+3]>40){
+          if(!options.armorChips)continue;
+          const oldLight=before[i]*.26+before[i+1]*.59+before[i+2]*.15;
+          const newLight=after[i]*.26+after[i+1]*.59+after[i+2]*.15;
+          if(oldLight-newLight<(options.darkening||42))continue;
+          if(options.regions&&!options.regions[stage]?.some(p=>Math.hypot(x-p.x,y-p.y)<p.r*1.8+8))continue;
+        }
         let closest=0,distance=Infinity;
         for(let n=0;n<anchors.length;n++){const [ax,ay]=anchors[n],d=(x-ax)**2+(y-ay)**2;if(d<distance){distance=d;closest=n;}}
         groups[closest]?.push(pixel);
       }
-      for(const group of groups){
+      const selected=options.maxPieces?groups.slice().sort((a,b)=>b.length-a.length).slice(0,options.maxPieces):groups;
+      for(const group of selected){
         if(group.length<12)continue;
         let x=w,y=h,right=0,bottom=0;
         for(let n=0;n<group.length;n++){const pixel=group[n],px=pixel%w,py=Math.floor(pixel/w);x=Math.min(x,px);y=Math.min(y,py);right=Math.max(right,px);bottom=Math.max(bottom,py);if((n&1023)===1023)yield;}
@@ -100,9 +114,9 @@
     }
     return fragments;
   }
-  const prepare=(frames,anchors)=>finish(preparation(frames,anchors));
+  const prepare=(frames,anchors,options)=>finish(preparation(frames,options?{anchors,options}:anchors));
   function adopt(fragments){for(const stage of fragments)for(const piece of stage)if(piece.material){window.wreckageEffects?.adopt?.(piece.texture,piece.material);delete piece.material;}return fragments;}
-  const prepareAsync=(frames,anchors)=>{const worker=optional('fragments',frames,anchors);return worker?worker.then(adopt).catch(()=>run(preparation(frames,anchors),{label:'fragments'})):run(preparation(frames,anchors),{label:'fragments'});};
+  const prepareAsync=(frames,anchors,options)=>{const configuration=options?{anchors,options}:anchors,worker=optional('fragments',frames,configuration);return worker?worker.then(adopt).catch(()=>run(preparation(frames,configuration),{label:'fragments'})):run(preparation(frames,configuration),{label:'fragments'});};
   function emit({debris,fragments,before,after,layout,world,angle,time,zoom,burst}) {
     for(let stage=before+1;stage<=after;stage++)for(const piece of fragments[stage]){
       const point=world(piece),direction=Math.atan2(point.y-layout.y,point.x-layout.x),speed=(55+stage*18)*zoom;

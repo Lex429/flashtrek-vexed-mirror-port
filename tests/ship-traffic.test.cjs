@@ -1,12 +1,16 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {fixture}=require('./npc-economy-fixture.cjs');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const copy=x=>JSON.parse(JSON.stringify(x)),near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
 const body=(extra={})=>({id:1,category:'civilian',system:2,x:0,y:0,previousX:0,previousY:0,heading:0,vx:0,vy:0,
   dimensions:{width:30,height:60},radii:{rx:15,ry:30},definition:{mass:8},...extra});
-async function setup(){
+async function setup(phased=false){
   const f=await fixture({full:false,economic:false,traffic:true});
   Object.assign(f.state,{system:2,x:10000,y:10000,hull:100,shields:100,landed:false});
   f.state.solEconomy.freighters=[];f.state.civilianTraffic.ships=[];
+  // Retain the previous regional five-Hz policy as compatibility coverage.
+  // The production chunk policy has its own active-regions regression suite.
+  if(phased){f.state.civilianTraffic.population={version:1};vm.runInContext(fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/civilian-population.js'),'utf8'),f.context);f.window.nativeCivilianPopulation={...f.window.nativeCivilianPopulation,simulation:null};}
   f.window.nativePlayerCombat={visualImpact:(state,event)=>f.window.nativeShipEffects.visualImpact(state,f.window.nativeShipDefinitions.describe(state),event)};
   f.lives.initialize(f.state);return f;
 }
@@ -24,6 +28,78 @@ function tick(f,ships,dt=1/60){
   for(const e of ships)if(e.localLeg)w.nativeShipMotion.sampleLeg(e,e.localLeg,at);
   w.nativeShipTraffic.collide(s,dt);
 }
+
+test('expanded regional planning keeps every system at five Hz while distributing independent systems across physical steps',async()=>{
+ const f=await setup(true),w=f.window,s=f.state,ships=[],times=new Map();s.system=32;
+ for(let system=2;system<14;system++){ships.push(add(f,{id:100+system,system,x:-5000,y:5000,goal:{x:5000,y:5000}}));times.set(system,[]);}
+ const motion=w.nativeShipMotion;w.nativeShipMotion={...motion,trafficAdvice(ship,...args){times.get(ship.system)?.push(w.nativeSimulation.seconds(s));return motion.trafficAdvice(ship,...args);}};
+ w.nativeShipTraffic.advance(s,1/60);w.nativeShipTraffic.collide(s,1/60);
+ for(let frame=0;frame<60;frame++)tick(f,ships);
+ const cohorts=new Map();
+ for(const [system,samples] of times){assert.equal(samples.length,5,`five planning visits for ${system}`);for(let i=1;i<samples.length;i++)assert.ok(Math.abs(samples[i]-samples[i-1]-.2)<1e-7);for(const at of samples){const frame=Math.round(at*60);cohorts.set(frame,(cohorts.get(frame)||0)+1);}}
+ assert.ok(Math.max(...cohorts.values())<=1,'independent systems must not all plan in the same physical step');
+});
+
+test('phased distant contacts still move a parked hull and preserve cargo and condition',async()=>{
+ const f=await setup(true),w=f.window,s=f.state;s.system=32;
+ const a=add(f,{id:101,system:4,x:-70,y:5000,moving:false}),b=add(f,{id:102,system:4,x:0,y:5000,moving:false});
+ Object.assign(a,{vx:180,vy:0,speed:180,heading:0,cargo:{good:5,tons:4},motionKick:{version:1,mode:'scheduled',at:0,duration:5,x:0,y:0,vx:180,vy:0}});
+ w.nativeNpcLives.refreshLocation(s,a);w.nativeShipSystems.invalidateShips(s);
+ w.nativeShipTraffic.collide(s,1/60);
+ for(let frame=0;frame<240;frame++)tick(f,[]);
+ assert.ok(b.x>1,'the distant parked ship receives real momentum');assert.equal(a.hull,100);assert.equal(b.hull,100);assert.equal(a.cargo.tons,4);
+ assert.ok(w.nativeShipTraffic.snapshot(s).contacts.some(c=>c.system===4));
+});
+
+test('a huge hull in another system cannot widen local traffic searches or change local right of way',async()=>{
+ async function scenario(remote){
+  const f=await setup(),w=f.window,s=f.state;s.system=32;
+  const a=add(f,{id:101,system:2,x:-500,y:5000,goal:{x:500,y:5000}}),b=add(f,{id:102,system:2,x:0,y:5000,moving:false}),c=add(f,{id:103,system:2,x:4000,y:5000,goal:{x:5000,y:5000}});
+  if(remote){const giant=add(f,{id:999,system:4,x:200000,y:200000,goal:{x:201000,y:200000}});giant.dimensions={width:50000,height:50000};}
+  const motion=w.nativeShipMotion;let neighbors;
+  w.nativeShipMotion={...motion,trafficAdvice(ship,others,...args){if(ship.id===a.id)neighbors=others.map(e=>e.id);return motion.trafficAdvice(ship,others,...args);}};
+  w.nativeSimulation.advance(s,.5);w.nativeShipTraffic.advance(s,.5);
+  return {neighbors:copy(neighbors),route:copy(a.localLeg),control:copy(a.trafficControl||null),work:w.nativeShipTraffic.snapshot(s)};
+ }
+ const local=await scenario(false),remote=await scenario(true);
+ assert.ok(local.neighbors.includes(102));assert.ok(!local.neighbors.includes(103));
+ assert.deepEqual(remote.neighbors,local.neighbors);assert.deepEqual(remote.route,local.route);assert.deepEqual(remote.control,local.control);
+ assert.ok(remote.work.neighborCellChecks<=local.work.neighborCellChecks+2);
+ assert.ok(remote.work.neighborEntryChecks<=local.work.neighborEntryChecks+2,'the extra region adds its own entry check, not a galaxy-wide scan');
+});
+
+test('distant contacts leave merely forecast-near parked crews asleep until a swept hull can reach them',async()=>{
+ const f=await setup(),w=f.window,s=f.state;s.system=32;
+ const mover=add(f,{id:1,system:4,x:-5000,y:5000,goal:{x:-3000,y:5000}}),parked=[];
+ for(let i=0;i<12;i++)parked.push(add(f,{id:10+i,system:4,x:-4500+(i%3)*100,y:4800+Math.floor(i/3)*100,moving:false}));
+ const before=copy(parked);w.nativeShipSystems.collectShips(s,4);w.nativeShipTraffic.collide(s,1/60);
+ w.nativeSimulation.advance(s,.5);w.nativeSimulationFrame.begin(s);w.nativeSimulationFrame.step(s);w.nativeShipTraffic.collide(s,.5);
+ const counters=w.nativeSimulationFrame.snapshot(s).counters;
+ assert.equal(counters.shipContactNeighborhoods,1,'only the real distant mover needs a contact-neighborhood query');
+ assert.equal(w.nativeShipTraffic.snapshot(s).contacts.length,0);assert.deepEqual(copy(parked),before);
+ assert.equal(mover.hull,100);w.nativeSimulationFrame.end(s);
+});
+
+test('a first distant route sample sweeps the elapsed leg and hits a parked hull crossed between endpoints',async()=>{
+ const f=await setup(),w=f.window,s=f.state;s.system=32;
+ const a=add(f,{id:1,system:4,x:-200,y:5000,goal:{x:2000,y:5000}}),b=add(f,{id:2,system:4,x:0,y:5000,moving:false});
+ Object.assign(a,{heading:0,speed:1000,vx:1000,vy:0,cargo:{good:5,tons:4}});b.heading=0;
+ a.localLeg=w.nativeShipMotion.planLeg(a,{x:2000,y:5000},{maxSpeed:1000,acceleration:1e6,braking:1e6,turnRate:1000},0);a.nextActionAt=a.localLeg.duration;
+ f.lives.refreshLocation(s,a);w.nativeShipTraffic.collide(s,1/60);w.nativeSimulation.advance(s,.4);w.nativeShipTraffic.collide(s,.4);
+ assert.ok(b.vx>0,'the parked hull receives momentum from a real swept contact');assert.ok(a.x<b.x);assert.equal(a.cargo.tons,4);assert.equal(a.hull,100);assert.equal(b.hull,100);
+ assert.ok(w.nativeShipTraffic.snapshot(s).contacts.some(c=>c.a==='civilian:1'&&c.b==='civilian:2'));
+});
+
+test('distant mover discovery retains an entire stationary contact chain',async()=>{
+ const f=await setup(),w=f.window,s=f.state;s.system=32;
+ const a=add(f,{id:1,system:4,x:0,y:5000,moving:false}),b=add(f,{id:2,system:4,x:40,y:5000,moving:false}),c=add(f,{id:3,system:4,x:80,y:5000,moving:false});
+ for(const e of [a,b,c]){e.heading=0;e.cargo={good:5,tons:4};}
+ Object.assign(a,{speed:100,vx:100,vy:0,previousX:-40});f.lives.refreshLocation(s,a);
+ w.nativeShipTraffic.collide(s,1/60);w.nativeSimulation.advance(s,.2);w.nativeShipTraffic.collide(s,.2);
+ assert.ok(b.vx>0,'the first parked hull receives momentum');
+ assert.ok(Math.hypot(c.x-80,c.y-5000)>.01,'the second parked hull receives the connected physical displacement');
+ for(const e of [a,b,c]){assert.equal(e.hull,100);assert.equal(e.cargo.tons,4);assert.equal(e.credits,5000);}
+});
 
 test('ordinary steering escapes a stopped clearance margin instead of braking forever',async()=>{
   const f=await setup(),m=f.window.nativeShipMotion;
@@ -144,8 +220,10 @@ test('crossing traffic keeps moving through a physical passing route without a y
 
 test('a legacy straight route is repaired around a planet without changing its saved purpose',async()=>{
   const f=await setup(),a=add(f,{x:-650,y:75,goal:{x:350,y:75}}),task=copy(a.task);
+  const members=f.lives.members(f.state,2);
   assert.equal(a.localLeg.version,2);
   tick(f,[a]);assert.equal(a.localLeg.version,3);
+  assert.equal(f.lives.members(f.state,2),members,'rerouting one ship must retain the unchanged fleet membership index');
   const m=f.window.nativeShipMotion,body=m.navigationBodies(2);
   for(const part of a.localLeg.segments)assert.ok(m.clearSegment(part.start,part.goal,body,m.shipRadius(f.window.nativeShipDefinitions.describe(f.state,a,{category:'civilian'}))+24));
   for(let i=0;i<2400;i++)tick(f,[a]);near(a.x,350);near(a.y,75);assert.deepEqual(copy(a.task),task);

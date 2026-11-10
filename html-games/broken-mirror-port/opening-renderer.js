@@ -121,15 +121,15 @@
       }
       const movieView={state:view.state,ship:{x:0,y:0},cx:0,cy:0,w:1600,h:900,zoom:1};
       view.shots.paintAll(ctx,movieView);effects.paint(view.state,ctx,movieView);
-      for(const burst of view.rockBursts)window.nativeAsteroidCombat.paintRockFragments(ctx,burst,view.visualTime*1000);
+      for(const burst of view.rockBursts)window.nativeAsteroidCombat.paintRockFragments(ctx,burst,view.visualTime*1000,{image:pictures.get('rock:'+burst.rock.file)});
       if(view.planet)for(const p of view.planet.particles)window.showcaseHullBurst.draw(ctx,p,view.visualTime*1000);
       ctx.restore();
       const vignette=ctx.createRadialGradient(800,450,360,800,450,950);vignette.addColorStop(0,'#0000');vignette.addColorStop(1,'#000b');ctx.fillStyle=vignette;ctx.fillRect(0,0,1600,900);
       if(cut.kind==='founding'){ctx.font='300 100px Georgia';ctx.fillStyle='#e5d5b5';ctx.fillText('2125',110,350);ctx.font='12px system-ui';ctx.letterSpacing='4px';ctx.fillStyle='#ac9e86';ctx.fillText('THE EARTH EMPIRE',116,387);ctx.letterSpacing='0px';}
       if(frame.title)title(frame);else archive(frame);
-      const fade=frame.title?clamp((frame.time-frame.manifest.duration+1.4)/1.4):Math.min(1,cut.progress*12,(1-cut.progress)*14);
-      ctx.fillStyle=`rgba(0,0,0,${frame.title?fade:1-fade})`;ctx.fillRect(0,0,1600,900);ctx.restore();
-      if(gpu){gpu.endFrame(ctx,view.visualTime*1000);gpu.canvas.style.clipPath=`inset(${oy/canvas.height*innerHeight}px ${ox/canvas.width*innerWidth}px)`;gpu.canvas.style.opacity=String(frame.title?1:fade);}
+      const opacity=frame.title?1-clamp((frame.time-frame.manifest.duration+1.4)/1.4):window.nativeOpeningStoryboard.shotOpacity(cut,frame.time);
+      ctx.fillStyle=`rgba(0,0,0,${1-opacity})`;ctx.fillRect(0,0,1600,900);ctx.restore();
+      if(gpu){gpu.endFrame(ctx,view.visualTime*1000);gpu.canvas.style.clipPath=`inset(${oy/canvas.height*innerHeight}px ${ox/canvas.width*innerWidth}px)`;gpu.canvas.style.opacity=String(opacity);}
       const stats=campaign.snapshot().stats;shared.shieldSubmissions=stats.shieldHits;shared.weaponFrames=stats.shots;shared.destructionFrames=stats.destroyed;
       lastFrameMs=performance.now()-began;
     }

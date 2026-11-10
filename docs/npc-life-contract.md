@@ -16,6 +16,7 @@ nearby tactical controllers; they are not ordinary economic traffic.
 | Saved civilian berth occupancy, FIFO queue, holding clearance and dedicated tug terminals | `port-docking.js` |
 | Acceleration, braking, rotation and analytical local command sampling | `ship-motion.js` |
 | Nearby combat decisions and dialogue | `civilian-traffic.js`, `civilian-combat-ai.js` |
+| Civilian/faction duty, local system aggression and shared defence alerts | `faction-defence.js`; `faction-standing.js` owns reputation changes |
 | Weapons, recharge, collisions, health and nearby animation | Existing shared ship modules |
 | Asteroid depletion and one ore entitlement per asteroid | `asteroid-combat.js` |
 | Simulation clock, pause/hidden/inventory gate | `simulation-clock.js` |
@@ -26,6 +27,133 @@ nearby tactical controllers; they are not ordinary economic traffic.
 | Marker projection, selection, search, zoom, tracking and inspector UI | `dev-galaxy-view.js` |
 | Moving the Dev observer to an inspected position | `native-game.js` |
 | Bounded browser timing diagnostics | `simulation-metrics.js` |
+
+### Faction defence and civilian duties
+
+Military patrol/security duties (or explicit `npcRole: 'faction'`) identify faction
+ships; freight, trade, mining and medical crews remain civilian. Hull artwork and
+allegiance alone do not make a civilian a defender. Target brackets show FACTION
+or CIVILIAN, with hostile defenders using the existing red target treatment.
+Radar arrows distinguish green civilians, blue faction ships and red hostile
+faction ships; the selected contact retains its gold selection box.
+
+Inside its own government's physical system boundary, attacking a faction ship
+raises a shared alert against the actual attacker. Player hits cost five local
+reputation once per weapon event, including collateral hits and repeated beam
+contacts; the bounded saved event history prevents repeat charging on Continue.
+The existing destruction penalty remains separate. Negative local standing
+activates defenders upon physical entry, independent of navigation selection.
+Recent aggression alerts last 120 simulation seconds; hostile standing continues
+to apply while the player remains in the system. An assigned pursuit retains its
+existing aggression incident while the target remains inside that jurisdiction,
+including analytical off-screen approach and Continue. Active orders refresh the
+incident without another reputation charge. Unassigned incidents still expire.
+A different faction's hit alerts
+defenders against that NPC, with no player penalty. Same-faction NPC hits still
+use normal shared collision/damage and never create a retaliatory feud. Player
+hits always count as player aggression, including an aligned player.
+
+`factionDefence` saves bounded per-system alerts and crime-event history. Shared
+orders are assessed at most every quarter simulation second, with immediate
+refresh after an alert/reputation/region change. All faction crews recognize the
+threat, while at most three crews receive pursuit orders, preferring nearby
+defenders and retaining assignments to avoid constant switching. At most one
+new distant reinforcement within 8,000 units approaches at a time. Other crews keep
+their saved duties; a ship directly attacked can still defend itself. Existing
+tactical retaliation controls steering and fitted weapons. Distant responders
+use saved `factionResponse` legs through `npc-lives.respondToThreat`, with at most
+one new route dispatch per assessment. The common navigation queue handles obstacles.
+Response legs recheck their target within half a simulation second, retain funded
+work through `combatInterruption`, and resume that work after contact ends.
+Hyperspace journeys remain committed and do not acquire a speculative combat hull.
+Full tactical combat stays inside the player's existing active region.
+Version 2 saves at most three committed pursuit orders. An engaged crew retains
+its target through chunk transitions and Continue, approaching analytically
+outside detail until it can rejoin tactical combat. It can follow beyond the
+initial reinforcement radius while the enemy remains in its jurisdiction.
+The saved order records that jurisdiction; a pursuer drifting briefly outside
+the line cannot abandon a target still inside. The target crossing the actual
+system boundary ends the coordinated hunt.
+Nearby reserve crews fill vacant slots rather than replacing active hunters.
+Continue rebuilds the bounded response and releases excess legacy mass-rally orders
+through `resumeWork`, preserving retained jobs and escrow. Environmental impacts
+without an attacker never fabricate player retaliation.
+
+A surviving player at critical hull remains detailed and targetable. Military
+retaliation continues using normal shared weapon damage through the disabled
+phase to zero hull and destruction; civilian disputes retain their ceasefire
+policy. Player impact UI uses the normal display update, with artwork requested
+only when the shared damage stage changes. Each physical hit still emits its
+normal damage feedback immediately.
+
+Armed faction crews use pursuit intent in the shared combat controller: full
+throttle intercepts, short moving-target leads, close attack passes and brief
+projectile evasion followed by renewed pressure. They do not inherit civilian
+range-opening or automatic hull/cargo retreat. Saved civilian escape states are
+cleared for armed military crews; an unarmed ship can still escape. Military
+retaliation attempts its first shot on the first eligible simulation step using
+normal shared range, arc, obstruction and recharge checks. Civilian survival
+policies, engine limits, weapon ratings and active-region physics are unchanged.
+
+Run `faction-defence.test.cjs`, the civilian/combat/detail/cadence/economy suites,
+and `browser-faction-defence.py` with the existing browser regressions. Its manual
+simulation steps prove behavior and save compatibility, not delivered FPS.
+
+### Player interstellar freight
+
+`player-contracts.js` supplies inhabited chart destinations and display labels;
+`npc-lives.playerFreightQuote`, `loadPlayerFreight` and `deliverPlayerFreight` own
+the conserved market transactions. Player shipments share `localContracts`,
+cargo capacity and the two-contract limit with legacy Sol deliveries. Version-1
+interstellar jobs add `kind: 'interstellar'`, `fromSystem`, `toSystem` and a
+`reservationId`; numeric `from` and `to` are physical catalog body IDs. Legacy
+jobs without these fields retain their Sol addresses and original payment.
+
+Pricing version 2 uses continuous galaxy-space distance between the catalog
+pickup and destination planets, including their local positions. Both local
+and interstellar rates use `sol-economy.freightRate`: the cargo's base rate plus
+one latinum per 400 flight units per ton. Interstellar unit rates round upward
+to whole latinum. Offers show route distance, rate per ton and the funded total;
+new accepted jobs retain their quoted `distance`, `rate` and `pay`. Existing
+jobs keep their original reserved payment through chart changes and reloads.
+
+`cargo-permits.js` evaluates player freight clearance from the destination's
+current owner and existing standing. Allied and owned ports clear automatically;
+neutral ports require a 200-latinum one-delivery permit for Components,
+Computers, Deuranium and Hull Sections. Hostile ports require a 600-latinum
+trade-passage pass, with employer-issued humanitarian documents for Food and
+Medicine. `npc-lives.buyPlayerFreightPermit` transfers each fee to the issuing
+port's existing treasury and rolls back the document and fee if save verification
+fails. Ordinary market retail and NPC jobs retain their existing rules.
+
+Documents live in version-1 `state.cargoPermits`, with stable references, holder,
+issuer, destination, cargo, fee and valid/assigned/completed status. Loading a
+cleared local or interstellar job binds `job.authorization` to the destination,
+cargo, tonnage and job ID. Accepted authorization survives political changes and
+reload; existing jobs without the new field remain cleared. Only successful
+delivery completes the assigned document. Records are visible under Cargo's
+Documents control and never consume freight tonnage. Run
+`cargo-permits.test.cjs` and `browser-cargo-permits.py` with the freight suites.
+
+Dev diplomacy version 1 seeds a faction-based mix of allied, neutral and hostile
+systems while retaining the four nearby relationship demonstrations. Its one-time
+update replaces old untouched +100 defaults, preserving changed standings and
+ownership. Subsequent Continue and ship setup retain played relationships;
+normal saves are unaffected. `browser-dev-diplomacy.py` checks actual permit offers
+and an existing Dev save carrying both freight and assigned paperwork.
+
+Loading withdraws unreserved source stock and reserves destination demand and
+the agreed payment in the existing life-market reservation ledger. The player
+pays no loading fee. Reload reconstructs that escrow before unfunded civilian
+cargo can seek a buyer. Delivery checks both system and planet, then uses
+`exchange` to credit the player, debit the port and remove the shipment once.
+Contracts never create a second currency, inventory, fleet or simulation clock.
+The existing verified normal/Dev save paths persist acceptance and delivery.
+
+Run `interstellar-contracts.test.cjs` with the economy, market and save suites.
+`browser-interstellar-contracts.py` loads the actual page, checks five viewport
+sizes, loads local and interstellar cargo together, performs a real warp to Bajor,
+reloads the normal save, and collects through the ordinary planet controls.
 
 Each migrated civilian keeps its existing name, ID, type, equipment, health,
 credits, cargo and system. It gains `lifeVersion:1`, `role`, `homeBase`,
@@ -46,6 +174,17 @@ The revision is reconciled by indexed membership/query reads; an already cached
 same-clock full scene still requires `ship-systems.invalidateShips` at its
 membership mutation boundary. Ordinary fleet owners send that notification.
 Do not mutate retained route geometry or descriptor snapshots in place.
+
+`ship-systems.neighborhood` is a bounded current-step read model for canonical
+controllers. Nearby steering requests reuse one conservative area query per
+size/prediction band. Subsequent `refreshShip`, query touches and `refreshAsteroid`
+replace only that target in the view, including hull growth, displacement and
+depletion. Membership/definition changes or the next physical clock rebuild it.
+Each consumer still receives its own filtered descriptor array; older descriptor
+objects remain immutable. This is a view over the existing spatial owner, not a
+new fleet or physical registry. Controllers using it must publish mutations;
+ordinary `query` retains independent validation of arbitrary raw edits. Run
+`steering-neighborhood.test.cjs` for its work bounds and mutation/rock parity.
 
 Transit visibility uses conservative galaxy-space journey/warp bounds and then
 samples current poses. Extremely long bounds use a conservative overflow set;
@@ -89,7 +228,18 @@ such routes, or many genuinely touching large hulls, still require work. Free
 offscreen movers query nearby stationary blockers and connected contact chains;
 camera visibility does not remove those physical consequences.
 
-Remaining nonlocal costs include the five-Hz traffic pass over actual mobile
+Expanded production worlds use the chunk policy in `civilian-population.js` and
+the single boundary in `ship-detail.js`: one 1,024-unit chunk plus its eight
+neighbors. Camera movement, artwork readiness and map inspection do not activate
+regions. Nearby physical avoidance/contacts remain at their required cadence.
+Unobserved distant traffic/ship-rock encounters are simplified by sleeping their
+physical searches; ordinary due tasks, paid settlements and analytical journey
+positions continue through these existing owners. Already launched weapons and
+fragments continue through their own physical owners. On waking, only the current
+canonical step is swept; never replay movement from an old pre-sleep cached pose.
+
+In historical fixtures retaining the former whole-world physical policy,
+remaining nonlocal costs include the five-Hz traffic pass over actual mobile
 crews, event-time berth searches over reservations and same-system hulls, Sol
 assignment/handling scans, overdue-heap diagnostic counts, and intentional global
 inspection. Initial
@@ -356,15 +506,32 @@ an operational survivor can choose to deliver the same cargo after breaking cont
 
 ## Travel, coordinates and calendar time
 
+Controlled legacy departures and arrivals advance their timed travel effects
+before tactical eligibility is checked. Warp and arrival have no tactical hull;
+using that exclusion to gate their clocks leaves frozen, untargetable visuals.
+These timers continue outside the observer's active chunks without running
+distant steering. Scheduled journeys stay with the life scheduler. The NPC warp
+Node/browser regressions cover departure, pause, midway reload, distant expiry,
+arrival, restored targeting and real hull contact after arrival.
+
 `journey.version:1` stores origin, destination, route, departure time, duration,
-arrival deadline, endpoint local and galaxy positions, distance and speed. It is
-not a random encounter delay. A direct route connects the task's two systems;
-future route policies can supply intermediate legs without changing ship identity.
+arrival deadline, endpoint local and galaxy positions, distance and speed. Old
+journeys retain their direct route. New production journeys between corridor
+neighbors also save `waypoints`; their distance and progress follow that path
+through persistent prospect beacons. Stock, demand and real purchasing funds
+still determine every freight contract. See [travel corridors](travel-corridors.md).
+
+Nearby travellers may retain the same task in saved `travelResume.version:1`
+while ordinary local movement, contacts and tactical behavior are active. This
+record keeps the original journey and task phase; returning to analytical travel
+starts at the real current position and retains only the remaining waypoints.
+No funded cargo or escrow changes during either handoff. A blocked local route
+leaves the original journey intact; overdue arrivals remain scheduler-owned.
 
 Galaxy coordinates are the continuous manual-flight coordinates: chart displacement
 from Earth multiplied by 1,000 world units, plus local world position. Journey
 progress is `(simulationSeconds - departedAt) / duration`, clamped to `[0,1]`.
-`nativeNpcLives.galaxyPosition` interpolates the same saved endpoints for the map
+`nativeNpcLives.galaxyPosition` samples the same saved route for the map
 and local transit inspection. At arrival the endpoint becomes local coordinates
 relative to the destination anchor, then a shared movement command approaches
 the actual destination berth. Changing system representation creates no jump in

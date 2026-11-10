@@ -11,3 +11,61 @@
 }
 body:not(.playing) #game-hud { display: none; }
 .hud-filter { position: absolute; width: 0; height: 0; pointer-events: none; }
+
+/* The retained Canvas artwork and these cells share the original 282 x 43 grid. */
+#hud-feedback {
+  position: absolute; z-index: 5; top: 0; right: 0;
+  width: var(--hud-width,47%); height: var(--hud-height,9.5555556%);
+  pointer-events: none;
+}
+#hud-feedback[hidden], body:not(.playing) #hud-feedback { display: none; }
+.hud-feedback-cell {
+  position: absolute; box-sizing: border-box; overflow: visible;
+}
+.hud-bank-divider { position: absolute; left: 29.078%; top: 23.256%; width: 1px; height: 55.814%; background: linear-gradient(transparent,#7adcea99,transparent); box-shadow: 0 0 6px #66dce855; }
+.hud-cell-interior { position: absolute; inset: 0; overflow: clip; clip-path: polygon(0 0,calc(100% - var(--hud-cut-x)) 0,100% var(--hud-cut-y),100% 100%,var(--hud-cut-x) 100%,0 calc(100% - var(--hud-cut-y))); }
+.hud-cell-frame { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; fill: none; filter: drop-shadow(0 0 3px color-mix(in srgb,var(--hud-accent) 65%,transparent)); transition: filter .2s ease; }
+.hud-frame-base { stroke: var(--hud-accent); stroke-width: .75; opacity: .5; transition: stroke .2s ease,opacity .2s ease; }
+.hud-frame-trace { stroke: var(--hud-accent); stroke-width: 1.5; stroke-dasharray: 14 86; stroke-linecap: round; animation: hud-perimeter 6s linear infinite; animation-delay: calc(var(--hud-order) * -.65s); }
+.hud-feedback-cell::before {
+  content: ''; position: absolute; z-index: 1; top: 0; left: 0;
+  width: 15%; height: 15%; border-top: 1px solid var(--hud-accent); border-left: 1px solid var(--hud-accent);
+  border-radius: 2px 0 0; filter: drop-shadow(0 0 3px var(--hud-accent)); opacity: .8;
+}
+.hud-feedback-cell::after {
+  content: ''; position: absolute; right: 0; bottom: 0; width: 15%; height: 20%;
+  border-right: 1px solid var(--hud-accent); border-bottom: 1px solid var(--hud-accent);
+  border-radius: 0 0 2px; opacity: .7; filter: drop-shadow(0 0 3px var(--hud-accent));
+}
+.hud-cell-sweep { position: absolute; inset: 0 auto 0 0; width: 45%; opacity: 0; background: linear-gradient(90deg,transparent,color-mix(in srgb,var(--hud-event-color) 27%,transparent),#efffff30,transparent); }
+.hud-cell-halo { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 20px color-mix(in srgb,var(--hud-event-color) 50%,transparent); background: linear-gradient(120deg,color-mix(in srgb,var(--hud-event-color) 13%,transparent),transparent 65%); }
+.hud-cell-indicator { position: absolute; top: 18%; right: 8%; width: max(2px,calc(1.7px * var(--game-scale,1) * var(--hud-squeeze,1))); height: max(2px,calc(1.7px * var(--game-scale,1))); border-radius: 50%; background: var(--hud-accent); box-shadow: 0 0 4px var(--hud-accent),0 0 8px color-mix(in srgb,var(--hud-accent) 60%,transparent); }
+.hud-feedback-cell[data-kind=weapon] .hud-cell-indicator { right: 13%; width: max(1px,calc(1.3px * var(--game-scale,1) * var(--hud-squeeze,1))); height: max(1px,calc(1.3px * var(--game-scale,1))); }
+.hud-feedback-cell[data-hover=true] .hud-cell-frame { filter: drop-shadow(0 0 6px var(--hud-accent)); }
+.hud-feedback-cell[data-hover=true] .hud-frame-base { stroke: #d8ffff; opacity: .95; }
+.hud-feedback-cell[data-hover=true] .hud-cell-interior { background: #84e9ed0d; }
+.hud-feedback-cell:is([data-event=fire],[data-event=ready],[data-event=gain],[data-event=spent]) .hud-cell-frame { filter: drop-shadow(0 0 7px var(--hud-event-color)); }
+.hud-feedback-cell:is([data-event=fire],[data-event=ready],[data-event=gain],[data-event=spent]) .hud-frame-base { stroke: var(--hud-event-color); opacity: 1; }
+.hud-feedback-cell:is([data-event=fire],[data-event=ready],[data-event=gain],[data-event=spent]) .hud-frame-trace { stroke: #eaffff; }
+.hud-charge { position: absolute; left: 20.833%; right: 20.833%; bottom: 5.55%; height: max(1px,calc(1.2px * var(--game-scale,1))); overflow: clip; border-radius: 1px; background: #173b4755; }
+.hud-charge > span { display: block; height: 100%; background: linear-gradient(90deg,#47b5c4,#bcfff0); box-shadow: 0 0 5px #91d4d1; transform-origin: left; }
+.hud-feedback-cell[data-charging=true] .hud-charge > span { background: #b8dce5; opacity: .65; }
+.hud-feedback-cell[data-charging=true] .hud-cell-indicator { background: #edc36e; box-shadow: 0 0 5px #edc36e; animation: hud-charge-beacon 1.2s ease-in-out infinite; }
+.hud-feedback-cell[data-event=ready] .hud-charge > span { background: #c9fff3; }
+.hud-feedback-cell[data-kind=weapon][data-occupied=false] .hud-cell-frame { filter: none; opacity: .35; }
+.hud-feedback-cell[data-kind=weapon][data-occupied=false] .hud-frame-trace { opacity: 0; animation: none; }
+.hud-feedback-cell[data-kind=weapon][data-occupied=false]::before,
+.hud-feedback-cell[data-kind=weapon][data-occupied=false]::after { opacity: .2; filter: none; }
+.hud-feedback-cell[data-occupied=false] .hud-cell-indicator { display: none; }
+.hud-feedback-cell[data-occupied=false] .hud-charge { display: none; }
+.hud-feedback-cell[data-disabled=true] { opacity: .4; }
+.hud-feedback-cell[data-warning=true] .hud-frame-base { stroke: #efaa89; opacity: .85; }
+.hud-feedback-cell[data-warning=true] .hud-cell-indicator { background: #efaa89; box-shadow: 0 0 6px #efaa89; animation: hud-reserve-warning 2.6s ease-in-out infinite; }
+.hud-feedback-cell[data-warning=true]::after { border-color: #efaa89; box-shadow: 0 0 6px #efaa8933; animation: hud-reserve-warning 2.6s ease-in-out infinite; }
+#hud-feedback[data-paused=true] *, #hud-feedback[data-paused=true] *::before, #hud-feedback[data-paused=true] *::after { animation-play-state: paused; transition: none; }
+@keyframes hud-perimeter { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes hud-charge-beacon { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+@keyframes hud-reserve-warning { 0%,100% { opacity: .25; } 50% { opacity: .85; } }
+@media (prefers-reduced-motion:reduce) {
+  #hud-feedback *, #hud-feedback *::before, #hud-feedback *::after { animation: none !important; transition: none !important; }
+}

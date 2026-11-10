@@ -39,14 +39,13 @@ test('each purchased tier changes real shared flight, swaps identities, and surv
  const before=JSON.stringify(eq);s.latinum=0;assert.equal(api.purchase(s,'advanced-engine').ok,false);assert.equal(JSON.stringify(eq),before);
 });
 
-test('an empty engineering bay still accelerates, steers and brakes at original Saber speed for every hull',async()=>{
+test('an empty engineering bay accelerates, steers and brakes on that hull’s permanent thrusters',async()=>{
  const {window:w}=await fixture({full:false,economic:false,regional:true});
- const basic=w.VexedMirrorWorld.ships.find(s=>s.id===6).speedOrOtherStationValue*4.5;
  for(const {id} of w.VexedMirrorWorld.ships){
   const s={shipType:id,system:2,phase:'flight',x:0,y:0,angle:0,speed:0,mineralUpgrades:{[id]:{engine:3}}};
   const eq=w.nativeShipEquipment.ensure(s),engine=eq.slots.engineering[0];
   assert.ok(w.nativeShipEquipment.move(s,{category:'engineering',fromType:'slot',fromIndex:0,toType:'locker',toIndex:eq.locker.length}).ok);
-  const d=w.nativeShipDefinitions.forEntity(s);assert.equal(d.engineOnline,false);near(d.movement.maxSpeed,basic);
+  const d=w.nativeShipDefinitions.forEntity(s),basic=d.thrusters.maxSpeed;assert.equal(d.engineOnline,false);near(d.movement.maxSpeed,basic);
   for(let i=0;i<180;i++)w.nativeShipSystems.move(s,s,'player',{throttle:1},undefined,1/60);
   near(s.speed,basic);assert.ok(s.x>basic);
   w.nativeShipSystems.move(s,s,'player',{turn:1},undefined,.25);assert.ok(s.angle>0);

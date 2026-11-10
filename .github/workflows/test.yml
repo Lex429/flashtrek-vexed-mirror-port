@@ -49,11 +49,17 @@ jobs:
       - name: Civilian live-shot awareness, survival policies and preserved jobs
         env:
           BROWSER_CHANNEL: ''
-        run: python tests/browser-civilian-tactics.py
+        run: |
+          python tests/browser-civilian-tactics.py
+          python tests/browser-faction-defence.py
       - name: Held fire, steering-preserving selection and fitted weapon feedback
         env:
           BROWSER_CHANNEL: ''
-        run: python tests/browser-combat-controls.py
+        run: |
+          python tests/browser-combat-controls.py
+          python tests/browser-shield-maintenance.py
+          python tests/browser-engine-failure.py
+          python tests/browser-thrusters.py
       - name: Reverse, exact stop, turnaround and contextual long-range targeting
         env:
           BROWSER_CHANNEL: ''
@@ -82,6 +88,58 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-foundation.py
+      - name: Warp bearings, destination readiness and durable retry/resume
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-warp-transition.py
+      - name: Warp zoom raster reuse, live lighting and artwork
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-warp-rendering.py
+      - name: Aries Dev selection, nacelle charge and powered ship roster
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-warp-charge-ships.py
+      - name: Visible warp disappearance point, starburst and paused flash
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-warp-departure.py
+      - name: Shared NPC departures, simultaneous starbursts and preserved fleet
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-npc-warp.py
+      - name: Distance-based body navigation, cruise override and visible cancellation
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-cruise-navigation.py
+      - name: Active chunk boundaries, sleeping journeys, launched shots and full worker checkpoint reload
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-active-regions.py
+      - name: Interstellar fields, local travellers, partial mining and full-fleet Continue
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-travel-corridors.py
+      - name: Animated flight telemetry, actual system crossings and corridor ramming
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-flight-status.py
+      - name: Impact-reactive hull and shield console
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-ship-vitals.py
+      - name: Animated weapon and resource HUD
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-hud-feedback.py
+      - name: Physical system-boundary activation and bounded arrival preparation
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-system-entry.py
+      - name: Real activity jobs, fixed expedition departures and retained claims
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-player-activity.py
       - name: Current ship appearance first, damage promotion and loading fallback
         env:
           BROWSER_CHANNEL: ''
@@ -123,6 +181,12 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-constitution-ships.py
+      - name: Finished animated Federation roster, purchases, NPCs and saved hulls
+        env:
+          BROWSER_CHANNEL: ''
+        run: |
+          python tests/browser-federation-ships.py
+          python tests/browser-federation-npcs.py
       - name: Animated GPU lamps preserve original hull and damage pixels
         env:
           BROWSER_CHANNEL: ''
@@ -134,6 +198,14 @@ jobs:
           python tests/browser-inventory-upgrade.py
           python tests/browser-inventory-fit.py
           python tests/browser-inventory-drag.py
+      - name: Earth bonus items, transporter reveal and saved collection
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-collectables.py
+      - name: Physical collectable drift, keyboard ram and saved impact motion
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-collectable-physics.py
       - name: Engine upgrades, generated icons and keyboard flight without an engine
         env:
           BROWSER_CHANNEL: ''
@@ -142,6 +214,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-manual-repair.py
+      - name: Player distress calls, Continue and real medical assistance
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-distress-call.py
       - name: Visible DOT launch, hull approach and bay recovery
         env:
           BROWSER_CHANNEL: ''
@@ -190,6 +266,10 @@ jobs:
         env:
           BROWSER_CHANNEL: ''
         run: python tests/browser-ore-performance.py --label ci
+      - name: Regional civilian population, medical coverage and saved fleet migration
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-civilian-population.py
       - name: Civilian exclusions and mining-only visits to empty systems
         env:
           BROWSER_CHANNEL: ''
@@ -204,6 +284,16 @@ jobs:
         run: |
           python tests/browser-star-comfort.py
           python tests/browser-planet-lighting.py --label ci
+          python tests/browser-background-suns.py
+          python tests/browser-regional-starfield.py
+          python tests/browser-parallax-nebulae.py
+          python tests/browser-fleet-fog.py --catalog-stages 0,1,2,3
+          python tests/browser-intrepid-fog.py
+          python tests/browser-sol-fog-colors.py
+      - name: Retained canvas layout follows real viewport and footer changes
+        env:
+          BROWSER_CHANNEL: ''
+        run: python tests/browser-frame-reuse.py
       - name: Cold damage artwork, pause and map preparation boundaries
         env:
           BROWSER_CHANNEL: ''

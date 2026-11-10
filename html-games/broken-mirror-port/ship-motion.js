@@ -15,7 +15,10 @@
   // These explicit profiles retain the established roles' flight characteristics.
   // A controller can select a profile, but it cannot replace the integration rules.
   const profiles={
-    manual(stats){const maxSpeed=Math.max(36,finite(stats?.speedOrOtherStationValue,35)*4.5);return {maxSpeed,acceleration:maxSpeed*.75,braking:maxSpeed*1.2,turnRate:Math.max(.5,finite(stats?.turn,2)/4),vectorFlight:true,lateralAcceleration:maxSpeed*.6};},
+    manual(stats){
+      const t=stats?.thrusters,engineSpeed=stats?.thrusterOnly?0:stats?.engineCondition<100?Math.max(0,finite(stats.speedOrOtherStationValue)*4.5):Math.max(36,finite(stats?.speedOrOtherStationValue,35)*4.5),handling=t?.handling||1;
+      return {maxSpeed:Math.max(engineSpeed,t?.maxSpeed||0),acceleration:Math.max(engineSpeed*.75*handling,t?.acceleration||0),braking:Math.max(engineSpeed*1.2*handling,t?.braking||0),turnRate:t?.turnRate??Math.max(.5,finite(stats?.turn,2)/4),vectorFlight:true,lateralAcceleration:Math.max(engineSpeed*.6*handling,(t?.acceleration||0)*.75),softSpeedLimit:!!stats?.thrusterOnly||stats?.engineCondition<100};
+    },
     tug(){return {maxSpeed:135,acceleration:38,braking:45,turnRate:1.35,alignmentFloor:.26,alignmentDivisor:Math.PI,brakingDistanceOffset:4,arrivalRadius:7,arrivalSpeed:24};},
     civilian(stats){const maxSpeed=Math.max(36,finite(stats?.speedOrOtherStationValue,40)*3);return {maxSpeed,acceleration:maxSpeed*.75,braking:225,turnRate:Infinity,directGoal:true,arrivalRadius:.75,snap:true};},
     combat(type,cruiseSpeed=105){const data=combatProfiles[type]||combatProfiles[47];return {maxSpeed:Math.max(36,data.speed*finite(cruiseSpeed,105)),acceleration:data.acceleration,braking:data.acceleration,turnRate:data.turnRate,headingGain:3,angularResponse:6,alignmentFloor:.25,alignmentDivisor:2.3,inertial:true};},
@@ -48,6 +51,10 @@
     const top=Math.max(0,finite(profile.maxSpeed,Infinity))*engine;
     const acceleration=Math.max(0,finite(profile.acceleration,Infinity))*engine;
     const braking=Math.max(0,finite(profile.braking,acceleration))*Math.max(0,finite(command.brakeFactor,1));
+    // A damaged engine cannot erase existing momentum when its rated speed
+    // falls. Its remaining powered braking brings excess speed down over time.
+    const remainingSpeed=profile.softSpeedLimit?Math.hypot(entity.vx,entity.vy)-braking*dt:0;
+    const speedLimit=Math.max(top,remainingSpeed);
     const vectorFlight=profile.vectorFlight&&!goal&&!Number.isFinite(command.speed);
     const speedRatio=vectorFlight&&top>0?clamp(entity.speed/top,0,1):0;
     const turnRate=Math.max(0,finite(profile.turnRate,Infinity))*Math.max(0,finite(command.turnFactor,1))/(1+1.2*speedRatio*speedRatio);
@@ -97,7 +104,7 @@
         entity.vx=Math.cos(direction)*speed;entity.vy=Math.sin(direction)*speed;
       }
       const magnitude=Math.hypot(entity.vx,entity.vy);
-      if(magnitude>top){entity.vx*=top/magnitude;entity.vy*=top/magnitude;}
+      if(magnitude>speedLimit){entity.vx*=speedLimit/magnitude;entity.vy*=speedLimit/magnitude;}
       entity.speed=Math.hypot(entity.vx,entity.vy);
       entity.motionReverse=!!(entity.speed>0&&(command.reverse||entity.motionReverse&&entity.vx*Math.cos(entity[key])+entity.vy*Math.sin(entity[key])<0));
       entity.x+=entity.vx*dt;entity.y+=entity.vy*dt;
@@ -109,7 +116,7 @@
       if(command.brake)signed+=clamp(-signed,-braking*dt,braking*dt);
       else if(command.reverse){const wanted=-top*.45;signed+=clamp(wanted-signed,-(signed>0?braking:acceleration*.7)*dt,acceleration*dt);}
       else if(command.throttle)signed+=acceleration*clamp(finite(command.throttle),0,1)*dt;
-      signed=clamp(signed,-top*.45,top);reversing=signed<0;speed=Math.abs(signed);
+      signed=clamp(signed,-Math.max(top*.45,remainingSpeed),speedLimit);reversing=signed<0;speed=Math.abs(signed);
     }else if(goal||Number.isFinite(command.heading)||Number.isFinite(command.speed)){
       reversing=false;
       const alignment=clamp(1-Math.abs(error)/Math.max(.0001,finite(profile.alignmentDivisor,Math.PI)),finite(profile.alignmentFloor,1),1);
@@ -124,7 +131,7 @@
       if(command.throttle)speed+=acceleration*clamp(finite(command.throttle),0,1)*dt;
       if(command.brake)speed-=braking*clamp(finite(command.brake,1),0,1)*dt;
     }
-    speed=clamp(speed,0,top);
+    speed=clamp(speed,0,speedLimit);
     entity.motionReverse=reversing&&speed>0;
     if(profile.inertial){
       const wantedX=Math.cos(entity[key])*speed*(reversing?-1:1),wantedY=Math.sin(entity[key])*speed*(reversing?-1:1);
@@ -132,7 +139,7 @@
       const ratio=length>0?Math.min(1,(command.brake?braking:acceleration)*dt/length):0;
       entity.vx+=ax*ratio;entity.vy+=ay*ratio;
       const magnitude=Math.hypot(entity.vx,entity.vy);
-      if(magnitude>top){entity.vx*=top/magnitude;entity.vy*=top/magnitude;}
+      if(magnitude>speedLimit){entity.vx*=speedLimit/magnitude;entity.vy*=speedLimit/magnitude;}
     }else{
       const direction=(goal&&profile.directGoal&&distance>0?Math.atan2(dy,dx):entity[key])+(reversing?Math.PI:0);
       // A free angular impact turns the hull, not the engine command. Reusing
@@ -508,21 +515,37 @@
       const x=fx+dx*t,y=fy+dy*t;return x*x+y*y>=(radius-1e-5)**2;
     });
   }
-  function obstaclePoints(start,goal,circles,padding=0){
+  function* obstacleSearch(start,goal,circles,padding=0){
+    start={x:start.x,y:start.y};goal={x:goal.x,y:goal.y};
     if(clearSegment(start,goal,circles,padding))return [];
     if(circles.some(c=>Math.hypot(goal.x-c.x,goal.y-c.y)<c.radius+padding-1e-5))return null;
+    // This index lasts for this immutable route search only. Every edge still
+    // uses the shared exact clearance test; distant circles cannot intersect it.
+    const cells=new Map(),overflow=[],cellSize=512;
+    let indexed=0;for(const c of circles){
+      const r=c.radius+padding,x0=Math.floor((c.x-r)/cellSize),x1=Math.floor((c.x+r)/cellSize),y0=Math.floor((c.y-r)/cellSize),y1=Math.floor((c.y+r)/cellSize);
+      const count=(x1-x0+1)*(y1-y0+1);if(!Number.isFinite(count)||count<1||count>64){overflow.push(c);continue;}
+      for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){const key=x+':'+y;let bucket=cells.get(key);if(!bucket)cells.set(key,bucket=[]);bucket.push(c);}
+      if(++indexed%32===0)yield;
+    }
+    const candidates=(a,b)=>{
+      const x0=Math.floor(Math.min(a.x,b.x)/cellSize),x1=Math.floor(Math.max(a.x,b.x)/cellSize),y0=Math.floor(Math.min(a.y,b.y)/cellSize),y1=Math.floor(Math.max(a.y,b.y)/cellSize);
+      if((x1-x0+1)*(y1-y0+1)>cells.size*2)return circles;
+      const found=new Set(overflow);for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)for(const c of cells.get(x+':'+y)||[])found.add(c);return [...found];
+    };
     // Vertices lie outside circumscribed twelve-sided clearance polygons.
     // Every candidate edge is checked against every obstacle, not just the one
     // that caused the initial diversion. This runs at route creation, not paint.
     const nodes=[start,goal],count=12,direct=Math.hypot(goal.x-start.x,goal.y-start.y),margin=4*Math.max(0,...circles.map(c=>c.radius+padding));
-    const relevant=circles.filter(c=>Math.hypot(start.x-c.x,start.y-c.y)+Math.hypot(goal.x-c.x,goal.y-c.y)<=direct+margin);
-    relevant.sort((a,b)=>(Math.hypot(start.x-a.x,start.y-a.y)+Math.hypot(goal.x-a.x,goal.y-a.y))-(Math.hypot(start.x-b.x,start.y-b.y)+Math.hypot(goal.x-b.x,goal.y-b.y)));
+    const scores=new Map(),relevant=circles.filter(c=>{const score=Math.hypot(start.x-c.x,start.y-c.y)+Math.hypot(goal.x-c.x,goal.y-c.y);scores.set(c,score);return score<=direct+margin;});
+    relevant.sort((a,b)=>scores.get(a)-scores.get(b));
     for(const body of relevant.slice(0,10)){
       const radius=(body.radius+padding+.5)/Math.cos(Math.PI/count);
       for(let i=0;i<count;i++){
         const a=i*Math.PI*2/count,p={x:body.x+Math.cos(a)*radius,y:body.y+Math.sin(a)*radius};
-        if(circles.every(c=>Math.hypot(p.x-c.x,p.y-c.y)>=c.radius+padding))nodes.push(p);
+        if(candidates(p,p).every(c=>Math.hypot(p.x-c.x,p.y-c.y)>=c.radius+padding))nodes.push(p);
       }
+      yield;
     }
     if(relevant.length>10){
       const left=Math.min(...relevant.map(c=>c.x-c.radius-padding))-1,right=Math.max(...relevant.map(c=>c.x+c.radius+padding))+1;
@@ -535,15 +558,21 @@
       if(best<0||!Number.isFinite(cost[best]))break;
       if(best===1){const path=[];for(let at=1;previous[at]>0;at=previous[at])path.unshift(nodes[previous[at]]);return path;}
       visited.add(best);
-      for(let i=1;i<nodes.length;i++)if(!visited.has(i)&&clearSegment(nodes[best],nodes[i],circles,padding)){
-        const next=cost[best]+Math.hypot(nodes[i].x-nodes[best].x,nodes[i].y-nodes[best].y);
-        if(next<cost[i]){cost[i]=next;previous[i]=best;}
+      for(let i=1;i<nodes.length;i++){
+        if(!visited.has(i)&&clearSegment(nodes[best],nodes[i],candidates(nodes[best],nodes[i]),padding)){
+          const next=cost[best]+Math.hypot(nodes[i].x-nodes[best].x,nodes[i].y-nodes[best].y);
+          if(next<cost[i]){cost[i]=next;previous[i]=best;}
+        }
+        if(i%16===0)yield;
       }
     }
     return null;
   }
-  function avoidBodies(ship,command,profile,bodies=navigationBodies(ship.system)){
-    if(command.hold||command.coast||!bodies.length)return command;
+  function obstaclePoints(...args){const search=obstacleSearch(...args);let result;do{result=search.next();}while(!result.done);return result.value;}
+  function avoidBodies(ship,command,profile,bodies){
+    if(command.hold||command.coast)return command;
+    if(bodies===undefined)bodies=navigationBodies(ship.system);
+    if(!bodies.length)return command;
     const heading=Number.isFinite(command.heading)?command.heading:command.goal?Math.atan2(command.goal.y-ship.y,command.goal.x-ship.x):ship.heading;
     const speed=Math.max(Math.hypot(ship.vx||0,ship.vy||0),(profile.maxSpeed||100)*(command.throttle??1));
     const horizon=Math.min(4,Math.max(1,speed/Math.max(1,profile.braking||100)+.5)),reach=speed*horizon+30,padding=shipRadius(ship)+24;
@@ -657,6 +686,8 @@
       point:{x:rock.x-nx*radius,y:rock.y-ny*radius}};
   }
   function asteroidPairContact(a,b,dt){
+    // A retained physical body and a recreated coordinate view are one rock.
+    if(a===b||a?.slotId!=null&&a.slotId===b?.slotId)return null;
     if(!(dt>0)||!validPoint(a)||!validPoint(b)||!(a.size>0)||!(b.size>0))return null;
     const ax=finite(a.previousX,a.x-finite(a.vx)*dt),ay=finite(a.previousY,a.y-finite(a.vy)*dt),bx=finite(b.previousX,b.x-finite(b.vx)*dt),by=finite(b.previousY,b.y-finite(b.vy)*dt);
     const fx=bx-ax,fy=by-ay,dx=b.x-a.x-fx,dy=b.y-a.y-fy,r=(a.size+b.size)*.43;
@@ -679,5 +710,5 @@
     }
     const result=asteroidPairContact(target,body,dt);return result?{...result,targetPose:result.a,debrisPose:result.b}:null;
   }
-  window.nativeShipMotion={step,followPath,followCommand,attachmentGoal,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,separationHeading,avoidShips,avoidBodies,navigationBodies,navigationObstacles,clearSegment,obstaclePoints,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,settleVelocity,collisionDamageFraction,debrisContact};
+  window.nativeShipMotion={step,followPath,followCommand,attachmentGoal,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,separationHeading,avoidShips,avoidBodies,navigationBodies,navigationObstacles,clearSegment,obstaclePoints,obstacleSearch,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,settleVelocity,collisionDamageFraction,debrisContact};
 })();

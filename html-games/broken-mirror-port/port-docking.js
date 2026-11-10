@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   const BERTHS=4,QUEUE=12,GAP=40;
+  const limits=system=>window.nativeCivilianPopulation?.dockLimits(system)||{berths:BERTHS,queue:QUEUE};
   const coords={1:[-4100,1100],2:[-2300,-1500],3:[0,0],4:[1400,-250],5:[4800,1800],7:[11800,2700],8:[15300,-2700],9:[19000,3300],10:[23200,-4400]};
   const sizes={1:62,2:105,3:128,4:48,5:85,7:165,8:155,9:112,10:110};
   const owner=ship=>`civilian:${ship.id}`;
@@ -167,14 +168,15 @@
     if(current?.kind==='berth')return current;
     const {queue,taken}=local(state,system,port);
     const first=queue[0];
-    if(taken.size<BERTHS&&(!first||first.owner===id)){
+    const capacity=limits(system);
+    if(taken.size<capacity.berths&&(!first||first.owner===id)){
       const p=position(state,system,port,radius(ship),'berth',id);if(!p)return null;
-      const slot=Array.from({length:BERTHS},(_,i)=>i).find(i=>!taken.has(i));
+      const slot=Array.from({length:capacity.berths},(_,i)=>i).find(i=>!taken.has(i));
       d.ships[id]={...p,owner:id,system,port,kind:'berth',slot,ticket:['queue','overflow'].includes(current?.kind)?current.ticket:++d.sequence};return d.ships[id];
     }
     if(current?.kind==='queue')return current;
     const p=current||position(state,system,port,radius(ship),'holding',id);if(!p)return null;
-    const kind=queue.length<QUEUE?'queue':'overflow';
+    const kind=queue.length<capacity.queue?'queue':'overflow';
     d.ships[id]={...p,owner:id,system,port,kind,ticket:['queue','overflow'].includes(current?.kind)?current.ticket:++d.sequence};return d.ships[id];
   }
   function park(state,ship,system,port){
@@ -197,7 +199,8 @@
     runtime(state);const d=state.portDocking,r=d.ships[owner(ship)];
     if(!details)return {...r,clearing:r.clearing&&{...r.clearing}};
     const {queue}=local(state,r.system,r.port);
-    return {...r,clearing:r.clearing&&{...r.clearing},queuePosition:r.kind==='queue'?queue.findIndex(q=>q.owner===r.owner)+1:null,queueLength:queue.length,berthLimit:BERTHS,queueLimit:QUEUE};
+    const capacity=limits(r.system);
+    return {...r,clearing:r.clearing&&{...r.clearing},queuePosition:r.kind==='queue'?queue.findIndex(q=>q.owner===r.owner)+1:null,queueLength:queue.length,berthLimit:capacity.berths,queueLimit:capacity.queue};
   }
   function reconcile(state){
     runtime(state);const d=data(state),ships=new Map((state.civilianTraffic?.ships||[]).map(s=>[owner(s),s]));
@@ -206,5 +209,10 @@
       if(!ship||ship.journey||['disabled','destroyed'].includes(ship.phase)||ship.system!==r.system||![r.x,r.y,r.radius,r.ticket].every(Number.isFinite))delete d.ships[id];
     }
   }
-  window.nativePortDocking={request,release,park,parked,relocate,inspect,reconcile,invalidate,metrics:state=>({...runtime(state).stats}),center,tugPoint,berthLimit:BERTHS,queueLimit:QUEUE};
+  function saveData(state){
+    const d=state.portDocking;if(!d)return d;
+    const rows=unwrap(d.ships)||{},ships=Object.fromEntries(Object.keys(rows).map(id=>{const row=unwrap(rows[id]);return [id,row&&typeof row==='object'?{...row,...(row.clearing?{clearing:{...unwrap(row.clearing)}}:{})}:row];}));
+    return {...d,ships};
+  }
+  window.nativePortDocking={request,release,park,parked,relocate,inspect,reconcile,invalidate,saveData,saveValue:unwrap,metrics:state=>({...runtime(state).stats}),center,tugPoint,berthLimit:BERTHS,queueLimit:QUEUE};
 })();

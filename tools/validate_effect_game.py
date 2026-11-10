@@ -48,7 +48,7 @@ INSTALL = r"""async config => {
   }
   state.civilianTraffic.ships=fleet.slice(1).map(s=>s.entity);
   state.civilianTraffic.disputes=[];state.civilianTraffic.retaliations=[];state.solEconomy.freighters=[];
-  nativeNpcLives.initialize(state);nativeShipEffects.reset();
+  nativeShipSystems.invalidate(state);nativeNpcLives.initialize(state);nativeShipEffects.reset();
   const combat=await fetch('../flashtrek-broken-mirror/showcase-assets/combat-data.json').then(r=>r.json());
   const fixture=createVexedEffectFixture({state,fleet,config,combat}),simulation=nativeSimulation,shots=nativeCombatShots,effects=nativeShipEffects;
   // Supply the chosen fixture hull to the player renderer; the private flight

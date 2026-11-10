@@ -9,6 +9,7 @@
   const target=()=>targetId===null?null:rockById(targetId,targetSystem);
   const gone=(state,id)=>state.destroyedAsteroids?.includes(id)||state.minedAsteroids?.includes(id);
   const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  const miningRange=360;
   const orePosition=(rock,index,mined=false)=>{const [dx,dy]=(mined?[[-.1144,-.1144],[.1144,-.1144],[-.1144,.1144],[.1144,.1144]]:[[0,-.172],[-.172,.095],[.172,.095]])[index]||[0,0];return{x:rock.x+dx*rock.size,y:rock.y+dy*rock.size};};
   const oreShieldRadius=rock=>rock.size*.36;
   const weaponVisual=weapon=>window.nativeCombatShots.weaponVisual(weapon);
@@ -16,7 +17,7 @@
   function select(rock){targetSystem=rock.system??activeState?.system??1;if(targetId!==rock.slotId)selectedAt=now();targetId=rock.slotId;return rock;}
   function deselect(){targetId=null;}
   function autoTarget(state,ship,{cx,cy,zoom,w,h}){
-    const nearby=placements(state.system).filter(rock=>!gone(state,rock.slotId)&&distance(rock,ship)<=650);
+    const nearby=(window.nativeSolAsteroids?.nearby?.(state.system,ship,650)||placements(state.system)).filter(rock=>!gone(state,rock.slotId)&&distance(rock,ship)<=650);
     const visible=nearby.filter(rock=>{
       const x=cx+(rock.x-ship.x)*zoom,y=cy+(rock.y-ship.y)*zoom;
       return x>=0&&x<=w&&y>=0&&y<=h;
@@ -96,9 +97,9 @@
     if(right-left<3||bottom-top<3)return null;
     return{polygon:{vertices,left,top,width:right-left,height:bottom-top},x:cx/width-.5,y:cy/height-.5,w:(right-left)/width,h:(bottom-top)/height};
   }
-  function shardTexture(piece,rock){
+  function shardTexture(piece,rock,image){
     if(piece.texture)return piece.texture;
-    const im=window.nativeSolAsteroids.image(rock.file);if(!im?.complete||!im.naturalWidth)return null;
+    const im=image||window.nativeSolAsteroids.image(rock.file);if(!im?.complete||!im.naturalWidth)return null;
     const {vertices,left,top,width,height}=piece.polygon,texture=document.createElement('canvas');texture.width=width;texture.height=height;
     const g=texture.getContext('2d');g.beginPath();vertices.forEach((p,i)=>i?g.lineTo(p.x-left,p.y-top):g.moveTo(p.x-left,p.y-top));g.closePath();g.clip();g.drawImage(im,-left,-top);
     piece.texture=texture;return texture;
@@ -119,7 +120,7 @@
     }
     return pieces;
   }
-  function finishRock(state,rock,fromMining,onFinish){
+  function finishRock(state,rock,fromMining,onFinish,impact=null){
     activeState=state;
     if(gone(state,rock.slotId))return;
     window.nativeAsteroidMotion?.freeze(state,rock);
@@ -134,17 +135,18 @@
     if(!fromMining){
       bursts.push({rock,born:now(),pieces:makeRockShards(rock)});
       window.nativeEnvironmentalImpacts?.explode(state,{...rock,system:rock.system??1},{sourceKey:'asteroid:'+rock.slotId});
+      window.nativeGameSounds?.asteroidDestroyed?.(state,rock,impact);
     }
     if(bursts.length>12)bursts.shift();
     onFinish?.(rock,!!state.asteroidOreDrops?.[rock.slotId],fromMining);
   }
-  function destroy(state,rockOrId,onFinish){
-    const rock=typeof rockOrId==='object'?rockOrId:rockById(rockOrId);
+  function destroy(state,rockOrId,onFinish,impact=null){
+    const rock=typeof rockOrId==='object'?rockOrId:rockById(rockOrId,Number(rockOrId)>=1_000_000_000?state.system:undefined);
     if(!rock||gone(state,rock.slotId))return {ok:false,destroyed:false};
-    finishRock(state,rock,false,onFinish);return {ok:true,destroyed:true};
+    finishRock(state,rock,false,onFinish,impact);return {ok:true,destroyed:true};
   }
   function completeMining(state,rockOrId,onFinish){
-    const rock=typeof rockOrId==='object'?rockOrId:rockById(rockOrId);
+    const rock=typeof rockOrId==='object'?rockOrId:rockById(rockOrId,Number(rockOrId)>=1_000_000_000?state.system:undefined);
     if(!rock||gone(state,rock.slotId))return {ok:false};
     finishRock(state,rock,true,onFinish);return {ok:true,rock,oreMask:state.asteroidOreDrops[rock.slotId]};
   }
@@ -154,7 +156,7 @@
     return {after,changedStage:stage(after)>stage(before),hull:Math.max(0,maximum-after),damage:after-before};
   }
   function hit(state,id,damage,impact=null,onFinish){
-    const rock=rockById(id);
+    const rock=rockById(id,Number(id)>=1_000_000_000?impact?.system??impact?.from?.system:undefined);
     if(!rock||gone(state,id))return {ok:false,destroyed:false};
     activeState=state;state.asteroidDamage||={};
     const maximum=Math.max(1,Number(rock.maxHull)||rock.size*.45),before=Number(state.asteroidDamage[id])||0;
@@ -166,16 +168,17 @@
       const pieces=makeRockShards(rock,{chips:true});
       if(pieces.length){bursts.push({rock:{...rock},born:now(),pieces,chips:true});if(bursts.length>12)bursts.shift();}
     }
+    if(after>before&&impact?.kind)window.nativeGameSounds?.asteroidHit?.(state,rock,impact);
     return {ok:true,destroyed:false,hull:Math.max(0,maximum-after),damage:after-before,changedStage};
   }
   // Combat hits are lethal regardless of weapon strength. Environmental hits
   // stop at 25% remaining health, separate from the mining entitlement.
-  function weaponHit(state,id,damage,impact=null,onFinish){return destroy(state,id,onFinish);}
-  function debrisHit(state,id,impact){const rock=rockById(id);return rock?hit(state,id,Math.max(1,Number(rock.maxHull)||rock.size*.45)*.25,impact):{ok:false};}
+  function weaponHit(state,id,damage,impact=null,onFinish){return destroy(state,id,onFinish,impact);}
+  function debrisHit(state,id,impact){const rock=rockById(id,Number(id)>=1_000_000_000?impact?.system??state.system:undefined);return rock?hit(state,id,Math.max(1,Number(rock.maxHull)||rock.size*.45)*.25,{...impact,system:rock.system}):{ok:false};}
   function miningDamage(state,rock,seconds){
     if(rock?.oreType!=='deuranium'||gone(state,rock.slotId))return;
     const damage=rock.maxHull*.75*clamp(seconds/6,0,1),before=Number(state.asteroidDamage?.[rock.slotId])||0;
-    if(damage>before)hit(state,rock.slotId,damage-before);
+    if(damage>before)hit(state,rock.slotId,damage-before,{system:rock.system});
   }
   function fire(state,ship,shipWidth,shipHeight,onFinish){
     activeState=state;
@@ -199,7 +202,7 @@
     if(window.nativeShipDefinitions.get(state.shipType,'player').capabilities.canMine===false)return{ok:false,error:'This ship cannot use mining equipment.'};
     if(window.nativeShipEquipment?!window.nativeShipEquipment.has(state,state,'mining-laser'):!state.miningTool)return{ok:false,error:'Buy the mining laser at a planet shop first.'};
     if(mining)return{ok:false,error:'Mining already in progress.'};
-    if(distance(rock,ship)>360)return{ok:false,error:'Move within 360 units of the asteroid to mine.'};
+    if(distance(rock,ship)>miningRange)return{ok:false,error:`Move within ${miningRange} units of the asteroid to mine.`};
     activeState=state;
     state.miningOperation={version:1,rockId:rock.slotId,source:{...ship},born:now(),system:state.system,finished:false};
     mining={rock,ship:{...ship},born:now(),onFinish,state,effect:null,finished:false};
@@ -287,14 +290,15 @@
       onDebris(p,x,y,elapsed);piece.worldX=p.x;piece.worldY=p.y;
     }
   }
-  function paintRockFragments(ctx,burst,time,{ship={x:0,y:0},cx=0,cy=0,visible=()=>true}={}){
+  function paintRockFragments(ctx,burst,time,{ship={x:0,y:0},cx=0,cy=0,visible=()=>true,image}={}){
     const age=time-burst.born,t=age/1000;
     for(const p of burst.pieces){
       if(age>p.ttl)continue;
       const px=cx+(p.worldX??burst.rock.x+p.x*burst.rock.size)-ship.x,py=cy+(p.worldY??burst.rock.y+p.y*burst.rock.size)-ship.y;
       if(!visible(px,py,Math.hypot(p.w,p.h)*burst.rock.size/2))continue;
+      const texture=shardTexture(p,burst.rock,image);if(!texture)continue;
       ctx.save();ctx.globalAlpha=Math.min(1,(p.ttl-age)/500);ctx.translate(px,py);ctx.rotate(p.environmentPiece?.angle??(burst.rock.angle||0)+p.spin*t);
-      ctx.drawImage(p.texture,-p.w*burst.rock.size/2,-p.h*burst.rock.size/2,p.w*burst.rock.size,p.h*burst.rock.size);ctx.restore();
+      ctx.drawImage(texture,-p.w*burst.rock.size/2,-p.h*burst.rock.size/2,p.w*burst.rock.size,p.h*burst.rock.size);ctx.restore();
     }
   }
   function paint(ctx,{state,ship,cx,cy,zoom,w=cx*2,h=cy*2}){
@@ -356,5 +360,5 @@
     }
     for(const entry of collections){if((entry.rock.system??1)===state.system)drawOreTransport(ctx,entry,{ship,cx,cy,now,zoom,w,h});}
   }
-  window.nativeAsteroidCombat={environmentalDamage,makeRockShards,advanceRockFragments,paintRockFragments,select,deselect,autoTarget,clear,collect,collectField,fire,hit,weaponHit,debrisHit,destroy,completeMining,miningTiming,miningDamage,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,metrics:()=>({bursts:bursts.length,chips:bursts.filter(b=>b.chips).length,pieces:bursts.reduce((n,b)=>n+b.pieces.length,0)}),get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
+  window.nativeAsteroidCombat={miningRange,environmentalDamage,makeRockShards,advanceRockFragments,paintRockFragments,select,deselect,autoTarget,clear,collect,collectField,fire,hit,weaponHit,debrisHit,destroy,completeMining,miningTiming,miningDamage,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,metrics:()=>({bursts:bursts.length,chips:bursts.filter(b=>b.chips).length,pieces:bursts.reduce((n,b)=>n+b.pieces.length,0)}),get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
 })();

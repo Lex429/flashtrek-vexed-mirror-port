@@ -58,6 +58,36 @@ test('camera changes retain a battle encounter through shield failures, destruct
  assert.deepEqual(Array.from(war,c=>c.view),['wide','shield','wreck','aftermath']);
 });
 
+test('camera fades use consistent seconds, smooth endpoints and a visible middle',()=>{
+ const api=storyboard();
+ for(const length of [2.45,5,12]){
+  const cut={start:20,end:20+length};
+  assert.equal(api.shotOpacity(cut,20),0);assert.equal(api.shotOpacity(cut,cut.end),0);
+  assert.ok(Math.abs(api.shotOpacity(cut,20+.325)-.5)<1e-10);
+  assert.ok(Math.abs(api.shotOpacity(cut,cut.end-.275)-.5)<1e-10);
+  assert.equal(api.shotOpacity(cut,20+length/2),1);
+  assert.ok(api.shotOpacity(cut,20+.001)<.00001);
+ }
+ for(const cut of director().cuts(manifest))for(let t=cut.start;t<=cut.end;t+=1/120){
+  const opacity=api.shotOpacity(cut,t);assert.ok(opacity>=0&&opacity<=1);
+ }
+ assert.equal(api.shotOpacity({start:0,end:.1},.05),1);
+});
+
+test('film asteroid fragments bind their loaded art lazily and never draw a missing texture',()=>{
+ let created=0,lookups=0;const images=[],drawn=[],noop=()=>{},texture={getContext:()=>({beginPath:noop,lineTo:noop,moveTo:noop,closePath:noop,clip:noop,drawImage:image=>images.push(image)})};
+ const window={nativeSolAsteroids:{image(){lookups++;return {complete:false};}}};
+ vm.runInNewContext(fs.readFileSync(path.join(game,'asteroid-combat.js'),'utf8'),{window,document:{createElement(){created++;return texture;}}});
+ const p={x:0,y:0,w:.1,h:.1,ttl:1000,spin:0,polygon:{vertices:[{x:0,y:0},{x:10,y:0},{x:0,y:10}],left:0,top:0,width:10,height:10}},burst={rock:{x:0,y:0,size:50,file:0},born:0,pieces:[p]};
+ const ctx={save:noop,restore:noop,translate:noop,rotate:noop,drawImage:image=>drawn.push(image)},image={complete:true,naturalWidth:512};
+ window.nativeAsteroidCombat.paintRockFragments(ctx,burst,100);
+ assert.equal(drawn.length,0);assert.equal(created,0);
+ window.nativeAsteroidCombat.paintRockFragments(ctx,burst,100,{image,visible:()=>false});assert.equal(created,0);
+ window.nativeAsteroidCombat.paintRockFragments(ctx,burst,100,{image});
+ window.nativeAsteroidCombat.paintRockFragments(ctx,burst,200,{image});
+ assert.deepEqual(images,[image]);assert.deepEqual(drawn,[texture,texture]);assert.equal(created,1);assert.equal(lookups,1);
+});
+
 test('shared cloak transitions reverse smoothly without altering ship state',()=>{
  const window={};vm.runInNewContext(fs.readFileSync(path.join(root,'html-games/flashtrek-broken-mirror/cloak-effects.js'),'utf8'),{window});
  const c=window.CinematicCloak,state={cloaked:false};assert.equal(c.mix(state,0),0);state.cloaked=true;assert.equal(c.mix(state,100),0);

@@ -1,0 +1,11 @@
+{
+  "generator": "Built-in image_gen",
+  "operation": "Background extraction from the existing engine icons",
+  "transparent_background": true,
+  "files": [
+    "standard-engine.png",
+    "upgraded-engine.png",
+    "advanced-engine.png"
+  ],
+  "prompt": "Use case: background-extraction. Edit the supplied warp-engine inventory icon: remove ONLY its opaque dark navy/black background and replace it with true transparent alpha. Preserve the existing engine itself, its design, camera angle, proportions, original framing, metallic surfaces, fine mechanical details, blue coils, red collectors and colors. Keep dark structural parts of the engine opaque. Make the exterior empty area and the empty gaps between the hardware transparent, preserving smooth clean antialiased silhouette edges and restrained emitted light right at the engine. No background panel, no black rectangle, no floor, no cast backdrop shadow, no checkerboard baked into the image. Do not redesign or add any hardware, text or labels. Output a clean isolated transparent PNG icon."
+}

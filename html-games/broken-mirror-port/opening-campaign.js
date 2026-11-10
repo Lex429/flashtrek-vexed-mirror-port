@@ -40,11 +40,18 @@
   }
   function create({effects,onExplosion=()=>{},rockImage=()=>null}){
     let actors=[],rocks=[],rockBursts=[],state=null,current=null,elapsed=0,clock=0,history=[],events=[],planet=null,shots=null,filmTime=0,lastRequested=-Infinity;
-    const stats={shots:0,hits:0,shieldHits:0,shieldCollapses:0,hullHits:0,disabled:0,destroyed:0,shipContacts:0,debrisShips:0,debrisAsteroids:0,worldHits:0};
-    const describe=entity=>entity.planet?planet.descriptor:window.nativeShipDefinitions.describe(state,entity,{category:'civilian'});
+    const stats={shots:0,hits:0,shieldHits:0,shieldCollapses:0,hullHits:0,disabled:0,destroyed:0,shipContacts:0,debrisShips:0,debrisAsteroids:0,worldHits:0,descriptorBuilds:0};
+    const descriptors=new Map();
+    function describe(entity){
+      if(entity.planet)return planet.descriptor;
+      const old=descriptors.get(entity);
+      if(old&&old.x===entity.x&&old.y===entity.y&&old.heading===entity.heading&&old.vx===entity.vx&&old.vy===entity.vy&&old.previousX===entity.previousX&&old.previousY===entity.previousY&&old.hull===entity.hull&&old.shields===entity.shields&&old._phase===entity.phase&&old._cloak===entity.cloak)return old;
+      const value=window.nativeShipDefinitions.describe(state,entity,{category:'civilian'});stats.descriptorBuilds++;
+      value._phase=entity.phase;value._cloak=entity.cloak;value.targetable=entity.hull>0&&(entity.cloak||0)<=.08;descriptors.set(entity,value);return value;
+    }
     const alive=()=>actors.filter(a=>a.hull>0);
     function log(kind,data={}){const e={at:filmTime,kind,encounter:current?.id,...data};history.push(e);if(history.length>500)history.shift();return e;}
-    function scenery(){return {bystanders:alive().map(describe),rocks:rocks.filter(r=>r.hull>0).map(r=>({...r,rockId:r.slotId})),destructibles:planet?[planet.descriptor]:[]};}
+    function scenery(){return {bystanders:alive().filter(a=>(a.cloak||0)<=.08).map(describe),rocks:rocks.filter(r=>r.hull>0).map(r=>({...r,rockId:r.slotId})),destructibles:planet?[planet.descriptor]:[]};}
     function damage(target,amount,impact){
       const d=target.entity?target:describe(target),entity=d.entity;
       if(entity.planet){
@@ -102,7 +109,7 @@
     }
     function initialize(cut){
       if(cut.kind==='aftermath')cut={...cut,kind:'war'};
-      effects.reset();environment.reset();actors=[];rocks=[];rockBursts=[];planet=null;elapsed=0;clock=0;current=cut;
+      effects.reset();environment.reset();descriptors.clear();actors=[];rocks=[];rockBursts=[];planet=null;elapsed=0;clock=0;current=cut;
       state={system:1,shipSimulation:{version:1,seconds:0},civilianTraffic:{ships:[]},destroyedAsteroids:[],minedAsteroids:[]};
       shots=window.nativeCombatShots.fork({isolated:true,blocked:()=>false,scene:scenery,seconds:()=>clock,
         resolve:(s,id)=>alive().map(describe).find(d=>d.id===id)||null,applyHit});
@@ -127,7 +134,7 @@
         left.forEach((type,i)=>add('imperial'+i,type,290-(i%2)*150,135+Math.floor(i/2)*195+(i%2)*65,110+(i===0?65:0),'earth',
           {hull:i===0?.6:.32,shields:cut.kind==='klingons'?.45:.35,delay:.25+i*.18}));
         right.forEach((type,i)=>add('opponent'+i,type,720+(i%2)*160,135+Math.floor(i/2)*195+(i%2)*65,100+(i===1?45:0),cut.kind==='rebellion'?'rebel':'klingon',
-          {hull:.32,shields:cut.kind==='war'?.15:.28,delay:cut.kind==='klingons'?4.72*rate:i*.14}));
+          {hull:.32,shields:cut.kind==='war'?.15:.28,cloak:cut.kind==='klingons'?1:0,delay:cut.kind==='klingons'?4.72*rate:i*.14}));
         rocks=[{id:1,slotId:1,x:625,y:380,size:66,file:0},{id:2,slotId:2,x:500,y:675,size:95,file:1},{id:3,slotId:3,x:970,y:580,size:78,file:2}]
           .map(r=>({...r,previousX:r.x,previousY:r.y,vx:0,vy:0,spin:0,angle:r.id*.8,hull:50,maxHull:50,stage:0,system:1}));
       }else if(cut.kind==='resolve')add('survivor',427,660,390,210,'earth',{hull:.42,shields:.1});
@@ -138,19 +145,21 @@
     }
     function targetFor(a){
       if(planet&&a.faction==='earth')return planet.descriptor;
-      const enemies=alive().filter(b=>b.faction!==a.faction&&!(b.faction==='earth'&&a.faction==='civilian'));
+      const enemies=alive().filter(b=>(b.cloak||0)<=.08&&b.faction!==a.faction&&!(b.faction==='earth'&&a.faction==='civilian'));
       if(!enemies.length)return null;
       if(current.kind==='war'&&a.faction!=='earth'&&clock/rate>4.2){const flagship=enemies.find(e=>e.id==='film:imperial0');if(flagship)return describe(flagship);}
       enemies.sort((a,b)=>(a.civilian?0:1)-(b.civilian?0:1)||a.hull-b.hull);
       return describe(enemies.find(b=>Math.hypot(b.x-a.x,b.y-a.y)<510)||enemies[0]);
     }
     function tick(dt,cut){
-      clock+=dt;state.shipSimulation.seconds=clock;filmTime=cut.origin+clock/rate;
+      clock+=dt;state.shipSimulation.seconds=clock;filmTime=cut.origin+clock/rate;descriptors.clear();
       const list=alive();
       for(const a of list){
         let target=!a.civilian?targetFor(a):null;
         a.cloak=current.kind==='klingons'&&a.faction==='klingon'?1-clamp((clock/rate-2.36)/1.5):0;
         if(current.kind==='klingons'&&a.id==='film:opponent5')a.cloak=Math.max(a.cloak,clamp((clock/rate-6.82)/1.4));
+        if(a.cloak>.08){if(a.shieldReserve===undefined)a.shieldReserve=a.shields;a.shields=0;}
+        else if(a.shieldReserve!==undefined){a.shields=a.shieldReserve;delete a.shieldReserve;}
         const d=describe(a),profile={maxSpeed:a.civilian?8:12,acceleration:16,braking:40,turnRate:.65,inertial:true,arrivalRadius:5,arrivalSpeed:1};
         let command=a.phase==='disabled'?{coast:true}:a.civilian?{goal:a.goal,speed:8}:target?{heading:Math.atan2(target.y-a.y,target.x-a.x),speed:Math.hypot(target.x-a.x,target.y-a.y)>440?9:0}:{hold:true};
         if(!a.civilian&&target&&!target.entity?.planet){
@@ -160,7 +169,7 @@
         command=window.nativeShipMotion.avoidShips(d,list.filter(b=>b!==a).map(describe),command,profile);
         window.nativeShipMotion.step(a,command,profile,dt);
         if(a.civilian||a.phase==='disabled'||a.cloak>.08||!target||clock<a.nextFire||filmTime>=cut.combatStop)continue;
-        const result=shots.fireFor({state,shooter:describe(a),getSource:()=>describe(a),getTarget:()=>target.entity.hull>0?describe(target.entity):null,
+        const result=shots.fireFor({state,shooter:describe(a),getSource:()=>describe(a),getTarget:()=>target.entity.hull>0&&(target.entity.cloak||0)<=.08?describe(target.entity):null,
           defaults:a.weapons||undefined,owner:'opening'});
         a.nextFire=clock+(result.ok ? .06 : .12);
         if(result.ok){stats.shots++;log('shot',{id:a.id,type:a.shipType,weapon:result.kind});}

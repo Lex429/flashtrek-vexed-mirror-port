@@ -19,6 +19,30 @@ function contact(f,{size=40,speed=80,shields=100,y=0}={}){
   Object.assign(entity,{x:-40,y,previousX:-80,previousY:y,angle:0,heading:0,speed,vx:speed,vy:0,shields});
   w.nativeAsteroidMotion.collide(s,.25);return {rock,entity,pose:s.asteroidMotion.rocks[rock.slotId]};
 }
+test('physical ship-rock contacts request their sound once through the collision owner without damaging the ship',async()=>{
+  const f=await setup(),calls=[];
+  f.window.nativeGameSounds={shipAsteroidHit:(state,ship,event)=>calls.push({state,ship,event})};
+  contact(f);
+  assert.equal(calls.length,1);assert.equal(calls[0].state,f.state);assert.equal(calls[0].event.kind,'asteroid');
+  assert.ok(calls[0].event.energy>0);assert.equal(f.state.hull,100);assert.equal(f.state.shields,100);
+  f.window.nativeAsteroidMotion.collide(f.state,.25);assert.equal(calls.length,1,'Same-clock contact must not replay the sound');
+});
+test('asteroid impact and destruction audio follows real damage, excludes mining and does not replay a destroyed rock',async()=>{
+  const f=await setup(),w=f.window,s=f.state,rock=w.nativeSolAsteroids.forSystem(43)[0],hits=[],explosions=[];
+  w.nativeGameSounds={asteroidHit:(...args)=>hits.push(args),asteroidDestroyed:(...args)=>explosions.push(args)};
+  const damage=w.nativeAsteroidCombat.hit(s,rock.slotId,1,{kind:'debris',system:43});
+  assert.ok(damage.damage>0);assert.equal(hits.length,1);
+  w.nativeAsteroidCombat.hit(s,rock.slotId,1,{system:43});assert.equal(hits.length,1,'Continuous mining has no impact cue');
+  w.nativeAsteroidCombat.hit(s,rock.slotId,0,{kind:'debris',system:43});assert.equal(hits.length,1);
+  const impact={kind:'beam',system:43,source:'player',sourceId:'player',weaponEventId:81};
+  assert.ok(w.nativeAsteroidCombat.weaponHit(s,rock.slotId,1,impact).destroyed);
+  assert.equal(explosions.length,1);assert.equal(explosions[0][1].slotId,rock.slotId);
+  assert.equal(explosions[0][2],impact,'The destruction sound retains the actual shooter and weapon event');
+  assert.equal(w.nativeAsteroidCombat.weaponHit(s,rock.slotId,1,{kind:'beam',system:43}).ok,false);
+  assert.equal(explosions.length,1);
+  const mined=w.nativeSolAsteroids.forSystem(43)[1];w.nativeAsteroidCombat.completeMining(s,mined);
+  assert.equal(explosions.length,1,'Mining completion is not a weapon explosion');
+});
 async function movingFixture(bodies,{player=false}={}){
   const base=await setup(),saved=copy(base.state),rocks=base.window.nativeSolAsteroids.forSystem(43);
   Object.assign(saved,{system:player?43:1,x:0,y:0,previousX:0,previousY:0,vx:0,vy:0,speed:0});

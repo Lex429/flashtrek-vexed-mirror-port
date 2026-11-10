@@ -339,5 +339,5 @@
     return {active,selectedId,trackedId,localView,zoom,ships:records.map(ship=>report(ship)),markers:hits.filter(hit=>hit.ids).map(hit=>({x:hit.x,y:hit.y,ids:[...hit.ids]})),
       view:transform&&{scale:transform.scale,center:{...transform.focus},width:transform.mapW,height:transform.h,centerY:transform.cy,mapHeight:transform.mapH},metrics:{...stats}};
   }
-  window.nativeGalaxyOverview=Object.freeze({paint,setActive,configure(options={}){visit=options.visit||options.onVisit||null;lastPanel=-Infinity;},snapshot,select,track,inspectLocal});
+  window.nativeGalaxyOverview=Object.freeze({paint,setActive,get active(){return active;},configure(options={}){visit=options.visit||options.onVisit||null;lastPanel=-Infinity;},snapshot,select,track,inspectLocal});
 })();

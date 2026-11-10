@@ -37,7 +37,7 @@ INSTALL = r"""async saved => {
      const s=nativeNpcDev.getState(),star=vexedSpace.state.stars.filter(s=>s.layer===5)[window.__sourceIndex],
        source={...star,x:star.x+(view.w-600)/2,y:star.y+(view.h-450)/2},body=objects[0];
      __eclipseFrames.push({x:s.x,y:s.y,angle:s.angle,source:{x:source.x,y:source.y},body,
-       visibility:vexedSpace.sourceVisibility?.(source,objects),light:{...vexedSpace.light}});
+       visibility:vexedSpace.sourceVisibility?.(source,objects),light:{...vexedSpace.light},primary:vexedSpace.suns?.find(s=>s.primary)});
    }
    return result;
  };
@@ -98,12 +98,14 @@ OPTICS = r"""async () => {
  }
  ctx.createRadialGradient=gradient;ctx.createLinearGradient=linear;
  vexedSpace.enterSystem(7,true);draw(view);const offscreen={...vexedSpace.light};
+ const bearing=Math.atan2(offscreen.y-view.h/2,offscreen.x-view.w/2);
  draw({...view,w:900,h:650,heading:1.7,playerX:1e6,playerY:-1e6,zoom:2});
- check(JSON.stringify(vexedSpace.light)===JSON.stringify(offscreen),'Offscreen primary direction changed');
+ const resized=vexedSpace.light;
+ check(Math.abs(Math.atan2(resized.y-325,resized.x-450)-bearing)<1e-10,'Primary bearing changed with viewport/heading');
  const shipCanvas=document.createElement('canvas');shipCanvas.width=shipCanvas.height=320;
  const shipCtx=shipCanvas.getContext('2d',{willReadFrequently:true}),asset=await vexedFlightAssets.loadShip(7),width=110*asset.width/asset.height;
  const shipPixels=light=>{shipCtx.clearRect(0,0,320,320);vexedFlightAssets.drawShip(shipCtx,asset,160,160,width,.7,1000,{height:110,light});return shipCtx.getImageData(0,0,320,320).data;};
- const expected=shipPixels({x:160+200*Math.cos(offscreen.direction),y:160+200*Math.sin(offscreen.direction),color:offscreen.color}),actual=shipPixels(offscreen);
+ const expected=shipPixels({direction:bearing,color:offscreen.color}),actual=shipPixels({...offscreen,x:160+offscreen.x-view.w/2,y:160+offscreen.y-view.h/2});
  check(expected.every((value,i)=>value===actual[i]),'Configured offscreen direction did not reach ship illumination');
  return {headingPixelsIdentical:true,opaqueDiskBlack:true,coveredSourcePixelsBlack:true,stablePrimary:true,directionalShipPixelsIdentical:true,offscreen,alphas};
 }"""
@@ -232,8 +234,10 @@ def main():
                 values = [r['visibility'] for r in report['keyboardTraversal']]
                 assert min(values) == 0 and max(values) == 1 and any(.05 < v < .95 for v in values), values
                 frames = report['keyboardTraversal']
-                ray = (frames[0]['light']['x']-frames[0]['body']['x'], frames[0]['light']['y']-frames[0]['body']['y'])
-                assert all(abs((f['light']['x']-f['body']['x'])-ray[0]) < 1e-6 and abs((f['light']['y']-f['body']['y'])-ray[1]) < 1e-6 for f in frames), 'Illumination changed as background stars moved'
+                # The sun now has depth parallax, so its offset from a foreground
+                # planet changes during flight. Illumination follows that visible
+                # catalog primary rather than an unrelated decorative star.
+                assert all(abs(f['light']['x']-f['primary']['x']) < 1e-6 and abs(f['light']['y']-f['primary']['y']) < 1e-6 for f in frames), 'Illumination detached from the visible sun'
                 # Ordinary flight now deliberately uses much slower parallax;
                 # the source must still move during the real keyboard traversal.
                 assert max(f['source']['x'] for f in frames)-min(f['source']['x'] for f in frames) > .05, 'No real parallax was exercised'

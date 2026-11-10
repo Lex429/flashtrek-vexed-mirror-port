@@ -70,15 +70,15 @@
   const current=level(s,kind),factor=current+1,b=budget(s);
   return {...u,kind,level:current,price:u.price*factor,materials:Object.fromEntries(Object.entries(u.materials).map(([k,n])=>[k,n*factor])),allowed:current<u.max&&b.used+u.points<=b.total};
  }
- function atomic(s,action,save){
-  if(!docked(s))return {ok:false,error:'Complete docking at a shipyard first.'};
-  const fields=['latinum','dilithium','minerals','shipyardLedger','shipRefit','shipEquipment','weaponLoadout','weapons','weaponInventory','repairBay','miningTool','hull','shields','inventoryLayout'];
+ function atomic(s,action,save,{atPort=false}={}){
+  if(!docked(s)&&!atPort)return {ok:false,error:'Complete docking at a shipyard first.'};
+  const fields=['latinum','dilithium','minerals','shipyardLedger','shipRefit','shipThrusters','shipEquipment','weaponLoadout','weapons','weaponInventory','repairBay','miningTool','hull','shields','inventoryLayout'];
   const snapshot=JSON.stringify(Object.fromEntries(fields.filter(k=>Object.hasOwn(s,k)).map(k=>[k,s[k]])));
   try{
    const result=action();if(!result.ok)throw Error(result.error);
    const saved=(save||(()=>window.nativeSaveStorage.write(s)))();if(!saved?.ok)throw Error(saved?.error||'Save failed. Purchase cancelled.');
    window.nativeShipSystems?.invalidate(s);return result;
-  }catch(e){for(const key of fields)delete s[key];Object.assign(s,JSON.parse(snapshot));window.nativeShipEquipment.ensure(s);window.nativeShipSystems?.invalidate(s);return {ok:false,error:e.message};}
+  }catch(e){const restored=JSON.parse(snapshot);for(const key of fields)delete s[key];Object.assign(s,restored);window.nativeShipEquipment.ensure(s);if(!Object.hasOwn(restored,'shipThrusters'))delete s.shipThrusters;window.nativeShipSystems?.invalidate(s);return {ok:false,error:e.message};}
  }
  function charge(s,offer){
   const held=k=>window.nativeRegionalMinerals.held(s,k);
@@ -107,6 +107,14 @@
   s.shields=Math.min(after.shields,(Number(s.shields)||0)*after.shields/Math.max(1,before.shields));
   return {ok:true,message:q.name+' installed.'};
  },save);}
+ function upgradeThrusters(s,save,options){return atomic(s,()=>{
+  const quote=window.nativeShipThrusters.quote(s);
+  if(!quote.allowed)return {ok:false,error:'This hull already has maximum thruster upgrades.'};
+  if(!(s.hull>0)||s.phase==='destroyed')return {ok:false,error:'Repair the hull before upgrading thrusters.'};
+  const paid=charge(s,quote);if(!paid.ok)return paid;
+  window.nativeShipThrusters.ensure(s).level=quote.level+1;
+  return {ok:true,message:`Built-in thrusters upgraded to Mk ${quote.level+2}.`};
+ },save,options);}
  function remove(s,kind,save){return atomic(s,()=>{
   if(!level(s,kind))return {ok:false,error:'No refit installed.'};
   const before=window.nativeShipDefinitions.forEntity(s);s.shipRefit.levels[kind]--;
@@ -146,6 +154,6 @@
   const adapted=shield.id==='fed-adaptive'&&family!=='unknown'&&previous?.family===family&&now-previous.lastHit<=8;
   s.shieldResponse={lastHit:now,family};return adapted?Math.max(0,amount-Math.min(amount,Math.max(0,Number(s.shields)||0)/.8)*.2):amount;
  }
- window.nativeShipyardRefits=Object.freeze({upgrades,weapons,shields,model:id=>models.get(String(id)),level,budget,slots,stats,quote,preview,validateFit,docked,upgrade,remove,buy,fit,unfit,advance,shieldHit,
+ window.nativeShipyardRefits=Object.freeze({upgrades,weapons,shields,model:id=>models.get(String(id)),level,budget,slots,stats,quote,preview,validateFit,docked,upgrade,upgradeThrusters,remove,buy,fit,unfit,advance,shieldHit,
   canMineralUpgrade:s=>budget(s).used+2<=budget(s).total});
 })();

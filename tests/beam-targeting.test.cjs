@@ -159,6 +159,66 @@ test('off-axis interception preserves the selected firing line and exact damage 
   }
 });
 
+test('moving launchers pass their velocity to pulses and torpedoes, including homing and JSON reload', async () => {
+  const f=await fixture(),rules=f.window.nativeWeaponRules;
+  for(const kind of ['disruptor','torpedo'])for(const velocity of [{x:427.5,y:0},{x:700,y:-120}]){
+    const source={x:0,y:0,heading:0,vx:velocity.x,vy:velocity.y},target={x:500,y:0,heading:0,vx:velocity.x,vy:velocity.y};
+    const spec=rules.weaponSpec({damage:12,range:1500,recharge:13},kind),event=rules.launch(source,target,{...spec,muzzle:10},kind,0);
+    event.spec=spec;
+    close(event.vx-velocity.x,spec.speed);close(event.vy-velocity.y,0);
+    for(let i=0;i<60;i++){
+      source.x+=velocity.x/60;source.y+=velocity.y/60;
+      target.previousX=target.x;target.previousY=target.y;target.x+=velocity.x/60;target.y+=velocity.y/60;
+      const result=rules.stepProjectile(event,target,1/60,[],{rx:1,ry:1},{width:2,height:2});
+      assert.equal(result,null);assert.ok(event.x>source.x,'forward shots stay ahead of the moving launcher');
+      close(Math.hypot(event.vx-velocity.x,event.vy-velocity.y),spec.speed,'guidance preserves motor speed and inherited drift');
+    }
+    const restored=plain(event);target.y+=100;
+    const before=Math.atan2(event.vy-event.inheritedVy,event.vx-event.inheritedVx);
+    for(const shot of [event,restored])rules.stepProjectile(shot,target,.02,[],{rx:1,ry:1},{width:2,height:2});
+    assert.deepEqual(plain(event),restored,'restored guidance keeps the same launch-frame velocity');
+    const turn=Math.abs(rules.wrap(Math.atan2(event.vy-event.inheritedVy,event.vx-event.inheritedVx)-before));
+    assert.ok(turn<=spec.turn*.02+1e-8,'homing retains its turn-rate limit');
+  }
+});
+
+test('player and NPC moving shots hit coasting targets once after reload instead of falling behind',async()=>{
+  for(const kind of ['disruptor','torpedo'])for(const npcShooter of [false,true]){
+    const f=await fixture(),weapon=kind==='torpedo'?3:2,speed=427.5;
+    Object.assign(f.state,{x:npcShooter?500:0,vx:speed,vy:0,speed,weapons:[weapon]});
+    const npc=f.npc(npcShooter?0:500,0,{vx:speed,vy:0,speed,weapons:[weapon]});
+    const sourceId=npcShooter?npc:'player',targetId=npcShooter?'player':npc;
+    const fired=f.fire(sourceId,targetId);assert.ok(fired.ok,JSON.stringify(fired));
+    for(let i=0;i<360&&!f.hits.length;i++){
+      if(i===20)f.reload();
+      for(const [id,category] of [['player','player'],[npc,'civilian']]){
+        const entity=id==='player'?f.state:f.state.civilianTraffic.ships.find(s=>s.id===id);
+        entity.previousX=entity.x;entity.previousY=entity.y;entity.x+=speed/60;
+        f.window.nativeShipSystems.refreshShip(f.state,entity,category);
+      }
+      f.step(1/60);
+    }
+    assert.equal(f.hits.length,1,`${kind}, NPC shooter=${npcShooter} must hit the moving target`);
+    close(f.describe(targetId).shields,68);
+    for(let i=0;i<10;i++)f.step(1/60);assert.equal(f.hits.length,1,'a restored projectile cannot hit twice');
+  }
+});
+
+test('inherited launch motion cannot authorize a target beyond the fitted projectile range',async()=>{
+  const f=await fixture();Object.assign(f.state,{vx:700,vy:0,speed:700,weapons:[3]});
+  const target=f.npc(2000),api=f.window.nativeShipEquipment,eq=api.ensure(f.state),id=eq.slots.weapon[0];
+  const before=eq.instances[id].readyAt,fired=f.fire('player',target);
+  assert.equal(fired.ok,false);assert.equal(eq.instances[id].readyAt,before);
+  assert.equal(f.state.weaponCombat?.events.length||0,0);
+});
+
+test('legacy homing shots without launch velocity remain readable at their saved world speed',async()=>{
+  const f=await fixture(),rules=f.window.nativeWeaponRules;
+  const event={x:0,y:0,vx:225,vy:0,speed:225,turn:.85,radius:3,age:0,ttl:5};
+  rules.stepProjectile(event,{x:500,y:100,vx:0,vy:0},.1,[],{rx:1,ry:1},{width:2,height:2});
+  close(Math.hypot(event.vx,event.vy),225);assert.ok(Number.isFinite(event.x)&&Number.isFinite(event.y));
+});
+
 test('all weapon models support rear fire while projectile flight and torpedo homing remain model-specific', async () => {
   const f = await fixture(), rules = f.window.nativeWeaponRules, source = f.describe('player');
   const target = { ...source, id: 5, x: -200, y: 0, vx: 0, vy: 120 };

@@ -134,7 +134,17 @@ class PageProxy:
                 target=session.send('Browser.getWindowForTarget')
                 session.send('Browser.setWindowBounds',{'windowId':target['windowId'],'bounds':{'windowState':'fullscreen'}})
             finally:session.detach()
-            self._page.wait_for_function('()=>document.fullscreenElement&&innerWidth>=screen.width-2&&innerHeight>=screen.height-2',timeout=10000)
+            display=getattr(self._owner,'display',None)
+            condition='({width,height})=>document.fullscreenElement&&Math.abs(innerWidth*devicePixelRatio-width)<=3*devicePixelRatio&&Math.abs(innerHeight*devicePixelRatio-height)<=3*devicePixelRatio' if display else '()=>document.fullscreenElement&&innerWidth>=screen.width-2&&innerHeight>=screen.height-2'
+            try:
+                self._page.wait_for_function(condition,arg={'width':display['width'],'height':display['height']} if display else None,timeout=10000)
+                session=self._page.context.new_cdp_session(self._page)
+                try:
+                    if session.send('Browser.getWindowForTarget')['bounds']['windowState']!='fullscreen':raise RuntimeError('Native browser window did not enter fullscreen')
+                finally:session.detach()
+            except Exception:
+                self.capture()
+                raise
         return result
 
     def capture(self):
@@ -146,6 +156,10 @@ class PageProxy:
             session=self._page.context.new_cdp_session(self._page)
             try:row['browserWindow']=session.send('Browser.getWindowForTarget')
             finally:session.detach()
+            if self._owner.fullscreen:
+                display=getattr(self._owner,'display',None);view=row['window'];density=view['devicePixelRatio']
+                row['fullscreenVerified']=bool(display and row.get('fullscreen') and row['browserWindow']['bounds']['windowState']=='fullscreen' and
+                    abs(view['innerWidth']*density-display['width'])<=3*density and abs(view['innerHeight']*density-display['height'])<=3*density)
         except Exception as error:row['metadataError']=str(error)
         self._owner.pages.append(row)
 
@@ -234,7 +248,8 @@ def main():
         selected=next((item for item in modes['displays'] if item['device'].casefold()==args.headed_monitor.casefold()),None)
         if not selected or 'x' not in selected:parser.error('Requested monitor is not an active readable Win32 display.')
         position=f"{selected['x']+32},{selected['y']+32}"
-    owner=argparse.Namespace(fullscreen=args.fullscreen,position=position,pages=[],created=[])
+    native_display=next((item for item in modes.get('displays',[]) if item.get('device')==args.headed_monitor),None) if args.headed_monitor else next((item for item in modes.get('displays',[]) if item.get('primary')),None)
+    owner=argparse.Namespace(fullscreen=args.fullscreen,position=position,pages=[],created=[],display=native_display)
     spec=importlib.util.spec_from_file_location('headed_review',ROOT/'tests/browser-performance-review.py')
     review=importlib.util.module_from_spec(spec);spec.loader.exec_module(review)
     original_sync=review.sync_playwright;review.sync_playwright=lambda:HeadedContext(original_sync,owner)
@@ -265,6 +280,9 @@ def main():
         metadata['measuredFocusOrVisibilityInterruptions']=[{'page':row['page'],'mode':row.get('mode'),'event':event}
             for row in owner.pages for event in row.get('events',[])
             if event['measured'] and (not event['focused'] or event['visible']!='visible')]
+        metadata['measuredFullscreenInterruptions']=[{'page':row['page'],'mode':row.get('mode'),'event':event}
+            for row in owner.pages for event in row.get('events',[]) if args.fullscreen and event['measured'] and not event.get('fullscreen')]
+        if args.fullscreen:metadata['fullscreenVerification']='Windows display dimensions plus native client/DPR and CDP fullscreen window state; browser-reported screen sizes are recorded but may differ.'
         metadata['windowsDisplayModesAfter']=display_modes()
         if label!='headed-help':
             output=review.OUTPUT;output.mkdir(parents=True,exist_ok=True)

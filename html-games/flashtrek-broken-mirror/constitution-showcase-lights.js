@@ -20,7 +20,7 @@
   ];
   const lightDefinitions = windows.map(([x,y]) => ({x,y,r:10,kind:'window',color:'#c9f3ff'}));
   lightDefinitions.push(...[[193,724],[831,724]].map(([x,y]) =>
-    ({x,y,r:48,kind:'running',color:'#ff962f'})));
+    ({x,y,r:48,kind:'running',color:'#ff962f',warpCharge:true})));
   lightDefinitions.push({x:512,y:1325,r:18,kind:'running',color:'#ffbb73'});
   function prepare(id, image) {
     if (!ids.has(id)) throw Error('Unknown Constitution showcase entry');

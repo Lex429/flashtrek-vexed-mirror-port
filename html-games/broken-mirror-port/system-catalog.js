@@ -64,7 +64,7 @@
     // Removed filler has no settlement or resources to migrate. Keep the real
     // world pose and holdings; only retire its navigation/docking references.
     if(retired)state.landed=false;
-    if(state.localCruise&&!validBody(state.localCruise.to)){
+    if(state.localCruise&&!bodies(state.localCruise.system??state.system).some(body=>body.id===Number(state.localCruise.to))){
       state.localCruise=null;state.speed=0;state.vx=0;state.vy=0;
     }
     state.localBody = id;

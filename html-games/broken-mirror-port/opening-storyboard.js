@@ -3,6 +3,12 @@
   'use strict';
   const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),mix=(a,b,t)=>a+(b-a)*t;
   const noise=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);};
+  function shotOpacity(cut,time){
+    const duration=Math.max(.001,cut.end-cut.start),ease=v=>{const t=clamp(v);return t*t*(3-2*t);};
+    // Fade lengths are seconds, independent of the shot's running time.
+    // Keep a visible middle even for unusually short camera cuts.
+    return Math.min(ease((time-cut.start)/Math.min(.65,duration*.3)),ease((cut.end-time)/Math.min(.55,duration*.3)));
+  }
   function sample(manifest,seconds,reduced=false){
     const time=clamp(seconds,0,manifest.duration),cues=manifest.cues;
     let index=cues.findIndex(c=>time<c.end);if(index<0)index=cues.length-1;
@@ -16,5 +22,5 @@
       subtitle:!title&&time>=cue.start&&time<cue.speechEnd+.35?cue.text:'',location:title?'VEXED MIRROR':cue.location,
       chapter:title?'YOUR COMMAND AWAITS':cue.chapter};
   }
-  window.nativeOpeningStoryboard=Object.freeze({sample,noise,clamp,mix});
+  window.nativeOpeningStoryboard=Object.freeze({sample,shotOpacity,noise,clamp,mix});
 })();

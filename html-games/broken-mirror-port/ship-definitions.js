@@ -11,6 +11,29 @@
   // Fixed pre-refit benchmarks: original Intrepid (95), original Saber (20).
   // Hull class and controller ownership never select the installed engine's speed.
   const engineSpeeds=Object.freeze({standard:95,unfitted:20});
+  const thrusterLevels=3;
+  const thrusterType=entity=>Number(entity.shipType??entity.type??7);
+  const thrusterGeneration=entity=>Math.max(0,Math.floor(number(entity.lifeGeneration)));
+  function thrusterLevel(entity){
+    const saved=entity?.shipThrusters;
+    return saved?.version===1&&saved.hullType===thrusterType(entity)&&number(saved.generation)===thrusterGeneration(entity)?Math.max(0,Math.min(thrusterLevels,Math.floor(number(saved.level)))):0;
+  }
+  function resetThrusters(entity){return entity.shipThrusters={version:1,hullType:thrusterType(entity),generation:thrusterGeneration(entity),level:0};}
+  function ensureThrusters(entity){
+    const saved=entity.shipThrusters;
+    if(saved?.version!==1||saved.hullType!==thrusterType(entity)||number(saved.generation)!==thrusterGeneration(entity))return resetThrusters(entity);
+    saved.level=thrusterLevel(entity);return saved;
+  }
+  function thrusterProfile(entity,base){
+    const level=entity?thrusterLevel(entity):0,linear=1+.2*level,handling=1+.1*level;
+    return {...base,level,maxLevel:thrusterLevels,maxSpeed:base.maxSpeed*linear,acceleration:base.acceleration*linear,braking:base.braking*linear,turnRate:base.turnRate*handling,handling};
+  }
+  function thrusterQuote(entity){
+    const definition=get(thrusterType(entity)),level=thrusterLevel(entity),before=thrusterProfile(entity,definition.thrusters);
+    const draft={...entity,shipThrusters:{version:1,hullType:thrusterType(entity),generation:thrusterGeneration(entity),level:Math.min(thrusterLevels,level+1)}};
+    const mass=number(definition.mass,8),tier=mass>=32?3:mass>=8?2:1;
+    return {name:'Built-in thrusters',level,max:thrusterLevels,price:level<thrusterLevels?1000*tier*[1,3,6][level]:0,materials:{},allowed:level<thrusterLevels,before,after:thrusterProfile(draft,definition.thrusters)};
+  }
   // Preserve the established active civilian fleet, then use the recovered
   // flight scale for the remaining classes. These are gameplay units, not metres.
   const displayHeights=Object.freeze({18:11.7,23:22.5,47:72,52:90,58:75});
@@ -50,6 +73,7 @@
     if(!definition.name)errors.push('Missing ship name');
     for(const key of ['hull','shields','cargo'])if(definition[key]!==undefined&&(!Number.isFinite(definition[key])||definition[key]<0))errors.push('Invalid '+key);
     if(definition.mass!==undefined&&(!(definition.mass>0)||!Number.isFinite(definition.mass)))errors.push('Invalid physical mass');
+    for(const field of ['maxSpeed','acceleration','braking','turnRate'])if(!(definition.thrusters?.[field]>0)||!Number.isFinite(definition.thrusters[field]))errors.push('Invalid thruster '+field);
     if(!definition.renderer&&(!definition.artworkProfile||!(definition.artworkProfile.width>0&&definition.artworkProfile.height>0)))errors.push('Missing artwork profile');
     if(!d||!(d.width>0&&d.height>0)||!Number.isFinite(d.width+d.height))errors.push('Invalid display dimensions');
     for(const [kind,n] of Object.entries(definition.slots))if(!Number.isInteger(n)||n<0||n>64)errors.push('Invalid '+kind+' capacity');
@@ -109,25 +133,29 @@
       statUpgrades:custom.statUpgrades||(type===10?[{levelField:'tugEngineLevel',stat:'speedOrOtherStationValue',base:95,perLevel:15,maxLevel:2}]:[]),
       capabilities:{armed:true,canMine:true,canDock:true,canTrade:true,medical:policyName==='medical',disableRatio:.25,defensiveWeapon:type===47?1:10,...custom.capabilities}};
     result.equipment=result.startingEquipment.weapon;
-    result.movement=custom.movement||window.nativeShipMotion?.profiles.manual(result);
     const d=result.dimensions;
     if(d?.width>0&&d?.height>0){result.mass=custom.physical?.mass??custom.mass??Math.max(.5,8*(d.width*d.height/2400)**1.5);const hull=surfaceRadii(d,false,result);result.inertia=custom.physical?.inertia??custom.inertia??Math.max(.01,result.mass*(hull.rx**2+hull.ry**2)/4);}
     result.physical={mass:result.mass,inertia:result.inertia,...custom.physical};
     if(custom.physical?.mass!==undefined)result.mass=custom.physical.mass;
     if(custom.physical?.inertia!==undefined)result.inertia=custom.physical.inertia;
+    const mass=Math.max(.5,number(result.mass,8)),speed=Math.max(18,Math.min(65,48*Math.pow(8/mass,.16)));
+    result.thrusters={maxSpeed:speed,acceleration:speed*.4,braking:speed*.6,turnRate:Math.max(.5,number(result.turn,2)/4),...custom.thrusters,level:0,maxLevel:thrusterLevels,handling:1};
+    // Apply fleet-wide propulsion tuning after each hull's baseline and overrides.
+    for(const field of ['maxSpeed','acceleration','braking'])result.thrusters[field]*=1.5;
+    result.movement=custom.movement||window.nativeShipMotion?.profiles.manual(result);
     definitionCache.set(cacheKey,result);return {...result};
   }
   function effective(state,entity,category){
     const type=Number(entity.shipType??(category==='tug'?10:entity.type??entity.id)),cacheKey=type+':'+category;
     if(!definitionCache.has(cacheKey))get(type,category);
     const base=definitionCache.get(cacheKey),eq=entity.shipEquipment,slots=eq?.slots,instances=eq?.instances;
-    // Only ownership/configuration affects capabilities. Charge, damage and pose do
-    // not; checking the actual fitted IDs also admits direct legacy save repairs.
+    // Device condition changes capabilities; energy charge and pose do not.
     let signature=revision+':'+cacheKey+':'+(eq?'equipment':'legacy');
-    for(const kind of ['engineering','shield'])for(const id of slots?.[kind]||[])signature+=':'+kind+':'+id+':'+instances?.[id]?.modelId;
+    for(const kind of ['engineering','shield'])for(const id of slots?.[kind]||[])signature+=':'+kind+':'+id+':'+instances?.[id]?.modelId+':'+instances?.[id]?.condition;
     for(const upgrade of base.statUpgrades){const installed=instances?.[slots?.engineering?.[0]];signature+=':'+number(eq?installed?.upgrades?.[upgrade.levelField]:entity[upgrade.levelField]);}
     const levels=entity.mineralUpgrades?.[entity.shipType];for(const kind of ['shield','hull','engine','weapons','drive'])signature+=':'+number(levels?.[kind]);
     signature+=':refit:'+JSON.stringify(entity.shipRefit||null)+':shield:'+JSON.stringify(entity.shieldResponse||null);
+    signature+=':thrusters:'+thrusterLevel(entity);
     const cached=effectiveCache.get(entity);if(cached?.signature===signature)return cached.value;
     const definition={...base};
     const installed=eq?.instances[eq.slots.engineering[0]],engine=window.nativeShipEquipment?.model(installed?.modelId);
@@ -146,7 +174,16 @@
     // Built-in basic propulsion remains available without removable warp hardware.
     // Hull/engine tuning cannot turn an empty bay into an upgraded engine.
     if(!effective.engineOnline)effective.speedOrOtherStationValue=engineSpeeds.unfitted;
-    if(!overrides.get(type)?.movement)effective.movement=window.nativeShipMotion?.profiles.manual(effective);
+    effective.ratedShields=effective.shields;
+    const shieldItem=instances?.[slots?.shield?.[0]];
+    effective.shieldCondition=shieldItem?(window.nativeShipEquipment.condition(shieldItem)??100):100;
+    effective.shields=Math.max(0,effective.shields*effective.shieldCondition/100);
+    effective.engineCondition=installed?(window.nativeShipEquipment.condition(installed)??100):100;
+    effective.speedOrOtherStationValue*=effective.engineCondition/100;
+    effective.engineOnline=effective.engineOnline&&effective.engineCondition>0;
+    effective.thrusters=thrusterProfile(entity,base.thrusters);
+    effective.thrusterOnly=!effective.engineOnline;
+    if(!overrides.get(type)?.movement||effective.thrusterOnly)effective.movement=window.nativeShipMotion?.profiles.manual(effective);
     effectiveCache.set(entity,{signature,value:effective});window.nativeSimulationFrame?.count(state,'effectiveStatsBuilds');return effective;
   }
   function forEntity(state,entity=state,{category=entity===state?'player':'civilian'}={}){
@@ -206,5 +243,6 @@
     return definition.damageStages.filter(threshold=>fraction<threshold).length;
   }
   const registered=()=>[...new Set([...window.VexedMirrorWorld.ships.map(ship=>Number(ship.id)),...overrides.keys()])].map(type=>get(type));
+  window.nativeShipThrusters=Object.freeze({ensure:ensureThrusters,reset:resetThrusters,level:thrusterLevel,quote:thrusterQuote,maxLevel:thrusterLevels});
   window.nativeShipDefinitions=Object.freeze({register,get,forEntity,dimensions,describe,surfaceRadii,stage,profiles,registered,artworkProfile,presentation,policies,validate,engineSpeeds,revision:()=>revision});
 })();

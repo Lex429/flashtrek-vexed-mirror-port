@@ -1,7 +1,7 @@
 /* Common world-target interface. Controllers register consequences, not physics. */
 (() => {
   'use strict';
-  const kinds=new Map(),rockGeometry=new WeakMap(),collections=new WeakMap(),persistent=new WeakMap(),cellSize=256;let registryRevision=0;
+  const kinds=new Map(),rockGeometry=new WeakMap(),collections=new WeakMap(),saveArrays=new WeakMap(),persistent=new WeakMap(),cellSize=256;let registryRevision=0;
   const clock=state=>window.nativeSimulation?.seconds?.(state)||(Number(state?.shipSimulation?.seconds)||0);
   const cacheRevisions=new WeakMap();
   function caches(state){
@@ -24,12 +24,15 @@
       record={raw:items,items:null,revision:(record?.revision||0)+1,length:items.length};
       record.items=new Proxy(items,{set(array,key,value){const changed=array[key]!==value,result=Reflect.set(array,key,value);if(changed){record.revision++;record.length=array.length;}return result;},
         deleteProperty(array,key){const present=key in array,result=Reflect.deleteProperty(array,key);if(present)record.revision++;return result;}});
-      fields.set(field,record);owner[field]=record.items;
+      saveArrays.set(record.items,record.raw);fields.set(field,record);owner[field]=record.items;
     }
     if(record.length!==record.raw.length){record.length=record.raw.length;record.revision++;}
     return record;
   }
   const idKey=id=>String(id);
+  // The native worker clone captures these original arrays synchronously. No
+  // observer/index is saved, and the live published array is never replaced.
+  function saveCollection(owner,field){const record=owner&&collections.get(owner)?.get(field);return record&&owner[field]===record.items?record.raw:owner?.[field];}
   const living=target=>target&&(!target.entity||!(target.entity.hull<=0)&&!['destroyed','warp','arriving'].includes(target.entity.phase)&&(target.entity.system??target.system)===target.system)&&
     (target.category!=='player'||!target.state?.landed&&!window.vexedWarp?.active&&target.state?.system===target.system);
   function rockTarget(state,rock,system){
@@ -61,7 +64,6 @@
     frameCache?.set(key,record.ships);return record.ships;
   }
   const poseFields=['x','y','angle','heading','previousX','previousY','vx','vy','speed','hull','shields','phase','journey','system','shipType','dimensions','localLeg','lifeLeg','motionKick','motionSpin','shipEquipment'];
-  const geometryFields=['hull','shields','phase','journey','system','shipType','dimensions','localLeg','lifeLeg','motionKick','motionSpin','shipEquipment'].map(key=>poseFields.indexOf(key));
   const mineralFields=['shield','hull','engine','weapons','drive'];
   const hardwareBanks=['engineering','shield'];
   function hardwareValues(entity,definition){
@@ -77,9 +79,19 @@
     for(const key of mineralFields)if(values[index++]!==levels?.[key])return false;
     return index===values.length;
   }
-  function reusableRoute(entry,entity){return ['civilian','tug'].includes(entry.target.category)&&!!(entity?.localLeg||entity?.lifeLeg)&&typeof entry.target.definition?.dimensions!=='function'&&entry.definitionRevision===(window.nativeShipDefinitions?.revision?.()||0)&&geometryFields.every(index=>entry.fields[index]===entity[poseFields[index]])&&sameHardware(entry,entity);}
+  function reusableRoute(entry,entity){
+    if(!['civilian','tug'].includes(entry.target.category)||!(entity?.localLeg||entity?.lifeLeg)||typeof entry.target.definition?.dimensions==='function'||entry.definitionRevision!==(window.nativeShipDefinitions?.revision?.()||0))return false;
+    const f=entry.fields;
+    if(f[9]!==entity.hull||f[10]!==entity.shields||f[11]!==entity.phase||f[12]!==entity.journey||f[13]!==entity.system||f[14]!==entity.shipType||f[15]!==entity.dimensions||f[16]!==entity.localLeg||f[17]!==entity.lifeLeg||f[18]!==entity.motionKick||f[19]!==entity.motionSpin||f[20]!==entity.shipEquipment)return false;
+    return sameHardware(entry,entity);
+  }
   function rememberPose(entity){return poseFields.map(key=>entity?.[key]);}
-  function changed(entry){return poseFields.some((key,index)=>entry.fields[index]!==entry.target.entity?.[key]);}
+  function changed(entry){
+    // These direct reads match poseFields in order. This is the inner loop of
+    // every bounded query, including repeated unchanged reads within a step.
+    const e=entry.target.entity,f=entry.fields;
+    return f[0]!==e?.x||f[1]!==e?.y||f[2]!==e?.angle||f[3]!==e?.heading||f[4]!==e?.previousX||f[5]!==e?.previousY||f[6]!==e?.vx||f[7]!==e?.vy||f[8]!==e?.speed||f[9]!==e?.hull||f[10]!==e?.shields||f[11]!==e?.phase||f[12]!==e?.journey||f[13]!==e?.system||f[14]!==e?.shipType||f[15]!==e?.dimensions||f[16]!==e?.localLeg||f[17]!==e?.lifeLeg||f[18]!==e?.motionKick||f[19]!==e?.motionSpin||f[20]!==e?.shipEquipment;
+  }
   function describeActor(state,entity,category,id,supplied,reuse=false){
     const adapter=kinds.get(category);
     let target=reuse?{...supplied,x:entity.x,y:entity.y,heading:entity.heading??entity.angle??0,speed:entity.speed||0,vx:entity.vx||0,vy:entity.vy||0,previousX:entity.previousX??entity.x,previousY:entity.previousY??entity.y,angularVelocity:window.nativeShipMotion?.spinSample?.(entity.motionSpin,clock(state))?.velocity||0}:['player','civilian','tug'].includes(category)?window.nativeShipDefinitions.describe(state,entity,{category}):supplied||(adapter?.resolve?adapter.resolve(state,id,entity?.system??state.system):adapter?.collect(state,entity?.system??state.system)?.find(target=>entity?target.entity===entity:idKey(target.id)===idKey(id)));
@@ -126,12 +138,13 @@
     window.nativeSimulationFrame?.count(state,'shipPoseChecks');
     const entity=entry.target.entity,at=clock(state),scheduled=entity?.localLeg||entity?.lifeLeg;
     const reusable=reusableHint===undefined?reusableRoute(entry,entity):reusableHint,poseChanged=changedHint===undefined?changed(entry):changedHint;
-    if(!poseChanged&&(!scheduled||entry.at===at)&&(!scheduled||reusable))return entry.target;
+    const retained=kinds.get(entry.target.category)?.retainedPose&&entry.definitionRevision===(window.nativeShipDefinitions?.revision?.()||0);
+    if(!poseChanged&&(!scheduled||entry.at===at)&&(!scheduled||reusable||retained))return entry.target;
     const target=describeActor(state,entity,entry.target.category,entry.target.id,reusable?entry.target:undefined,reusable);
     if(!reusable&&entry.target.category==='civilian')window.nativeNpcLives?.observeMotion?.(state,entity);
     if(!living(target)||target.system!==record.system){removeTarget(record,entry);clearCaches(state,record.system);return null;}
     const previous=entry.target;insertTarget(record,target,reusable);window.nativeSimulationFrame?.trackPose?.(state,entity,previous,target);
-    const scene=caches(state)?.get('targets:'+record.system);if(scene){const index=scene.scene.targets.indexOf(previous);if(index>=0)scene.scene.targets[index]=target;scene.byId.set(idKey(target.id),target);}return target;
+    const scene=caches(state)?.get('targets:'+record.system);if(scene){const index=scene.scene.targets.indexOf(previous);if(index>=0)scene.scene.targets[index]=target;scene.byId.set(idKey(target.id),target);}updateNeighborhoods(state,record.system,target);return target;
   }
   function presentation(state,entity=state,category=entity===state?'player':'civilian',system=entity.system??state.system){
     const frame=window.nativeSimulationFrame?.current(state);
@@ -155,7 +168,7 @@
   }
   function clearCaches(state,system){
     const frameCache=caches(state);if(!frameCache)return;
-    if(system===undefined)frameCache.clear();else{frameCache.delete('targets:'+system);frameCache.delete('ships:'+system);frameCache.delete('shipSlots:'+system);frameCache.delete('spatial:'+system);}
+    if(system===undefined)frameCache.clear();else{frameCache.delete('targets:'+system);frameCache.delete('ships:'+system);frameCache.delete('shipSlots:'+system);frameCache.delete('spatial:'+system);frameCache.delete('neighborhood:'+system);}
   }
   function invalidate(state,system){
     window.nativeSolAsteroids?.invalidateIndex?.(system);
@@ -183,7 +196,7 @@
     acknowledge(state,record);
     const frameCache=caches(state),scene=frameCache?.get('targets:'+system);
     if(scene&&previous){const sceneIndex=scene.scene.targets.indexOf(previous);if(sceneIndex>=0)scene.scene.targets[sceneIndex]=target;scene.byId.set(idKey(target.id),target);}else if(!previous)clearCaches(state,system);
-    return target;
+    updateNeighborhoods(state,system,target);return target;
   }
   // Route owners call this only after sampling an unchanged committed leg.
   // Its full swept route remains indexed; an unobserved pose needs no new
@@ -198,7 +211,7 @@
     if(entry.at===at&&target.x===entity.x&&target.y===entity.y&&target.heading===heading&&target.speed===entity.speed&&target.vx===(entity.vx||0)&&target.vy===(entity.vy||0)){
       entry.fields=rememberPose(entity);window.nativeSimulationFrame?.count(state,'shipPoseAcknowledgements');return target;
     }
-    const frameCache=caches(state);if(frameCache?.has('targets:'+system)||frameCache?.has('ships:'+system))return refreshShip(state,entity,category,system);
+    const frameCache=caches(state);if(frameCache?.has('targets:'+system)||frameCache?.has('ships:'+system)||frameCache?.has('neighborhood:'+system))return refreshShip(state,entity,category,system);
     entry.fields=rememberPose(entity);entry.at=-Infinity;
     const current={x:entity.x,y:entity.y,heading,system,shipType:entity.shipType,speed:entity.speed,vx:entity.vx,vy:entity.vy};
     window.nativeSimulationFrame?.trackPose?.(state,entity,before||target,current);window.nativeSimulationFrame?.count(state,'shipPoseDeferrals');return target;
@@ -208,9 +221,10 @@
     // Query-only consumers read the existing asteroid index and authoritative
     // pose lazily. Offscreen motion needs no display/collision descriptor until
     // a full scene already retains one or a bounded query actually finds it.
-    if(!record)return;
-    if(rockGone(state,rock.slotId)){frameCache.delete('targets:'+system);return null;}
+    if(!record&&!frameCache?.has('neighborhood:'+system))return;
+    if(rockGone(state,rock.slotId)){frameCache?.delete('targets:'+system);updateNeighborhoods(state,system,rockTarget(state,rock,system));return null;}
     const target=rockTarget(state,rock,system);
+    updateNeighborhoods(state,system,target);if(!record)return target;
     const previous=record.byId.get(idKey(target.id));
     if(previous){record.scene.rocks[record.scene.rocks.indexOf(previous)]=target;record.scene.targets[record.scene.targets.indexOf(previous)]=target;record.byId.set(idKey(target.id),target);}
     else frameCache.delete('targets:'+system);
@@ -314,6 +328,42 @@
     return {state,targets:[...bystanders,...rocks],bystanders,rocks,destructibles:[],bodies,
       querySwept:(from,to,padding=0,{instant=false,horizon=0}={})=>query(state,{system,minX:Math.min(from.x,to.x)-padding,minY:Math.min(from.y,to.y)-padding,maxX:Math.max(from.x,to.x)+padding,maxY:Math.max(from.y,to.y)+padding,swept:!instant,predictSeconds:horizon})};
   }
+  function updateNeighborhoods(state,system,target){
+    const groups=caches(state)?.get('neighborhood:'+system);if(!groups)return;
+    const asteroid=target.category==='asteroid',id=idKey(target.id);
+    for(const record of groups.values()){
+      const targets=asteroid?record.rocks:record.ships;
+      const include=(asteroid?!rockGone(state,target.rockId):living(target))&&intersects(record.box,bounds(target,true,record.predictSeconds));
+      if(include)targets.set(id,target);else targets.delete(id);
+    }
+  }
+  // A bounded read model for controllers whose movement/geometry mutations are
+  // published through refreshShip/refreshAsteroid. It lasts one physical step,
+  // updates when each actor moves, and never substitutes for ordinary query's
+  // validation of arbitrary raw edits. Geometry still belongs to this owner.
+  function neighborhood(state,options={}){
+    const {system=state.system,minX,minY,maxX,maxY,categories}=options,area=window.nativeShipDetail?.region?.(state),frameCache=caches(state);
+    if(!area||area.system!==system||!frameCache||![minX,minY,maxX,maxY].every(Number.isFinite))return query(state,options);
+    const predictSeconds=Number.isFinite(options.predictSeconds)?Math.max(0,options.predictSeconds):0;
+    const swept=options.swept!==false,reach=Math.max(1,(maxX-minX)/2,(maxY-minY)/2),band=Math.max(1024,2**Math.ceil(Math.log2(reach)));
+    if(minX<area.minX-band||minY<area.minY-band||maxX>area.maxX+band||maxY>area.maxY+band)return query(state,options);
+    const owner=shipRecord(state,system),groupKey='neighborhood:'+system;
+    let groups=frameCache.get(groupKey);if(!groups)frameCache.set(groupKey,groups=new Map());
+    const key=area.generation+':'+band+':'+predictSeconds,box={minX,minY,maxX,maxY};let record=groups.get(key);
+    if(!record||record.owner!==owner||!intersects(record.box,box)||minX<record.box.minX||minY<record.box.minY||maxX>record.box.maxX||maxY>record.box.maxY){
+      const broad={minX:area.minX-band,minY:area.minY-band,maxX:area.maxX+band,maxY:area.maxY+band};
+      const found=query(state,{system,...broad,predictSeconds});
+      record={owner,box:broad,predictSeconds,ships:new Map(found.bystanders.map(t=>[idKey(t.id),t])),rocks:new Map(found.rocks.map(t=>[idKey(t.id),t])),bodies:found.bodies};
+      if(!groups.has(key)&&groups.size>=32)groups.delete(groups.keys().next().value);
+      groups.set(key,record);window.nativeSimulationFrame?.count(state,'steeringNeighborhoodBuilds');
+    }
+    const allowed=categories?new Set(Array.isArray(categories)?categories:[categories]):null,bystanders=[],rocks=[];
+    for(const target of record.ships.values())if((!allowed||allowed.has(target.category))&&living(target)&&intersects(box,bounds(target,swept,predictSeconds)))bystanders.push(target);
+    if(!allowed||allowed.has('asteroid'))for(const target of record.rocks.values())if(!rockGone(state,target.rockId)&&intersects(box,bounds(target,swept,predictSeconds)))rocks.push(target);
+    window.nativeSimulationFrame?.count(state,'steeringNeighborhoodReads');
+    return {state,targets:[...bystanders,...rocks],bystanders,rocks,destructibles:[],bodies:record.bodies,
+      querySwept:(from,to,padding=0,{instant=false,horizon=0}={})=>query(state,{system,minX:Math.min(from.x,to.x)-padding,minY:Math.min(from.y,to.y)-padding,maxX:Math.max(from.x,to.x)+padding,maxY:Math.max(from.y,to.y)+padding,swept:!instant,predictSeconds:horizon})};
+  }
   function bodyTargets(state,system){
     const frameCache=caches(state),key='bodies:'+system,cached=frameCache?.get(key);if(cached)return cached;
     const bodies=window.nativeSystemCatalog?window.nativeSystemCatalog.bodies(system).filter(b=>b.kind!=='belt'&&!b.occludedBy).map(b=>({x:b.x-220,y:b.y+75,radius:(b.size||100)*.44})):system===1?(window.nativeSystemHub?.sol||[]).filter(body=>body.id!==6).map(body=>({x:body.x-220,y:body.y+75,radius:(window.vexedSolFlight?.bodySize(body)||100)*.44})):[];
@@ -328,6 +378,10 @@
     const frameCache=caches(state);
     // An ID lookup must not prepare a complete asteroid scene to find one ship.
     const key=idKey(id);let entity,category;
+    const retained=persistent.get(state)?.get(system),retainedEntry=retained?.space.entries.get(key);
+    if(retainedEntry&&!retained.dirty&&retained.revision===membership(state,system)&&kinds.get(retainedEntry.target.category)?.retainedPose){
+      const target=touch(state,retained,retainedEntry);return living(target)&&target.system===system?target:null;
+    }
     if(key==='player'){entity=state;category='player';if(system!==state.system||state.hull<=0||state.landed||window.vexedWarp?.active)return null;}
     else if(key.startsWith('tug:')){entity=window.nativeSolEconomy?.find?window.nativeSolEconomy.find(state,key.slice(4)):state.solEconomy?.freighters?.find(ship=>idKey(ship.id)===key.slice(4));category='tug';}
     else{entity=window.nativeNpcLives?.find?.(state,key)??(!window.nativeNpcLives?.find?state.civilianTraffic?.ships?.find(ship=>idKey(ship.id)===key):null);category='civilian';}
@@ -374,7 +428,7 @@
     const target=resolve(state,collisionTarget.id,collisionTarget.system??source.system??state.system);
     if(!target)return {ok:false};
     const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,
-      kind:event.kind,weaponEventId:event.id,source:source.id==='player'?'player':'ai',sourceId:source.id};
+      kind:event.kind,weaponEventId:event.id,source:source.id==='player'?'player':'ai',sourceId:source.id,sourceGovernmentId:event.sourceGovernmentId??source.entity?.ownerGovernmentId};
     const damageResult=kinds.get(target.category)?.hit(state,target,event.damage,impact)||{ok:false};
     if(['player','civilian','tug'].includes(target.category))refreshShip(state,target.entity,target.category,target.system);
     else if(target.category==='asteroid')refreshAsteroid(state,target.entity);
@@ -400,7 +454,16 @@
       vx:entity.vx,vy:entity.vy,motionReverse:entity.motionReverse,motionDrift:entity.motionDrift,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionSpin:entity.motionSpin,motionTime:window.nativeSimulation.seconds(state)};
     const origin={x:descriptor.x-entity.x,y:descriptor.y-entity.y};
     profile||=descriptor.definition.movement;
-    if(entity.phase==='disabled'){command={coast:true};profile={maxSpeed:Infinity,turnRate:0,damping:0,inertial:true};}
+    if(descriptor.definition.thrusterOnly&&profile!==descriptor.definition.movement){
+      const reserve=descriptor.definition.movement;
+      profile={...profile,...Object.fromEntries(['maxSpeed','acceleration','braking','turnRate','lateralAcceleration'].map(key=>[key,Math.min(profile[key]??Infinity,reserve[key])])),softSpeedLimit:true};
+    }
+    // Explicit cruise/combat profiles still respect fitted engine damage.
+    if(descriptor.definition.engineCondition>0&&descriptor.definition.engineCondition<100&&!profile.softSpeedLimit)profile={...profile,softSpeedLimit:true};
+    // A surviving player keeps manual propulsion at the actual fitted-engine
+    // or permanent-thruster limits. Critical hull still suspends autopilot.
+    const manualPlayer=category==='player'&&entity.hull>0&&command?.manualFlight===true;
+    if(entity.hull<=0||entity.phase==='destroyed'||entity.phase==='disabled'&&!manualPlayer){command={coast:true};profile={maxSpeed:Infinity,turnRate:0,damping:0,inertial:true};}
     command=window.nativeShipTraffic?.steer(state,descriptor,command,profile)||command;
     const result=window.nativeShipMotion.step(pose,command,profile,dt);
     Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionReverse:pose.motionReverse,motionDrift:pose.motionDrift,motionAngularVelocity:pose.motionAngularVelocity,
@@ -435,5 +498,5 @@
     }});
   register('asteroid',{collect:asteroidTargets,hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.weaponHit(state,target.rockId,amount,impact)});
   function inspect(state,id){if(String(id)==='player')return inspectPlayer(state)[0];if(String(id).startsWith('tug:'))return window.nativeSolEconomy?.inspect?.(state,String(id).slice(4))||null;return window.nativeNpcLives?.inspect?.(state,id)||null;}
-  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,presentation,countShips:(state,system=state.system)=>shipRecord(state,system).ships.length,scene,collisionScene,query,resolve,applyHit,visualImpact,resolved,move,applyContact,inspectAll,inspect,observeCollection,invalidate,invalidateShips,refreshShip,sampledShip,refreshAsteroid});
+  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,presentation,countShips:(state,system=state.system)=>shipRecord(state,system).ships.length,scene,collisionScene,query,neighborhood,resolve,applyHit,visualImpact,resolved,move,applyContact,inspectAll,inspect,observeCollection,saveCollection,saveValue:value=>saveArrays.get(value)||value,invalidate,invalidateShips,refreshShip,sampledShip,refreshAsteroid});
 })();

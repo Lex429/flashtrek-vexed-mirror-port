@@ -34,6 +34,17 @@ CHECK = r"""async () => {
   const api=await createVexedShieldPresentation({space:canvas,radii:()=>({rx:50,ry:70})});
   const final=document.createElement('canvas');final.width=final.height=340;
   const output=final.getContext('2d',{willReadFrequently:true}),results=[],shots=[];
+  // A first visible paint must use the original Canvas lamps without an inline
+  // atlas upload. Preparation may finish later through the shared queue.
+  const coldAsset=await vexedFlightAssets.loadShip(6,nativeShipDefinitions.get(6).hull),coldFrames=[];
+  for(const gpu of [false,true]){
+    nativeShipLampGPUEnabled=gpu;ctx.clearRect(0,0,340,340);api.beginFrame(ctx);
+    vexedFlightAssets.drawShip(ctx,coldAsset,170,170,100,0,1450,{height:110,lights:true,damage:false});api.endFrame(ctx,1450);
+    coldFrames.push(ctx.getImageData(0,0,340,340).data);
+  }
+  const cold={uploads:api.snapshot().shipLamps.uploads,fallbacks:api.snapshot().shipLamps.coldFallbacks,
+    identical:coldFrames[0].every((value,i)=>value===coldFrames[1][i])};
+  if(cold.uploads!==0||!cold.identical||!cold.fallbacks)throw Error('Cold lamps blocked painting or lost the Canvas fallback: '+JSON.stringify(cold));
   const frames=new Map();
   for(const type of [1,6,7,29,39,52,56,426,427])for(const stage of [0,3])for(const angle of [0,.73])for(const sun of [false,true]){
     const max=nativeShipDefinitions.get(type).hull;
@@ -41,7 +52,9 @@ CHECK = r"""async () => {
     for(const time of [0,1450]){
       const rendered=[];
       for(const gpu of [false,true]){
-        nativeShipLampGPUEnabled=gpu;ctx.clearRect(0,0,340,340);api.beginFrame(ctx);
+        nativeShipLampGPUEnabled=gpu;
+        if(gpu)await nativeShipLampGPU.prepare?.(canvas,asset,110*asset.width/asset.height,110,{localLight:sun?{direction:0,color:0xffdb9e,bright:.22}:null});
+        ctx.clearRect(0,0,340,340);api.beginFrame(ctx);
         vexedFlightAssets.drawShip(ctx,asset,170,170,110*asset.width/asset.height,angle,time,{height:110,lights:true,damage:false,
           ...(sun?{light:{x:370,y:310,color:0xffdb9e}}:{})});
         api.endFrame(ctx,time);output.clearRect(0,0,340,340);output.drawImage(canvas,0,0);
@@ -65,6 +78,7 @@ CHECK = r"""async () => {
   const integrated=window.vexedShieldGPU;window.vexedShieldGPU=null;nativeShipLampGPUEnabled=true;
   const asset=await vexedFlightAssets.loadShip(6,nativeShipDefinitions.get(6).hull);
   nativeShipLampGPU.beginStandalone(ctx);
+  await nativeShipLampGPU.prepare?.(canvas,asset,100,110);
   vexedFlightAssets.drawShip(ctx,asset,170,170,100,0,1450,{height:110,lights:true,damage:false});
   nativeShipLampGPU.endStandalone(ctx);
   const overlay=host.querySelector('#gpu-ship-lamp-overlay');
@@ -73,7 +87,7 @@ CHECK = r"""async () => {
   nativeShipLampGPUEnabled=true;nativeShipLampGPU.beginStandalone(ctx);nativeShipLampGPU.endStandalone(ctx);
   standalone.emptyHidden=overlay.hidden;
   window.vexedShieldGPU=integrated;host.remove();
-  return {results,shots,resources,pulseChanges,standalone};
+  return {results,shots,resources,pulseChanges,standalone,cold};
 }"""
 
 

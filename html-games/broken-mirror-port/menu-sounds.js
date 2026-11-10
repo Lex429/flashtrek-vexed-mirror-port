@@ -15,7 +15,7 @@
     }).catch(error=>{console.warn(error);return null;}));
   }
   const toggle=document.createElement('button');
-  toggle.id='menu-sound-toggle';toggle.type='button';toggle.setAttribute('aria-label','Toggle original menu sound effects');menu.append(toggle);
+  toggle.id='menu-sound-toggle';toggle.type='button';toggle.setAttribute('aria-label','Toggle sound effects');menu.append(toggle);
   function label(){toggle.textContent=enabled?'Sound on':'Sound off';toggle.setAttribute('aria-pressed',String(enabled));}
   function unlock(){
     if(!enabled)return;
@@ -50,14 +50,16 @@
     };
     request().catch(error=>console.warn('Original menu sound playback failed',error));return true;
   }
-  toggle.addEventListener('click',()=>{
-    enabled=!enabled;try{localStorage.setItem(key,enabled?'on':'off');}catch{}
+  function setEnabled(value){
+    enabled=!!value;try{localStorage.setItem(key,enabled?'on':'off');}catch{}
     if(enabled)unlock();else stop();label();
-  });
+    dispatchEvent(new CustomEvent('native-soundchange',{detail:{enabled}}));
+  }
+  toggle.addEventListener('click',()=>setEnabled(!enabled));
   for(const event of ['pointerdown','keydown'])document.addEventListener(event,e=>{
     if(e.isTrusted&&!menu.hidden&&!document.body.classList.contains('playing'))unlock();
   },{capture:true});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
   label();
-  window.nativeMenuSounds=Object.freeze({play,stop,inventory(kind){unlock();return play({equip:'confirm',unequip:'press',reject:'hover',select:'press'}[kind]||'press');},snapshot:()=>({enabled,unlocked:!!context,state:context?.state||'locked',decoded:[...buffers.keys()],played:{...played},active:voices.size})});
+  window.nativeMenuSounds=Object.freeze({play,stop,setEnabled,get enabled(){return enabled;},inventory(kind){unlock();return play({equip:'confirm',unequip:'press',reject:'hover',select:'press'}[kind]||'press');},snapshot:()=>({enabled,unlocked:!!context,state:context?.state||'locked',decoded:[...buffers.keys()],played:{...played},active:voices.size})});
 })();

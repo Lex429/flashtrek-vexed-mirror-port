@@ -16,6 +16,8 @@
   const ctx = canvas.getContext('2d');
   const backdrop = document.createElement('canvas'), backdropContext = backdrop.getContext('2d');
   const counters = {frames:0, backdropBuilds:0};
+  const coordinateFormat = new Intl.NumberFormat('en-US', {maximumFractionDigits:0});
+  const coordinate = value => coordinateFormat.format(Math.round(Number(value) || 0) || 0);
   const factionNames = ['Non-Aligned', 'Earth Empire', 'Klingon Empire', 'Ferengi', 'Romulan Empire', 'Vulcan', 'Cardassian Order', 'Borg Collective'];
   const emblemBounds = new Array(8);
   const emblems = Array.from({length: 8}, (_, index) => {
@@ -121,7 +123,7 @@
       ctx.strokeRect(-5, -5, 10, 10);
     }
     ctx.rotate(Number(contact.heading) || 0);
-    ctx.fillStyle = selected ? '#ffdc78' : '#82e5bd';
+    ctx.fillStyle = contact.hostile ? '#ff6570' : selected ? '#ffdc78' : contact.faction ? '#75bfff' : '#82e5bd';
     ctx.strokeStyle = '#061a29';
     ctx.lineWidth = .7;
     ctx.beginPath();
@@ -258,6 +260,8 @@
     const cruiseBody = state.localCruise && window.vexedSolFlight?.forSystem(state).find(body => body.id === Number(state.localCruise.to));
     const manual = !cruiseBody && window.nativeManualFlight?.guidance(state);
     const player = state.system === 1 ? window.vexedSolFlight.shipPosition(state) : state;
+    const galaxyPosition = window.nativeManualFlight.position(state);
+    const coordinates = `X: ${coordinate(galaxyPosition.x)}  Y: ${coordinate(galaxyPosition.y)}`;
     const tugTarget = state.system === 1 ? window.nativeSolEconomy?.target(state) : null;
     const civilianTarget = window.nativeCivilianTraffic?.target(state);
     const shipTarget = tugTarget || civilianTarget;
@@ -268,7 +272,8 @@
       if (!(shipTarget && kind === targetKind && ship.id === shipTarget.id) && radarPoint(ship.x-player.x, ship.y-player.y).edge) return;
       // Radar needs only this small presentation record, never a copy of the
       // ship's cargo, equipment, route, reservations or other simulation data.
-      nearby.push({id:ship.id, x:ship.x, y:ship.y, heading:ship.heading, name, kind});
+      nearby.push({id:ship.id, x:ship.x, y:ship.y, heading:ship.heading, name, kind,
+        faction:!!window.nativeFactionDefence?.isFaction(ship),hostile:!!window.nativeFactionDefence?.hostileToPlayer(state,ship)});
     };
     if (state.system === 1) for (const ship of state.solEconomy?.freighters || []) {
       if (ship.phase !== 'destroyed') addContact(ship, 'tug', `Tug II #${ship.id + 1}`);
@@ -276,7 +281,7 @@
     for (const ship of window.nativeCivilianTraffic?.localShips(state) || []) addContact(ship, 'civilian', ship.name);
     ctx.font = '600 7px system-ui';
     ctx.fillStyle = '#91d1df';
-    ctx.fillText(cruiseBody ? `CRUISE TO ${cruiseBody.name.toUpperCase()}` : manual ? `TRACK ${manual.name.toUpperCase()}` : `LOCAL RADAR · ${nearby.length} SHIPS`, 10, 14, 110);
+    ctx.fillText(coordinates, 10, 14, 110);
 
     const faction = Math.max(0, Math.min(7, Number(state.faction) || 0));
 
@@ -337,7 +342,7 @@
     }
     playerMarker(state.angle);
     factionEmblem(faction);
-    const label = `${factionNames[faction]} local radar. Your ship is at the center, heading ${Math.round((Number(state.angle) || 0) * 180 / Math.PI)} degrees. ${contactCount} planet markers. ${nearby.length} ship contacts shown as green arrows; your targeted ship has a gold box and direction pointer. ${target?.combat ? 'Targeted ship' : 'Destination'}: ${target?.name || 'None'}, ${Math.round(Math.hypot(target?.dx || 0, target?.dy || 0)).toLocaleString()} units away. Click a ship to target it or a planet dot to select it; double-click the radar to open map, same as M.`;
+    const label = `${factionNames[faction]} local radar. Galactic coordinates ${coordinates}. Your ship is at the center, heading ${Math.round((Number(state.angle) || 0) * 180 / Math.PI)} degrees. ${contactCount} planet markers. ${nearby.length} ship contacts: green civilians, blue faction vessels and red hostile faction vessels; your targeted ship has a gold box and direction pointer. ${target?.combat ? 'Targeted ship' : 'Destination'}: ${target?.name || 'None'}, ${Math.round(Math.hypot(target?.dx || 0, target?.dy || 0)).toLocaleString()} units away. Click a ship to target it or a planet dot to select it; double-click the radar to open map, same as M.`;
     if (label !== lastLabel) {
       canvas.setAttribute('aria-label', label);
       lastLabel = label;

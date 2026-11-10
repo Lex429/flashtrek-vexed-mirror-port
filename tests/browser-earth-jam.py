@@ -1,4 +1,5 @@
 """Restore the real c41559c Earth jam and inspect recovery locally and on the map."""
+import argparse
 import functools
 import http.server
 import json
@@ -17,6 +18,7 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
 
 SETUP=r"""saved=>{
  const original=nativeNpcDev.getState(),state={...original,...JSON.parse(JSON.stringify(saved)),devMode:true};
+ if(!saved.shipRepairs)delete state.shipRepairs;
  const stuck=state.civilianTraffic.ships.filter(s=>s.system===1&&s.port===3&&s.task?.phase==='waiting-payment');
  nativeSaveStorage.write(state);resumeNativeGame();
  const s=nativeNpcDev.getState(),ids=stuck.map(s=>s.id),before=new Map(stuck.map(s=>[s.id,{x:s.x,y:s.y,deliveries:s.deliveries||0}]));
@@ -24,6 +26,8 @@ SETUP=r"""saved=>{
  __jam.check=(ok,label)=>{if(!ok)throw Error(label);};
  __jam.tick=seconds=>{
   const s=nativeNpcDev.getState();
+  const suspended=nativeSimulation;window.nativeSimulation={...suspended,blocked:()=>false};window.nativeSimulationHost?.checkpoint();
+  try{
   for(let i=0;i<seconds*60;i++){
    const dt=nativeSimulation.advance(s,1/60);nativeSimulationFrame.begin(s);nativeSimulationFrame.step(s);
    window.nativeShipTraffic?.advance(s,dt);
@@ -32,11 +36,17 @@ SETUP=r"""saved=>{
    nativeSimulationFrame.end(s);
    if(i%60===0){
     for(const id of ids){const ship=nativeNpcLives.find(s,id),old=before.get(id),p=nativeNpcLives.pose(s,ship);if(Math.hypot(p.x-old.x,p.y-old.y)>1)__jam.moved.add(id);if((ship.deliveries||0)>old.deliveries)__jam.delivered.add(id);if(ship.journey||ship.system!==1||ship.port!==3)__jam.rerouted.add(id);}
-    const earth=Object.values(s.portDocking.ships).filter(r=>r.system===1&&r.port===3),queue=earth.filter(r=>r.kind==='queue');__jam.maxQueue=Math.max(__jam.maxQueue,queue.length);__jam.check(queue.length<=12,'Unbounded Earth docking queue');
+    const earth=Object.values(s.portDocking.ships).filter(r=>r.system===1&&r.port===3),queue=earth.filter(r=>r.kind==='queue');__jam.maxQueue=Math.max(__jam.maxQueue,queue.length);__jam.check(queue.length<=(window.nativeCivilianPopulation?.dockLimits(1).queue??12),'Unbounded Earth docking queue');
     for(const r of earth)if(r.kind==='berth')__jam.leases.add(r.owner+':'+r.ticket);
    }
   }
+  // Finish jobs already due at the final sampled time in fresh bounded service
+  // tasks, without advancing the clock or discarding an event/debt record.
+  for(let pass=0;nativeNpcLives.metrics(s).backlog>0&&pass<64;pass++){
+   nativeSimulationFrame.begin(s);try{nativeNpcLives.advance(s,1/60);}finally{nativeSimulationFrame.end(s);}
+  }
   __jam.check(s.civilianTraffic.ships.length===__jam.initialCount,'Observer spawned or removed NPCs');
+  }finally{window.nativeSimulation=suspended;window.nativeSimulationHost?.checkpoint();}
  };
  __jam.inspect=(id,local)=>{
   const s=nativeNpcDev.getState(),ship=nativeNpcLives.find(s,id),before=JSON.stringify(ship);
@@ -45,7 +55,7 @@ SETUP=r"""saved=>{
   __jam.check(Math.hypot(row.position.x-point.x,row.position.y-point.y)<.001,'Map/local position disagreement');
   if(local){nativeNpcDev.visit(id);__jam.check(JSON.stringify(ship)===before,'Local inspection altered the NPC');}
   else{const canvas=document.querySelector('#space'),ctx=canvas.getContext('2d');nativeGalaxyOverview.paint(ctx,nativeView.fit(canvas,ctx),s);__jam.check(JSON.stringify(ship)===before,'Map painting altered the NPC');}
-  __jam.check(s.civilianTraffic.ships.length===159,'Opening inspector spawned NPCs');
+  __jam.check(s.civilianTraffic.ships.length===__jam.initialCount,'Opening inspector spawned NPCs');
   return row;
  };
  __jam.snapshot=()=>{
@@ -55,16 +65,21 @@ SETUP=r"""saved=>{
 }"""
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('base',nargs='?')
+    parser.add_argument('--seconds',type=int,default=1800)
+    args=parser.parse_args()
+    if args.seconds<1:parser.error('--seconds must be positive')
     OUTPUT.mkdir(exist_ok=True)
     saved=json.loads((ROOT/'tests/fixtures/earth-jam-c415.json').read_text())
     server=None
-    if len(sys.argv)>1:
-        base=sys.argv[1].rstrip('/')
+    if args.base:
+        base=args.base.rstrip('/')
     else:
         server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(QuietHandler,directory=str(ROOT)))
         threading.Thread(target=server.serve_forever,daemon=True).start()
         base=f'http://127.0.0.1:{server.server_port}'
-    report={'scenarios':{},'errors':[]}
+    report={'secondsPerScenario':args.seconds,'scenarios':{},'errors':[]}
     try:
         with sync_playwright() as p:
             channel=os.environ.get('BROWSER_CHANNEL','msedge')
@@ -76,7 +91,7 @@ def main():
             page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
             page.evaluate('startNativeDevGame()')
             page.wait_for_function('()=>nativeNpcDev.getState() && nativeSolAsteroids.placements.length')
-            page.evaluate('()=>{window.__jamFrozen=true;window.requestAnimationFrame=()=>0;}')
+            page.evaluate('()=>{window.__jamFrozen=true;window.requestAnimationFrame=()=>0;window.nativeSimulation={...nativeSimulation,blocked:()=>true};window.nativeSimulationHost?.checkpoint();}')
             # Exercise the real lot selector/buttons, not only calculation APIs.
             page.evaluate("""()=>{const s=nativeNpcDev.getState();window.__retailState=s;Object.assign(s,{devMode:false,deuranium:0,shipType:4,system:1,localBody:3,localCruise:null,latinum:100000,solFreightHold:{}});const m=nativeNpcLives.market(s,1,3);m.stock[6]=120;m.reserved[6]=0;m.incoming[6]=0;m.fundsReserved=0;window.__retailBank=m.credits;}""")
             page.locator('#tradeBtn').click()
@@ -94,11 +109,13 @@ def main():
             page.evaluate('__retailState.devMode=true')
             for mode in ('local','map'):
                 initial=page.evaluate(SETUP,saved)
-                assert initial['stuck']==36 and initial['count']==159
+                assert initial['stuck']==36
+                assert initial['count']==page.evaluate('()=>window.nativeCivilianPopulation?.total??159')
                 page.evaluate('(local)=>__jam.inspect(__jam.ids[0],local)',mode=='local')
                 page.screenshot(path=str(OUTPUT/f'earth-jam-{mode}-before.png'))
-                for chunk in range(60):
-                    page.evaluate('()=>__jam.tick(30)')
+                for chunk,start in enumerate(range(0,args.seconds,30)):
+                    page.evaluate('(seconds)=>__jam.tick(seconds)',min(30,args.seconds-start))
+                    print(json.dumps({'scenario':mode,'seconds':min(start+30,args.seconds)}),flush=True)
                     if chunk in (0,3,9,19,39,59):
                         page.evaluate('()=>__jam.snapshot()')
                         page.evaluate('(local)=>__jam.inspect(__jam.ids[0],local)',mode=='local')

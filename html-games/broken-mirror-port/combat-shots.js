@@ -169,9 +169,10 @@
     return {ok:false,error:!visible?'Weapon visuals are unavailable or still loading.':available?'Target is out of range, outside the firing arc, or blocked.':'All fitted weapons are recharging.'};
   }
   function applyHit(state,result,event,source){
+    if(options.applyHit)return options.applyHit(state,result,event,source);
     if(window.nativeShipSystems)return window.nativeShipSystems.applyHit(state,result,event,source);
     const target=result.target;if(!target)return {ok:false};
-    const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,kind:event.kind,weaponEventId:event.id,source:source.id==='player'?'player':'ai',sourceId:source.id};
+    const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,kind:event.kind,weaponEventId:event.id,source:source.id==='player'?'player':'ai',sourceId:source.id,sourceGovernmentId:event.sourceGovernmentId??source.entity?.ownerGovernmentId};
     if(target.rockId!=null)return window.nativeAsteroidCombat?.weaponHit(state,target.rockId,event.damage,impact)||{ok:false};
     if(target.id==='player')return window.nativeCombatShots.onPlayerHit?.(state,event.damage,impact)||{ok:false};
     if(String(target.id).startsWith('tug:'))return window.nativeSolEconomy?.hit(state,Number(String(target.id).slice(4)),event.damage,impact)||{ok:false};
@@ -205,11 +206,12 @@
     const combat=combatState(state),clock=now(state),height=options.shipHeight??shooter.dimensions?.height??0;
     const event=rules.startShot(armed.weapon,armed.kind,shooter,target,clock,height*.36,armed.spec);
     Object.assign(event,{id:combat.nextEventId++,system,owner:owner||shooter.category||'ship',weaponId:armed.weapon.id,weaponInstanceId:armed.instance?.id,
-      weapon:{...armed.weapon},slot:armed.slot,sourceSnapshot:snapshot(shooter),targetSnapshot:snapshot(target),emitter:emitterLocal(shooter,armed.kind,height,target),resolved:false});
+      weapon:{...armed.weapon},slot:armed.slot,sourceGovernmentId:shooter.entity?.ownerGovernmentId,sourceSnapshot:snapshot(shooter),targetSnapshot:snapshot(target),emitter:emitterLocal(shooter,armed.kind,height,target),resolved:false});
     const muzzle=rules.emitter(shooter,event);
     if(event.projectile){event.x=muzzle.x;event.y=muzzle.y;}else{event.from=muzzle;const angle=Math.atan2(target.y-muzzle.y,target.x-muzzle.x);event.beamEnd={x:muzzle.x+Math.cos(angle)*event.spec.range,y:muzzle.y+Math.sin(angle)*event.spec.range};}
     const entry={getSource:options.getSource,getTarget,dimensions:options.dimensions,shielded:options.shielded,onHit,onResolved};
     cache(state).set(event.id,entry);combat.events.push(event);
+    window.nativeGameSounds?.weapon(state,event,shooter);
     const shot=visualFor(state,event,entry);return {ok:true,weapon:armed.weapon.name,kind:armed.kind,shot,event};
   }
   function fire(options){return fireFor({...options,shooter:player(options.state)});}
@@ -317,8 +319,10 @@
         }else result.damage=applyHit(state,result,event,sourceShip);
       }
       entry?.onResolved?.(result,event,visualFor(state,event,entry));
-      window.nativeShipSystems?.resolved?.(state,result,event);
-      window.nativeCombatShots.onResolved?.(state,result,event);
+      if(!options.isolated){
+        window.nativeShipSystems?.resolved?.(state,result,event);
+        window.nativeCombatShots.onResolved?.(state,result,event);
+      }
     }
     combat.events=combat.events.filter(event=>{
       const visible=!event.cancelled&&(event.projectile?event.alive:now(state)<event.launchedAt+duration(event.kind)/1000);

@@ -72,9 +72,24 @@
 .inventory-ship::after { left: 0; top: 50%; width: 100%; height: 1px; }
 .inventory-ship canvas { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; opacity: 0; filter: brightness(1.5) drop-shadow(0 8px 18px #0007); transition: opacity .3s; }
 .inventory-ship canvas.ready { opacity: 1; }
-.inventory-ship-rings { position: absolute; width: 110%; aspect-ratio: 1; border: 1px solid #7db7b52a; border-radius: 50%; pointer-events: none; }
-.inventory-ship-rings::before { content: ''; position: absolute; inset: 14%; border: 1px dashed #7db7b52a; border-radius: 50%; }
-.inventory-ship-rings::after { content: ''; position: absolute; inset: -7%; border: 1px solid #7db7b510; border-radius: 50%; }
+.inventory-rig { --scanner-active: 0; --scanner-play: paused; --scanner-glow: transparent; }
+.inventory-rig:has(:focus-visible) { --scanner-active: 1; --scanner-play: running; --scanner-glow: #8cefe78c; }
+@media (hover: hover) {
+  .inventory-rig:has(.inventory-ship:hover) { --scanner-active: 1; --scanner-play: running; --scanner-glow: #8cefe78c; }
+}
+.inventory-ship-rings { position: absolute; left: 50%; top: 50%; width: var(--scanner-size, 80%); aspect-ratio: 1; box-sizing: border-box; transform: translate(-50%, -50%); border: 1px solid #7db7b52a; border-radius: 50%; pointer-events: none; filter: drop-shadow(0 0 5px var(--scanner-glow)); transition: filter .35s ease; }
+.inventory-ship-rings::before { content: ''; position: absolute; inset: 14%; border: 1px dashed #8cd5cc66; border-radius: 50%; transform-origin: center; animation: inventory-scanner-orbit 36s linear infinite reverse; }
+.inventory-ship-rings::after { content: ''; position: absolute; inset: -7%; border: 2px dashed #7db7b52a; border-top: 2px solid #9adfd26b; border-bottom: 2px solid #7db7b542; border-radius: 50%; transform-origin: center; animation: inventory-scanner-orbit 54s linear infinite; }
+.inventory-scanner-sweep { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(transparent 0deg 275deg, #8cefe708 310deg, #8cefe747 359deg, transparent 360deg); opacity: var(--scanner-active); transition: opacity .35s ease; animation: inventory-scanner-orbit 5s linear infinite; animation-play-state: var(--scanner-play); }
+.inventory-scanner-lock { position: absolute; inset: 7%; z-index: 2; pointer-events: none; opacity: var(--scanner-active); transform: scale(calc(1.06 - var(--scanner-active) * .06)); transition: opacity .3s ease, transform .45s ease; background: linear-gradient(#9aeee6, #9aeee6) left top / 13px 1px, linear-gradient(#9aeee6, #9aeee6) left top / 1px 13px, linear-gradient(#9aeee6, #9aeee6) right top / 13px 1px, linear-gradient(#9aeee6, #9aeee6) right top / 1px 13px, linear-gradient(#9aeee6, #9aeee6) left bottom / 13px 1px, linear-gradient(#9aeee6, #9aeee6) left bottom / 1px 13px, linear-gradient(#9aeee6, #9aeee6) right bottom / 13px 1px, linear-gradient(#9aeee6, #9aeee6) right bottom / 1px 13px; background-repeat: no-repeat; }
+.inventory-scanner-lock::before { content: 'HULL SCAN'; position: absolute; left: 0; right: 0; top: 5px; color: #9aeee6; font: 7px system-ui, sans-serif; letter-spacing: .15em; text-align: center; }
+.inventory-scanner-lock::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 12%; background: linear-gradient(transparent, #8cefe716); border-bottom: 1px solid #8cefe766; animation: inventory-scanner-pass 3s ease-in-out infinite; animation-play-state: var(--scanner-play); }
+@keyframes inventory-scanner-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes inventory-scanner-pass { 0% { transform: translateY(0); opacity: 0; } 15%, 80% { opacity: .7; } 100% { transform: translateY(730%); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .inventory-ship-rings, .inventory-ship-rings::before, .inventory-ship-rings::after, .inventory-scanner-sweep, .inventory-scanner-lock, .inventory-scanner-lock::after { animation: none; transition: none; }
+  .inventory-scanner-sweep, .inventory-scanner-lock::after { display: none; }
+}
 .inventory-ship-label { position: absolute; bottom: 0; left: 20%; right: 20%; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; pointer-events: none; }
 .inventory-ship-label span { color: #64878e; font-size: 7px; letter-spacing: .2em; }
 .inventory-ship-label strong { color: #b0c5c9; font-size: 11px; font-weight: 400; }
@@ -129,13 +144,43 @@
 .inventory-cargo { display: flex; flex-direction: column; gap: 16px; background: linear-gradient(145deg, #111f29bb, #0b171fe0); }
 .inventory-capacity { flex: none; height: 3px; margin-top: -7px; background: #354b5466; }
 .inventory-capacity i { background: #8abeb5; min-width: 0; }
-.inventory-right-tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--line); flex: none; }
-.inventory-right-tabs button { position: relative; min-height: 38px; padding: 3px 1px 12px; border: 0; background: transparent; color: #829da7; font-size: 13px !important; }
+.inventory-right-tabs { display: flex; gap: 4px; padding: 5px 0 8px; border-bottom: 1px solid var(--line); flex: none; }
+.inventory-right-tabs button { position: relative; flex: 1 1 0; min-width: 0; min-height: 38px; padding: 8px 6px; border: 0; border-radius: 4px; background: transparent; color: #829da7; font-size: 12px !important; white-space: nowrap; }
 .inventory-right-tabs button[aria-pressed=true] { color: #e3eded; }
-.inventory-right-tabs button[aria-pressed=true]::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--cyan); }
-.inventory-right-tabs button span { margin-left: 7px; padding: 2px 5px; border-radius: 3px; background: #314b5555; color: #a3bfc6; font-size: 9px; font-variant-numeric: tabular-nums; }
-.inventory-items-page, .inventory-deliveries-page { display: flex; flex-direction: column; gap: 15px; flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: #496a72 transparent; }
-#ship-inventory[data-right-page=inventory] .inventory-deliveries-page, #ship-inventory[data-right-page=deliveries] .inventory-items-page { display: none; }
+.inventory-right-tabs button[aria-pressed=true]::after { content: ''; position: absolute; bottom: -4px; left: 12px; right: 12px; height: 2px; background: var(--cyan); }
+.inventory-right-tabs button > span:not(.inventory-control-fx) { margin-left: 4px; padding: 2px 4px; border-radius: 3px; background: #314b5555; color: #a3bfc6; font-size: 9px; font-variant-numeric: tabular-nums; }
+.inventory-items-page, .inventory-deliveries-page, .inventory-collectables-page { display: flex; flex-direction: column; gap: 15px; flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: #496a72 transparent; }
+#ship-inventory:not([data-right-page=inventory]) .inventory-items-page,
+#ship-inventory:not([data-right-page=deliveries]) .inventory-deliveries-page,
+#ship-inventory:not([data-right-page=collectables]) .inventory-collectables-page { display: none; }
+.inventory-collectables-page { overflow: clip; animation: inventory-collectables-enter .22s ease-out both; }
+.inventory-collectable-grid { display: grid; grid-template-columns: repeat(var(--collectable-columns),minmax(0,1fr)); grid-template-rows: repeat(var(--collectable-rows),minmax(0,1fr)); flex: 1; gap: 12px; min-width: 0; min-height: 0; }
+#ship-inventory .inventory-collectable-slot { position: relative; display: block; min-width: 0; min-height: 0; max-height: 220px; padding: 0; overflow: hidden; border: 1px solid #6caaa54d; border-radius: 6px; background: radial-gradient(ellipse at 50% 35%,#79d7c416,transparent 75%),#12252d99; color: #dcebea; text-align: center; }
+#ship-inventory .inventory-collectable-slot.is-missing { border-style: dashed; border-color: #63818940; background: radial-gradient(circle at 50% 40%,#518b9510,transparent 70%),#0c1d2780; }
+.inventory-collectable-number { position: absolute; top: 10px; left: 12px; color: #71999e; font-size: 9px; letter-spacing: .1em; }
+.inventory-collectable-check { position: absolute; top: 8px; right: 11px; color: #97ddbc; font-size: 12px; }
+.inventory-collectable-art { position: absolute; inset: 27px 14px 54px; }
+.inventory-collectable-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 10px #72d8df22); }
+.inventory-collectable-question { position: absolute; inset: 22px 12px 52px; display: grid; place-items: center; color: #698d97; font-size: clamp(30px,5vh,52px); font-weight: 300; text-shadow: 0 0 20px #67b7c233; }
+.inventory-collectable-name { position: absolute; bottom: 24px; left: 10px; right: 10px; display: grid; place-items: center; min-height: 28px; color: #d1e8e8; font-size: 11px; font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
+.inventory-collectable-slot.is-missing .inventory-collectable-name { color: #78969e; }
+.inventory-collectable-slot > small { position: absolute; bottom: 10px; left: 6px; right: 6px; color: #86b3b7; font-size: 8px; letter-spacing: .1em; }
+.inventory-collectable-slot.is-missing > small { color: #56767f; }
+#ship-inventory .inventory-collectable-slot[data-collectable-clue]:hover { border-color: #8ad9d1; background-color: #14333d; }
+#ship-inventory .inventory-collectable-slot[data-collectable-clue]:focus-visible { outline: 2px solid #8de8e7; outline-offset: -3px; }
+.inventory-collectable-slot[data-collectable-clue][data-clue-available=true] > small { color: #88bac2; }
+.inventory-collectable-slot[data-collectable-clue][data-clue-available=false] > small { color: #6f8690; }
+#ship-inventory[data-collectable-compact=true] .inventory-collectable-slot { display: grid; grid-template-columns: 34px minmax(0,1fr); grid-template-rows: auto auto; align-content: center; gap: 3px 6px; padding: 10px 6px 6px; text-align: left; }
+#ship-inventory[data-collectable-compact=true] .inventory-collectable-art,
+#ship-inventory[data-collectable-compact=true] .inventory-collectable-question { position: relative; inset: auto; grid-row: 1 / 3; width: 32px; height: 32px; align-self: center; font-size: 28px; }
+#ship-inventory[data-collectable-compact=true] .inventory-collectable-name { position: static; grid-column: 2; min-height: 0; align-self: end; font-size: 10px; text-align: left; }
+#ship-inventory[data-collectable-compact=true] .inventory-collectable-slot > small { position: static; grid-column: 2; font-size: 7px; letter-spacing: .04em; }
+#ship-inventory[data-collectable-compact=true] .inventory-collectable-number { top: 3px; left: 6px; font-size: 7px; }
+#ship-inventory[data-collectable-compact=true] .inventory-collectable-check { top: 3px; right: 6px; font-size: 7px; }
+.inventory-collectables-hint { flex: none; margin: 0; color: #7b9ba5; font-size: 10px; line-height: 1.5; }
+#ship-inventory .inventory-collectables-page .inventory-delivery-pages { min-height: 40px; padding: 8px; }
+@keyframes inventory-collectables-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width:1150px) { .inventory-right-tabs button { padding-inline: 4px; font-size: 11px !important; } }
 .inventory-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; flex: none; }
 .inventory-filters button { padding: 5px 10px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #8ca6b0; font-size: 10px !important; }
 .inventory-filters button[aria-pressed=true] { border-color: #7ba3aa44; background: #223943aa; color: #d9e6e8; }
@@ -168,7 +213,7 @@
 .inventory-arrange-hint { margin: 0; color: #7e9da6; font-size: 10px; }
 #ship-inventory .inventory-drag-ghost { position: fixed; z-index: 10025; pointer-events: none; transform: translate(-50%, -65%); opacity: .9; border: 1px solid #b7f5e1; background: #183d43; box-shadow: 0 8px 28px #0009; }
 .inventory-filter-empty { margin: 0; color: #8fa8b0; font-size: 11px; }
-.inventory-page-nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); color: #7e9aa4; font-size: 10px; flex: none; }
+.inventory-page-nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: auto; padding: 18px 8px 16px; border-top: 1px solid var(--line); color: #7e9aa4; font-size: 10px; flex: none; }
 .inventory-page-nav > div { display: flex; align-items: center; gap: 9px; }
 .inventory-page-nav > div > span { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; }
 .inventory-page-nav button { width: 26px; height: 26px; padding: 0; border: 1px solid #78999e40; border-radius: 4px; background: #142630; color: #c3dde1; font-size: 18px !important; line-height: 1; }
@@ -189,7 +234,7 @@
 .inventory-contract-payment span, .inventory-contract-payment small { color: #8ba3ac; font-size: 7px; letter-spacing: .07em; }
 .inventory-contract-payment strong { color: var(--gold); font-size: 20px; font-weight: 400; font-variant-numeric: tabular-nums; }
 .inventory-contract-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
-.inventory-contract-actions button { min-width: 0; min-height: 33px; padding: 7px 5px; border: 1px solid #78999e55; border-radius: 4px; background: #1a323d; color: #c6dce0; font-size: 10px !important; }
+.inventory-contract-actions button { min-width: 0; min-height: 36px; padding: 8px 14px; border: 1px solid #78999e55; border-radius: 4px; background: #1a323d; color: #c6dce0; font-size: 10px !important; line-height: 1.4; }
 .inventory-contract-actions button:first-child { border-color: #8cbbb980; background: #294943; color: #d9eae3; }
 .inventory-contract-actions button[aria-pressed=true] { color: #a7d9bf; }
 .inventory-contract-actions button:hover:not(:disabled) { border-color: var(--cyan); }
@@ -359,6 +404,7 @@
 .inventory-drone-controls button { min-height: 34px; padding: 7px 12px; border: 1px solid #8bbeb488; border-radius: 4px; background: #24473f; color: #d6f0e5; font-size: 11px !important; font-weight: 600; }
 .inventory-drone-controls button:hover:not(:disabled) { border-color: #b0ecd4; background: #305d50; }
 .inventory-drone-controls button:disabled { background: #17282f; border-color: #78999e40; }
+.inventory-drone-controls [data-request-distress]:enabled { color: #ffe1a0; border-color: #c69c4baa; background: #3a3024; box-shadow: inset 0 0 12px #e8b54c12; }
 .inventory-drone-controls > span { color: #8da8ad; font-size: 10px; }
 .inventory-repair-mode { display: flex; flex: none; gap: 2px; padding: 2px; border: 1px solid #78999e40; border-radius: 5px; background: #0d1c24; }
 .inventory-drone-controls .inventory-repair-mode button { min-height: 28px; padding: 5px 10px; border: 1px solid transparent; border-radius: 3px; background: transparent; color: #8ea9b0; font-size: 10px !important; font-weight: 500; }
@@ -438,6 +484,8 @@
 #ship-inventory .inventory-items-page,
 #ship-inventory .inventory-deliveries-page,
 #ship-inventory .inventory-inspector { overflow: clip; min-height: 0; scrollbar-width: none; }
+#ship-inventory .inventory-items-page,
+#ship-inventory .inventory-deliveries-page { overflow-clip-margin: 8px; }
 #ship-inventory .inventory-loadout { gap: 8px; }
 #ship-inventory .inventory-loadout .outfit-loadout { gap: 8px; }
 #ship-inventory .inventory-rig { min-height: 0; grid-template-rows: minmax(0,1fr) 42px; row-gap: 4px; }
@@ -461,6 +509,7 @@
 #ship-inventory .inventory-grid .inventory-item-count { font-size: 11px; }
 #ship-inventory .inventory-bay-pages,
 #ship-inventory .inventory-delivery-pages { display: flex; flex: none; justify-content: center; align-items: center; gap: 10px; height: 24px; color: var(--muted); font-size: 11px; }
+#ship-inventory .inventory-delivery-pages { height: auto; min-height: 56px; padding: 16px 8px; }
 #ship-inventory .inventory-bay-pages[hidden] { display: none; }
 #ship-inventory .inventory-bay-pages button,
 #ship-inventory .inventory-delivery-pages button { width: 30px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: #18313b; color: #d5e7e8; font-size: 18px; line-height: 1; }
@@ -483,7 +532,158 @@
   #ship-inventory .inventory-loadout, #ship-inventory .inventory-cargo { padding: 10px 12px; gap: 6px; }
   #ship-inventory .inventory-drone-controls > span { display: none; }
   #ship-inventory .inventory-vitals > div { padding: 5px 7px; }
-  #ship-inventory .inventory-right-tabs button { min-height: 30px; padding-bottom: 7px; }
-  #ship-inventory .inventory-page-nav { padding-top: 6px; }
+  #ship-inventory .inventory-right-tabs button { min-height: 34px; padding-block: 6px; }
+  #ship-inventory .inventory-page-nav { padding-top: 16px; }
   #ship-inventory .inventory-ship-label strong { font-size: 12px; }
 }
+
+/* Controls echo the hull scanner without covering labels or intercepting drags. */
+#ship-inventory button:not(.inventory-drag-ghost) {
+  --control-accent: #8cefe7;
+  --control-corner: 8px;
+  --control-lift: -2px;
+  --control-halo: 16px;
+  --control-press-halo: 22px;
+  position: relative;
+  isolation: isolate;
+  transition: color .2s ease, border-color .2s ease, background-color .2s ease,
+    box-shadow .25s ease, transform .2s ease;
+}
+#ship-inventory .inventory-control-fx {
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  display: block;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  border-radius: inherit;
+  background: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+#ship-inventory .inventory-control-fx::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 2px;
+  background:
+    linear-gradient(var(--control-accent), var(--control-accent)) left top / var(--control-corner) 1px,
+    linear-gradient(var(--control-accent), var(--control-accent)) left top / 1px var(--control-corner),
+    linear-gradient(var(--control-accent), var(--control-accent)) right top / var(--control-corner) 1px,
+    linear-gradient(var(--control-accent), var(--control-accent)) right top / 1px var(--control-corner),
+    linear-gradient(var(--control-accent), var(--control-accent)) left bottom / var(--control-corner) 1px,
+    linear-gradient(var(--control-accent), var(--control-accent)) left bottom / 1px var(--control-corner),
+    linear-gradient(var(--control-accent), var(--control-accent)) right bottom / var(--control-corner) 1px,
+    linear-gradient(var(--control-accent), var(--control-accent)) right bottom / 1px var(--control-corner);
+  background-repeat: no-repeat;
+  transform: scale(.94);
+  transition: transform .3s ease;
+}
+#ship-inventory .inventory-control-fx::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, #8cefe708 43%, #b9fff12e 49%, #cafff85c 50%, #8cefe710 53%, transparent 65%);
+  transform: translateX(-110%);
+}
+#ship-inventory button:not(:disabled):is([aria-pressed=true], .selected) {
+  box-shadow: inset 0 0 14px #8cefe70d, 0 0 0 1px #8cefe72b;
+}
+#ship-inventory button:not(:disabled):is([aria-pressed=true], .selected) > .inventory-control-fx {
+  opacity: .5;
+}
+#ship-inventory button:not(:disabled):is([aria-pressed=true], .selected) > .inventory-control-fx::before {
+  transform: scale(1);
+}
+#ship-inventory button:not(:disabled):focus-visible {
+  border-color: var(--control-accent);
+  box-shadow: inset 0 0 18px #8cefe715, 0 0 var(--control-halo) #8cefe72e;
+}
+#ship-inventory button:not(:disabled):focus-visible > .inventory-control-fx { opacity: 1; }
+#ship-inventory button:not(:disabled):focus-visible > .inventory-control-fx::before { transform: scale(1); }
+#ship-inventory button:not(:disabled):focus-visible > .inventory-control-fx::after {
+  animation: inventory-control-scan 1.8s ease-in-out infinite;
+}
+@media (hover: hover) and (pointer: fine) {
+  #ship-inventory button:not(:disabled):not(.drag-source):hover {
+    border-color: var(--control-accent);
+    box-shadow: inset 0 0 18px #8cefe715, 0 0 var(--control-halo) #8cefe72e;
+    transform: translateY(var(--control-lift));
+  }
+  #ship-inventory button:not(:disabled):not(.drag-source):hover > .inventory-control-fx { opacity: 1; }
+  #ship-inventory button:not(:disabled):not(.drag-source):hover > .inventory-control-fx::before { transform: scale(1); }
+  #ship-inventory button:not(:disabled):not(.drag-source):hover > .inventory-control-fx::after {
+    animation: inventory-control-scan 1.8s ease-in-out infinite;
+  }
+}
+#ship-inventory button:not(:disabled):not(.inventory-drag-ghost):active {
+  transform: translateY(0) scale(.98);
+  border-color: #d4fff6;
+  box-shadow: inset 0 0 22px #8cefe72b, 0 0 0 2px #8cefe74d, 0 0 var(--control-press-halo) #8cefe74d;
+  transition-duration: .07s;
+}
+#ship-inventory :is(.inventory-page-nav, .inventory-bay-pages, .inventory-delivery-pages) button,
+#ship-inventory .inventory-close {
+  --control-corner: 4px;
+  --control-lift: -1px;
+  --control-halo: 10px;
+  --control-press-halo: 12px;
+}
+#ship-inventory .inventory-contract-actions button {
+  --control-corner: 6px;
+  --control-halo: 10px;
+  --control-press-halo: 12px;
+}
+#ship-inventory :is(.inventory-page-nav, .inventory-bay-pages, .inventory-delivery-pages) button:not([data-inventory-page=add]) > .inventory-control-fx::after,
+#ship-inventory .inventory-close > .inventory-control-fx::after { display: none; }
+#ship-inventory button:disabled > .inventory-control-fx,
+#ship-inventory .drag-source > .inventory-control-fx,
+#ship-inventory .inventory-drag-ghost > .inventory-control-fx { display: none; }
+@keyframes inventory-control-scan {
+  0% { transform: translateX(-110%); opacity: 0; }
+  12%, 65% { opacity: 1; }
+  82%, 100% { transform: translateX(110%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #ship-inventory button:not(.inventory-drag-ghost),
+  #ship-inventory .inventory-control-fx::before { transform: none !important; }
+  #ship-inventory .inventory-control-fx::after { display: none; }
+}
+
+/* Device hardware condition stays on the item card; repairs live in its details. */
+.outfit-device-condition { display: inline-flex; align-items: center; gap: 4px; color: #a3d9c8; font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.2; }
+.outfit-device-condition svg { width: 12px; height: 12px; flex: none; }
+.outfit-device-condition.worn { color: #e7c28a; }
+.outfit-device-condition.offline { color: #f0a493; }
+#ship-inventory .inventory-grid .outfit-device-condition { position: absolute; z-index: 2; top: 5px; right: 5px; padding: 3px 4px; border-radius: 3px; background: #10242de8; }
+#ship-inventory .inventory-device-repair { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; width: 100%; padding-bottom: 7px; border-bottom: 1px solid var(--line); }
+#ship-inventory .inventory-device-cost { flex: 1; min-width: 100px; }
+#ship-inventory .inventory-device-cost .outfit-material { display: flex; align-items: center; gap: 6px; }
+#ship-inventory .inventory-device-cost .outfit-mineral-icon { width: 26px; height: 26px; flex: none; }
+#ship-inventory .inventory-device-cost strong { display: inline; }
+#ship-inventory .inventory-device-cost small { display: block; font-size: 9px; color: var(--muted); letter-spacing: 0; text-transform: none; }
+#ship-inventory .inventory-device-cost .short { color: #efaf94; }
+#ship-inventory .inventory-device-repair > p { width: 100%; margin: 0; font-size: 10px; }
+#ship-inventory [data-repair-device] { border-color: #8fc9ac; background: #2a5144; }
+#ship-inventory .inventory-slot small:has(.outfit-device-condition) { margin-top: 2px; line-height: 1; }
+
+/* Permanent hull systems stay outside equipment fitting and bay pagination. */
+#ship-inventory .inventory-hull-system {
+  position: relative; flex: 0 0 78px; min-height: 78px; min-width: 0; width: 100%;
+  display: grid; grid-template-columns: 24px minmax(0,1fr); align-content: center;
+  align-items: center; gap: 3px 6px; padding: 6px;
+  border: 1px solid #b6a97c66; border-radius: 5px;
+  background: linear-gradient(115deg, #34372d88, #13252ccc); color: #d7e3e6;
+  text-align: left;
+}
+#ship-inventory .inventory-hull-system.selected { border-color: var(--cyan); background: #264440; }
+#ship-inventory .inventory-hull-system-label { grid-column: 1 / -1; color: #c7bb91; font-size: 7px; letter-spacing: .05em; }
+#ship-inventory .inventory-hull-system .inventory-system-icon { display: grid; place-items: center; width: 24px; height: 28px; color: #d3c596; }
+#ship-inventory .inventory-hull-system .outfit-symbol { width: 24px; height: 28px; color: inherit; }
+#ship-inventory .inventory-hull-system-info { min-width: 0; }
+#ship-inventory .inventory-hull-system strong { display: block; font-size: 11px; font-weight: 500; line-height: 1.2; }
+#ship-inventory .inventory-hull-system b { display: inline-block; color: #d3c596; font-size: 9px; font-weight: 500; white-space: nowrap; }
+#ship-inventory .inventory-hull-system small { display: block; margin-top: 2px; color: #a1b5b8; font-size: 8px; line-height: 1.2; }
+#ship-inventory .inventory-hull-system em { color: #d7e3e6; font-style: normal; white-space: nowrap; }

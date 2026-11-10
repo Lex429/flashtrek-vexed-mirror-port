@@ -5,10 +5,24 @@ capacities, starting equipment, effective stats and permitted crew policies;
 `weapon-loadout.js` owns version-2 equipment instances and fitting. Legacy weapon
 arrays and repair bays are projections. See `docs/unified-ships.md`. Preserve
 overflow equipment in the locker and reject unsafe hull purchases before charging.
+Permanent hull thrusters belong to each holder's `shipThrusters`, not an equipment
+bank. Definitions own their profiles; motion owns their control limits; the existing
+shipyard transaction owns paid upgrades. Hull replacement resets their level.
+Critical player hull damage must not block manual steering or thrust while the
+hull survives. `manualFlight` intent uses the shared engine/thruster profile,
+including at 10% hull with repaired engines and no working drones. Retain the
+critical phase for repair and other system policies, and preserve player velocity
+when hull recovery completes. Run the engine-failure Node/browser regressions.
 Use the mode-separated save owner and verify writes. Run `unified-equipment.test.cjs`
 and `browser-unified-equipment.py`, including actual Inventory evidence.
 
 The active entry point is `html-games/broken-mirror-port/index.html`. Shared showcase artwork and shaders live in `html-games/flashtrek-broken-mirror/`. Do not migrate the archived previews as if they were active gameplay.
+
+System suns are a nearer background star layer, using the existing artwork,
+animated illumination and approved lens flare. Their apparent size and parallax
+rate stay constant as the player travels. Do not add proximity growth or camera
+pinning. The layer can slide into and out of view, with its flare departing too.
+Run the background-suns Node/browser regressions.
 
 The showcase Stress tab is the shared effects performance lab; see
 `docs/effect-lab.md`. A request to "put it in game" refers to the exact tested
@@ -47,6 +61,33 @@ Life changes must pass stock/money conservation, exactly-once delivery/mining, r
 Delivery contracts reserve source goods, destination purchasing funds and incoming demand through `npc-lives.js`; never spend another contract's escrow or price a funded delivery again at arrival. Economic sources/sinks must be explicit and accounted for. Run the full 30-minute population and legacy-payment recovery regressions in `tests/npc-economy.test.cjs`.
 
 `ship-detail.js` owns tactical eligibility from authoritative world poses and the configured radius. Combat outside that boundary breaks contact through the existing task owner; launched shots still belong to `combat-shots.js`.
+Expanded production fleets now use `civilian-population.simulation`: the player's
+1,024-unit chunk and eight neighbors. This player-requested policy replaces the
+former requirement to integrate distant ordinary traffic/rock encounters everywhere.
+Keep full physical contacts, stationary blockers and impact chains inside and
+across the active buffer; keep already launched shots/fragments in their owners.
+Distant jobs retain analytical routes and real saved transactions/deadlines.
+Map/camera inspection cannot wake physical regions. Waking must never sweep a
+pose cached before sleep through the intervening route. Run `active-regions.test.cjs`
+and `browser-active-regions.py` along with the existing suites. Use
+`tools/validate_gameplay_refresh.py` for actual foreground refresh qualification;
+retain failed windows and raw frames, and never equate a configured monitor rate
+or a synthetic timestamp test with delivered gameplay frames.
+Interstellar activity uses the same saved fleet and asteroid owners. Corridor
+places are deterministic data; `sol-asteroids` owns shared global rock identity
+and local coordinate views. `npc-lives` owns traveller promotion, retained paid
+journeys, prospect work and bounded social exchanges. Never replace funded cargo
+with the legacy pairwise trading loop or seed an encounter fleet. Failed local
+navigation must preserve the original journey/escrow. Run
+`travel-corridors.test.cjs` and `browser-travel-corridors.py`; see
+`docs/travel-corridors.md`. Real-key route tours are separate from FPS qualification.
+Player-aware activity planning belongs to `npc-lives`. Favor valid future work
+for free existing crews; retain paid jobs, cargo, claims, departure times and
+world positions after a course change. Forecasts cannot teleport ships, alter
+weapons/traits, invent cargo or manufacture casualties. Medical mission partners
+and launched Dots must share a world-continuous coordinate rebase through the
+repair owner. Run the player-activity unit/economy/browser checks; see
+`docs/player-activity.md`. Map inspection cannot dispatch these opportunities.
 `simulation-frame.js` bounds expensive scheduler work across catch-up substeps.
 The registered target owner separates reusable geometry from step-local poses.
 Use `ship-systems.refreshShip` / `refreshAsteroid` after an individual mutation;
@@ -56,6 +97,16 @@ through the same owner's `query` / `collisionScene`, not a separate registry.
 Completed-step read models remain valid through inspection/rendering until the
 next integration step, clock change or explicit mutation. Never drop
 authoritative simulation time to hide a scheduling backlog.
+Canonical steering controllers may use `ship-systems.neighborhood`, whose
+bounded current-step views update on published ship/rock mutations. Preserve
+its conservative geometry and independent descriptor snapshots; never use it
+to skip raw-edit validation in ordinary `query`. Run
+`steering-neighborhood.test.cjs` with the spatial/tactical suites.
+The same life-owner mining membership includes `mining-flight`, `mining` and
+`collecting`. Use it for claim inspection instead of scanning all saved ships;
+run `mining-claim-index.test.cjs`. Retained display measurements must invalidate
+on canvas, viewport, footer, display-mode and pixel-density changes; run
+`browser-frame-reuse.py` after changes to `native-display.js`.
 
 `nativeSimulationFrame.createHostTime` owns live wall-time admission through the single
 `nativeSimulationHost` instance. Its `checkpoint(timestamp?)` runs at RAF and the
@@ -75,6 +126,9 @@ RAF and bounded MessageChannel service tasks drain the same fixed 60-Hz
 `simulation-frame.run(state, 0, ...)` integrator. Unpaid active time stays in saved
 `shipSimulation.schedule.pendingSeconds`. Never reset that debt to improve FPS.
 Background tasks never accept additional time, request held fire or paint.
+Ordinary one-step debt may run in that service after drawing; RAF still helps
+when two steps are owed. Preserve interpolation and the exact accepted-time
+accounting across that presentation boundary. See `docs/interstellar-stutter.md`.
 Keep task admission budgets separate from accumulated diagnostic counters.
 `renderPose` is a pure interpolated copy for drawing;
 queries, contacts, damage and deadlines use authoritative poses. Run
@@ -117,6 +171,13 @@ versioned lossless representation for large fleets; old JSON slots remain
 readable. Never cache a stale serialized snapshot or postpone a durable purchase,
 delivery or travel commit. Profile serialization, storage and verification
 separately. Run `large-save-codec.test.cjs` and the 5,000-record gameplay reload.
+Only redundant periodic/combat checkpoints may use the optional encoder worker.
+Capture the complete current graph once, verify writes in the storage owner, and
+reject stale worker results after a newer immediate write or state replacement.
+Explicit saves, purchases, travel commits and lifecycle flushes remain immediate.
+Worker startup/failure cannot lose dirty state; retain bounded retries and fallback.
+`combat-save.test.cjs` covers checkpoint races and `browser-active-regions.py`
+checks exact full-fleet worker state and actual Continue reload.
 
 Civilian tactical intent can be reused for at most 1/30 simulation second per
 crew; damage, changed targets, fitted capabilities and expired threats refresh it.
@@ -185,6 +246,9 @@ with `regional:true` for current policy, while legacy fixtures retain old contra
 
 `asteroid-motion.js` owns saved displaced rock poses and contact dispatch;
 `ship-motion.js` owns the swept contact, mass response and spin calculation.
+Compare persistent asteroid slot IDs when excluding self contacts: evicted local
+views can be different objects for the same rock. Keep the shared pair solver's
+identity guard and run the corridor cache-eviction regression.
 Whole rocks exchange momentum through `asteroidPairContact`, including offscreen
 drift; query swept geometry without requesting artwork. Ship `motionKick`
 belongs to shared motion and must survive steering/save/load while scheduled
@@ -202,6 +266,17 @@ most three cached-art chips per damage-stage change, never at the health floor
 and never as ore. Keep mining timed and ore claims exactly once.
 Run `asteroid-physics.test.cjs` and `browser-asteroid-physics.py`, including the
 30-minute production-policy fixture with `physics:true`, plus existing suites.
+
+`manual-flight.advanceRegion` owns manual system activation at the catalog's exact
+map envelope. The saved system remains a coordinate frame in interstellar space;
+saved `manualFlightRegion` records physical membership. The read-only telemetry
+observes this shared transition, with no extra boundary margin or animation loop.
+Keep quiet Continue restores, reduced-motion behavior and one announcement per
+crossing. Ordinary spatial/body checkpoints use the bounded save queue; explicit
+durable transactions retain immediate writes. `system-streaming.js` prepares
+near-future geometry/current artwork through existing owners, never advancing
+jobs or waking speculative physics. Run the flight-status and system-entry Node
+and browser suites; see `docs/system-entry-streaming.md`.
 
 `ship-traffic.js` owns shared ship avoidance intent and ship-pair contact dispatch;
 `ship-motion.js` owns prediction, swept physical hull geometry, mass impulses and

@@ -46,7 +46,7 @@ try:
         else:
             page.goto(base+'/html-games/broken-mirror-port/index.html')
         page.locator('[data-menu="dev"]').click(timeout=30000)
-        page.wait_for_function('()=>nativeNpcDev.getState()&&window.__impactDraw&&nativeSolAsteroids.placements.length')
+        page.wait_for_function('()=>nativeNpcDev.getState()?.shipSimulation?.schedule&&window.__impactDraw&&nativeSolAsteroids.placements.length&&!nativeMenuTransition.snapshot().active')
         page.evaluate('window.__impactHold=true;window.requestAnimationFrame=()=>0')
         host.wait_for_timeout(100)
         page.evaluate(r'''()=>{
@@ -54,13 +54,18 @@ try:
           const template=copy(__impactBase.solEconomy.freighters[0]);
           const check=(v,m)=>{if(!v)throw Error(m);};
           window.__impactCheck=check;
-          window.__impactTick=n=>{for(let i=0;i<n;i++){__impactStamp+=1000/60;__impactDraw(__impactStamp);}};
+          // Real input/gate events checkpoint wall time between synthetic RAFs.
+          // The next test RAF must follow that boundary, retaining saved debt.
+          window.__impactTick=n=>{for(let i=0;i<n;i++){__impactStamp=Math.max(__impactStamp,nativeSimulationHost.snapshot().at);__impactStamp+=1000/60;__impactDraw(__impactStamp);}};
           window.__impactPlayer=(s,x,y)=>{const p=vexedSolFlight.shipPosition(s);s.x+=x-p.x;s.y+=y-p.y;};
           window.__impactActivate=(speed=null)=>{
             const s=copy(__impactBase);Object.assign(s,{system:1,localBody:3,x:6000,y:6000,angle:0,speed:0,vx:0,vy:0,landed:false,localCruise:null,arrivalApproach:null});
             for(const k of ['motionKick','motionSpin','pendingTransit'])delete s[k];
             s.civilianTraffic.ships=[];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.solEconomy.freighters=[];
             s.minedAsteroids=nativeSolAsteroids.forSystem(1).map(r=>r.slotId);s.destroyedAsteroids=[];
+            // Keep this ship/ship fixture clear of the physical Dev exhibit;
+            // collectable contacts have their own real-key browser regression.
+            s.collectables=nativeCollectables.catalog.map(item=>({id:item.id}));
             if(speed!==null){
               nativeShipDefinitions.register(s.shipType,{mass:1,geometry:{hull:{rx:5,ry:10},shield:{rx:20,ry:25}}});
               nativeShipDefinitions.register(10,{mass:12,geometry:{hull:{rx:12,ry:60},shield:{rx:24,ry:70}}});

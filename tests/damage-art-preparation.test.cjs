@@ -31,6 +31,32 @@ function fixture(){
   return {window,frames,timers,flush,reads,writes,Canvas,load};
 }
 
+test('cinematic background holds preserve optional jobs and let current appearances run without a busy loop',async()=>{
+  const {window,flush,timers}=fixture(),queue=window.nativeDamageArtPreparation,order=[];
+  const release=queue.holdBackground(),second=queue.holdBackground();
+  const optional=queue.run((function*(){order.push('optional');yield;return 7;})());
+  const visible=queue.run((function*(){order.push('visible');yield;return 9;})(),{priority:1,label:'appearance:test'});
+  flush();assert.equal(await visible,9);assert.deepEqual(order,['visible']);assert.equal(queue.snapshot().pending,1);assert.equal(timers.length,0);
+  release();flush();assert.deepEqual(order,['visible']);assert.equal(queue.backgroundHeld,true);
+  second();flush();assert.equal(await optional,7);assert.deepEqual(order,['visible','optional']);assert.equal(queue.backgroundHeld,false);assert.equal(queue.snapshot().pending,0);
+});
+
+test('profile-owned armor chips use the previous hull pixels while legacy alpha cuts stay unchanged',async()=>{
+ const {window,flush}=fixture(),owner=window.showcaseStageFragments;
+ const frames=Array.from({length:4},(_,stage)=>({width:16,height:16,data:new Uint8ClampedArray(16*16*4)}));
+ for(let stage=0;stage<4;stage++)for(let pixel=0;pixel<256;pixel++)frames[stage].data.set([220-stage*60,220-stage*60,220-stage*60,255],pixel*4);
+ const anchors=[[4,8],[12,8]],legacy=owner.prepare(frames,anchors);
+ assert.deepEqual(Array.from(legacy,stage=>stage.length),[0,0,0,0],'Scorching must not change existing alpha-only fracture profiles');
+ const options={armorChips:true,darkening:42,minimumAlpha:150,maxPieces:1,regions:[[],[{x:8,y:8,r:16}],[{x:8,y:8,r:16}],[{x:8,y:8,r:16}]]};
+ const sync=owner.prepare(frames,anchors,options),pending=owner.prepareAsync(frames,anchors,options);flush();const async=await pending;
+ assert.deepEqual(Array.from(sync,stage=>stage.length),[0,1,1,1]);assert.deepEqual(Array.from(async,stage=>stage.length),[0,1,1,1]);
+ for(let stage=1;stage<4;stage++){
+  const piece=sync[stage][0],sample=piece.texture.getContext('2d').data;
+  assert.ok(piece.pixels>=12&&piece.pixels<256);assert.equal(sample[0],220-(stage-1)*60,'Chips must retain the exact preceding hull texture');
+  assert.deepEqual(Array.from(async[stage][0].texture.getContext('2d').data),Array.from(sample));
+ }
+});
+
 test('fragment and wreck pixel partition preparation yields to one bounded shared queue',async()=>{
   const {window,frames,timers,flush}=fixture(),destruction=window.createShipDestruction();
   const fragments=window.showcaseStageFragments.prepareAsync(frames,[[8,16],[35,42]]);

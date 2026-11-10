@@ -112,6 +112,7 @@
   else if(action==='close'){close();return;}
   else if(action==='dock')result=begin();
   else if(action==='undock')result=depart();
+  else if(action==='upgrade-thrusters')result=r.upgradeThrusters(s,save);
   else if(action==='upgrade'){
    selection=button.dataset.kind;placement=selectedItem=selectedBay=null;note='Preview only. Your resources have not been charged.';render();const catalog=root.querySelector('.yard-catalog');if(catalog)catalog.scrollTop=0;revealPlacement();root.querySelector('[data-yard-action="cancel-preview"]')?.focus({preventScroll:true});return;
   }

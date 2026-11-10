@@ -146,7 +146,7 @@
   async function prepareCthiaFragments(){
     const frames=state.ship.frames.map(file=>images.get(file));
     const anchors=starter()?.breakAnchors||(state.ship.id===56?window.constitutionTugBreakAnchors:state.ship.id===57?window.tugBreakAnchors:state.ship.id===58?window.olympicBreakAnchors:[[275,199],[84,201],[208,111],[315,261],[220,321],[139,401],[42,319],[328,320],[253,447]]);
-    return await window.showcaseStageFragments.prepareAsync(frames,anchors);
+    return await window.showcaseStageFragments.prepareAsync(frames,anchors,starter()?.fragmentOptions);
   }
   function breakCthia(before,after){
     if(!enhancedShip()||after<=before||state.destroyed)return;

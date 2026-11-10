@@ -27,19 +27,20 @@
       phase:random()*Math.PI*2
     })));
     let elapsed=0;
-    function draw(ctx, dt, angle = 0, reducedMotion = false) {
+    function draw(ctx, dt, angle = 0, reducedMotion = false, options={}) {
       elapsed+=dt;
+      const intensity=Math.max(0,Number(options.intensity??1)||0);
       const dx = -Math.sin(angle), dy = Math.cos(angle);
       ctx.save();ctx.fillStyle='#000';ctx.fillRect(0,0,width,height);
       ctx.lineCap='round';
       for (const star of stars) {
-        const distance = dt*star.speed*(reducedMotion?.12:1);
+        const distance = dt*star.speed*(reducedMotion?.12:1)*intensity;
         star.x += dx*distance;star.y += dy*distance;
         if(star.y>height+margin+star.length){star.y=-margin;star.x=random()*(width+margin*2)-margin;}
         if(star.y<-margin-star.length){star.y=height+margin;star.x=random()*(width+margin*2)-margin;}
         if(star.x>width+margin)star.x-=width+margin*2;
         if(star.x<-margin)star.x+=width+margin*2;
-        const length=reducedMotion?Math.min(2,star.length):star.length;
+        const length=reducedMotion?Math.min(2,star.length):star.length*intensity;
         const tailX=star.x-dx*length,tailY=star.y-dy*length;
         ctx.globalAlpha=star.alpha*(.94+.06*Math.sin(elapsed*.8+star.phase));
         ctx.strokeStyle=star.color;ctx.lineWidth=star.width;

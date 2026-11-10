@@ -31,6 +31,15 @@ test('a separate firing runtime uses an isolated scene and clock while sharing t
  film.reset();assert.equal(other.weaponCombat.version,2);assert.notEqual(state.weaponCombat,other.weaponCombat);
 });
 
+test('isolated campaign hits use their own damage owner while normal hits retain the live owner',async()=>{
+ const w=await loadCombatRenderer(),calls=[],state={system:1},result={target:{id:'film:target'}},event={damage:3},source={id:'film:source'};
+ w.nativeShipSystems={applyHit(...args){calls.push(['live',...args]);return 'live-result';}};
+ const film=w.nativeCombatShots.fork({isolated:true,applyHit(...args){calls.push(['film',...args]);return 'film-result';}});
+ assert.equal(film.applyHit(state,result,event,source),'film-result');
+ assert.equal(w.nativeCombatShots.applyHit(state,result,event,source),'live-result');
+ assert.deepEqual(calls,[['film',state,result,event,source],['live',state,result,event,source]]);
+});
+
 // Record the effective canvas output: transformed geometry, color, opacity,
 // widths and gradient stops. This exercises the real two render paths, without
 // depending on a particular browser's antialiasing or a screenshot's backdrop.

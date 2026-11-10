@@ -8,6 +8,7 @@
     if(rgba[i+3]<100)return false;
     if(tint==='lens')return true;
     if(tint==='blue')return b>90&&b>r*1.18&&b>g*.88&&b-r>70;
+    if(tint==='green')return g>100&&g>r*1.2&&g>b*1.15;
     if(tint==='red')return r>110&&r>g*1.45&&r>b*1.3&&g<r*.42;
     return r>100&&g>65&&r>g*.95&&g>b*1.45&&r-g<100;
   };
@@ -91,12 +92,24 @@
       ctx.save();ctx.translate(layout.x,layout.y);ctx.rotate(angle);
       ctx.scale(layout.w/d.width,layout.h/d.height);ctx.translate(-d.width/2,-d.height/2);
       if(options.lights)forEachLamp(stage,time,(textures,p,pulse)=>{
-        if(options.cacheLamps!==false&&window.nativeShipSpriteCache?.drawLamp(ctx,textures,p,pulse,options))return;
-        ctx.drawImage(textures.dim,p.left,p.top);
         const gain=options.lightGain||1,bloom=options.lightBloom||1;
-        ctx.save();ctx.globalCompositeOperation='screen';ctx.filter=`brightness(${gain})`;ctx.globalAlpha=pulse;ctx.drawImage(textures.lit,p.left,p.top);
-        // Blur the same masked lamp, preserving curved strips and split cores.
-        ctx.filter=`brightness(${gain}) blur(${(2+2*pulse)*bloom}px)`;ctx.globalAlpha=Math.min(1,pulse*.65*bloom);ctx.drawImage(textures.lit,p.left,p.top);ctx.restore();
+        if(!(options.cacheLamps!==false&&window.nativeShipSpriteCache?.drawLamp(ctx,textures,p,pulse,options))){
+          ctx.drawImage(textures.dim,p.left,p.top);
+          ctx.save();ctx.globalCompositeOperation='screen';ctx.filter=`brightness(${gain})`;ctx.globalAlpha=pulse;ctx.drawImage(textures.lit,p.left,p.top);
+          // Blur the same masked lamp, preserving curved strips and split cores.
+          ctx.filter=`brightness(${gain}) blur(${(2+2*pulse)*bloom}px)`;ctx.globalAlpha=Math.min(1,pulse*.65*bloom);ctx.drawImage(textures.lit,p.left,p.top);ctx.restore();
+        }
+        const charge=p.kind==='core'?Math.max(0,Math.min(1,Number(options.nacelleCharge)||0)):0;
+        if(charge){
+          // Charge the existing painted emitter. Keep running lamps and the
+          // original cached pulse surfaces independent of this cinematic gain.
+          ctx.save();ctx.globalCompositeOperation='screen';
+          // Blue channels are already saturated in ordinary flight. Fade a
+          // white-hot copy of the same alpha mask over the emitter so charge
+          // remains visible on narrow coils, including the Aries nacelles.
+          ctx.filter='brightness(0) invert(1)';ctx.globalAlpha=charge*(.8+.15*pulse);ctx.drawImage(textures.lit,p.left,p.top);
+          ctx.filter=`brightness(${gain*(1+5*charge)}) blur(${4+8*charge}px)`;ctx.globalAlpha=charge*.8;ctx.drawImage(textures.lit,p.left,p.top);ctx.restore();
+        }
       });
       if(options.anchors){
         ctx.lineWidth=2;

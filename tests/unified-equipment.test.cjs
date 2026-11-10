@@ -66,7 +66,7 @@ test('legacy deployed overflow drones finish their saved mission and return to o
 test('a shield slot alone supplies no shields; removing engineering keeps basic propulsion',async()=>{
  const {window:w}=await fixture({full:false}),s={shipType:24,hull:25,shields:0};
  const eq=w.nativeShipEquipment.ensure(s);assert.equal(eq.slots.shield.length,1);assert.equal(eq.slots.shield[0],null);assert.equal(w.nativeShipDefinitions.forEntity(s).shields,0);
- const engine=eq.slots.engineering[0];assert.ok(engine);w.nativeShipEquipment.move(s,{category:'engineering',fromType:'slot',fromIndex:0,toType:'locker',toIndex:eq.locker.length});assert.equal(w.nativeShipDefinitions.forEntity(s).movement.maxSpeed,90);assert.ok(w.nativeShipDefinitions.forEntity(s).movement.acceleration>0);
+ const engine=eq.slots.engineering[0];assert.ok(engine);w.nativeShipEquipment.move(s,{category:'engineering',fromType:'slot',fromIndex:0,toType:'locker',toIndex:eq.locker.length});assert.equal(w.nativeShipDefinitions.forEntity(s).movement.maxSpeed,w.nativeShipDefinitions.forEntity(s).thrusters.maxSpeed);assert.ok(w.nativeShipDefinitions.forEntity(s).movement.acceleration>0);
 });
 test('cargo policy never selects mining; a configured non-Olympic medical hull answers a real distress call',async()=>{
  const f=await fixture({full:false,regional:true,access:true,repairs:true}),w=f.window,s=f.state;

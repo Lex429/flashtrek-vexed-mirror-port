@@ -9,7 +9,7 @@ function fixture(){
   const ctx=new Proxy({}, {get:(target,key)=>target[key]??(()=>key.startsWith('create')?gradient:undefined),set:(target,key,value)=>(target[key]=value,true)});
   const window={},document={createElement:()=>({getContext:()=>ctx})};
   const sandbox=vm.createContext({window,document});
-  for(const name of ['flight-reference-data.js','vexed-space-model.js','vexed-space.js'])
+  for(const name of ['flight-reference-data.js','vexed-space-model.js','stellar-background.js','vexed-space.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port',name),'utf8'),sandbox);
   return {api:window.vexedSpace,ctx};
 }
@@ -54,7 +54,10 @@ test('primary illumination survives background-star movement, occlusion, camera 
   for(const star of api.state.stars)if(star.layer===5){star.x=300;star.y=225;star.color=0x0000ff;}
   api.render(ctx,view,[{x:300,y:225,rx:150,ry:150}]);assert.deepEqual({...api.light},original);
   api.render(ctx,{...view,w:900,h:600,cameraX:70,cameraY:-25,zoom:2},[]);
-  assert.equal(api.light.x,450+(-6220-70)*2);assert.equal(api.light.y,300+(-925+25)*2);
+  assert.equal(api.light.x,api.suns[0].x);assert.equal(api.light.y,api.suns[0].y);
+  assert.ok(api.light.x<0,'A distant catalog sun can lie outside the viewport while still supplying illumination');
+  const relative={x:api.light.x-450,y:api.light.y-300};
+  assert.ok(Math.abs(relative.x*(-925+25)-relative.y*(-6220-70))<1e-8,'Background projection retains the source bearing');
   api.enterSystem(9);api.render(ctx,view,[]);const directional={...api.light};
   assert.equal(directional.direction,api.systemStars.default.direction);
   api.update(1,{locx:500,locy:-300,speed:200});

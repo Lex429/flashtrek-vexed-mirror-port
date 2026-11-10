@@ -30,6 +30,28 @@
   // registry. Swept queries must include a rock that crossed the rectangle and
   // finished in a different grid cell.
   const moving=new Map(),maxRadii=new Map(),indexedFields=new Map(),motionBounds=new Map();
+  const corridorCores=new Map(),corridorViews=new Map();let corridorReach=0,corridorSpeed=0;
+  function corridorRock(id,system){
+    const paths=window.nativeTravelCorridors,info=paths?.rockInfo(id);if(!info||!catalogData)return null;
+    system=Number(system??info.ownerSystem);const origin=paths.anchor(system);if(!origin)return null;
+    let core=corridorCores.get(info.slotId);
+    if(!core){const group=catalogData.get(info.oreType)||catalogData.get('trellium'),art=group?.[info.slotId%group.length];if(!art)return null;
+      core={...art,...info,maxHull:Math.max(9,Math.round(info.size*.45)),globalPreviousX:info.globalX,globalPreviousY:info.globalY,vx:0,vy:0,spin:0};corridorCores.set(info.slotId,core);}
+    let views=corridorViews.get(system);if(!views){if(corridorViews.size>=8)corridorViews.delete(corridorViews.keys().next().value);corridorViews.set(system,views=new Map());}
+    let view=views.get(info.slotId);if(!view){view={...core,system};views.set(info.slotId,view);}
+    Object.assign(view,{x:core.globalX-origin.x,y:core.globalY-origin.y,previousX:core.globalPreviousX-origin.x,previousY:core.globalPreviousY-origin.y,angle:core.angle,vx:core.vx,vy:core.vy,spin:core.spin});return view;
+  }
+  function corridorQuery(system,box,{swept=true,predictSeconds=0,segment=null}={}){
+    const paths=window.nativeTravelCorridors,origin=paths?.anchor(system);if(!origin||!catalogData)return [];
+    const margin=corridorReach+corridorSpeed*Math.max(0,predictSeconds),capsule=segment?{from:{x:segment.from.x+origin.x,y:segment.from.y+origin.y},to:{x:segment.to.x+origin.x,y:segment.to.y+origin.y},radius:segment.radius+margin}:null,sites=paths.query({minX:box.minX+origin.x-margin,minY:box.minY+origin.y-margin,maxX:box.maxX+origin.x+margin,maxY:box.maxY+origin.y+margin},{capsule}),result=[];
+    for(const site of sites)for(const id of paths.rockIds(site)){const rock=corridorRock(id,system),r=rock.size*.43,px=swept?rock.previousX:rock.x,py=swept?rock.previousY:rock.y,fx=rock.x+rock.vx*predictSeconds,fy=rock.y+rock.vy*predictSeconds;
+      if(Math.min(px,rock.x,fx)-r<=box.maxX&&Math.max(px,rock.x,fx)+r>=box.minX&&Math.min(py,rock.y,fy)-r<=box.maxY&&Math.max(py,rock.y,fy)+r>=box.minY)result.push(rock);}
+    return result;
+  }
+  function corridorMining(state,ship){
+    const paths=window.nativeTravelCorridors;if(!paths?.enabled(state))return [];
+    return paths.miningSites(ship.system,ship).flatMap(site=>{const ids=paths.rockIds(site),start=(Number(ship.id)+(Number(ship.miningTrips)||0))%ids.length;return ids.map((_,i)=>corridorRock(ids[(start+i)%ids.length],ship.system)).filter(Boolean);});
+  }
   let seed=61357;
   const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   function shuffle(values){for(let i=values.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}return values;}
@@ -198,10 +220,14 @@
     if(system===undefined){for(const indexed of indexedFields.values())indexed.dirty=true;}
     else{const indexed=indexedFields.get(Number(system));if(indexed)indexed.dirty=true;}
   }
-  function find(id,system){if(id===null||id===undefined)return null;system=Number(system??(Number(id)>=100000?Math.floor(Number(id)/100000):1));const field=forSystem(system);return indexes.get(system)?.get(Number(id))||field.find(r=>r.slotId===Number(id))||null;}
+  function find(id,system){if(id===null||id===undefined)return null;if(Number(id)>=1_000_000_000)return corridorRock(id,system);system=Number(system??(Number(id)>=100000?Math.floor(Number(id)/100000):1));const field=forSystem(system);return indexes.get(system)?.get(Number(id))||field.find(r=>r.slotId===Number(id))||null;}
   // Keep the spatial index authoritative when a saved physical rock moves.
   // Seeded IDs, sizes and ore geology never change.
   function relocate(rock,pose){
+    if(rock.corridor){const origin=window.nativeTravelCorridors.anchor(rock.system),core=corridorCores.get(rock.slotId);if(!origin||!core)return;
+      Object.assign(core,{globalPreviousX:origin.x+(pose.previousX??rock.x),globalPreviousY:origin.y+(pose.previousY??rock.y),globalX:origin.x+pose.x,globalY:origin.y+pose.y,angle:pose.angle??rock.angle,vx:pose.vx||0,vy:pose.vy||0,spin:pose.spin||0});
+      const seed=window.nativeTravelCorridors.rockInfo(rock.slotId);corridorReach=Math.max(corridorReach,Math.abs(core.globalX-seed.globalX),Math.abs(core.globalY-seed.globalY),Math.abs(core.globalPreviousX-seed.globalX),Math.abs(core.globalPreviousY-seed.globalY));corridorSpeed=Math.max(corridorSpeed,Math.abs(core.vx),Math.abs(core.vy));
+      Object.assign(rock,{...pose,previousX:core.globalPreviousX-origin.x,previousY:core.globalPreviousY-origin.y});for(const [system,views] of corridorViews)if(views.has(rock.slotId))corridorRock(rock.slotId,system);return;}
     const system=Number(rock.system??1),field=systems.get(system)||(system===1?placements:null);
     if(field)ensureIndex(system,field);
     const registered=indexes.get(system)?.get(rock.slotId)===rock,grid=grids.get(system),key=p=>Math.floor(p.x/cellSize)+':'+Math.floor(p.y/cellSize),before=key(rock),after=key(pose);
@@ -215,7 +241,7 @@
     maxRadii.set(system,Math.max(maxRadii.get(system)||0,rock.size*.43));
     let bounds=motionBounds.get(system);if(!bounds){bounds={dx:0,dy:0,vx:0,vy:0};motionBounds.set(system,bounds);}growMotion(bounds,rock);
   }
-  function queryBounds(system,bounds,{swept=true,predictSeconds=0}={}){
+  function localQueryBounds(system,bounds,{swept=true,predictSeconds=0}={}){
     system=Number(system);const rocks=forSystem(system),grid=grids.get(system);
     if(!bounds||!['minX','minY','maxX','maxY'].every(key=>Number.isFinite(bounds[key])))return rocks;
     const radius=maxRadii.get(system)||55,motion=motionBounds.get(system),horizon=Math.max(0,Number(predictSeconds)||0),
@@ -237,19 +263,21 @@
     }
     return result;
   }
-  function nearby(system,point,radius){
+  function queryBounds(system,bounds,options={}){return [...localQueryBounds(system,bounds,options),...corridorQuery(system,bounds,options)];}
+  function localNearby(system,point,radius){
     const rocks=forSystem(system),grid=grids.get(Number(system));if(!grid||!point||!Number.isFinite(radius))return rocks;
     const result=[];
     for(let x=Math.floor((point.x-radius-50)/cellSize);x<=Math.floor((point.x+radius+50)/cellSize);x++)for(let y=Math.floor((point.y-radius-50)/cellSize);y<=Math.floor((point.y+radius+50)/cellSize);y++)for(const rock of grid.get(x+':'+y)||[])if(Math.hypot(rock.x-point.x,rock.y-point.y)<=radius+rock.size)result.push(rock);
     return result;
   }
+  function nearby(system,point,radius){const local=localNearby(system,point,radius);if(!point||!Number.isFinite(radius))return local;return [...local,...corridorQuery(system,{minX:point.x-radius,minY:point.y-radius,maxX:point.x+radius,maxY:point.y+radius},{swept:false}).filter(r=>Math.hypot(r.x-point.x,r.y-point.y)<=radius+r.size)];}
   function sweptNearby(system,from,to,radius){
     const distance=Math.hypot(to.x-from.x,to.y-from.y);
     // Long calendar skips scan the small lazy geometry field rather than an
     // enormous empty grid rectangle. Ordinary physics uses neighboring cells.
     if(distance+radius<cellSize*3)return nearby(system,{x:(from.x+to.x)/2,y:(from.y+to.y)/2},radius+distance/2);
     const dx=to.x-from.x,dy=to.y-from.y,denominator=dx*dx+dy*dy;
-    return forSystem(system).filter(rock=>{const t=denominator?Math.max(0,Math.min(1,((rock.x-from.x)*dx+(rock.y-from.y)*dy)/denominator)):0;return Math.hypot(rock.x-from.x-t*dx,rock.y-from.y-t*dy)<=radius+rock.size;});
+    return queryBounds(system,{minX:Math.min(from.x,to.x)-radius-60,minY:Math.min(from.y,to.y)-radius-60,maxX:Math.max(from.x,to.x)+radius+60,maxY:Math.max(from.y,to.y)+radius+60},{segment:{from,to,radius:radius+60}}).filter(rock=>{const t=denominator?Math.max(0,Math.min(1,((rock.x-from.x)*dx+(rock.y-from.y)*dy)/denominator)):0;return Math.hypot(rock.x-from.x-t*dx,rock.y-from.y-t*dy)<=radius+rock.size;});
   }
   function image(file){
     if(!images.has(file)){
@@ -308,7 +336,7 @@
       ctx.drawImage(art,-size/2,-size/2,size,size);ctx.restore();
     }
   }
-  window.nativeSolAsteroids={paint,hitTest,frame,image,peekImage:file=>images.get(file)||null,artworkDimensions,forSystem,find,nearby,sweptNearby,queryBounds,invalidateIndex,prepareStep,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size,indexBuilds,broadphaseQueries,broadphaseVisits,summaryVisits};},get ready(){return ready;},get placements(){return placements;},abundance};
+  window.nativeSolAsteroids={paint,hitTest,frame,image,peekImage:file=>images.get(file)||null,artworkDimensions,forSystem,find,corridorMining,nearby,sweptNearby,queryBounds,invalidateIndex,prepareStep,relocate,belts(system){forSystem(system);return (beltData.get(Number(system))||[]).map(b=>({...b,mainOres:[...b.mainOres]}));},metrics(){return {builtSystems:systems.size,rocks:[...systems.values()].reduce((n,r)=>n+r.length,0),images:images.size,indexBuilds,broadphaseQueries,broadphaseVisits,summaryVisits,corridorRocks:corridorCores.size,corridorFrames:corridorViews.size};},get ready(){return ready;},get placements(){return placements;},abundance};
   ready=fetch(catalogUrl).then(response=>{if(!response.ok)throw new Error('Asteroid catalog unavailable');return response.json();})
     .then(populate).catch(error=>console.warn('Sol asteroid artwork unavailable',error));
 })();

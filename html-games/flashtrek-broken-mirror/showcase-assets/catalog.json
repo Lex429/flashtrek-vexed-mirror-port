@@ -2777,7 +2777,7 @@
     },
     {
       "id": 200,
-      "name": "Red Mutation \u00b7 Egg A",
+      "name": "Red Mutation · Egg A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -2806,7 +2806,7 @@
     },
     {
       "id": 201,
-      "name": "Red Mutation \u00b7 Egg B",
+      "name": "Red Mutation · Egg B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -2835,7 +2835,7 @@
     },
     {
       "id": 202,
-      "name": "Red Mutation \u00b7 Larva A",
+      "name": "Red Mutation · Larva A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -2862,7 +2862,7 @@
     },
     {
       "id": 203,
-      "name": "Red Mutation \u00b7 Larva B",
+      "name": "Red Mutation · Larva B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -2889,7 +2889,7 @@
     },
     {
       "id": 204,
-      "name": "Red Mutation \u00b7 Juvenile A",
+      "name": "Red Mutation · Juvenile A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -2916,7 +2916,7 @@
     },
     {
       "id": 205,
-      "name": "Red Mutation \u00b7 Juvenile B",
+      "name": "Red Mutation · Juvenile B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -2943,7 +2943,7 @@
     },
     {
       "id": 206,
-      "name": "Red Mutation \u00b7 Worker A",
+      "name": "Red Mutation · Worker A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -2970,7 +2970,7 @@
     },
     {
       "id": 207,
-      "name": "Red Mutation \u00b7 Worker B",
+      "name": "Red Mutation · Worker B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -2997,7 +2997,7 @@
     },
     {
       "id": 208,
-      "name": "Red Mutation \u00b7 Guard A",
+      "name": "Red Mutation · Guard A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3024,7 +3024,7 @@
     },
     {
       "id": 209,
-      "name": "Red Mutation \u00b7 Guard B",
+      "name": "Red Mutation · Guard B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3051,7 +3051,7 @@
     },
     {
       "id": 210,
-      "name": "Red Mutation \u00b7 Queen A",
+      "name": "Red Mutation · Queen A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3078,7 +3078,7 @@
     },
     {
       "id": 211,
-      "name": "Red Mutation \u00b7 Queen B",
+      "name": "Red Mutation · Queen B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3105,7 +3105,7 @@
     },
     {
       "id": 212,
-      "name": "Venom Green \u00b7 Egg A",
+      "name": "Venom Green · Egg A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3134,7 +3134,7 @@
     },
     {
       "id": 213,
-      "name": "Venom Green \u00b7 Egg B",
+      "name": "Venom Green · Egg B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3163,7 +3163,7 @@
     },
     {
       "id": 214,
-      "name": "Venom Green \u00b7 Larva A",
+      "name": "Venom Green · Larva A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3190,7 +3190,7 @@
     },
     {
       "id": 215,
-      "name": "Venom Green \u00b7 Larva B",
+      "name": "Venom Green · Larva B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3217,7 +3217,7 @@
     },
     {
       "id": 216,
-      "name": "Venom Green \u00b7 Juvenile A",
+      "name": "Venom Green · Juvenile A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3244,7 +3244,7 @@
     },
     {
       "id": 217,
-      "name": "Venom Green \u00b7 Juvenile B",
+      "name": "Venom Green · Juvenile B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3271,7 +3271,7 @@
     },
     {
       "id": 218,
-      "name": "Venom Green \u00b7 Worker A",
+      "name": "Venom Green · Worker A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3298,7 +3298,7 @@
     },
     {
       "id": 219,
-      "name": "Venom Green \u00b7 Worker B",
+      "name": "Venom Green · Worker B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3325,7 +3325,7 @@
     },
     {
       "id": 220,
-      "name": "Venom Green \u00b7 Guard A",
+      "name": "Venom Green · Guard A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3352,7 +3352,7 @@
     },
     {
       "id": 221,
-      "name": "Venom Green \u00b7 Guard B",
+      "name": "Venom Green · Guard B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3379,7 +3379,7 @@
     },
     {
       "id": 222,
-      "name": "Venom Green \u00b7 Queen A",
+      "name": "Venom Green · Queen A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3406,7 +3406,7 @@
     },
     {
       "id": 223,
-      "name": "Venom Green \u00b7 Queen B",
+      "name": "Venom Green · Queen B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3433,7 +3433,7 @@
     },
     {
       "id": 224,
-      "name": "Purple Mutation \u00b7 Egg A",
+      "name": "Purple Mutation · Egg A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3462,7 +3462,7 @@
     },
     {
       "id": 225,
-      "name": "Purple Mutation \u00b7 Egg B",
+      "name": "Purple Mutation · Egg B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3491,7 +3491,7 @@
     },
     {
       "id": 226,
-      "name": "Purple Mutation \u00b7 Larva A",
+      "name": "Purple Mutation · Larva A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3518,7 +3518,7 @@
     },
     {
       "id": 227,
-      "name": "Purple Mutation \u00b7 Larva B",
+      "name": "Purple Mutation · Larva B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3545,7 +3545,7 @@
     },
     {
       "id": 228,
-      "name": "Purple Mutation \u00b7 Juvenile A",
+      "name": "Purple Mutation · Juvenile A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3572,7 +3572,7 @@
     },
     {
       "id": 229,
-      "name": "Purple Mutation \u00b7 Juvenile B",
+      "name": "Purple Mutation · Juvenile B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3599,7 +3599,7 @@
     },
     {
       "id": 230,
-      "name": "Purple Mutation \u00b7 Worker A",
+      "name": "Purple Mutation · Worker A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3626,7 +3626,7 @@
     },
     {
       "id": 231,
-      "name": "Purple Mutation \u00b7 Worker B",
+      "name": "Purple Mutation · Worker B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3653,7 +3653,7 @@
     },
     {
       "id": 232,
-      "name": "Purple Mutation \u00b7 Guard A",
+      "name": "Purple Mutation · Guard A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3680,7 +3680,7 @@
     },
     {
       "id": 233,
-      "name": "Purple Mutation \u00b7 Guard B",
+      "name": "Purple Mutation · Guard B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3707,7 +3707,7 @@
     },
     {
       "id": 234,
-      "name": "Purple Mutation \u00b7 Queen A",
+      "name": "Purple Mutation · Queen A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3734,7 +3734,7 @@
     },
     {
       "id": 235,
-      "name": "Purple Mutation \u00b7 Queen B",
+      "name": "Purple Mutation · Queen B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3761,7 +3761,7 @@
     },
     {
       "id": 236,
-      "name": "White Mutation \u00b7 Egg A",
+      "name": "White Mutation · Egg A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3790,7 +3790,7 @@
     },
     {
       "id": 237,
-      "name": "White Mutation \u00b7 Egg B",
+      "name": "White Mutation · Egg B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3819,7 +3819,7 @@
     },
     {
       "id": 238,
-      "name": "White Mutation \u00b7 Larva A",
+      "name": "White Mutation · Larva A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3846,7 +3846,7 @@
     },
     {
       "id": 239,
-      "name": "White Mutation \u00b7 Larva B",
+      "name": "White Mutation · Larva B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3873,7 +3873,7 @@
     },
     {
       "id": 240,
-      "name": "White Mutation \u00b7 Juvenile A",
+      "name": "White Mutation · Juvenile A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3900,7 +3900,7 @@
     },
     {
       "id": 241,
-      "name": "White Mutation \u00b7 Juvenile B",
+      "name": "White Mutation · Juvenile B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3927,7 +3927,7 @@
     },
     {
       "id": 242,
-      "name": "White Mutation \u00b7 Worker A",
+      "name": "White Mutation · Worker A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3954,7 +3954,7 @@
     },
     {
       "id": 243,
-      "name": "White Mutation \u00b7 Worker B",
+      "name": "White Mutation · Worker B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -3981,7 +3981,7 @@
     },
     {
       "id": 244,
-      "name": "White Mutation \u00b7 Guard A",
+      "name": "White Mutation · Guard A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4008,7 +4008,7 @@
     },
     {
       "id": 245,
-      "name": "White Mutation \u00b7 Guard B",
+      "name": "White Mutation · Guard B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4035,7 +4035,7 @@
     },
     {
       "id": 246,
-      "name": "White Mutation \u00b7 Queen A",
+      "name": "White Mutation · Queen A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4062,7 +4062,7 @@
     },
     {
       "id": 247,
-      "name": "White Mutation \u00b7 Queen B",
+      "name": "White Mutation · Queen B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4089,7 +4089,7 @@
     },
     {
       "id": 248,
-      "name": "Borg Rendition \u00b7 Egg A",
+      "name": "Borg Rendition · Egg A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4118,7 +4118,7 @@
     },
     {
       "id": 249,
-      "name": "Borg Rendition \u00b7 Egg B",
+      "name": "Borg Rendition · Egg B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4147,7 +4147,7 @@
     },
     {
       "id": 250,
-      "name": "Borg Rendition \u00b7 Larva A",
+      "name": "Borg Rendition · Larva A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4174,7 +4174,7 @@
     },
     {
       "id": 251,
-      "name": "Borg Rendition \u00b7 Larva B",
+      "name": "Borg Rendition · Larva B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4201,7 +4201,7 @@
     },
     {
       "id": 252,
-      "name": "Borg Rendition \u00b7 Juvenile A",
+      "name": "Borg Rendition · Juvenile A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4228,7 +4228,7 @@
     },
     {
       "id": 253,
-      "name": "Borg Rendition \u00b7 Juvenile B",
+      "name": "Borg Rendition · Juvenile B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4255,7 +4255,7 @@
     },
     {
       "id": 254,
-      "name": "Borg Rendition \u00b7 Worker A",
+      "name": "Borg Rendition · Worker A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4282,7 +4282,7 @@
     },
     {
       "id": 255,
-      "name": "Borg Rendition \u00b7 Worker B",
+      "name": "Borg Rendition · Worker B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4309,7 +4309,7 @@
     },
     {
       "id": 256,
-      "name": "Borg Rendition \u00b7 Guard A",
+      "name": "Borg Rendition · Guard A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4336,7 +4336,7 @@
     },
     {
       "id": 257,
-      "name": "Borg Rendition \u00b7 Guard B",
+      "name": "Borg Rendition · Guard B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4363,7 +4363,7 @@
     },
     {
       "id": 258,
-      "name": "Borg Rendition \u00b7 Queen A",
+      "name": "Borg Rendition · Queen A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4390,7 +4390,7 @@
     },
     {
       "id": 259,
-      "name": "Borg Rendition \u00b7 Queen B",
+      "name": "Borg Rendition · Queen B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4417,7 +4417,7 @@
     },
     {
       "id": 260,
-      "name": "Borg Variant \u00b7 Egg A",
+      "name": "Borg Variant · Egg A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4446,7 +4446,7 @@
     },
     {
       "id": 261,
-      "name": "Borg Variant \u00b7 Egg B",
+      "name": "Borg Variant · Egg B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4475,7 +4475,7 @@
     },
     {
       "id": 262,
-      "name": "Borg Variant \u00b7 Larva A",
+      "name": "Borg Variant · Larva A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4502,7 +4502,7 @@
     },
     {
       "id": 263,
-      "name": "Borg Variant \u00b7 Larva B",
+      "name": "Borg Variant · Larva B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4529,7 +4529,7 @@
     },
     {
       "id": 264,
-      "name": "Borg Variant \u00b7 Juvenile A",
+      "name": "Borg Variant · Juvenile A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4556,7 +4556,7 @@
     },
     {
       "id": 265,
-      "name": "Borg Variant \u00b7 Juvenile B",
+      "name": "Borg Variant · Juvenile B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4583,7 +4583,7 @@
     },
     {
       "id": 266,
-      "name": "Borg Variant \u00b7 Worker A",
+      "name": "Borg Variant · Worker A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4610,7 +4610,7 @@
     },
     {
       "id": 267,
-      "name": "Borg Variant \u00b7 Worker B",
+      "name": "Borg Variant · Worker B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4637,7 +4637,7 @@
     },
     {
       "id": 268,
-      "name": "Borg Variant \u00b7 Guard A",
+      "name": "Borg Variant · Guard A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4664,7 +4664,7 @@
     },
     {
       "id": 269,
-      "name": "Borg Variant \u00b7 Guard B",
+      "name": "Borg Variant · Guard B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4691,7 +4691,7 @@
     },
     {
       "id": 270,
-      "name": "Borg Variant \u00b7 Queen A",
+      "name": "Borg Variant · Queen A",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4718,7 +4718,7 @@
     },
     {
       "id": 271,
-      "name": "Borg Variant \u00b7 Queen B",
+      "name": "Borg Variant · Queen B",
       "kind": "creature",
       "biological": true,
       "origin": "Extracted mutation sheet",
@@ -4743,20 +4743,840 @@
       "mutationName": "Borg Variant",
       "variant": "B"
     },
-    {"id":414,"name":"Tug Class II · Standard Freight","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii.png",null,null,null],"original":"tug-class-ii/tug-class-ii.png","bounds":[0,158,0,446],"previewSize":360},
-    {"id":415,"name":"Tug Class II-S · Short Range Supply","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-s.png",null,null,null],"original":"tug-class-ii/tug-class-ii-s.png","bounds":[0,157,0,387],"previewSize":360},
-    {"id":416,"name":"Tug Class II-A · Armored Freight","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"damage-ready","damageReady":true,"frames":["tug-class-ii/tug-class-ii-a.png","tug-class-ii/tug-class-ii-a-light.png","tug-class-ii/tug-class-ii-a-heavy.png","tug-class-ii/tug-class-ii-a-severe.png"],"original":"tug-class-ii/tug-class-ii-a.png","bounds":[0,182,0,504],"previewSize":360,"debrisKind":1},
-    {"id":417,"name":"Tug Class II-T · Fuel Transport","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-t.png",null,null,null],"original":"tug-class-ii/tug-class-ii-t.png","bounds":[0,163,0,444],"previewSize":360},
-    {"id":418,"name":"Tug Class II-C · Container Hauler","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-c.png",null,null,null],"original":"tug-class-ii/tug-class-ii-c.png","bounds":[0,170,0,488],"previewSize":360},
-    {"id":419,"name":"Tug Class II-R · Rescue / Tow","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-r.png",null,null,null],"original":"tug-class-ii/tug-class-ii-r.png","bounds":[0,158,0,461],"previewSize":360},
-    {"id":420,"name":"Tug Class II-M · Mining Hauler","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-m.png",null,null,null],"original":"tug-class-ii/tug-class-ii-m.png","bounds":[0,169,0,477],"previewSize":360},
-    {"id":421,"name":"Tug Class II-P · Personnel / Supply","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-p.png",null,null,null],"original":"tug-class-ii/tug-class-ii-p.png","bounds":[0,169,0,425],"previewSize":360},
-    {"id":422,"name":"Tug Class II-H · Heavy Freight","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-h.png",null,null,null],"original":"tug-class-ii/tug-class-ii-h.png","bounds":[0,171,0,478],"previewSize":360},
-    {"id":423,"name":"Tug Class II-U · Utility","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-u.png",null,null,null],"original":"tug-class-ii/tug-class-ii-u.png","bounds":[0,141,0,405],"previewSize":360},
-    {"id":424,"name":"Tug Class II-V · Salvage","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-v.png",null,null,null],"original":"tug-class-ii/tug-class-ii-v.png","bounds":[0,126,0,451],"previewSize":360},
-    {"id":425,"name":"Tug Class II-X · Courier","kind":"ship","origin":"User supplied Tug Class II variants","artworkStatus":"intact-only","frames":["tug-class-ii/tug-class-ii-x.png",null,null,null],"original":"tug-class-ii/tug-class-ii-x.png","bounds":[0,128,0,333],"previewSize":360},
-    {"id":426,"name":"Kirk's Ship - I.S.S. Enterprise NCC-1701","kind":"ship","origin":"User supplied Constitution artwork","artworkStatus":"damage-ready","frames":["constitution/iss-enterprise.png","constitution/iss-enterprise-light.png","constitution/iss-enterprise-heavy.png","constitution/iss-enterprise-severe.png"],"original":"constitution/iss-enterprise.png","bounds":[0,1024,0,1536],"previewSize":360,"damageReady":true,"mass":150,"debrisKind":1,"size":150,"shieldColor":"blue","points":[{"kind":"torpedo","x":0,"y":-0.36},{"kind":"beam","x":-0.22,"y":-0.24},{"kind":"beam","x":0.22,"y":-0.24}]},
-    {"id":427,"name":"Constitution Class","kind":"ship","origin":"User supplied Constitution artwork","artworkStatus":"damage-ready","frames":["constitution/constitution-class.png","constitution/constitution-class-light.png","constitution/constitution-class-heavy.png","constitution/constitution-class-severe.png"],"original":"constitution/constitution-class.png","bounds":[0,1024,0,1536],"previewSize":360,"damageReady":true,"mass":150,"debrisKind":1,"size":150,"shieldColor":"blue","points":[{"kind":"torpedo","x":0,"y":-0.36},{"kind":"beam","x":-0.22,"y":-0.24},{"kind":"beam","x":0.22,"y":-0.24}]}
+    {
+      "id": 414,
+      "name": "Tug Class II · Standard Freight",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii.png",
+      "bounds": [
+        0,
+        158,
+        0,
+        446
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 415,
+      "name": "Tug Class II-S · Short Range Supply",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-s.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-s.png",
+      "bounds": [
+        0,
+        157,
+        0,
+        387
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 416,
+      "name": "Tug Class II-A · Armored Freight",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "damage-ready",
+      "damageReady": true,
+      "frames": [
+        "tug-class-ii/tug-class-ii-a.png",
+        "tug-class-ii/tug-class-ii-a-light.png",
+        "tug-class-ii/tug-class-ii-a-heavy.png",
+        "tug-class-ii/tug-class-ii-a-severe.png"
+      ],
+      "original": "tug-class-ii/tug-class-ii-a.png",
+      "bounds": [
+        0,
+        182,
+        0,
+        504
+      ],
+      "previewSize": 360,
+      "debrisKind": 1
+    },
+    {
+      "id": 417,
+      "name": "Tug Class II-T · Fuel Transport",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-t.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-t.png",
+      "bounds": [
+        0,
+        163,
+        0,
+        444
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 418,
+      "name": "Tug Class II-C · Container Hauler",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-c.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-c.png",
+      "bounds": [
+        0,
+        170,
+        0,
+        488
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 419,
+      "name": "Tug Class II-R · Rescue / Tow",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-r.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-r.png",
+      "bounds": [
+        0,
+        158,
+        0,
+        461
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 420,
+      "name": "Tug Class II-M · Mining Hauler",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-m.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-m.png",
+      "bounds": [
+        0,
+        169,
+        0,
+        477
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 421,
+      "name": "Tug Class II-P · Personnel / Supply",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-p.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-p.png",
+      "bounds": [
+        0,
+        169,
+        0,
+        425
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 422,
+      "name": "Tug Class II-H · Heavy Freight",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-h.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-h.png",
+      "bounds": [
+        0,
+        171,
+        0,
+        478
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 423,
+      "name": "Tug Class II-U · Utility",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-u.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-u.png",
+      "bounds": [
+        0,
+        141,
+        0,
+        405
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 424,
+      "name": "Tug Class II-V · Salvage",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-v.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-v.png",
+      "bounds": [
+        0,
+        126,
+        0,
+        451
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 425,
+      "name": "Tug Class II-X · Courier",
+      "kind": "ship",
+      "origin": "User supplied Tug Class II variants",
+      "artworkStatus": "intact-only",
+      "frames": [
+        "tug-class-ii/tug-class-ii-x.png",
+        null,
+        null,
+        null
+      ],
+      "original": "tug-class-ii/tug-class-ii-x.png",
+      "bounds": [
+        0,
+        128,
+        0,
+        333
+      ],
+      "previewSize": 360
+    },
+    {
+      "id": 426,
+      "name": "Kirk's Ship - I.S.S. Enterprise NCC-1701",
+      "kind": "ship",
+      "origin": "User supplied Constitution artwork",
+      "artworkStatus": "damage-ready",
+      "frames": [
+        "constitution/iss-enterprise.png",
+        "constitution/iss-enterprise-light.png",
+        "constitution/iss-enterprise-heavy.png",
+        "constitution/iss-enterprise-severe.png"
+      ],
+      "original": "constitution/iss-enterprise.png",
+      "bounds": [
+        0,
+        1024,
+        0,
+        1536
+      ],
+      "previewSize": 360,
+      "damageReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.36
+        },
+        {
+          "kind": "beam",
+          "x": -0.22,
+          "y": -0.24
+        },
+        {
+          "kind": "beam",
+          "x": 0.22,
+          "y": -0.24
+        }
+      ]
+    },
+    {
+      "id": 427,
+      "name": "Constitution Class",
+      "kind": "ship",
+      "origin": "User supplied Constitution artwork",
+      "artworkStatus": "damage-ready",
+      "frames": [
+        "constitution/constitution-class.png",
+        "constitution/constitution-class-light.png",
+        "constitution/constitution-class-heavy.png",
+        "constitution/constitution-class-severe.png"
+      ],
+      "original": "constitution/constitution-class.png",
+      "bounds": [
+        0,
+        1024,
+        0,
+        1536
+      ],
+      "previewSize": 360,
+      "damageReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.36
+        },
+        {
+          "kind": "beam",
+          "x": -0.22,
+          "y": -0.24
+        },
+        {
+          "kind": "beam",
+          "x": 0.22,
+          "y": -0.24
+        }
+      ]
+    },
+    {
+      "id": 433,
+      "name": "U.S.S. Stargazer NCC-82893",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-433.png",
+        "new-ship-art/ship-433-light.png",
+        "new-ship-art/ship-433-heavy.png",
+        "new-ship-art/ship-433-severe.png"
+      ],
+      "original": "new-ship-art/ship-433.png",
+      "bounds": [
+        0,
+        1024,
+        0,
+        1536
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 434,
+      "name": "NX Class",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-434.png",
+        "new-ship-art/ship-434-light.png",
+        "new-ship-art/ship-434-heavy.png",
+        "new-ship-art/ship-434-severe.png"
+      ],
+      "original": "new-ship-art/ship-434.png",
+      "bounds": [
+        0,
+        1446,
+        0,
+        1087
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 435,
+      "name": "Archer's Ship - Enterprise NX-01",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-435.png",
+        "new-ship-art/ship-435-light.png",
+        "new-ship-art/ship-435-heavy.png",
+        "new-ship-art/ship-435-severe.png"
+      ],
+      "original": "new-ship-art/ship-435.png",
+      "bounds": [
+        0,
+        1447,
+        0,
+        1087
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 436,
+      "name": "Class 9 Shuttle",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-436.png",
+        "new-ship-art/ship-436-light.png",
+        "new-ship-art/ship-436-heavy.png",
+        "new-ship-art/ship-436-severe.png"
+      ],
+      "original": "new-ship-art/ship-436.png",
+      "bounds": [
+        0,
+        1024,
+        0,
+        1536
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 437,
+      "name": "Delta Flyer",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-437.png",
+        "new-ship-art/ship-437-light.png",
+        "new-ship-art/ship-437-heavy.png",
+        "new-ship-art/ship-437-severe.png"
+      ],
+      "original": "new-ship-art/ship-437.png",
+      "bounds": [
+        0,
+        1047,
+        0,
+        1501
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 438,
+      "name": "Intrepid Class",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-438.png",
+        "new-ship-art/ship-438-light.png",
+        "new-ship-art/ship-438-heavy.png",
+        "new-ship-art/ship-438-severe.png"
+      ],
+      "original": "new-ship-art/ship-438.png",
+      "bounds": [
+        0,
+        993,
+        0,
+        1584
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 439,
+      "name": "U.S.S. Voyager NCC-74656",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-439.png",
+        "new-ship-art/ship-439-light.png",
+        "new-ship-art/ship-439-heavy.png",
+        "new-ship-art/ship-439-severe.png"
+      ],
+      "original": "new-ship-art/ship-439.png",
+      "bounds": [
+        0,
+        992,
+        0,
+        1586
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 440,
+      "name": "Picard's Ship - U.S.S. Enterprise NCC-1701-D",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-440.png",
+        "new-ship-art/ship-440-light.png",
+        "new-ship-art/ship-440-heavy.png",
+        "new-ship-art/ship-440-severe.png"
+      ],
+      "original": "new-ship-art/ship-440.png",
+      "bounds": [
+        0,
+        1254,
+        0,
+        1254
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 441,
+      "name": "Sulu's Ship - U.S.S. Excelsior NCC-2000",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-441.png",
+        "new-ship-art/ship-441-light.png",
+        "new-ship-art/ship-441-heavy.png",
+        "new-ship-art/ship-441-severe.png"
+      ],
+      "original": "new-ship-art/ship-441.png",
+      "bounds": [
+        0,
+        809,
+        0,
+        1942
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 442,
+      "name": "U.S.S. São Paulo NCC-75633",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-442.png",
+        "new-ship-art/ship-442-light.png",
+        "new-ship-art/ship-442-heavy.png",
+        "new-ship-art/ship-442-severe.png"
+      ],
+      "original": "new-ship-art/ship-442.png",
+      "bounds": [
+        0,
+        1205,
+        0,
+        1306
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 443,
+      "name": "Defiant Class",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-443.png",
+        "new-ship-art/ship-443-light.png",
+        "new-ship-art/ship-443-heavy.png",
+        "new-ship-art/ship-443-severe.png"
+      ],
+      "original": "new-ship-art/ship-443.png",
+      "bounds": [
+        0,
+        1205,
+        0,
+        1306
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 444,
+      "name": "U.S.S. Defiant NX-74205",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-444.png",
+        "new-ship-art/ship-444-light.png",
+        "new-ship-art/ship-444-heavy.png",
+        "new-ship-art/ship-444-severe.png"
+      ],
+      "original": "new-ship-art/ship-444.png",
+      "bounds": [
+        0,
+        1205,
+        0,
+        1305
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    },
+    {
+      "id": 445,
+      "name": "Sagan Class",
+      "kind": "ship",
+      "origin": "User supplied ship artwork",
+      "artworkStatus": "damage-art",
+      "frames": [
+        "new-ship-art/ship-445.png",
+        "new-ship-art/ship-445-light.png",
+        "new-ship-art/ship-445-heavy.png",
+        "new-ship-art/ship-445-severe.png"
+      ],
+      "original": "new-ship-art/ship-445.png",
+      "bounds": [
+        0,
+        1024,
+        0,
+        1536
+      ],
+      "previewSize": 360,
+      "damageFramesReady": true,
+      "mass": 150,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        },
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.2
+        }
+      ]
+    }
   ],
   "weapons": {
     "beam": [

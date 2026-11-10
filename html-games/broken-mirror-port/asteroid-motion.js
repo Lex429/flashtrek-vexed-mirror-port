@@ -26,9 +26,15 @@
   function store(state,rock,values){
     remember(rock);
     let record=active.get(rock.slotId);
+    if(record&&rock.corridor&&record.rock.system!==rock.system){
+      const from=window.nativeTravelCorridors.anchor(rock.system),to=window.nativeTravelCorridors.anchor(record.rock.system),shifted={...values};
+      for(const key of ['x','previousX'])if(Number.isFinite(shifted[key]))shifted[key]+=from.x-to.x;
+      for(const key of ['y','previousY'])if(Number.isFinite(shifted[key]))shifted[key]+=from.y-to.y;
+      values=shifted;rock=record.rock;
+    }
     if(!record){const pose={x:rock.x,y:rock.y,angle:rock.angle||0,vx:0,vy:0,spin:0,at:time(state),system:rock.system??state.system};record={rock,pose};active.set(rock.slotId,record);state.asteroidMotion.rocks[rock.slotId]=pose;}
     const start=stepStarts.get(rock.slotId);
-    Object.assign(record.pose,values,{at:time(state)});window.nativeSolAsteroids.relocate(rock,{...record.pose,previousX:start?.x??rock.previousX??rock.x,previousY:start?.y??rock.previousY??rock.y});
+    Object.assign(record.pose,values,{at:time(state),...(rock.corridor?{system:rock.system}:{})});window.nativeSolAsteroids.relocate(rock,{...record.pose,previousX:start?.x??rock.previousX??rock.x,previousY:start?.y??rock.previousY??rock.y});
     physicalBodies.delete(rock);
     window.nativeShipSystems?.refreshAsteroid?.(state,rock);
     return record;
@@ -49,8 +55,9 @@
     collideRocks(state,dt);
   }
   function physical(rock,dt){
-    const pose=active.get(rock.slotId)?.pose,start=stepStarts.get(rock.slotId),vx=pose?.vx||0,vy=pose?.vy||0;
-    const previousX=start?.x??rock.x-vx*dt,previousY=start?.y??rock.y-vy*dt,cached=physicalBodies.get(rock);
+    const record=active.get(rock.slotId),pose=record?.pose,start=stepStarts.get(rock.slotId),vx=pose?.vx||0,vy=pose?.vy||0;
+    const from=rock.corridor&&record?window.nativeTravelCorridors.anchor(record.rock.system):null,to=from?window.nativeTravelCorridors.anchor(rock.system):null;
+    const previousX=start?start.x+(from?from.x-to.x:0):rock.x-vx*dt,previousY=start?start.y+(from?from.y-to.y:0):rock.y-vy*dt,cached=physicalBodies.get(rock);
     if(cached&&cached.x===rock.x&&cached.y===rock.y&&cached.angle===rock.angle&&cached.size===rock.size&&cached.vx===vx&&cached.vy===vy&&cached.spin===(pose?.spin||0)&&cached.previousX===previousX&&cached.previousY===previousY)return cached;
     const result={...rock,vx,vy,spin:pose?.spin||0,previousX,previousY};physicalBodies.set(rock,result);return result;
   }
@@ -59,14 +66,16 @@
     return rocks.queryBounds?.(system,{minX:Math.min(from.x,to.x)-radius,minY:Math.min(from.y,to.y)-radius,maxX:Math.max(from.x,to.x)+radius,maxY:Math.max(from.y,to.y)+radius},{swept:true})||rocks.sweptNearby(system,from,to,radius+55);
   }
   function countCandidates(state,count){window.nativeSimulationFrame?.count(state,'asteroidCandidates',count);window.nativeSimulationFrame?.count(state,'collisionCandidates',count);}
+  const observerRock=(state,rock)=>rock.corridor&&rock.system!==state.system?window.nativeSolAsteroids.find(rock.slotId,state.system):rock;
   function collideRocks(state,dt){
-    const queue=[...active.values()].filter(({rock,pose})=>!gone(state,rock.slotId)&&Math.hypot(pose.vx,pose.vy)>.001).map(({rock})=>rock),seen=new Set();
+    const queue=[],seen=new Set();
+    for(const {rock:owned,pose} of active.values())if(!gone(state,owned.slotId)&&Math.hypot(pose.vx,pose.vy)>.001){const rock=observerRock(state,owned);if(!window.nativeShipDetail?.region(state)||window.nativeShipDetail.contains(state,rock,rock.system,rock.size*.43))queue.push(rock);}
     const budget=Math.min(2048,Math.max(64,queue.length*12));let solved=0;
     for(let index=0;index<queue.length&&solved<budget;index++){
       const a=queue[index];if(gone(state,a.slotId))continue;
       let body=physical(a,dt);
       const candidates=rockCandidates(a.system,{x:body.previousX,y:body.previousY},a,a.size*.43)
-        .filter(b=>a!==b&&!gone(state,b.slotId)&&!seen.has([a.slotId,b.slotId].sort((x,y)=>x-y).join(':')))
+        .filter(b=>a.slotId!==b.slotId&&!gone(state,b.slotId)&&!seen.has([a.slotId,b.slotId].sort((x,y)=>x-y).join(':')))
         .map(b=>{countCandidates(state,1);return {b,result:window.nativeShipMotion.asteroidPairContact(body,physical(b,dt),dt)};}).filter(e=>e.result).sort((x,y)=>x.result.t-y.result.t);
       for(const {b} of candidates){
         const key=[a.slotId,b.slotId].sort((x,y)=>x-y).join(':');if(seen.has(key))continue;
@@ -109,20 +118,22 @@
     // Local contacts and genuine moving actors use the same indexed registry.
     // A distant stationary fleet need not be described each physics step;
     // displaced rocks still query those hulls along their complete swept path.
-    const systems=window.nativeShipSystems,player=system===1?window.vexedSolFlight?.shipPosition(state)||state:state,radius=window.nativeShipDetail?.radius(state)||6500;
+    const systems=window.nativeShipSystems,player=system===1?window.vexedSolFlight?.shipPosition(state)||state:state,radius=window.nativeShipDetail?.radius(state)||6500,area=window.nativeShipDetail?.region(state);
     const candidates=new Map(),add=(ship,elapsed=dt)=>{if(ship&&!candidates.has(ship.category+':'+ship.id))candidates.set(ship.category+':'+ship.id,{...ship,contactDt:elapsed});};
     // Choose the smaller conservative enumeration. A normal small system can
     // inspect eighteen hulls more cheaply than querying two hundred drifting
     // rocks; a large distant fleet uses the inverse spatial search instead.
-    const enumerate=systems.countShips(state,system)<=Math.max(32,active.size);
+    const enumerate=!area&&systems.countShips(state,system)<=Math.max(32,active.size);
     if(enumerate)for(const ship of systems.collectShips(state,system))add(ship);
     else{
-      for(const ship of systems.query(state,{system,minX:player.x-radius,minY:player.y-radius,maxX:player.x+radius,maxY:player.y+radius,categories:['player','civilian','tug','repair-drone']}).bystanders)add(ship);
-      for(const ship of window.nativeNpcLives?.mobile?.(state,system)||[])add(systems.resolve(state,ship.id,system));
-      if(system===1)for(const ship of window.nativeSolEconomy?.mobile?.(state)||[])add(systems.resolve(state,'tug:'+ship.id,1));
+      for(const ship of systems.query(state,{...(area||{system,minX:player.x-radius,minY:player.y-radius,maxX:player.x+radius,maxY:player.y+radius}),categories:['player','civilian','tug','repair-drone']}).bystanders)add(ship);
+      if(!area){for(const ship of window.nativeNpcLives?.mobile?.(state,system)||[])add(systems.resolve(state,ship.id,system));
+        if(system===1)for(const ship of window.nativeSolEconomy?.mobile?.(state)||[])add(systems.resolve(state,'tug:'+ship.id,1));}
     }
-    for(const ship of window.nativeShipRepairs?.drones?.(state)||[])add(ship);
-    for(const {rock} of active.values())if(!gone(state,rock.slotId)){
+    for(const ship of window.nativeShipRepairs?.drones?.(state)||[])if(!area||window.nativeShipDetail.contains(state,ship,ship.system))add(ship);
+    for(const {rock:owned} of active.values())if(!gone(state,owned.slotId)){
+      const rock=observerRock(state,owned);
+      if(area&&!window.nativeShipDetail.contains(state,rock,rock.system,rock.size*.43))continue;
       if(enumerate&&(rock.system??system)===system)continue;
       const body=physical(rock,dt),r=rock.size*.43;
       for(const ship of systems.query(state,{system:rock.system??system,minX:Math.min(body.previousX,rock.x)-r,minY:Math.min(body.previousY,rock.y)-r,maxX:Math.max(body.previousX,rock.x)+r,maxY:Math.max(body.previousY,rock.y)+r,categories:['player','civilian','tug','repair-drone']}).bystanders)add(ship);
@@ -144,8 +155,9 @@
         const key=ship.category+':'+ship.id+':'+rock.slotId,last=contacts.get(key)??-Infinity;
         contacts.set(key,at);
         if(at-last>.25){
-          const event={kind:'asteroid',from:{x:rock.x,y:rock.y},point:result.point,visualOnly:true,physicalContact:true,energy:Math.min(1,result.closing/150)};
+          const event={kind:'asteroid',system:rock.system,from:{x:rock.x,y:rock.y},point:result.point,visualOnly:true,physicalContact:true,energy:Math.min(1,result.closing/150)};
           window.nativeShipSystems.visualImpact(state,ship,event);
+          window.nativeGameSounds?.shipAsteroidHit?.(state,ship,event);
           if(result.damageFraction>0)window.nativeAsteroidCombat.hit(state,rock.slotId,rock.maxHull*result.damageFraction,event);
           history.push({ship:ship.id,category:ship.category,rockId:rock.slotId,system,at,shielded:ship.shields>0,closing:result.closing,damageFraction:result.damageFraction});if(history.length>80)history.shift();
         }
@@ -154,5 +166,7 @@
     }
     for(const [key,atContact] of contacts)if(at-atContact>1)contacts.delete(key);
   }
-  window.nativeAsteroidMotion=Object.freeze({ensure,advance,collide,freeze,debrisContact,resolveDebris,snapshot:()=>({moving:active.size,contacts:history.map(e=>({...e})),rockContacts:pairHistory.map(e=>({...e}))})});
+  window.nativeAsteroidMotion=Object.freeze({ensure,advance,collide,freeze,debrisContact,resolveDebris,
+    applyContact(state,rock,pose){ensure(state);return store(state,rock,pose);},
+    snapshot:()=>({moving:active.size,contacts:history.map(e=>({...e})),rockContacts:pairHistory.map(e=>({...e}))})});
 })();

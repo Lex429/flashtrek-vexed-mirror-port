@@ -24,10 +24,14 @@
       const port=[...window.nativeSolEconomy.ports].sort((a,b)=>available(b)-available(a)).find(port=>medic.repairDeuranium+available(port)>=needed);
       if(port!==undefined)medic.port=port;
     }
-    const berth=window.nativePortDocking.request(state,medic,medic.system,medic.port);
-    if(berth?.kind!=='berth')return {ok:false,error:'The medical ship needs a supply berth.'};
-    Object.assign(medic,{x:berth.x,y:berth.y});
-    repairs.restock(state,medic);
+    // A supplied responder can launch directly. Busy commercial berths only
+    // matter when this existing ship actually needs to purchase more stock.
+    if(medic.repairDeuranium<needed){
+      const berth=window.nativePortDocking.request(state,medic,medic.system,medic.port);
+      if(berth?.kind!=='berth')return {ok:false,error:'The medical ship needs a supply berth.'};
+      Object.assign(medic,{x:berth.x,y:berth.y});
+      repairs.restock(state,medic);
+    }
     if(medic.repairDeuranium<needed)return {ok:false,error:'The medical ship needs more repair supplies.'};
 
     const origin=definitions.describe(state),motion=window.nativeShipMotion;

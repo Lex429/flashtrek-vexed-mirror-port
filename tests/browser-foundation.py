@@ -84,6 +84,9 @@ SERVICE_SCENARIO=r"""async () => {
    task:{id:'service-proof',kind:'idle',phase:'idle',status:'active',origin:{system:1,port:3},destination:{system:1,port:3}},nextActionAt:1e9,timer:1e9,dockingVersion:1,cargo:{good:5,tons:.125},credits:123.5};
  for(const key of ['localLeg','journey','motionSpin','motionKick','combatAI','disputeId','retaliationId'])delete target[key];
  s.civilianTraffic.ships=[target];nativeNpcLives.initialize(s);nativeShipSystems.invalidate(s);
+ const targetDefinition=nativeShipDefinitions.forEntity(s,target,{category:'civilian'});
+ target.hull=targetDefinition.hull;target.shields=targetDefinition.shields;
+ const beforeHit={hull:target.hull,shields:target.shields};nativeShipSystems.refreshShip(s,target,'civilian');
  const beam=VexedMirrorWeapons.find(model=>model.damage>0&&nativeCombatShots.weaponVisual(model).kind==='beam');
  nativeWeaponLoadout.refit(s,[beam.id]);const equipped=nativeWeaponLoadout.equipped(s)[0];equipped.instance.readyAt=start;
  nativeSolEconomy.initialize(s);s.solEconomy.clock=29.5;const produced=s.solEconomy.flows.produced[0],cargo=JSON.stringify(target.cargo),credits=target.credits;
@@ -110,7 +113,9 @@ SERVICE_SCENARIO=r"""async () => {
  check(nativeSimulationFrame.transitionReady(s),'Real service event loop did not recover without display callbacks');
  check(Math.abs(simulation.seconds(s)+s.shipSimulation.schedule.pendingSeconds-start-3.1)<1e-7,'Background service lost or added accepted time');
  check(paints===resumedPaints,'Background service painted ships');check(hits===1,'A launched beam did not resolve exactly once '+JSON.stringify({hits,event:shot.event,target:{hull:target.hull,shields:target.shields,x:target.x,y:target.y,previousX:target.previousX,previousY:target.previousY,system:target.system,phase:target.phase},members:nativeShipSystems.collectShips(s).map(d=>({id:d.id,x:d.x,y:d.y,system:d.system,phase:d.entity.phase,previousX:d.previousX,previousY:d.previousY})),clock:simulation.seconds(s)}));
- check(target.shields===1000-beam.damage&&target.hull===1000,'Actual shared shield damage changed');
+ // Device wear may lower the fitted shield capacity during this same hit.
+ const shieldCapacity=nativeShipDefinitions.forEntity(s,target,{category:'civilian'}).shields;
+ check(target.shields===Math.min(beforeHit.shields-beam.damage,shieldCapacity)&&target.hull===beforeHit.hull,'Actual shared shield damage changed');
  check(s.weaponCombat.nextEventId===eventSequence,'Service created extra held-fire shots');document.dispatchEvent(new KeyboardEvent('keyup',{code:'Space',bubbles:true}));
  check(s.shipEquipment.instances[ownedId].readyAt===readyAt,'Service reset an owned recharge deadline');
  check(s.solEconomy.flows.produced[0]===produced+16,'Sol production did not settle exactly once');
@@ -167,7 +172,16 @@ SCENARIO=r"""async () => {
    for(let index=0;index<hz*2;index++){
      if(index===hz/2)dispatch('keyup','KeyD');
      if(index===hz)dispatch('keyup','KeyW');
-     stamp+=1000/hz;__nativeFrame(stamp);steps+=nativeSimulationFrame.snapshot(s).steps;
+     const beforeStep=nativeSimulation.seconds(s);stamp+=1000/hz;__nativeFrame(stamp);
+     // Match the browser event loop: the existing service can pay an ordinary
+     // step after presentation, before the next display callback. It admits no
+     // additional wall time; these timestamps remain the only source of debt.
+     const waiting=performance.now();
+     while(!nativeSimulationFrame.transitionReady(s)){
+       check(performance.now()-waiting<5000,'Background physics failed to pay a displayed interval');
+       await new Promise(resolve=>setTimeout(resolve,0));
+     }
+     steps+=Math.round((nativeSimulation.seconds(s)-beforeStep)/nativeSimulationFrame.fixedStep);
    }
    dispatch('keyup','KeyW');dispatch('keyup','KeyD');
    check(steps===120,'Display refresh changed physics work '+hz+' '+steps);
@@ -218,8 +232,9 @@ SCENARIO=r"""async () => {
  check(localStorage.getItem(nativeSaveStorage.keys.dev)===devBeforeNormal,'Normal write changed the Dev slot');
  const combinedCharacters=devBeforeNormal.length+localStorage.getItem(nativeSaveStorage.keys.normal).length;
  const departure=retain(restored),travel=nativeNavigation.call('course',2);
- check(travel.ok===false&&travel.error.includes('catching up'),'Actual travel controller skipped unpaid physical steps');
- check(retain(restored)===departure&&!vexedWarp.active,'Rejected overloaded travel consumed resources or changed jobs');
+ check(travel.ok&&vexedWarp.active&&!vexedWarp.snapshot().committed&&!vexedWarp.assetsReady,'Travel must wait for unpaid physical steps before planning or committing');
+ check(retain(restored)===departure,'Pending overloaded travel consumed resources or changed jobs');
+ vexedWarp.reset();
  window.__nativeFrame(performance.now());
  return {outcomes,offscreenPaints:30,crossingBeamRetained:true,unpaidTravelDeferred:true,largeSave:{population:5000,characters:stored.length,combinedCharacters,twoLargeModeSlots:true,exactRetainedState:true,write:saved,cost:nativeSaveStorage.metrics()},
    notes:['60/120/144 are synthetic host timestamps for correctness, not delivered monitor refresh measurements.','Large-save timing here is diagnostic; use the separate sequential timing harness for comparisons.']};

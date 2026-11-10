@@ -15,6 +15,55 @@ sizes, aligned damage artwork, shared lighting and charge/recharge combat remain
 
 ## Saved equipment and fitting
 
+The finished Federation collection contains 45 animated entries. Forty-three normal
+classes are offered through the existing Mars planet shop, alongside its previous
+stock. The two Constitution variants retain their original Dev-only
+availability. Other ports, prices and standing requirements retain their rules.
+`federation-ships.js` supplies the common finished list to both shop presentation
+and the existing verified purchase controller. The eleven intact-only Tug II
+variants remain excluded.
+
+The previously missing Armored Freight Tug II-A uses stable ID 416. Its original
+four transparent damage plates and measured lamp pixels run through the shared
+Earth animation, lighting, damage and physical debris owners. Its 150 hull,
+200 shields, 2,000 t cargo and 21,000 latinum price distinguish its armored hull
+from the existing Tug II. Flight height matches that tug; preview canvases retain
+their independent display scale. `tools/build-federation-profile.py` measures
+the existing fixtures without rewriting any image.
+
+The thirteen installed-showcase hulls (433–445) retain their 52 original transparent
+PNG frames and measured masked-lamp/breach profiles in `new-ship-profiles.js`.
+`showcase-assets/new-ship-art/federation-import.json` records their original hashes.
+The active showcase and game share this same artwork and Earth renderer, including
+green navigation lamps. Class 9 and Delta Flyer use the Runabout's small-craft
+balance/flight height; Intrepid, Defiant, Galaxy and Excelsior artwork uses its
+existing class balance and flight height. NX uses Miranda and Sagan uses Sovereign
+as the initial balance reference. Preview size never determines flight size.
+All thirteen are normal shop/NPC entries; the two existing Constitution variants
+remain Dev-only. The complete collection is 45 animated out of 56 entries; the
+eleven unfinished Tug II variants remain excluded from gameplay.
+
+`federation-fleet.js` now places all 42 finished non-medical normal Federation
+classes in Earth-owned NPC traffic. Large hulls are less common; named Dev-only
+Constitutions and unfinished variants stay excluded. Olympic medical coverage
+remains 100 of the same 1,200 crews. Patrol hulls receive saved interstellar
+repositioning duties through `npc-lives.js`; support hulls retain freight work.
+No extra fleet or physics loop is created.
+
+Existing saves queue missing classes for free Earth crews. Roster version 2
+extends the saved queue and retains all prior commissioning/equipment accounting.
+Surplus crews already in Federation hulls may refit after completing work, while
+retaining at least the existing per-class quota. Paid deliveries,
+cargo, claims, identities and deadlines finish normally before the crew can
+report to a real berth. Shared hull fitting commissions the replacement there,
+retaining owned equipment, credits, pose and hull/shield fractions. Faction-issued
+hulls and standard gear are recorded once in `life.federationFleet`; Continue
+cannot reissue them. The ship moves to parking through the ordinary motion owner
+before taking its new duty. Dedicated resident miners and medical crews retain
+their jobs. Bootstrap and travel workers load the same duty data. Run the
+Federation ship/NPC Node and browser regressions, plus the common equipment,
+economy and physical-debris checks.
+
 The Dev ship selector includes Kirk's I.S.S. Enterprise NCC-1701 (426) and the
 unmarked Constitution Class (427). `constitution-ships.js` registers their shared
 flight definitions: 200 hull, 200 shields, 150 t cargo, three weapon bays, two Dot
@@ -111,9 +160,8 @@ keeps that cargo in an available tile. Quantities, contracts, upgrades and charg
 remain with their authoritative owners. Moves save immediately, and failed
 writes are reported by the inventory. No free item appears because a bay exists.
 A shieldless hull starts with an empty shield bay. Removing the shield system
-removes shielding; removing engineering retains basic propulsion at the original
-Saber flight speed (20 rating / 90 world units per second), including thrust,
-steering, braking and shipyard departure. Reinstallation
+removes shielding; removing engineering leaves the hull's permanent thrusters
+available for slow thrust, steering, braking and shipyard departure. Reinstallation
 does not refill shield charge. A hull's existing mineral upgrades remain saved;
 an installed engine retains its owned Tug engine upgrade when moved or stored.
 
@@ -128,7 +176,7 @@ fitted engine's rating; owned Tug Mk tuning adds its existing 15 points per leve
 Those bonuses do not boost an empty engineering bay. Local cruise keeps its
 original Intrepid/Saber benchmarks and scales beyond its former cap for upgraded
 engines. Saved equipment IDs, tuning and empty bays survive reload unchanged.
-No equipment/save version migration is needed: existing Standard instances read
+No equipment version migration is needed: existing Standard instances read
 the updated model and definitions; new engines use the same version-2 schema.
 
 All three models use original generated PNG artwork in the equipment slot,
@@ -162,6 +210,22 @@ dilithium retain their existing strategic-resource units. Old overloaded saves
 are retained without loss; Inventory shows the excess and purchases/loading
 cannot add cargo beyond capacity. Sell, consume or deliver it before buying a
 smaller hull. Company loading and restocking also reserve room for repair material.
+
+Shield units remain owned and fitted when their protection reaches zero.
+Inventory's **Repair shields** action restores the fitted capacity for one
+dilithium per ten missing shield points, rounded up. Port Repairs offers the
+same shield-only service for one latinum per two missing points, rounded up.
+Dev service is free. The shared repair owner records these sinks and verifies
+the save before keeping the repair; a failed save rolls back protection,
+payment and ledger. Hull condition, equipment identities and existing automatic
+deflector recharge remain independent of shield maintenance.
+
+Projectile launch velocity includes the shooter's authoritative velocity.
+Leading and torpedo guidance use that same launch frame; the inherited vector
+is saved with the shot. A later turn by the launcher cannot steer an unguided
+shot or remove a torpedo's inherited drift. Firing eligibility still rejects
+targets outside the fitted weapon's actual range. Older saved shots without those
+fields retain zero inherited velocity. Player and NPC firing share these rules.
 
 ## Crew decisions
 
@@ -259,3 +323,136 @@ Performance uses the same initial save, fleet, browser and 1280×850 viewport.
 Compare `browser-npc-performance.py` and `browser-stability.py --measure`
 before/after with that saved fixture. CPU costs and delivered-frame spikes are
 reported separately; correctness checks alone do not establish smoothness.
+
+
+## Permanent hull thrusters
+
+Every ship has built-in thrusters, separate from the five equipment banks. They
+cannot be removed, stored, sold or transferred with an engine. The hull definition
+owns emergency speed, acceleration, braking and turning; default emergency speed
+depends on physical mass (27 to 97.5 world units per second). A shared 50% boost
+applies to speed, acceleration and braking after hull-specific baseline values
+and overrides, before upgrades. Existing saves receive the same boost with their
+installed level retained; turning and normal main-engine speed stay unchanged.
+Custom definitions can supply `thrusters` values. Player and NPC controllers use
+the same effective definition and shared motion integration.
+
+`ship-definitions.js` exposes `nativeShipThrusters` for migration, profiles and
+quotes. Each holder saves `shipThrusters: {version:1, hullType, generation, level}`.
+Equipment reconciliation supplies level zero to legacy ships without altering
+equipment, hull condition, cargo or money. Levels belong to the individual hull;
+equipment swaps retain them, while explicit hull replacement (including the same
+class) and a new NPC life generation reset them. Effective-stat cache signatures
+include the level. No thruster equipment model, locker item or extra bay exists.
+
+Three upgrades take Mk 1 to Mk 4. Each level adds 20% of the base emergency speed,
+thrust and braking, and 10% of base turning and powered handling. A healthy main
+engine's top speed stays unchanged. Upgrade prices are 1,000 / 3,000 / 6,000
+latinum, multiplied by two for hull mass at least 8, or three for mass at least
+32. Thrusters use no equipment slot, ore or refit points. Buy them in the port
+Shop's Services tab or a docked shipyard's Ship Upgrades tab. Inventory's ship
+panel has a fixed Thrusters tile beside the equipment bays, displaying the
+installed Mk and emergency speed across bay pages and other item selections.
+Selecting it opens read-only acceleration, braking, turning and upgrade-location
+details, including the existing compact-screen overlay. The tile has no equipment
+identity, drag target or fitting/removal controls. The shipyard schematic also
+displays the installed Mk and emergency speed.
+
+`shipyard-refits.js` owns purchases through its existing atomic verified-save
+transaction, including the latinum ledger. The native port bridge validates
+proximity before requesting a port purchase; ordinary shipyard purchases require
+actual docking. Insufficient funds, maximum level and failed saves preserve the
+prior credits and hull upgrade. Saving and Continue retain the installed level.
+
+An offline or absent main engine hands control to these weaker thrusters. Current
+momentum slows smoothly to the emergency limit; thrust, reverse, braking and
+steering remain available. Explicit cruise and approach profiles retain their
+approach limits and cannot bypass the emergency capabilities. A surviving player
+keeps manual thrust, reverse, braking and steering even in the critical-hull
+`disabled` phase. A repaired engine supplies its ordinary movement limits;
+an offline engine uses the hull's thrusters. This does not clear hull damage or
+the critical phase, which still suspends autopilot, warp and weapon operation.
+Destroyed hulls and disabled NPC propulsion remain unavailable.
+
+`thrusters.test.cjs` covers every hull, independent ownership, legacy migration,
+replacement, failed-save rollback, upgrades, reload and shared player/NPC motion.
+`browser-thrusters.py` exercises real port and docking-station purchases,
+Inventory display, engine removal, Continue, maximum level and rejected writes.
+November 7, 2026 verification: 91 relevant Node checks passed, together with the
+thruster, engine-failure, unified-equipment and device-maintenance browser checks.
+These are functional checks, not 120 FPS qualification.
+
+## Device condition and ore repairs
+
+Engine and shield equipment instances store `condition` from 0 to 100. Legacy
+instances migrate to 100 without changing hull health, shield energy, IDs or
+upgrades. Condition follows the item through fitting, storage and save/reload.
+Normal movement never wears equipment.
+
+`ship-damage.js` wears the fitted shield by absorbed damage / fully rated shield
+capacity, and the engine by hull damage / maximum hull, each times 100 condition
+points. `ship-definitions.js` includes condition in its effective-stat cache and
+scales shield capacity and engine speed/thrust proportionally. Zero condition
+retains the item but takes it offline; permanent hull thrusters provide weaker
+control while the shared movement owner preserves momentum through the handoff.
+Hull disablement remains a separate state.
+
+While a fitted engine is partially damaged, the shared motion integrator brings
+existing excess speed down at the available engine/thruster braking rate instead
+of clipping velocity to the new speed limit in one step. This also applies to
+reverse flight and cruise/approach commands. The lower rated speed and thrust
+take effect immediately; current momentum settles over subsequent physical
+steps. At zero condition, built-in thrusters support slow thrust, steering and
+braking. Ore repairs restore main-engine power without resetting velocity, and
+Continue resumes the same slowdown
+from saved velocity/condition with no extra transient save fields.
+`engine-failure-motion.test.cjs` covers real damage, all flight commands, NPCs,
+complete failure, repairs and midway reload alongside the existing motion and
+device-condition checks. `browser-engine-failure.py` verifies the same transition
+with actual flight keys, reserve controls at zero condition, and a paid Inventory
+repair that retains velocity and the same saved equipment instance.
+
+Repairing an engine does not clear combat hull damage, but manual player flight
+works immediately at the repaired engine's actual limits, including at 10% hull
+with no active DOT mission. Inventory's repair result states that manual control
+remains available. The normal Repair button explicitly
+requests hull recovery through `ship-repairs.recoverPlayer`, launching the owned
+DOTs even in Manual mode or queuing one existing medical distress call when
+repair material or operational DOTs are unavailable. Repeated requests retain
+the current mission/call. Full hull repair and recovered drones clear the critical
+phase without resetting the player's velocity; an already repaired stale
+disabled state can also recover.
+This action does not change the saved Manual/Auto preference or repair devices
+as a side effect. The engine-failure browser check verifies actual turning and
+thrust before hull repair, after Continue, and after full recovery. Critical
+damage cancels autopilot without erasing the player's held manual input or
+converting commanded momentum into collision drift.
+
+Distress Call is available beside the flight Repair button and in Inventory's
+repair controls when the damaged hull needs more deuranium than is aboard, or
+no operational DOT is fitted. This includes partial shortages and damaged ships
+that remain flyable. `playerDistressStatus` reads eligibility; the verified
+`requestPlayerDistress` action saves one `playerRequested:true` call through the
+existing medical queue, rolling back a failed save. Queued, responding and
+on-scene calls disable repeat requests and survive Continue. Existing medical
+crews travel and repair with their owned DOTs and finite material; the request
+does not spawn crews, grant supplies or change Manual/Auto preference. The shared
+repair owner permits these explicit player assistance targets without changing
+automatic NPC distress eligibility. Footer status refresh is bounded to four
+reads per second, with immediate updates after actions. Browser coverage includes
+both buttons, a real six-DOT medical response, saved calls and mobile layout in
+`browser-distress-call.py`.
+
+Select an engine or shield card in Inventory to see its condition and repair
+quote. `ship-repairs.js` consumes actual Gallicite ore for engines and Trellium
+ore for shields, including port shield service. Each ton restores up to ten
+condition points; fitted shield repairs also restore energy, charging the larger
+of condition / 10 and missing energy / 10, rounded up. Stored shield repairs
+restore only that item. Hull repairs and automatic shield energy regeneration
+do not repair device condition. A failed verified save restores condition, ore,
+energy and accounting. Dev toolbar Repair restores hull, shield energy and
+fitted engine/shield condition for free, retaining stored device condition.
+
+Checks: `shield-maintenance.test.cjs` and `browser-shield-maintenance.py`, plus
+the unified equipment and Inventory layout regressions. Browser evidence stays
+in ignored `test-results/shield-maintenance/`.

@@ -10,6 +10,9 @@
 #galaxy-map .map-header{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 24px;background:#090909;border:0;border-bottom:1px solid #303030;box-shadow:none}
 #galaxy-map h2{margin:0;font-size:22px;font-weight:600;letter-spacing:0}
 #galaxy-map .map-location{margin:3px 0 0;color:#aaa;font-size:12px;line-height:1.4}
+#galaxy-map .map-header>div:first-child{min-width:0}
+#galaxy-map .map-coordinates{display:flex;flex-wrap:wrap;gap:2px 14px;margin:4px 0 0;color:#91d1df;font-size:12px;line-height:1.4;font-variant-numeric:tabular-nums}
+#galaxy-map .map-coordinates span{white-space:nowrap}
 #galaxy-map .map-controls{display:flex;align-items:center;gap:10px}
 #galaxy-map .map-zoom{display:flex;gap:1px}
 #galaxy-map .map-zoom button{width:42px;padding:5px;font-size:23px;line-height:1}

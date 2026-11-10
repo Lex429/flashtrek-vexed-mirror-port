@@ -27,7 +27,7 @@ test('Danube weapons, engines, hull shield, mining laser and DOT all drag out an
   const id=eq.slots[category][index];eq.instances[id].readyAt=93;
   assert.equal(api.moveInventory(s,{from:{type:'slot',category,index,key:'equipment:'+id},to:{type:'cell',index:20}}).ok,true,category);
   assert.equal(eq.slots[category][index],null);assert.equal(s.inventoryLayout.cells[20],'equipment:'+id);
-  if(category==='engineering'){assert.equal(w.nativeShipDefinitions.forEntity(s).movement.maxSpeed,90);assert.ok(w.nativeShipDefinitions.forEntity(s).movement.acceleration>0);}
+  if(category==='engineering'){const d=w.nativeShipDefinitions.forEntity(s);assert.equal(d.movement.maxSpeed,d.thrusters.maxSpeed);assert.ok(d.movement.acceleration>0);}
   if(category==='shield'){assert.equal(s.shields,0);assert.equal(w.nativeShipDefinitions.forEntity(s).shields,0);}
   if(category==='ability')assert.equal(s.miningTool,false);
   assert.equal(api.moveInventory(s,{from:{type:'cell',index:20,key:'equipment:'+id},to:{type:'slot',category,index}}).ok,true);

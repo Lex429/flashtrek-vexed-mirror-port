@@ -1,0 +1,91 @@
+#collectable-markers { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+#collectable-markers[hidden], #collectable-markers button[hidden], #collectable-reveal[hidden] { display: none; }
+.collectable-marker { position: absolute; width: max(44px,calc(48px * var(--relic-scale,1)),var(--collectable-hit-size,0px),calc(var(--collectable-size,6px) + 12px)); height: max(44px,calc(48px * var(--relic-scale,1)),var(--collectable-hit-size,0px),calc(var(--collectable-size,6px) + 12px)); transform: translate(-50%,-50%); padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; pointer-events: auto; isolation: isolate; }
+.collectable-marker img { position: absolute; left: 50%; top: 50%; display: block; width: var(--collectable-size,6px); height: var(--collectable-size,6px); transform: translate(-50%,-50%) rotate(var(--collectable-roll,0rad)); object-fit: contain; filter: drop-shadow(0 0 1px #b3fff36b) drop-shadow(0 0 2px #70dfe933); animation: collectable-signal-glow 3.8s ease-in-out var(--collectable-glow-delay,0s) infinite; }
+.collectable-marker:hover { background: transparent; }
+.collectable-marker:focus-visible { background: transparent; outline: 2px solid #8de8e7; outline-offset: 3px; }
+.collectable-marker-label, .collectable-marker small { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .2s; text-shadow: 0 1px 5px #000; }
+.collectable-marker-label { bottom: calc(100% + 15px); padding: 4px 7px; border: 1px solid #79c9c74d; border-radius: 3px; background: #0a1b26ed; color: #e0fff4; font-size: 11px; }
+.collectable-marker small { top: calc(100% + 14px); color: #a9e6e9; font-size: 8px; letter-spacing: .12em; }
+.collectable-marker:hover .collectable-marker-label, .collectable-marker:focus-visible .collectable-marker-label, .collectable-marker:hover small, .collectable-marker:focus-visible small { opacity: 1; }
+@keyframes collectable-signal-glow { 0%,100% { filter: drop-shadow(0 0 1px #b3fff34d) drop-shadow(0 0 2px #70dfe926); } 50% { filter: drop-shadow(0 0 1px #d9fff5cc) drop-shadow(0 0 4px #70dfe980); } }
+#collectable-markers[data-paused=true] *, #collectable-markers[data-paused=true] *::after, #collectable-reveal[data-paused=true] * { animation-play-state: paused; }
+#collectable-reveal { position: fixed; inset: 0; z-index: 10040; display: grid; place-items: center; padding: 24px; background: radial-gradient(ellipse at 30% 50%,#103c5066,transparent 65%),#030b13d9; backdrop-filter: blur(7px); }
+.collectable-reveal-card { position: relative; width: min(850px,100%); max-height: 100%; overflow: auto; display: grid; grid-template-columns: .95fr 1.2fr; border: 1px solid #8bddd77a; border-radius: 12px; background: linear-gradient(125deg,#112d3a,#0b1925 68%); box-shadow: 0 0 80px #4ddce61c,0 30px 90px #0009; animation: collectable-card-enter .35s ease-out both; }
+.collectable-dismiss { position: absolute; z-index: 2; right: 12px; top: 12px; width: 32px; height: 32px; padding: 0; border-color: #83b4bc55; background: #132b35; color: #c9e5e8; font-size: 24px; }
+.collectable-transporter { position: relative; display: grid; place-items: center; min-height: 370px; overflow: hidden; background: radial-gradient(ellipse at 50% 55%,#6be7f327,transparent 62%); }
+.collectable-pattern { position: relative; z-index: 1; width: 74%; height: 240px; display: grid; place-items: center; }
+.collectable-pattern img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 0 16px #68e3ef33); }
+.collectable-pad { position: absolute; bottom: 40px; width: 66%; height: 26px; border: 1px solid #9cfaff66; border-radius: 50%; opacity: .45; box-shadow: 0 0 12px #7af4ff22,inset 0 0 14px #7af4ff22; transition: opacity .35s ease,box-shadow .35s ease; }
+.collectable-transport-fx { position: absolute; z-index: 2; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+.collectable-transport-fx[hidden] { display: none; }
+.collectable-reveal-info { align-self: center; padding: 60px 34px 36px 8px; min-width: 0; }
+.collectable-eyebrow { display: block; color: #96eee6; font-size: 10px; font-weight: 700; letter-spacing: .19em; }
+.collectable-reveal-info h2 { margin: 15px 0 18px; color: #e8fff9; font-size: clamp(24px,3vw,36px); font-weight: 500; line-height: 1.15; overflow-wrap: anywhere; }
+.collectable-record { display: flex; flex-wrap: wrap; gap: 7px 14px; color: #b3d4da; font-size: 10px; letter-spacing: .07em; text-transform: uppercase; }
+.collectable-record span + span { color: #dfcda5; }
+.collectable-reveal-info p { color: #a6c3cf; font-size: 13px; line-height: 1.8; }
+.collectable-reveal-info .collectable-saved { margin: 20px 0; color: #a1e8c9; font-size: 11px; }
+.collectable-discovery { margin: 18px 0; padding: 10px 12px; border-left: 2px solid #6abbbf80; background: #18414a38; }
+.collectable-discovery > span { color: #91d1df; font-size: 9px; font-weight: 700; letter-spacing: .08em; }
+.collectable-reveal-info .collectable-discovery p { margin: 7px 0; color: #bfd4db; font-size: 12px; line-height: 1.65; }
+.collectable-discovery small { display: block; color: #8cabb6; font-size: 10px; line-height: 1.5; }
+.collectable-reveal-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.collectable-reveal-actions button { padding: 11px 13px; border-color: #77c9c97a; background: #19454c; color: #d5fff1; font-size: 11px; transition: background .2s,box-shadow .2s; }
+.collectable-reveal-actions button:hover { background: #245963; box-shadow: 0 0 18px #71e6e522; }
+.collectable-reveal-actions [data-keep-exploring] { background: transparent; color: #a8c8ce; border-color: #597f864d; }
+.collectable-source { display: inline-block; margin-top: 24px; color: #7babb7; font-size: 10px; text-decoration: none; }
+.collectable-source:hover { color: #b9f4ec; text-decoration: underline; }
+.collectable-clue-content { display: none; }
+#collectable-reveal[data-mode=clue] .collectable-transporter, #collectable-reveal[data-mode=clue] .collectable-reveal-info { display: none; }
+#collectable-reveal[data-mode=clue] .collectable-reveal-card { width: min(620px,100%); grid-template-columns: 1fr; }
+#collectable-reveal[data-mode=clue] .collectable-clue-content { display: block; padding: 48px 32px 28px; }
+.collectable-clue-reference { display: flex; align-items: center; gap: 22px; margin: 0 0 24px; padding: 14px 20px; min-height: 124px; border: 1px solid #638d9b44; border-radius: 8px; background: radial-gradient(ellipse at 10% 50%,#3d748f38,transparent 70%),#07111e80; }
+.collectable-clue-planet { position: relative; display: grid; place-items: center; width: 112px; height: 112px; flex: none; }
+.collectable-clue-planet img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 14px #68c8e229); }
+.collectable-clue-planet img[hidden] { display: none; }
+.collectable-clue-planet > span { position: absolute; color: #7196a4; font-size: 40px; font-weight: 300; }
+.collectable-clue-planet img:not([hidden]) + span { display: none; }
+.collectable-clue-reference figcaption { display: grid; gap: 8px; min-width: 0; }
+.collectable-clue-reference figcaption > span { color: #7eabba; font-size: 8px; font-weight: 700; letter-spacing: .15em; }
+.collectable-clue-reference strong { color: #d8eff5; font-size: 21px; font-weight: 500; overflow-wrap: anywhere; }
+.collectable-clue-reference small { color: #96bccb; font-size: 11px; line-height: 1.5; }
+.collectable-clue-content h2 { margin: 12px 0 14px; color: #e0f8f3; font-size: clamp(22px,4vw,28px); font-weight: 500; line-height: 1.25; }
+.collectable-clue-progress { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 16px; color: #839eab; font-size: 10px; }
+.collectable-clue-progress strong { color: #9cdace; font-weight: 500; }
+.collectable-clue-reference[hidden] { display: none; }
+.collectable-clue-content [data-collectable-rumour] { margin: 20px 0; color: #bcd8df; font-size: 14px; line-height: 1.85; }
+.collectable-clue-locked { padding: 18px; color: #91acb9; border: 1px dashed #5b8a9766; border-radius: 6px; background: #09182366; font-size: 14px; line-height: 1.7; }
+.collectable-clue-content .collectable-clue-help { margin: 22px 0; color: #799fae; font-size: 11px; line-height: 1.6; }
+.collectable-clue-content button { min-height: 44px; padding: 10px 16px; color: #d5fff1; border-color: #77c9c97a; background: #19454c; }
+.collectable-clue-content button:hover { background: #245963; }
+@media(max-width:620px) {
+  #collectable-reveal[data-mode=clue] .collectable-clue-content { padding: 48px 18px 24px; }
+  .collectable-clue-reference { gap: 12px; padding: 10px; min-height: 90px; }
+  .collectable-clue-planet { width: 76px; height: 76px; }
+  .collectable-clue-reference strong { font-size: 17px; }
+}
+#collectable-reveal[data-phase=transport] .collectable-pattern img { opacity: 0; }
+#collectable-reveal[data-phase=transport] .collectable-pad { opacity: 1; box-shadow: 0 0 22px #7af4ff55,inset 0 0 18px #7af4ff44; }
+#collectable-reveal[data-phase=complete] .collectable-pattern img { animation: collectable-hover 9.6s ease-in-out infinite; }
+#collectable-reveal[data-phase=complete][data-paused=true] .collectable-pattern img { animation-play-state: paused; }
+@keyframes collectable-hover {
+  0%,100% { transform: translate(0,0) rotate(0deg); }
+  25% { transform: translate(var(--collectable-hover-sway,4px),calc(var(--collectable-hover-rise,-7px) * .5)) rotate(1.4deg); }
+  50% { transform: translate(calc(var(--collectable-hover-sway,4px) * .25),var(--collectable-hover-rise,-7px)) rotate(.2deg); }
+  75% { transform: translate(calc(var(--collectable-hover-sway,4px) * -.75),calc(var(--collectable-hover-rise,-7px) * .6)) rotate(-1.1deg); }
+}
+@keyframes collectable-card-enter { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+@media(max-width:620px) {
+  #collectable-reveal { padding: 12px; }
+  .collectable-reveal-card { grid-template-columns: 1fr; }
+  .collectable-transporter { min-height: 180px; height: 190px; }
+  .collectable-pattern { width: 50%; height: 145px; --collectable-hover-rise: -4px; --collectable-hover-sway: 2px; }
+  .collectable-pad { bottom: 15px; width: 45%; }
+  .collectable-reveal-info { padding: 10px 22px 24px; }
+  .collectable-reveal-info h2 { margin: 10px 0 14px; }
+  .collectable-reveal-info p { font-size: 12px; }
+  .collectable-source { margin-top: 18px; }
+}
+@media(max-height:600px) and (min-width:621px) { .collectable-transporter { min-height: 300px; }.collectable-reveal-info { padding-block: 30px; } }
+@media(prefers-reduced-motion:reduce) { #collectable-markers *,#collectable-markers *::after,#collectable-reveal * { animation: none !important; transition: none !important; } }

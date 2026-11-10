@@ -13,7 +13,7 @@ Andoria and Tellar, followed by orbital bombardment. Rebellion, the Klingon adva
 a border conflict, the Earth–Klingon battle and its aftermath follow. The ending
 shows more of the game's existing worlds before returning to Earth and the title.
 
-Twenty existing ship classes include both Constitution variants, civilian
+Nineteen visible ship classes include both Constitution variants, civilian
 runabouts, shuttles and tugs, an Olympic, and several distinct Imperial, Klingon,
 Vulcan and Romulan hulls. Sixteen world artworks are loaded from the actual system
 catalog. Gallery shots identify the separate worlds being shown. The archive
@@ -57,6 +57,25 @@ renderer and GPU presentation. `cinematic-battle-v2` is the exact profile select
 from the user's showcase page: shared cinematic shields, weapons, hull sparks,
 weapon illumination and lens flares. This version is also released to normal
 gameplay through the effect lab's measured staging/promotion workflow.
+
+The film presents on every display animation callback, with no 30 FPS throttle.
+Its audio clock and fixed combat steps are unchanged. Camera cuts ease in over
+0.65 seconds and out over 0.55 seconds, shortened only for cuts too brief to
+retain a visible middle. The Canvas scene and GPU overlay share the fade,
+including the final title fade. `tests/browser-opening-frame-pacing.py` checks
+120 Hz and 165 Hz scheduling and paused frames with stubbed rendering/audio;
+that deterministic scheduling check is not a hardware performance benchmark.
+
+Film shot impacts use their fork's damage callback and skip ordinary gameplay
+resolution notifications. Asteroid chips bind cached textures during painting
+from the film's loaded artwork, using the shared fragment texture helper.
+
+The October 26 module audit is recorded in generated evidence at
+`test-results/opening-frame-pacing/effect-audit.json`. The five effect modules
+and shield shader match the earlier passing foreground 50-ship test exactly.
+The current adapter additionally supports GPU running lamps. That historical
+passing fixture had 44-pixel hulls, lights off and no destruction; its approval
+does not extend to the film's larger hulls, lights and destruction workload.
 
 Damage preparation permits three simultaneous base-art requests. Its isolated
 optional cache is bounded to 24 classes / 384 MiB; this sequence prepares 20
@@ -117,3 +136,13 @@ verification uses `tools/validate_effect_game.py`. Renderer timing and headless
 results must not be represented as a foreground 120 FPS approval. The existing
 player-combat unit assertion expecting only x/y in a richer damage contact remains
 a separate, pre-existing failure.
+
+Final verification evidence (October 25, 2026): the full film reached 99.21 s
+before its natural ending, with 16 worlds visited, 34 actual destructions, and
+no browser errors. Decoded narration is exactly 99.31 s, its first active speech
+is at 3.12 s, and the default listening preview has zero clipping samples.
+The current 25-ship, mixed-damage, 70-pixel, lights-on headless gameplay fixture
+is functionally valid with all 25 ships visible and zero errors, but below the
+120 FPS lab target: 8.56 FPS on Brave / NVIDIA RTX 5070 Laptop GPU. This is not a
+foreground performance approval. The full Node run passed 402 of 403 tests;
+the sole failure is the pre-existing player-combat contact-shape assertion.

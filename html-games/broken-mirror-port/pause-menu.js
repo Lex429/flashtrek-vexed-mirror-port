@@ -9,12 +9,14 @@
       <button data-display="fullscreen"><strong>Full screen</strong><span>Fill your monitor.</span></button>
       <button data-display="windowed"><strong>Windowed</strong><span>Fill the browser area.</span></button>
       <button data-display="classic"><strong>Classic view</strong><span>Centered original 4:3 layout.</span></button>
-    </div><p class="pause-feedback" role="status"></p><button data-back>Back</button></div></div>`;
+    </div><p><button id="pause-sound-toggle" type="button">Sound effects on</button></p><p class="pause-feedback" role="status"></p><button data-back>Back</button></div></div>`;
   stage.appendChild(overlay);
   const home=overlay.querySelector('.pause-home'),options=overlay.querySelector('.pause-options');
   let bridge=null,returnFocus=null,disabled=[],inertChildren=[];
   function feedback(text){overlay.querySelector('.pause-feedback').textContent=text;}
-  function sync(){for(const button of overlay.querySelectorAll('[data-display]'))button.setAttribute('aria-pressed',String(button.dataset.display===window.nativeView.selection));}
+  function sync(){for(const button of overlay.querySelectorAll('[data-display]'))button.setAttribute('aria-pressed',String(button.dataset.display===window.nativeView.selection));const sound=overlay.querySelector('#pause-sound-toggle'),enabled=window.nativeMenuSounds?.enabled!==false;sound.textContent=enabled?'Sound effects on':'Sound effects off';sound.setAttribute('aria-pressed',String(enabled));}
+  overlay.querySelector('#pause-sound-toggle').onclick=()=>window.nativeMenuSounds?.setEnabled(!window.nativeMenuSounds.enabled);
+  addEventListener('native-soundchange',sync);
   function show(screen='home'){
     if(overlay.hidden){
       returnFocus=document.activeElement;overlay.hidden=false;
@@ -40,9 +42,11 @@
   overlay.querySelector('[data-hub]').onclick=async()=>{if(bridge?.active()&&!bridge.save()?.ok){overlay.querySelector('[data-pause-title]').textContent='Save failed';return;}if(document.fullscreenElement)await document.exitFullscreen();if(parent!==window&&typeof parent.closeOverlay==='function')parent.closeOverlay();else close();};
   for(const button of overlay.querySelectorAll('[data-display]'))button.onclick=async()=>{try{await window.nativeView.choose(button.dataset.display);sync();feedback('Display updated.');}catch{feedback('Full screen could not open. You can use Windowed or Classic view.');sync();}};
   addEventListener('keydown',event=>{
+    if(window.nativeCollectablesView?.active){if(event.key==='Escape'&&!event.repeat){event.preventDefault();event.stopImmediatePropagation();window.nativeCollectablesView.close();}return;}
     if(window.nativeOpeningCinematic?.active)return;
     if(event.key==='Escape'){
       if(!document.getElementById('startup').hidden||event.repeat)return;
+      if(window.nativeShipInventory?.active){event.preventDefault();event.stopImmediatePropagation();window.nativeShipInventory.close();return;}
       if(window.nativeShipyardServices?.active){event.preventDefault();event.stopImmediatePropagation();window.nativeShipyardServices.close();return;}
       if(window.nativeGalaxyMap?.isOpen){event.preventDefault();event.stopImmediatePropagation();window.nativeGalaxyMap.close();return;}
       if(window.nativeSetup?.active){event.preventDefault();event.stopImmediatePropagation();window.nativeSetup.back();return;}

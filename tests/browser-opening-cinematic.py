@@ -20,6 +20,10 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(ROOT)))
 threading.Thread(target=server.serve_forever,daemon=True).start()
 errors=[]
+warnings=[]
+def wait_ready(page):
+    page.wait_for_function('()=>nativeOpeningCinematic.snapshot().ready||document.querySelector(".opening-status").textContent.includes("could not load")',timeout=120000)
+    assert page.evaluate('nativeOpeningCinematic.snapshot().ready'),(page.locator('.opening-status').inner_text(),warnings)
 try:
     with sync_playwright() as p:
         channel=os.environ.get('BROWSER_CHANNEL','msedge')
@@ -27,6 +31,7 @@ try:
         page=browser.new_page(viewport={'width':1600,'height':1000},reduced_motion='reduce')
         page.add_init_script('''(()=>{const BaseAudio=window.Audio;window.__filmMedia=[];window.Audio=function(...args){const a=new BaseAudio(...args);__filmMedia.push(a);return a;};window.Audio.prototype=BaseAudio.prototype;})();''')
         page.on('pageerror',lambda error:errors.append(str(error)))
+        page.on('console',lambda message:warnings.append(message.text) if message.type=='warning' else None)
         page.on('response',lambda r:errors.append(f'{r.status} {r.url}') if r.status>=400 else None)
         base=f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/'
         page.goto(base+'index.html')
@@ -39,7 +44,7 @@ try:
         page.locator('input[name="government"]').fill('Earth Empire')
         before=page.evaluate('JSON.stringify([nativeSaveStorage.read("normal"),nativeSaveStorage.read("dev")])')
         page.locator('.setup-primary').click()
-        page.wait_for_function('()=>nativeOpeningCinematic.snapshot().ready',timeout=120000)
+        wait_ready(page)
         assert page.locator('#opening-cinematic').is_visible()
         assert not page.evaluate('document.body.classList.contains("playing")')
         assert page.evaluate('JSON.stringify([nativeSaveStorage.read("normal"),nativeSaveStorage.read("dev")])')==before
@@ -126,7 +131,7 @@ try:
         page.goto(base+'index.html')
         page.wait_for_function('()=>window.nativeOpeningCinematic&&document.querySelector("#startup").hidden',timeout=120000)
         page.locator('#menu-opening-film').click()
-        page.wait_for_function('()=>nativeOpeningCinematic.snapshot().ready',timeout=120000)
+        wait_ready(page)
         assert page.evaluate('nativeOpeningCinematic.snapshot().settings.narration')==.73
         assert page.evaluate('nativeOpeningCinematic.snapshot().settings.music')==.21
         assert page.evaluate('nativeOpeningCinematic.snapshot().settings.effects')==.32

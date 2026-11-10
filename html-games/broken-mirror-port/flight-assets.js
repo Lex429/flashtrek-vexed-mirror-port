@@ -8,7 +8,7 @@
   const preparation={imageLoads:0,imageLoadMs:0,imageDecodeMs:0,ships:0,catalogMs:0,alignmentMs:0,effectsMs:0,unlitMs:0,wallMs:0},recentPreparation=[];
   const imageTimings=new WeakMap(),clock=()=>globalThis.performance?.now?.()??Date.now();
   let imageBytes=0,shipBytes=0,renderEpoch=0;
-  let catalogPromise, warpRing;
+  let catalogPromise, warpRing, warpFlash;
   const shipSizes=new Map(window.VexedFlightReference.shipSizes.map(ship=>[ship.id,ship]));
   function flightDimensions(shipSize,zoom){
     const shared=window.nativeShipDefinitions?.presentation(shipSize?.id);
@@ -154,7 +154,7 @@
   }
 
   function drawShip(ctx, asset, x, y, width, angle, time, appearance = {}) {
-    if (!asset) return;
+    if (!asset || (appearance.alpha ?? 1) <= 0) return;
     if(window.nativeFlightLightingEnabled===false)appearance={...appearance,lights:false,light:null};
     const height = appearance.height ?? width * asset.height / asset.width;
     const source=appearance.light,localLight=source?{direction:(source.direction??Math.atan2(source.y-y,source.x-x))-angle,color:source.color,
@@ -163,19 +163,41 @@
     if(window.nativeHullBatch?.queueShip(ctx,asset,x,y,width,height,angle,time,rasterAppearance))return;
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = appearance.imageSmoothingQuality === 'low' ? 'low' : appearance.imageSmoothingQuality === 'medium' ? 'medium' : 'high';
     ctx.translate(x, y);ctx.rotate(angle);ctx.scale(appearance.squeezeX ?? 1, 1);
     ctx.globalAlpha *= appearance.alpha ?? 1;
     const cached=window.nativeShipSpriteCache?.draw(ctx,asset,width,height,time,rasterAppearance);
     if(!cached){ctx.drawImage(asset.art, -width / 2, -height / 2, width, height);
       asset.profile?.effects.draw(ctx, {x:0, y:0, w: width, h: height}, 0, asset.damageStage, time,
-      {lights: appearance.lights !== false, damage: appearance.damage !== false, lightGain: appearance.lightGain??2.8, lightBloom: appearance.lightBloom??2.5});
+      {lights: appearance.lights !== false, damage: appearance.damage !== false, nacelleCharge:appearance.nacelleCharge, lightGain: appearance.lightGain??2.8, lightBloom: appearance.lightBloom??2.5});
     }
     ctx.restore();
   }
 
   function loadWarpRing() {
+    if(typeof document!=='undefined'&&document.createElement)flashTexture();
     return image('assets/warp/warp-ring.png').then(art => {warpRing=art;return art;});
+  }
+  function flashTexture(){
+    if(warpFlash)return warpFlash;
+    const art=document.createElement('canvas');art.width=art.height=256;
+    const g=art.getContext('2d'),center=128,glow=g.createRadialGradient(center,center,0,center,center,126);
+    glow.addColorStop(0,'#ffffff');glow.addColorStop(.07,'#efffff');glow.addColorStop(.16,'#a9eeffdd');glow.addColorStop(.4,'#52bfff55');glow.addColorStop(1,'#247aff00');
+    g.fillStyle=glow;g.fillRect(0,0,256,256);g.translate(center,center);
+    g.globalCompositeOperation='lighter';
+    for(const [angle,length,width] of [[0,122,3],[Math.PI/2,97,2],[Math.PI/4,54,1],[-Math.PI/4,54,1]]){
+      g.save();g.rotate(angle);const ray=g.createLinearGradient(-length,0,length,0);
+      ray.addColorStop(0,'#74cdff00');ray.addColorStop(.43,'#b8f5ff88');ray.addColorStop(.5,'#ffffff');ray.addColorStop(.57,'#b8f5ff88');ray.addColorStop(1,'#74cdff00');
+      g.fillStyle=ray;g.beginPath();g.moveTo(-length,0);g.lineTo(0,-width);g.lineTo(length,0);g.lineTo(0,width);g.closePath();g.fill();g.restore();
+    }
+    warpFlash=art;return art;
+  }
+  function drawWarpFlash(ctx,flash){
+    if(!flash||flash.alpha<=0)return;
+    window.nativeShipSpriteCache?.flush?.(ctx);
+    const art=flashTexture(),r=flash.radius;
+    ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha*=flash.alpha;
+    ctx.drawImage(art,flash.x-r,flash.y-r,r*2,r*2);ctx.restore();
   }
   function drawWarpRing(ctx, ring, size) {
     if (!ring || !warpRing) return;
@@ -193,10 +215,10 @@
   function cacheSnapshot(){
     const unique=new Set(),count=art=>{if(!art||unique.has(art))return 0;unique.add(art);return (art.width||art.naturalWidth)*(art.height||art.naturalHeight)*4;};
     let bytes=0;for(const entry of imageCache.values())bytes+=count(entry.art);for(const entry of shipCache.values())bytes+=count(entry.asset.art);
-    const loaderArt=unique.size;let auxiliaryBytes=count(warpRing);
+    const loaderArt=unique.size;let auxiliaryBytes=count(warpRing)+count(warpFlash);
     for(const art of planetCache.values())auxiliaryBytes+=count(art);for(const art of localBodyCache.values())auxiliaryBytes+=count(art);
     return {bytes,uniqueArt:loaderArt,totalOwnedByteEstimate:bytes+auxiliaryBytes,
-      auxiliary:{additionalBytes:auxiliaryBytes,planets:planetCache.size,localBodies:localBodyCache.size,warpRing:Boolean(warpRing)},
+      auxiliary:{additionalBytes:auxiliaryBytes,planets:planetCache.size,localBodies:localBodyCache.size,warpRing:Boolean(warpRing),warpFlash:Boolean(warpFlash)},
       source:{entries:imageCache.size,bytes:imageBytes,pending:imagePending.size},
       ships:{entries:shipCache.size,bytes:shipBytes,pending:shipPending.size,weakReferences:shipReferences.size,
         visibleEntries:[...shipCache.values()].filter(visible).length,renderEpoch},limits:{...cacheLimits,weakReferences:256},counters:{...cacheMetrics},
@@ -205,7 +227,7 @@
   // Active ships/effects own their references; eviction only releases this
   // loader's retention. Pending requests remain deduplicated during a reset.
   function resetCaches(){imageCache.clear();shipCache.clear();shipReferences.clear();imageBytes=shipBytes=renderEpoch=0;for(const key of Object.keys(cacheMetrics))cacheMetrics[key]=0;for(const key of Object.keys(preparation))preparation[key]=0;recentPreparation.length=0;}
-  window.vexedFlightAssets = {loadShip,peekShip,retainShip,beginRenderFrame, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing,cacheSnapshot,resetCaches, size:id=>shipSizes.get(Number(id))||(()=>{const d=window.nativeShipDefinitions?.dimensions({shipType:Number(id)});return d?{id:Number(id),playerWidth:d.width,playerHeight:d.height}:null;})(),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
+  window.vexedFlightAssets = {loadShip,peekShip,retainShip,beginRenderFrame, loadPlanet, loadLocalBody, drawShip, flightDimensions, loadWarpRing, drawWarpRing,drawWarpFlash,cacheSnapshot,resetCaches, size:id=>shipSizes.get(Number(id))||(()=>{const d=window.nativeShipDefinitions?.dimensions({shipType:Number(id)});return d?{id:Number(id),playerWidth:d.width,playerHeight:d.height}:null;})(),planet: id => planetCache.get(Number(id)),localBody:id=>localBodyCache.get(Number(id))};
   loadWarpRing().catch(()=>{});
   window.vexedFlightAssets.loadImage=image;
 })();

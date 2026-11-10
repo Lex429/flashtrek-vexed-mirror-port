@@ -25,11 +25,17 @@
     const amount=Math.min(mitigated,before.shields+Math.max(0,before.hull-floor)),absorbed=Math.min(before.shields,amount),hullDamage=Math.min(before.hull-floor,amount-absorbed);
     const contacts={shield:absorbed>0?collision(descriptor,impact,true):null,hull:hullDamage>0?collision(descriptor,impact,false):null};
     ship.shields=before.shields-absorbed;ship.hull=before.hull-hullDamage;
+    window.nativeShipEquipment?.damageDevices(ship,{absorbed,hullDamage,shieldMaximum:descriptor.definition.ratedShields??descriptor.definition.shields,hullMaximum:descriptor.definition.hull});
+    // The hit and the device wear share one publication, including shield geometry.
+    if(absorbed>0)ship.shields=Math.min(ship.shields,definitions.forEntity(descriptor.state,ship,{category:descriptor.category}).shields);
     // Damage can enter through an adapter/direct shared call as well as a shot.
     // Notify the same registry immediately when the active surface changes.
     if(descriptor.state&&(absorbed>0||hullDamage>0))window.nativeShipSystems?.refreshShip?.(descriptor.state,ship,descriptor.category,descriptor.system);
-    return {ok:true,requested,amount,absorbed,hullDamage,before,beforeStage,afterStage:definitions.stage(descriptor),contacts,
+    const result={ok:true,requested,amount,absorbed,hullDamage,before,beforeStage,afterStage:definitions.stage(descriptor),contacts,
       destroyed:ship.hull<=0,disabled:ship.hull>0&&disableHull>0&&ship.hull<=disableHull,shields:ship.shields,hull:ship.hull};
+    if(ship===descriptor.state)window.nativeShipVitals?.impact(descriptor,result);
+    window.nativeGameSounds?.impact(descriptor,result,impact);
+    return result;
   }
   window.nativeShipDamage=Object.freeze({apply,collision});
 })();

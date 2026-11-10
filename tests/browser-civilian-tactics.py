@@ -84,8 +84,7 @@ try:
               h.fit=(ship,kind)=>{const model=VexedMirrorWeapons.find(w=>w.damage>0&&nativeCombatShots.weaponVisual(w).kind===kind);delete ship.shipEquipment;delete ship.weaponLoadout;ship.weapons=[model.id];nativeWeaponLoadout.ensure(h.state(),ship,[model.id]);return model;};
             }"""
             page.evaluate(helper_source)
-            page.evaluate("Promise.all([47,56,58].map(type=>nativeShipEffects.prepare(type,'civilian')))")
-            page.wait_for_function("()=>[47,56,58].every(type=>nativeShipEffects.ready(type,'civilian'))", timeout=120000)
+            page.evaluate("async()=>{window.__tacticsPrepared=await Promise.all([47,56,58].map(type=>nativeShipEffects.prepare(type,'civilian')));if(__tacticsPrepared.some(value=>!value?.optionalReady))throw Error('Incomplete civilian fixture artwork');}")
             detection = page.evaluate("""() => {
               const h=__tactics,ship=h.fixture(),s=h.state(),shooter=h.copy(ship);Object.assign(shooter,{id:99002,name:'Projectile source',x:ship.x+400,heading:Math.PI});h.fit(shooter,'disruptor');
               s.civilianTraffic.ships.push(shooter);nativeNpcLives.initialize(s);ship.nextActionAt=shooter.nextActionAt=10000;
@@ -108,8 +107,9 @@ try:
             }""")
             pursuit = page.evaluate("""() => {
               const h=__tactics,ship=h.fixture(),s=h.state(),start={x:ship.x,y:ship.y};ship.shipType=s.shipType=52;h.fit(ship,'beam');
-              // Equal hulls and shared powered motion keep a pursuer nearby;
-              // neither controller receives a speed or steering advantage.
+              // Follow physically at a safe stand-off. An unrestricted full-
+              // throttle player can overtake a civilian that yields to traffic;
+              // that is no longer the trailing-pursuer scenario under test.
               const hardware=nativeShipDefinitions.forEntity(s,ship,{category:'civilian'});
               s.shipEquipment=h.copy(ship.shipEquipment);s.mineralUpgrades=h.copy(ship.mineralUpgrades||{});
               s.hull=hardware.hull;s.shields=hardware.shields;ship.hull=hardware.hull*.35;ship.shields=hardware.shields;
@@ -118,7 +118,7 @@ try:
               let originalGoal=null,minimumForward=1;
               for(let i=0;i<1800;i++){
                 const dt=nativeSimulation.advance(s,1/60),definition=nativeShipDefinitions.forEntity(s,s,{category:'player'});
-                nativeShipSystems.move(s,s,'player',{heading:0,throttle:1},definition.movement,dt);
+                nativeShipSystems.move(s,s,'player',{goal:{x:ship.x-300,y:ship.y},snap:false},definition.movement,dt);
                 nativeCivilianTraffic.advance(s,dt);nativeCombatShots.advance(s,dt);nativeShipEffects.advance(s,dt);
                 if(!originalGoal&&ship.combatAI.escapeGoal)originalGoal=h.copy(ship.combatAI.escapeGoal);
                 minimumForward=Math.min(minimumForward,Math.cos(ship.heading));
