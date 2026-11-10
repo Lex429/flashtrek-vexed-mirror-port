@@ -70,3 +70,32 @@ responsive without growing memory or simulation debt.
 If performance requires adjustable effects, retain the same authoritative
 physics, contracts, stocks, ship identities and save behavior. Measure any
 proposed visual setting on the device before claiming it solves the problem.
+
+## Initial diagnostic, 2026-11-10
+
+The initial frozen game snapshot and fresh save retain 1,210 entities. The
+unthrottled baseline completed all five scenarios without browser errors.
+With a 4x CPU slowdown after artwork readiness, the two ordinary-flight windows
+delivered approximately 9.4 and 6.5 FPS. Their final simulation backlogs were
+7.8 and 8.8 seconds. Those results fail the CPU screen and do not establish
+whether any particular Chromebook can run the game.
+All ten slowed gameplay windows completed without browser errors or failed
+requests, using the same game source and save hashes as the baseline. All ten
+missed the screen criteria; crowded combat delivered approximately 4.4–5.9 FPS.
+
+Both rendering and simulation consumed substantial wall time in the slowed
+windows. These instrumented measurements identify a performance problem to
+investigate; they do not isolate a particular function or measure GPU capacity.
+No gameplay, population, or visual-quality changes were made in this audit.
+
+The first experiment also applied CPU slowdown before initial artwork readiness.
+It timed out waiting for all optional effects to become ready after 120 seconds.
+That failed artifact is retained separately. The gameplay diagnostic deliberately
+separates initial loading from active-play measurements, and real-device loading
+remains a required check.
+
+Local evidence is under `test-results/performance-review/`: the
+`low-end-baseline-20261110.json`, `low-end-4x-20261110.json` (failed initial loading
+experiment), and `low-end-4x-gameplay-20261110.json` reports, with raw frame files,
+run logs and the separate `-screen.json` verdict. These are generated local
+artifacts, not repository assets or a Chromebook compatibility certificate.
