@@ -72,7 +72,7 @@ def main():
    ab,_=capture('overlap-combined','()=>{const r=shieldGPUReplay.renderer;r.hit(0,{x:30,y:0,born:0});r.hit(1,{x:-20,y:0,born:0});return r.render(100,{effects:true,ships:false});}')
    maxError=max(abs(min(255,max(0,a+b-c))-d) for a,b,c,d in zip(aa.tobytes(),bb.tobytes(),bg.tobytes(),ab.tobytes()))
    report['overlapAdditiveMaxChannelError']=maxError;check('overlapping fields accumulate light without occluding each other',maxError<=2)
-   budget=page.evaluate('''()=>{const r=shieldGPUReplay.renderer;let rejected=false;try{r.setFleet(new Array(129).fill(__qualityFleet[0]));}catch(e){rejected=true;}return rejected&&!r.hit(-1,{born:0});}''');check('fixed capacity and invalid hit rejection',budget)
+   budget=page.evaluate('''()=>{const r=shieldGPUReplay.renderer,before=r.snapshot();let rejected=false;try{r.setFleet(new Array(before.maxShips+1).fill(__qualityFleet[0]));}catch(e){rejected=true;}return rejected&&r.snapshot().ships===before.ships&&!r.hit(-1,{born:0})&&!r.hit(0,{born:NaN});}''');check('fixed capacity and invalid hit rejection',budget)
    report['resourcesEnd']=page.evaluate('shieldGPUReplay.renderer.snapshot()');check('no new texture uploads or retained GPU storage',report['resourcesStart']['textureUploads']==report['resourcesEnd']['textureUploads'] and report['resourcesStart']['textureBytes']==report['resourcesEnd']['textureBytes'] and report['resourcesStart']['bufferBytes']==report['resourcesEnd']['bufferBytes'])
    check('no GL errors',page.evaluate('shieldGPUReplay.renderer.gl.getError()')==0);check('no browser errors',not errors)
    page.evaluate('shieldGPUReplay.renderer.destroy()');check('explicit resource disposal',page.evaluate('shieldGPUReplay.renderer.snapshot().disposed'))
