@@ -115,7 +115,7 @@ try:
             if radar and page.locator('#native-radar').is_visible():assert bounds['x']+bounds['width']<=radar['x'] or bounds['y']+bounds['height']<=radar['y'],(width,bounds,radar)
             page.screenshot(path=str(OUT/f'defenses-{width}.png'))
         page.emulate_media(reduced_motion='reduce');page.evaluate('()=>{nativePlayerCombat.hit(__vitalsState,.1);nativeShipVitals.update(__vitalsState,{dt:.01});}')
-        assert panel.evaluate('(n)=>n.getAnimations({subtree:true}).length')==0
+        page.wait_for_function('()=>document.querySelector("#ship-vitals").getAnimations({subtree:true}).length===0')
         page.locator('#inventoryBtn').click();page.wait_for_function('()=>nativeShipVitals.snapshot().hidden')
         page.locator('.inventory-close').click();page.wait_for_function('()=>!nativeShipVitals.snapshot().hidden')
         saved=page.evaluate('''()=>{const s=__vitalsState;nativeShipVitals.update(s,{dt:0});if(!nativeSaveStorage.write(s).ok)throw Error('Save failed');return {hull:s.hull,shields:s.shields,maximum:nativeShipVitals.snapshot().values.shield.maximum};}''')

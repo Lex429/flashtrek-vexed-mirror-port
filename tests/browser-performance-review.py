@@ -9,6 +9,7 @@ import hashlib
 import http.server
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -242,10 +243,14 @@ def main():
     parser.add_argument('--distant-system',choices=['existing','current'],default='existing')
     parser.add_argument('--active-distant',action='store_true',help='Stagger added crews into the existing saved job scheduler instead of leaving them idle')
     parser.add_argument('--dpr',type=float,default=1)
+    parser.add_argument('--cpu-slowdown',type=float,default=1,
+                        help='CPU slowdown after game startup (for example 4); does not emulate another GPU or RAM limit')
     parser.add_argument('--width',type=int,default=1280)
     parser.add_argument('--height',type=int,default=850)
     parser.add_argument('--save-probe',action='store_true')
     args=parser.parse_args();OUTPUT.mkdir(parents=True,exist_ok=True)
+    if not math.isfinite(args.cpu_slowdown) or args.cpu_slowdown<1:
+        parser.error('--cpu-slowdown must be a finite number of at least 1')
     source=args.source_root.resolve()
     class Quiet(http.server.SimpleHTTPRequestHandler):
         def log_message(self,*_args):pass
@@ -255,6 +260,7 @@ def main():
     report={'label':args.label,'revision':args.revision_label,'sourceRoot':str(source),'viewport':{'width':args.width,'height':args.height},'randomSeed':args.seed,
         'harnessHashes':{name:hashlib.sha256((ROOT/'tests'/name).read_bytes()).hexdigest() for name in ['browser-performance-review.py','browser-stability.py','browser-npc-performance.py']},
         'fixtureSettings':{'population':args.population,'visibleShips':args.visible_ships,'mixedShips':args.mixed_ships,'distantSystem':args.distant_system,'activeDistant':args.active_distant,'dpr':args.dpr},
+        'cpuSlowdown':args.cpu_slowdown,'cpuThrottleScope':'after-game-startup','cpuThrottlingAppliedPages':0,
         'platform':platform.platform(),'secondsPerWindow':args.seconds,'runs':args.runs,'warmupSeconds':3,'activeWarmupSeconds':args.active_warmup,'warmups':{},
         'sourceHashes':{str(p.relative_to(source)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest()
             for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for p in sorted([*(source/folder).rglob('*.js'),*(source/folder).rglob('*.html')])},
@@ -266,6 +272,8 @@ def main():
     if args.capacity_matrix:
         report['fixtureSettings'].update(capacityMatrix=True,stationaryObserver=args.stationary_observer)
         report['notes'].append('Matrix-only RAF/paint wrappers count unique submitted artwork and visible rotated hull bounds per frame. Initial original-size hull artwork fits inside the actual game canvas; subsequent contacts and scattering are not reset. These wrappers and canvas-derived placement are absent from default core timing runs; the harness hash changes without changing that default execution path.')
+    if args.cpu_slowdown>1:
+        report['notes'].append('Game startup and initial artwork readiness run before CPU throttling. Subsequent setup, active recovery and recorded windows are throttled. This is not a slow-device cold-boot measurement. CDP renderer CPU throttling is relative to the host CPU, not calibrated Chromebook hardware. GPU, workers, browser-process memory and available RAM are not qualified by this setting. Headless frame timings are diagnostic, not physical display qualification.')
     if args.stationary_observer:report['notes'].append('The observer receives no scripted flight input. Physics, collisions and inherited momentum remain authoritative; this does not anchor the observer or freeze nearby ships.')
     def checkpoint(phase,**progress):
         report['progress']={'phase':phase,**progress}
@@ -307,6 +315,10 @@ def main():
                 page.wait_for_function('()=>nativeNpcDev.getState() && nativeSolAsteroids.placements.length',timeout=120000)
                 if warm:
                     page.wait_for_function('()=>nativeCivilianTraffic.effectsReady() && !nativeShipEffects.metrics().pending',timeout=120000)
+                if args.cpu_slowdown>1:
+                    cpu_session=page.context.new_cdp_session(page)
+                    cpu_session.send('Emulation.setCPUThrottlingRate',{'rate':args.cpu_slowdown})
+                    report['cpuThrottlingAppliedPages']+=1
                 return page
             page=page_open();report['device']=page.evaluate('({hardwareConcurrency:navigator.hardwareConcurrency,deviceMemory:navigator.deviceMemory,devicePixelRatio:devicePixelRatio,userAgent:navigator.userAgent})')
             if not args.fixture.exists():
