@@ -15,7 +15,7 @@ test('native travel transport unwraps observed fleet and docking data without dr
  workers[0].onmessage({data:{ok:true,planned:{next:clone,report:{id:'native-transfer'}}}});assert.equal((await planned).report.id,'native-transfer');assert.ok(workers[0].terminated);
 });
 test('travel transport retains JSON compatibility for unknown extension proxies and cancels its worker',async()=>{
- const workers=[],window={nativeSystemHub:{sol:[]},starterShips:new Map()};
+ const workers=[],window={nativeSystemHub:{sol:[]},starterShips:new Map(),nativeShipDefinitions:{registered:()=>[]}};
  class Worker{constructor(){workers.push(this);}postMessage(message){this.message=structuredClone(message);}terminate(){this.terminated=true;}}
  vm.runInNewContext(fs.readFileSync('html-games/broken-mirror-port/world-bootstrap.js','utf8'),{window,Worker,setTimeout,clearTimeout});
  const state={system:1,antimatter:90,extension:new Proxy({value:'Δ'}, {})},job=window.nativeWorldBootstrap.planTravel(state,{id:9});
@@ -26,13 +26,14 @@ test('travel transport retains JSON compatibility for unknown extension proxies 
  await assert.rejects(cancelled,/cancelled/);assert.ok(workers[1].terminated);assert.equal(state.antimatter,90);
 });
 test('travel streams the existing snapshot graph in bounded messages and restores a complete isolated result',async()=>{
- const workers=[],window={nativeSystemHub:{sol:[]},starterShips:new Map()};
+ const workers=[],window={nativeSystemHub:{sol:[]},starterShips:new Map(),nativeShipDefinitions:{registered:()=>[]}};
  class Worker{constructor(){this.messages=[];workers.push(this);}postMessage(message){this.messages.push(structuredClone(message));}terminate(){this.terminated=true;}}
  const scope=vm.createContext({window,Worker,setTimeout,clearTimeout,performance,requestAnimationFrame:fn=>setImmediate(fn)});
  for(const file of ['save-snapshot.js','world-bootstrap.js'])vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/'+file,'utf8'),scope);
  const state={system:1,antimatter:90,ships:Array.from({length:1500},(_,id)=>({id,credits:100.125,job:{funded:true,escrow:.875}})),debt:.0275};
  const promised=window.nativeWorldBootstrap.planTravel(state,{id:9});
- while(!workers[0].messages.some(message=>message.streamed))await new Promise(resolve=>setTimeout(resolve,2));
+ let preparationError;promised.catch(error=>{preparationError=error;});const deadline=Date.now()+5000;
+ while(!workers[0].messages.some(message=>message.streamed)){if(preparationError)throw preparationError;assert.ok(Date.now()<deadline,'Travel snapshot did not finish streaming');await new Promise(resolve=>setTimeout(resolve,2));}
  const parts=workers[0].messages.filter(message=>message.action==='travel-part'),final=workers[0].messages.at(-1),rows=[];
  assert.ok(parts.length>1);assert.equal(final.seed,undefined);assert.equal(final.text,undefined);
  for(const part of parts)for(const row of part.rows)rows[row.id]=row;
