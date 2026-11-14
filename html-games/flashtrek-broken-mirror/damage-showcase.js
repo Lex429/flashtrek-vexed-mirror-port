@@ -13,7 +13,7 @@
   const healthOverrides={};
   try{const saved=JSON.parse(localStorage.getItem('creatureHealth')||'{}');for(const [id,v] of Object.entries(saved))if(Number.isFinite(v)&&v>=1&&v<=100000)healthOverrides[id]=v;}catch{}
   const asteroidMaxHealth=()=>Math.round(clamp(45+(state.ship?.previewSize||250)*.19,65,150));
-  const stats=()=>droneShip()?{hull:state.ship.maxHealth,shields:0,weaponsRating:0}:structure()||artworkOnlyShip()?{hull:100,shields:0,weaponsRating:0}:asteroid()?{hull:state.ship.maxHealth||asteroidMaxHealth(),shields:0,weaponsRating:0}:creature()?{hull:healthOverrides[state.ship.id]||combat?.creatures?.[state.ship.id]?.health||100,shields:0,weaponsRating:0}:combat.ships[state.ship.id]||(tugDamageShip()||state.ship?.damageReady?{hull:100,shields:0,weaponsRating:0}:undefined),firingStats=()=>combat.ships[shooter.id];
+  const stats=()=>droneShip()?{hull:state.ship.maxHealth,shields:0,weaponsRating:0}:structure()||artworkOnlyShip()?{hull:100,shields:0,weaponsRating:0}:asteroid()?{hull:state.ship.maxHealth||asteroidMaxHealth(),shields:0,weaponsRating:0}:creature()?{hull:healthOverrides[state.ship.id]||combat?.creatures?.[state.ship.id]?.health||100,shields:0,weaponsRating:0}:combat.ships[state.ship.id]||(tugDamageShip()||state.ship?.damageReady||state.ship?.damageFramesReady?{hull:100,shields:0,weaponsRating:0}:undefined),firingStats=()=>combat.ships[shooter.id];
   const number=n=>Number(n.toFixed(2)).toLocaleString();
   const hullPoints=()=>state.hull*stats().hull/100,shieldPoints=()=>state.shields*stats().shields/100;
   function weaponCards(){

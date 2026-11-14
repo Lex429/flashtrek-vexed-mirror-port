@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import threading
 import time
+from urllib.parse import unquote, urlsplit
 
 from playwright.sync_api import sync_playwright
 
@@ -40,10 +41,13 @@ def check_player_loading(browser):
     player.on('pageerror', lambda error: errors.append(str(error)))
     pending, network = [], []
     released = {'damage': False, 'hull': False}
+    catalog = json.loads((ROOT/'html-games/flashtrek-broken-mirror/showcase-assets/catalog.json').read_text(encoding='utf-8'))
+    paths = {frame: (ship['id'], stage) for ship in catalog['ships'] if ship['id'] in (7, 36)
+             for stage, frame in enumerate(ship['frames']) if frame}
 
     def player_gate(route):
-        match = re.search(r'ship-(7|36)-(\d)\.png', route.request.url)
-        hull, stage = int(match.group(1)), int(match.group(2))
+        frame = unquote(urlsplit(route.request.url).path).split('/showcase-assets/', 1)[1]
+        hull, stage = paths[frame]
         network.append({'type': hull, 'stage': stage})
         kind = 'damage' if (hull, stage) == (7, 1) else 'hull'
         if ((hull, stage) == (7, 1) or (hull, stage) == (36, 0)) and not released[kind]:
@@ -58,7 +62,7 @@ def check_player_loading(browser):
                 route.continue_()
                 pending.remove((pending_kind, route))
 
-    player.route(re.compile(r'.*/ship-(7|36)-\d\.png(?:\?.*)?$'), player_gate)
+    player.route(re.compile(r'.*/showcase-assets/(?:' + '|'.join(re.escape(frame) for frame in paths) + r')(?:\?.*)?$'), player_gate)
     try:
         player.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
         player.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
