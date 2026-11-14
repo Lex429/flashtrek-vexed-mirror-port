@@ -142,7 +142,7 @@
   function activity(data){
     const phase=data.task?.phase||data.phase,goal=portName(data.task?.destination??data.destination??data.journey?.destination),source=portName(data.task?.origin??data.origin);
     if(data.phase==='destroyed')return ['Destroyed','This ship can no longer operate.'];
-    if(data.phase==='disabled')return ['Disabled',data.repairs?.mission?'Dot drones are repairing its hull.':data.repairs?.distress?'Broadcasting distress; awaiting Olympic medical assistance.':'Engines offline; checking repair supplies.'];
+    if(data.phase==='disabled')return ['Disabled',data.repairs?.mission?'Dot drones are repairing its hull.':(data.repairs?.reason?data.repairs.reason+'. ':'')+(data.repairs?.distress?'Broadcasting distress; awaiting medical assistance.':'Engines offline; awaiting assistance.')];
     if(data.phase==='fighting')return ['In combat','Engaging another ship.'];
     if(data.phase==='ore-theft')return ['Taking ore','Collecting ore claimed by another ship.'];
     if(data.journey)return ['Travelling to '+portName(data.journey.destination??data.journey.destinationSystem),'Flying between star systems.'];
@@ -191,7 +191,8 @@
       const dock=data.docking,label=dock.kind==='berth'?'Assigned berth '+(dock.slot+1):dock.kind==='queue'?'Waiting: '+dock.queuePosition+' of '+dock.queueLength:dock.kind==='overflow'?'Holding outside the docking queue':'At a holding position';
       detail(table,'Docking',label+(dock.clearing?' · clearing the previous berth':''));
     }
-    if(data.repairs)detail(table,'Repair bay',data.repairs.drones+' Dot drones ? '+Math.round(data.repairs.supplies*10)/10+' t deuranium');
+    if(data.repairs)detail(table,'Repair bay',data.repairs.drones+' Dot drones \u00b7 '+Math.round(data.repairs.supplies*10)/10+' t deuranium');
+    if(data.repairs?.reason)detail(table,'Repair blocked',data.repairs.reason);
     detail(table,'Cargo',cargoText(data.cargo)+(ship.entity.oreHold?' · '+ship.entity.oreHold+' t ore':''));
     if(journey)detail(table,'Arrival in',Math.max(0,Math.ceil(num(journey.arrivalAt??journey.arriveAt??(num(journey.departedAt)+num(journey.duration)))-time()))+' simulation seconds');
     else if(data.nextActionAt!==null)detail(table,'Next step in',Math.max(0,Math.ceil(data.nextActionAt-time()))+' simulation seconds');

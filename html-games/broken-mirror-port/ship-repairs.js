@@ -146,7 +146,7 @@
     const existing=callFor(s,r);if(existing)return existing;
     const p=pose(s,r),c={id:`distress:${++s.shipRepairs.sequence}`,target:r,system:p.system,x:p.x,y:p.y,createdAt:clock(s),status:'queued',claim:null};
     if(playerRequested)c.playerRequested=true;
-    s.shipRepairs.calls.push(c);if(notify)announce(s,r,`Distress signal: disabled, ${supplies(s,r)>EPS?'no operational repair drones':'repair deuranium exhausted'}. Requesting medical assistance.`);
+    s.shipRepairs.calls.push(c);if(notify)announce(s,r,`Distress signal: disabled, ${status(s,resolve(s,r),r.category).reason||'repair assistance needed'}. Requesting medical assistance.`);
     return c;
   }
   function restock(s,e){
@@ -719,6 +719,7 @@
     if(at+EPS<r.nextPollAt)return;
     r.nextPollAt=at+1;
     const rt=runtimes.get(s);if(rt.dirty)census(s);
+    window.nativeInterstellarDistress?.advance(s);
     observe(s,s,'player');
     // A bounded safety reconciliation also recognizes old direct-mutating
     // integrations without scanning an entire large fleet every second.
@@ -787,8 +788,13 @@
   // advanceMission publishes every changed drone through refreshShip. Its fixed
   // definition/pose may therefore be retained between reads of the same step.
   window.nativeShipSystems.register('repair-drone',{collect:drones,inspect:s=>[],hit,resolve:resolveDrone,retainedPose:true,visualImpact:(s,t,e)=>window.nativeShipEffects.visualImpact(s,t,e)});
+  function status(s,e,category){
+    const held=supplies(s,ref(category,e)),drones=e.repairBay?.slots.filter(d=>d.hull>0).length||0;
+    const reason=e.phase!=='disabled'?null:!drones&&held<=EPS?'no operational repair DOTs or deuranium supplies':!drones?'no operational repair DOTs':held<=EPS?'repair deuranium exhausted':null;
+    return {supplies:held,drones,mission:missionFor(s,ref(category,e))?.id,distress:callFor(s,ref(category,e))?.status,reason};
+  }
   window.nativeShipRepairs=Object.freeze({initialize,prepare,advance,restock,call,claimed,validCall,releaseClaim,rendezvous,service,ref,key,resolve,pose,launch,deployPlayer,recoverPlayer,playerDistressStatus,requestPlayerDistress,deploymentStatus,playerDronesDeployed,repairMode,setRepairMode,deviceRepairQuote,repairDevice,shieldRepairQuote,repairShields,missionFor,rebaseCivilian,supplies,workPoint,stationPoint,bayPoint,bayGeometry,bayPassage,drones,resolveDrone,destroyed,observe,invalidateMembership,
     reroute:(s,d,route)=>{if(!d.localLeg||route.valid===false)return false;d.localLeg=route;if(d.bayTransit){d.bayTransit.startedAt=route.startedAt;d.bayTransit.endsAt=route.startedAt+route.duration;}return true;},
-    status:(s,e,category)=>({supplies:supplies(s,ref(category,e)),drones:e.repairBay?.slots.filter(d=>d.hull>0).length||0,mission:missionFor(s,ref(category,e))?.id,distress:callFor(s,ref(category,e))?.status}),
+    status,
     rules:Object.freeze({hullPerTon:HULL_PER_TON,ratePerDrone:RATE,medicalStock:MEDICAL_STOCK,basicType:BASIC,conditionPerOre:CONDITION_PER_ORE,shieldPerTrellium:SHIELD_PER_TRELLIUM})});
 })();
