@@ -60,7 +60,7 @@
   canvas.addEventListener('pointermove', event => {
     const marker = pointedMarker(event);
     canvas.style.cursor = marker ? 'pointer' : 'zoom-in';
-    canvas.title = marker ? `Click to ${marker.kind === 'planet' ? 'select' : 'target'} ${marker.name}; double-click to open map [M]` : 'Double-click to open map [M]';
+    canvas.title = marker ? `Click to ${marker.kind === 'shipyard' ? 'contact' : marker.kind === 'planet' ? 'select' : 'target'} ${marker.name}; double-click to open map [M]` : 'Double-click to open map [M]';
   });
   canvas.addEventListener('click', event => {
     clearTimeout(clickTimer);
@@ -69,7 +69,9 @@
     if (!marker) return;
     clickTimer = setTimeout(() => {
       if (canvas.hidden) return;
-      if (marker.kind === 'planet') {
+      if (marker.kind === 'shipyard') {
+        window.nativeShipyardServices?.select();
+      } else if (marker.kind === 'planet') {
         window.nativeManualFlight?.clearTracking?.();
         window.vexedSolFlight?.setTarget(marker.id,lastState.system);
       } else {
@@ -242,13 +244,11 @@
     if (canvas.hidden) return;
     lastState = state;
     hitMarkers = [];
-    const bounds = canvas.getBoundingClientRect();
-    const density = Math.min(window.devicePixelRatio || 1, 2);
-    const pixelWidth = Math.max(1, Math.round(bounds.width * density));
-    const pixelHeight = Math.max(1, Math.round(bounds.height * density));
-    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-      canvas.width = pixelWidth;
-      canvas.height = pixelHeight;
+    if(window.nativeView?.fit)window.nativeView.fit(canvas,ctx);
+    else {
+      const bounds=canvas.getBoundingClientRect(),density=Math.min(window.devicePixelRatio||1,2);
+      const pixelWidth=Math.max(1,Math.round(bounds.width*density)),pixelHeight=Math.max(1,Math.round(bounds.height*density));
+      if(canvas.width!==pixelWidth||canvas.height!==pixelHeight){canvas.width=pixelWidth;canvas.height=pixelHeight;}
     }
     ctx.setTransform(canvas.width / 160, 0, 0, canvas.height / 120, 0, 0);
     ctx.clearRect(0, 0, 160, 120);
@@ -275,7 +275,7 @@
       nearby.push({id:ship.id, x:ship.x, y:ship.y, heading:ship.heading, name, kind,
         faction:!!window.nativeFactionDefence?.isFaction(ship),hostile:!!window.nativeFactionDefence?.hostileToPlayer(state,ship)});
     };
-    if (state.system === 1) for (const ship of state.solEconomy?.freighters || []) {
+    if (state.system === 1 && !window.nativeDevTraffic?.active(state)) for (const ship of state.solEconomy?.freighters || []) {
       if (ship.phase !== 'destroyed') addContact(ship, 'tug', `Tug II #${ship.id + 1}`);
     }
     for (const ship of window.nativeCivilianTraffic?.localShips(state) || []) addContact(ship, 'civilian', ship.name);
@@ -290,6 +290,7 @@
     if (window.vexedSolFlight) {
       const ship = player;
       for (const body of window.vexedSolFlight.forSystem(state)) {
+        if(body.render===false)continue;
         const x = body.x - 220 - ship.x, y = body.y + 75 - ship.y;
         const selected = !manual && body.id === window.vexedSolFlight.targetId;
         marker(x, y, selected, body.id, body.name);
@@ -306,11 +307,12 @@
       target = {name:state.planet || 'Planet', dx, dy};
       contactCount = 1;
     }
-      const mined=[...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])];
-      const asteroids=(window.nativeSolAsteroids?.nearby?.(state.system,player,2500)||[])
-        .filter(rock=>!mined.includes(rock.slotId)&&Math.hypot(rock.x-player.x,rock.y-player.y)<2500)
-        .sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))
-        .slice(0,5);
+      const mined=new Set([...(state.minedAsteroids||[]),...(state.destroyedAsteroids||[])]),asteroids=[],distances=[];
+      for(const rock of window.nativeSolAsteroids?.nearby?.(state.system,player,2500)||[]){
+        if(mined.has(rock.slotId))continue;const distance=Math.hypot(rock.x-player.x,rock.y-player.y);if(!(distance<2500))continue;
+        let at=distances.length;while(at>0&&distances[at-1]>distance)at--;
+        if(at>=5)continue;distances.splice(at,0,distance);asteroids.splice(at,0,rock);if(asteroids.length>5){asteroids.pop();distances.pop();}
+      }
       ctx.save();ctx.fillStyle='#b5bdc4';ctx.strokeStyle='#638394';ctx.lineWidth=.6;
       for(const rock of asteroids){
         const x=centerX+(rock.x-player.x)/unitsPerPixel,y=centerY+(rock.y-player.y)/unitsPerPixel;
@@ -322,6 +324,13 @@
       routeLine(manual.dx,manual.dy);
       marker(manual.dx,manual.dy,true);
       target={name:manual.name,dx:manual.dx,dy:manual.dy};
+    }
+    const yard=window.nativeMarsShipyard?.definitionFor(state),yardPosition=yard&&window.nativeMarsShipyard.position(state);
+    if(yardPosition){
+      const point=radarPoint(yardPosition.x-player.x,yardPosition.y-player.y);
+      ctx.strokeStyle='#f5cd7c';ctx.lineWidth=1;ctx.strokeRect(point.x-3,point.y-3,6,6);
+      ctx.fillStyle='#f5cd7c';ctx.fillRect(point.x-1,point.y-1,2,2);
+      hitMarkers.push({kind:'shipyard',id:yard.id,name:yard.name,x:point.x,y:point.y});
     }
     const selectedShip = nearby.find(ship => shipTarget && ship.kind === targetKind && ship.id === shipTarget.id);
     for (const ship of nearby) if (ship !== selectedShip) shipMarker(ship, player, false);
@@ -342,7 +351,7 @@
     }
     playerMarker(state.angle);
     factionEmblem(faction);
-    const label = `${factionNames[faction]} local radar. Galactic coordinates ${coordinates}. Your ship is at the center, heading ${Math.round((Number(state.angle) || 0) * 180 / Math.PI)} degrees. ${contactCount} planet markers. ${nearby.length} ship contacts: green civilians, blue faction vessels and red hostile faction vessels; your targeted ship has a gold box and direction pointer. ${target?.combat ? 'Targeted ship' : 'Destination'}: ${target?.name || 'None'}, ${Math.round(Math.hypot(target?.dx || 0, target?.dy || 0)).toLocaleString()} units away. Click a ship to target it or a planet dot to select it; double-click the radar to open map, same as M.`;
+    const label = `${factionNames[faction]} local radar. Galactic coordinates ${coordinates}. Your ship is at the center, heading ${Math.round((Number(state.angle) || 0) * 180 / Math.PI)} degrees. ${contactCount} planet markers. ${nearby.length} ship contacts: green civilians, blue faction vessels and red hostile faction vessels; your targeted ship has a gold box and direction pointer. ${yardPosition?`Gold service square: ${yard.name}, ${Math.round(Math.hypot(yardPosition.x-player.x,yardPosition.y-player.y)).toLocaleString()} units away. Click to contact the shipyard. `:''}${target?.combat ? 'Targeted ship' : 'Destination'}: ${target?.name || 'None'}, ${Math.round(Math.hypot(target?.dx || 0, target?.dy || 0)).toLocaleString()} units away. Click a ship to target it or a planet dot to select it; double-click the radar to open map, same as M.`;
     if (label !== lastLabel) {
       canvas.setAttribute('aria-label', label);
       lastLabel = label;

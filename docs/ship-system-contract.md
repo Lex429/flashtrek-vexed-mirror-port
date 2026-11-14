@@ -1,5 +1,36 @@
 # Ship system contract
 
+Badlands plasma geometry and flow live in `plasma-vortices.js`.
+`badlands-weather.js` supplies deterministic world funnels and timed lightning/
+heat events throughout the real region, independent of Dev mode. Nearby queries
+use bounded caches; each ship samples in its own system coordinate frame.
+The same vortex sampler, motion integrator and registered exposure damage owner
+serve the Sol preview and normal gameplay. Storm timing reads saved simulation
+seconds, so pause and Continue preserve event phase without a second clock.
+Production cloud cores receive local projections of shared world events. Branch
+lightning recolours the complete blended optical layer once; sheet flashes and
+heat fronts use the existing material shader. Rendering cannot move ships or
+apply exposure. See [Badlands](badlands.md) and the weather unit/browser tests.
+`badlands-currents.js` samples deterministic ambient wind in the Dev bank and
+the production Badlands. It supplies mass/area and inertia coupling to the same
+motion owner; combined drag retains the vortex's existing exposure damage owner.
+Currents apply no direct damage or resource charges. The existing version-1
+`motionFlow` carries their momentum across escape, coasting and save/reload.
+The material worker advects live gas tiles conservatively while bounded native
+cloud distortion follows the same wind direction. Reduced motion calms that
+presentation without changing physical wind. See `badlands-currents.test.cjs`
+and `browser-badlands-currents.py` for controls, pause, continuation, worker and
+Canvas/GPU recovery checks.
+`ship-systems.move` selects the field, `ship-motion.step` integrates its optional
+version-1 `motionFlow` velocity alongside engine motion, and
+`ship-systems.applyDamage` dispatches exposure through registered damage owners.
+Flow momentum persists through coasting and save/reload; commanded braking acts
+on combined velocity. Drawing remains read-only. See [Sol fog](dev-sol-fog.md).
+The nebula material owner also transports cosmetic gas through that same vortex
+flow and curls its existing cloud samples in both shared render passes. It
+retains conservative flux, worker/checkpoint recovery and canonical hull masks;
+no separate tornado artwork owner remains.
+
 The current hardware/equipment migration is specified in [unified ships](unified-ships.md).
 It supersedes the old ownership-specific capacity and movement exceptions below.
 Verified writes, legacy recovery and large-fleet encoding are specified in the
@@ -289,6 +320,44 @@ already inside the receiving surface, contact is immediate at that mount
 or changes its saved contact.
 A projectile owns its simulated world `x`/`y`; camera changes
 cannot move it in the world or recompute its flight from screen endpoints.
+Launch prediction starts at the selected hardware mount. `combat-shots` supplies
+that local attachment before `weapon-rules.startShot`; it does not move a shot
+from the hull centre after calculating its direction. Projectile motor velocity
+is added to the launcher's actual world velocity once and retains that inherited
+vector after the launcher turns or accelerates. Guidance turns only the torpedo's
+motor component; ordinary disruptors remain ballistic.
+
+Model profiles in `weapon-rules` give disruptors 1,800 units/s. Torpedo motors
+are 900 gravimetric, 1,350 photon/Magnetorp, 1,650 quantum, 1,100 plasma and
+1,500 transphasic/polaron. Gravimetric guidance remains stronger than photon's.
+Forward cannons use a 45-degree half-angle, torpedo tubes 60 degrees, and turret
+models 11/12 retain 360-degree coverage. Turrets use `emitters.turret`, or the
+hull centre when unspecified. Current world separation controls range feedback;
+the translated lead point controls aim, not an additional range rejection.
+Damage, recharge, first-surface sweeps and existing saved projectile profiles
+remain authoritative. Old flying shots keep their saved speeds and guidance.
+
+Unlocked manual fire explicitly calls `combat-shots.fire` / `fireFor` with
+`forward:true` and no target. The shared equipment owner admits ready disruptors
+and torpedoes, skips phasers without consuming their charge, and retains ordinary
+model range, damage and recharge. Missing targets without that flag remain errors.
+A supplied lock retains ordinary assisted fire and its range/arc requirements.
+
+`weapon-rules` launches an unlocked shot at the true hardware mount with motor
+velocity along the hull heading plus the inherited launch velocity. Its saved
+event has `unguided:true`, null target ID/snapshot, zero aim error and zero
+guidance turn. No synthetic point, hidden auto-acquisition or target resolver
+drives its flight. The ordinary swept scene queries still find the first ship,
+asteroid or other registered surface and apply damage/retaliation once. Unguided
+flight and charge deadlines survive normal save/Continue and event import.
+
+The Space owner latches either the selected target key or forward-fire mode,
+requesting at most once per host frame. Acquiring, changing or clearing a lock
+ends that hold; a fresh press selects the new mode. Pause, inventory, hidden
+document, focus loss, warp, destroyed/disabled hull and ordinary flight gates
+retain their existing behavior. Held Space continues at the fitted weapon's
+owned recharge pace, and later steering affects only later shots. Manual launch
+and resolution use the existing bounded combat checkpoint queue.
 
 ## Collision, damage and effects
 
@@ -473,6 +542,14 @@ commands; controllers retain the decision to mine and what to do with collected 
 
 ## Save compatibility
 
+Inventory and the Mars shipyard share `equipment-panel.js` for equipment details,
+the permanent hull-system tile, bay paging and slot/mouse input. Mars keeps that
+loadout visible throughout its services. UI selection and paging are transient;
+both screens route fitting through the Inventory bridge to `moveInventory`, and
+device repair through its existing repair callback. Rendering cannot fit, repair
+or charge for equipment. Run the Inventory, Mars purchase and
+`browser-shipyard-equipment.py` checks when changing these components.
+
 The existing numeric `weapons` and `weaponInventory` arrays remain projections
 for compatible saves and UI. `shipEquipment.version:2` stores typed owned equipment; `weaponLoadout.version:1`
 is its compatibility projection. Instances retain fitted/locker IDs and
@@ -523,8 +600,10 @@ indexed read-only snapshot for expiring cached perceptions; `hasActiveProjectile
 lets ordinary traffic skip unnecessary awareness work. Actual flight, homing and
 first-object damage remain solely in the existing shot lifecycle.
 
-`firingStatus` reports shared equipped model range, arc, physical launch blockers
-and owned `readyAt` deadlines without consuming a charge. A mixed loadout can
+`firingStatus` reports shared equipped model range, arc and owned `readyAt`
+deadlines without consuming a charge or constructing a collision scene. Launch
+eligibility does not reject an intervening object: the actual shot's swept
+query or resolving beam hits the first physical surface. A mixed loadout can
 reach a target with its longer-range weapon even while a shorter weapon cannot.
 The player HUD and firing requests use that same eligibility. Beam weapons retain
 their 360-degree targeting and physical interception from the beam correction.

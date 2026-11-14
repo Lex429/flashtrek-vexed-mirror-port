@@ -2,6 +2,35 @@
 
 Browser port of FlashTrek: Vexed Mirror, extracted from the local Games Hub.
 
+## Public website
+
+The public game is **https://vexedmirror.com/html-games/broken-mirror-port/index.html**.
+GitHub `main` is its source of truth. Pushes to `main` run the Node and Python
+regressions and all existing browser suites in eight parallel groups. Only a
+fully passing revision can publish; pull requests and other branches cannot
+deploy. The `regression` check remains the local sync service's success gate.
+
+GitHub Actions publishes `index.html` and `html-games/` directly from that commit,
+without rebuilding or rewriting the game. Hosting credentials are stored in the
+repository's `VEXED_FTP_HOST`, `VEXED_FTP_USERNAME` and `VEXED_FTP_PASSWORD` Actions
+secrets. Production uploads are serialized, and an older queued commit is
+skipped when `main` has advanced. The computer does not need to stay on for
+GitHub-to-website publishing.
+
+The publisher compares SHA-256 content hashes, uploads dependencies before entry
+pages, verifies the public code and changed assets, then writes
+**https://vexedmirror.com/deployment.json**. This receipt records the published
+source commit and each file's SHA-256 hash and byte count. If checks or an upload
+fail, the Actions run reports the failure; it does not claim a successful release.
+Only files listed in an earlier receipt can be removed by a later deployment.
+
+Use **Actions → Ship systems and persistent lives → Run workflow → main** to
+retry a release after correcting its cause. A deployment can be prepared without
+hosting credentials with `python tools/publish_site.py --prepare <empty-folder>`.
+Keep future gameplay edits in the local project below, and let GitHub Actions
+publish them after synchronization instead of uploading a separate publishing
+folder.
+
 ## Play locally
 
 On Alex's Windows computer, open **http://127.0.0.1:7790/** or the **Vexed Mirror** desktop shortcut. The **Vexed Mirror Local Site** scheduled task starts the loopback-only server and background Git sync at sign-in. This is a standalone local website; it does not require Games Hub or public hosting.

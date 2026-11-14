@@ -1,0 +1,61 @@
+#ship-loot[hidden],#lootBtn[hidden],#ship-loot button[hidden]{display:none}
+#ship-loot{position:fixed;z-index:10019;inset:16px;margin:auto;width:min(1160px,calc(100% - 32px));height:min(780px,calc(100% - 32px));box-sizing:border-box;display:flex;flex-direction:column;padding:20px;gap:15px;overflow:hidden;color:#e5f2f5;background:linear-gradient(135deg,#102532fa,#070e17fa 60%);border:1px solid #6a9aa8;border-radius:10px;box-shadow:0 20px 80px #000b;font:13px system-ui,sans-serif}
+#ship-loot header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:0;background:none;border:0;min-height:0}
+#ship-loot .loot-header small{font-size:10px;letter-spacing:.2em;color:#81c3d2}
+#ship-loot h2{font-size:21px;margin:4px 0;line-height:1.3}
+#ship-loot .loot-status{margin:0;color:#a5bbc4;font-size:12px}
+#ship-loot button,#ship-loot input,#ship-loot select{font:inherit;color:inherit}
+#ship-loot .loot-close,#ship-loot [data-loot-take-all]{border:1px solid #578493;border-radius:4px;padding:10px 14px;background:#183542;cursor:pointer}
+#ship-loot [data-loot-take-all]{flex:none;background:#805e2e;border-color:#ba965f;color:#fff1d2;white-space:nowrap}
+#ship-loot kbd{margin-left:10px;color:#aac0c8;font:10px system-ui}
+#ship-loot .loot-inventories{display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1;min-height:0}
+#ship-loot .loot-owner{min-width:0;min-height:0;display:flex;flex-direction:column;border:1px solid #52748477;border-radius:6px;padding:14px;background:#07121b99}
+#ship-loot .loot-owner>header>div{min-width:0}
+#ship-loot .loot-owner>header span{font-size:10px;letter-spacing:.15em;color:#d7b57c}
+#ship-loot [data-owner=player]>header span{color:#7dced8}
+#ship-loot h3{font-size:16px;margin:4px 0;line-height:1.3;overflow-wrap:anywhere}
+#ship-loot .loot-capacity{margin:0;color:#9ab0bc;font-size:11px}
+#ship-loot .loot-browse{display:flex;gap:8px;margin:13px 0 10px}
+#ship-loot .loot-browse input,#ship-loot .loot-browse select{min-width:0;border:1px solid #44616f;border-radius:4px;background:#09151f;padding:8px}
+#ship-loot .loot-browse input{flex:1;width:50%}
+#ship-loot .loot-browse select{width:135px}
+#ship-loot .loot-grid{display:grid;grid-template-columns:repeat(var(--loot-columns,4),minmax(0,1fr));grid-template-rows:repeat(var(--loot-rows,2),minmax(0,1fr));gap:8px;overflow:hidden;min-height:0;flex:1;padding:2px 2px 5px;overscroll-behavior:none}
+#ship-loot .loot-page-nav{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px;margin-top:9px;color:#91b4c1;font-size:10px}
+#ship-loot .loot-page-nav>div{display:flex;gap:9px;align-items:center}
+#ship-loot .loot-page-nav button{padding:3px 9px;min-width:31px;min-height:28px;background:#142f3d;border:1px solid #4c7484;border-radius:3px;font-size:17px;line-height:1}
+#ship-loot .loot-page-number{min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
+#ship-loot .loot-tile,#ship-loot .loot-empty-slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;min-height:0;padding:18px 5px 7px;border:1px solid #406271;border-radius:4px;background:radial-gradient(ellipse at 50% 35%,#22445588,#10222e 75%);cursor:pointer;text-align:center;overflow:hidden}
+#ship-loot [data-owner=source] .loot-tile{border-color:#7c6b4b;background:radial-gradient(ellipse at 50% 35%,#51432877,#172128 75%)}
+#ship-loot .loot-tile:hover{border-color:#a7e5ee;background-color:#244854}
+#ship-loot .loot-tile.selected{border-color:#d1f7fc;box-shadow:inset 0 0 0 1px #a0e9f4,0 0 12px #62b9ce22}
+#ship-loot .loot-tile.received{border-color:#78dfb3}
+#ship-loot .loot-item-art{display:flex;align-items:center;justify-content:center;flex:1;min-height:25px;width:100%;max-height:47px}
+#ship-loot .loot-item-art>img,#ship-loot .loot-item-art>svg{width:100%;height:100%;max-width:65px;max-height:47px;object-fit:contain;filter:drop-shadow(0 2px 6px #0008)}
+#ship-loot .loot-tile strong{font-size:10px;font-weight:600;line-height:1.2;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#ship-loot .loot-item-tag{position:absolute;top:5px;left:5px;color:#9db6c0;font-size:7px;letter-spacing:.08em}
+#ship-loot .loot-item-quantity{position:absolute;right:5px;top:5px;font-size:9px;color:#e5d0a8}
+#ship-loot .loot-item-condition{font-size:9px;color:#8bc9bc;min-height:11px}
+#ship-loot .loot-empty-slot{border-style:dashed;border-color:#35536088;background:#0c1c2633;pointer-events:none}
+#ship-loot .loot-empty-slot b{font-size:26px;font-weight:300}
+#ship-loot .loot-empty-slot span{font-size:10px}
+#ship-loot .loot-empty-message{grid-column:1/-1;align-self:start;color:#91aab6;padding:12px;text-align:center}
+#ship-loot .loot-owner-hint{font-size:10px;color:#8da6b2;margin:10px 0 0;line-height:1.45}
+#ship-loot.dragging [data-owner=player] .loot-grid{outline:2px dashed #8ad3cf;outline-offset:3px;background:#193c4244}
+#ship-loot .loot-inspector{display:flex;gap:16px;align-items:center;min-height:100px;padding:13px 16px;background:#07121b;border:1px solid #46677777;border-radius:5px}
+#ship-loot .loot-detail-art{flex:none;width:65px;height:65px;display:flex;align-items:center;justify-content:center}
+#ship-loot .loot-detail-art img,#ship-loot .loot-detail-art svg{max-width:100%;max-height:100%;object-fit:contain}
+#ship-loot .loot-detail-copy{flex:1;min-width:0}
+#ship-loot .loot-detail-copy small{color:#96b6c3;font-size:9px;letter-spacing:.12em}
+#ship-loot .loot-detail-copy p{margin:5px 0;color:#9db3be;font-size:11px;line-height:1.45}
+#ship-loot .loot-detail-stats{display:flex;flex-wrap:wrap;gap:5px 18px;font-size:10px;color:#8eaab7}
+#ship-loot .loot-detail-stats b{margin-left:5px;color:#d3eaf0;font-weight:500}
+#ship-loot .loot-received-delta{position:absolute;right:8px;top:24px;z-index:2;padding:3px 6px;border-radius:4px;background:#173d30e8;color:#b3ffd4;box-shadow:0 2px 9px #0007;font-size:15px;font-weight:700;pointer-events:none}
+.loot-transfer-ghost{position:fixed;z-index:10025;width:56px;height:56px;padding:5px;border:1px solid #c3f6df;border-radius:7px;background:#173d43e8;box-shadow:0 0 20px #7efad555;pointer-events:none;display:flex;align-items:center;justify-content:center;will-change:transform,opacity}
+.loot-transfer-ghost img,.loot-transfer-ghost svg{max-width:100%;max-height:100%;object-fit:contain}
+#ship-loot button:disabled{opacity:.4;cursor:default}
+#ship-loot button:focus-visible,#ship-loot input:focus-visible,#ship-loot select:focus-visible,#ship-loot .gamepad-focus{outline:2px solid #bceef7;outline-offset:2px}
+#ship-loot footer{display:flex;justify-content:space-between;gap:15px;min-height:16px;padding:0;border:0;background:none;font-size:10px}
+#ship-loot .loot-message{margin:0;color:#8ed9b4;flex:1}
+#ship-loot .loot-note{color:#9cabb2;text-align:right}
+@media(max-height:720px){#ship-loot{padding:12px;gap:9px}#ship-loot .loot-inspector{min-height:75px;padding:8px}#ship-loot .loot-detail-copy p{display:none}#ship-loot .loot-browse{margin:8px 0}#ship-loot .loot-owner{padding:10px}}
+@media(max-width:650px){#ship-loot{inset:6px;width:calc(100% - 12px);height:calc(100% - 12px);padding:10px;gap:8px}#ship-loot .loot-inventories{gap:7px}#ship-loot .loot-owner{padding:8px}#ship-loot .loot-owner>header{flex-wrap:wrap;gap:7px}#ship-loot [data-loot-take-all]{padding:7px 10px}#ship-loot .loot-browse{display:block}#ship-loot .loot-browse input{width:100%;box-sizing:border-box}#ship-loot .loot-browse select{width:100%;margin-top:5px}#ship-loot h2{font-size:16px}#ship-loot h3{font-size:12px}#ship-loot .loot-owner-hint{display:none}#ship-loot .loot-inspector{gap:8px;padding:8px;min-height:75px}#ship-loot .loot-detail-art{width:35px;height:40px}#ship-loot .loot-detail-copy p{display:none}#ship-loot footer{font-size:9px}#ship-loot .loot-note{max-width:42%}}

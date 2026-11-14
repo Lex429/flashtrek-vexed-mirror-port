@@ -59,6 +59,16 @@ test('pause, menus, warp, disabling and focus gates clear intent until a fresh p
   assert.equal(f.requests(), 2, 'key release stops sustained firing');
 });
 
+test('a forward-fire hold cannot inherit an acquired lock or resume when that lock is cleared',()=>{
+  const f=fixture();f.target('forward');assert.equal(f.held.start(1),1);
+  f.held.step(2);assert.equal(f.requests(),2);
+  f.target('civilian:8');f.held.step(3);assert.equal(f.held.active,false);
+  f.held.start(4);assert.equal(f.requests(),3);
+  f.target('forward');f.held.step(5);assert.equal(f.held.active,false);
+  f.held.step(6);assert.equal(f.requests(),3);
+  f.held.start(7);assert.equal(f.requests(),4);
+});
+
 test('hostile ships lead targeting without making neutral ships or asteroids inaccessible', () => {
   const {controls} = fixture();
   const targets = [{key: 'rock:1', x: 10}, {key: 'civilian:neutral', x: 30}, {key: 'civilian:attacker', x: 500}];
@@ -118,4 +128,33 @@ test('controller trigger uses analog press edges, never cycles while held, and c
  trigger.update(.5);trigger.update(.7);assert.equal(count,1);
  trigger.update(0);allowed=false;trigger.update(1);allowed=true;trigger.update(1);assert.equal(count,1);
  trigger.update(.2);trigger.update(.8);assert.equal(count,2);
+});
+
+test('remembered threat priority fades while a live attacker keeps priority',()=>{
+ const c=fixture().controls,m=c.smartTargeting(),ship={x:0,y:0,heading:0},targets=[{key:'old',entry:{x:-350,y:0}},{key:'ahead',entry:{x:400,y:0}}];
+ m.incoming('old',0);let previous=Infinity;
+ for(const at of [0,2,4,5.9]){
+  const weights=new Map([['old',m.threatWeight('old',at)]]),rows=c.rankIntent(targets,{ship,threats:m.threats(at),threatWeights:weights});
+  const score=rows.find(t=>t.key==='old').score;assert.ok(score<previous);previous=score;
+  if(at===5.9){assert.equal(rows[0].key,'ahead');assert.equal(c.rankIntent(targets,{ship,threats:m.threats(at),threatWeights:weights,liveThreats:new Set(['old'])})[0].key,'old');}
+ }
+});
+
+test('cycling alone learns nothing; firing or mining confirms only a short-lived correction',()=>{
+ const c=fixture().controls,targets=[{key:'a'},{key:'b'}];
+ for(const action of ['combat','mine']){
+  const m=c.smartTargeting();m.choose(targets,{at:1,current:null,heading:0});m.choose(targets,{at:1.1,current:'a',heading:0});m.attention('b',1.15);
+  assert.equal(m.correction(1.15),null);m.attention('b',1.2,action);
+  const correction=m.correction(1.2);assert.deepEqual(Array.from(correction.skipped),['a']);assert.equal(correction.chosen,'b');
+  const options={ship:{x:0,y:0,heading:0}},choices=[{key:'a',entry:{x:300,y:0}},{key:'b',entry:{x:300,y:3}}];
+  assert.equal(c.rankIntent(choices,{...options,correction})[0].key,'b');assert.ok(m.correction(5).strength<correction.strength);
+  assert.equal(m.correction(9.3),null);assert.equal(c.rankIntent(choices,{...options,correction:m.correction(9.3)})[0].key,'a');
+  m.reset();assert.equal(m.correction(2),null);
+ }
+});
+
+test('honouring a preview makes it the first cycle entry instead of skipping the runner-up',()=>{
+ const m=fixture().controls.smartTargeting(),targets=[{key:'b'},{key:'a'},{key:'c'}];
+ assert.equal(m.choose(targets,{at:1,current:null,heading:0,preferredKey:'a'}).key,'a');
+ assert.equal(m.choose(targets,{at:1.1,current:'a',heading:0}).key,'b');
 });

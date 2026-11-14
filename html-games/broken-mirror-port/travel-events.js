@@ -19,6 +19,10 @@
     else{next.day+=journey.travelDays;window.nativePopulation.advanceDays(next,journey.travelDays,random);}
     next.system = target.id;next.planet = target.name;
     next.x = 0;next.y = 0;next.speed = 0;next.angle = -Math.PI / 2;next.landed = false;
+    if(target.id===73&&window.nativeBadlands){
+      const origin=window.nativeManualFlight.position(game),goal=window.nativeManualFlight.anchor(73),heading=Math.atan2(goal.y-origin.y,goal.x-origin.x);
+      Object.assign(next,window.nativeBadlands.arrival(heading),{angle:heading,vx:0,vy:0,localBody:0,localBodySystem:73,localNavTarget:0,localCruise:null});delete next.arrivalApproach;
+    }
     next.nav += (Math.floor(random() * 2) + 1) * .1;
     next.discovered = [...new Set([...next.discovered, target.id])];
 

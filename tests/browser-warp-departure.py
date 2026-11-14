@@ -12,6 +12,8 @@ try:
         channel=os.environ.get('BROWSER_CHANNEL','msedge');browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}));page=browser.new_page(viewport={'width':1280,'height':850})
         page.on('pageerror',lambda e:errors.append(str(e)));page.on('response',lambda r:failed.append(r.url) if r.status>=400 else None)
         page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html');page.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden',timeout=120000)
+        page.wait_for_function('()=>nativeWorldBootstrap.ready()||nativeWorldBootstrap.diagnostics().error',timeout=45000)
+        bootstrap=page.evaluate('nativeWorldBootstrap.diagnostics()');assert bootstrap['ready'] and bootstrap['geometryChecked']>0 and not bootstrap['error'],bootstrap
         page.locator('[data-menu="dev"]').click();page.wait_for_function('()=>nativeNpcDev.getState()?.civilianTraffic?.ships?.length===1200',timeout=120000)
         page.locator('#devToolsBtn').click();page.locator('[data-dev-ship]').select_option('12');page.locator('[data-dev-equip]').click()
         page.wait_for_function('()=>nativeShipEffects.stageReady(12,0)',timeout=60000)
@@ -64,7 +66,7 @@ try:
         assert gallery['before']==gallery['after'],gallery
         (OUT/'sequence.png').write_bytes(base64.b64decode(page.evaluate('__departureGallery.toDataURL().split(",")[1]')))
         assert not errors and not failed,(errors,failed)
-        report={'passed':True,'liveFlash':live,'visibleShipThenFlash':True,'pausedFlashFrozen':True,'reusedFlashTexture':True,'arrivalCompleted':True,'javascriptErrors':errors,'failedRequests':failed}
+        report={'passed':True,'bootstrap':bootstrap,'liveFlash':live,'visibleShipThenFlash':True,'pausedFlashFrozen':True,'reusedFlashTexture':True,'arrivalCompleted':True,'javascriptErrors':errors,'failedRequests':failed}
         (OUT/'report.json').write_text(json.dumps(report,indent=2),encoding='utf8');print(json.dumps(report),flush=True);browser.close()
 except Exception:
     if 'page' in locals():

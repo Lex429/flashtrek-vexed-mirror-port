@@ -1,0 +1,1015 @@
+{
+  "tool": "built-in image_gen",
+  "prompts": {
+    "light": "Use case: precise-object-edit. Asset type: production top-down space game damage sprite. Edit target: the supplied ship. Create LIGHT battle damage: three small localized scorched punctures across the forward port hull and rear starboard hull, torn silver plating, exposed dark metal and small orange embers. At least 95% of the hull stays intact. CRITICAL invariants: exact same top-down view, forward pointing straight up, same silhouette, ship dimensions, scale, center and full canvas framing. All nacelles and untouched hull details stay unchanged. Do not rotate, zoom, reframe, redesign, stretch or replace the ship. Preserve true transparent background, including small puncture holes. No stars, ground, cast shadow, smoke cloud, loose debris, extra objects, labels or border. Keep original painted engine panels in their original locations. Deliver one light-damage sprite only.",
+    "heavy": "Use case: precise-object-edit. Asset type: production top-down space game damage sprite. EDIT TARGET is the supplied LIGHT-DAMAGED ship; progress it to HEAVY battle damage. Preserve every existing wound and enlarge them. Tear a conspicuous jagged section out of the port forward saucer/hull rim, add 4 substantial blackened hull breaches around the central engineering hull, rupture a portion of one nacelle's outer casing. About 15–20% of the original physical hull is now MISSING: use genuinely alpha-transparent cutouts through the saucer and jagged edge notches; exposed twisted dark metal, scorched plate borders and small orange embers surround the missing sections. Keep the ship recognizable and connected. CRITICAL invariants: exact same top-down orthographic view, forward pointing up, exact same full canvas dimensions, remaining hull at exactly the same scale, center, orientation and pixel positions. NO zoom, recrop, reframing, perspective, stretched hull, new design or extra nacelles. Keep true transparent background with CLEAN sharp alpha edges; no white/gray matte fringe, pixel dust, stars, smoke cloud, loose debris, labels or border. One heavy-damage sprite only.",
+    "severe": "Use case: precise-object-edit. Asset type: production top-down space game damage sprite. EDIT TARGET is the supplied HEAVY-DAMAGED ship; progress it to SEVERE/CRITICAL damage. Keep and enlarge every existing wound. Remove 30–40% of the original hull in total: major ragged transparent cutaways through the forward port saucer rim, several larger engineering-hull perforations, and the torn outer casing of one rear nacelle. Keep recognizable original ship remains connected, the surviving center bridge and main structural spine, and at least one nacelle, in their original positions. Exposed twisted ribs and black scorched metal surround missing chunks, small dull red-orange embers only. All window and engine lamps are DEAD and DARK; no bright cyan/red powered engine glow. CRITICAL invariants: exact same top-down orthographic view, forward pointing straight up, exact same full canvas dimensions; remaining hull at exact same scale, center, orientation and position. Do not zoom, recrop, reframe, rotate, stretch, redesign, add new parts or scatter loose debris. True transparent background and physically alpha-transparent holes, no stars, smoke clouds, halos, white/gray matte residue, labels or borders. One severe-damage sprite only.",
+    "stargazerHeavy": "Use case: precise-object-edit. Asset type: production top-down space game damage sprite. Edit target is the supplied LIGHT-DAMAGED Stargazer. Progress to HEAVY battle damage. Keep and enlarge existing wounds, remove 15–20% of original physical hull with alpha-transparent jagged cutaways on the port saucer rim and several large holes through the engineering hull, rupture one nacelle casing. Expose twisted black metal ribs with scorched edges and small orange embers. Preserve exact top-down view, forward up, full canvas size, same scale, placement, orientation and design of all surviving pieces, same four nacelles. No zoom, crop, perspective, redesign, extra parts, scattered debris or smoke. Completely transparent background, physically transparent holes and open spaces between nacelles/pylons, no white or gray matte residue. One heavy damage sprite only.",
+    "stargazerLight": "Use case: precise-object-edit. Edit target: this transparent top-down four-nacelle starship. Prepare its LIGHT-DAMAGE game sprite. FIRST clean away ALL white and gray matte contamination outside the physical hull and between the nacelles and pylons: these areas must be truly ALPHA TRANSPARENT, not white, not gray and not a painted checkerboard. Preserve only the actual solid ship and its tiny original lamps; no smoky halo or pixel dust around edges. Then add three small scorched punctures on port forward saucer and starboard engineering hull, dark torn metal with tiny orange embers. At least 95% hull intact. Keep EXACT same canvas size, ship placement, top-down orientation, scale and design. No zoom, reframing, rotation or redesign. Preserve the four nacelles and remaining ship details exactly. Transparent background. Deliver one clean light-damage sprite only."
+  },
+  "ships": [
+    {
+      "key": "intrepid",
+      "ids": [
+        36,
+        438
+      ],
+      "source": "intrpid class replacement.png",
+      "sourceSha256": "7e46307d7cb34aa1e7f6600e66e0bc7d2c35e0588651f154b4efe819ee278fdb",
+      "crop": [
+        157,
+        13,
+        836,
+        1570
+      ],
+      "size": [
+        223,
+        512
+      ],
+      "lamps": 19,
+      "engines": 7,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            223,
+            512
+          ],
+          "solidPixels": 80051,
+          "masterSha256": "7e46307d7cb34aa1e7f6600e66e0bc7d2c35e0588651f154b4efe819ee278fdb",
+          "frameSha256": "f3d253f7ac867834c63ef67eaae06792949ac9746aa4c774e3a5679ba318188b"
+        },
+        {
+          "stage": "light",
+          "size": [
+            223,
+            512
+          ],
+          "solidPixels": 81006,
+          "masterSha256": "c6c368b95363883c238f9877b5cfbe6b48b19df33937635852b96d1b6eb423bb",
+          "frameSha256": "985bd47c75d1a1003b4b4be37e98bca046749e2db461742b501c19d6050f1f62",
+          "removedPixels": 21
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            223,
+            512
+          ],
+          "solidPixels": 82906,
+          "masterSha256": "f41f1ce39c8fdb7ebc7da0004d770492cef7eeb5a2379065b40dab5c0df5203c",
+          "frameSha256": "d476cb21588b0f0b2ddd9207376779cc0325102edc085f2e6e17f436c5b7d5fd",
+          "removedPixels": 934
+        },
+        {
+          "stage": "severe",
+          "size": [
+            223,
+            512
+          ],
+          "solidPixels": 78162,
+          "masterSha256": "4358f5ffdb3a2ccc9f1479216868d3c5de9db1ed9a6320999cfe30eed9a176bc",
+          "frameSha256": "8d0e8dfadc4aad1870c206f8ec5987a8502fe079367c3e2023a61a199a87f710",
+          "removedPixels": 6426
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/intrepid/masters/intact.png",
+          "sha256": "7e46307d7cb34aa1e7f6600e66e0bc7d2c35e0588651f154b4efe819ee278fdb",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/intrepid/masters/light.png",
+          "sha256": "c6c368b95363883c238f9877b5cfbe6b48b19df33937635852b96d1b6eb423bb",
+          "inputSha256": "7e46307d7cb34aa1e7f6600e66e0bc7d2c35e0588651f154b4efe819ee278fdb"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/intrepid/masters/heavy.png",
+          "sha256": "f41f1ce39c8fdb7ebc7da0004d770492cef7eeb5a2379065b40dab5c0df5203c",
+          "inputSha256": "c6c368b95363883c238f9877b5cfbe6b48b19df33937635852b96d1b6eb423bb"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/intrepid/masters/severe.png",
+          "sha256": "4358f5ffdb3a2ccc9f1479216868d3c5de9db1ed9a6320999cfe30eed9a176bc",
+          "inputSha256": "f41f1ce39c8fdb7ebc7da0004d770492cef7eeb5a2379065b40dab5c0df5203c"
+        }
+      ]
+    },
+    {
+      "key": "picard",
+      "ids": [
+        440
+      ],
+      "source": "picards ship replacement.png",
+      "sourceSha256": "bf3bf636138f79c2a0ec73add9a39400a62f0d4ad6bc08227b482a94aa46b61b",
+      "crop": [
+        92,
+        20,
+        1162,
+        1233
+      ],
+      "size": [
+        452,
+        512
+      ],
+      "lamps": 35,
+      "engines": 13,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            452,
+            512
+          ],
+          "solidPixels": 155397,
+          "masterSha256": "bf3bf636138f79c2a0ec73add9a39400a62f0d4ad6bc08227b482a94aa46b61b",
+          "frameSha256": "c75fb72ab5084b307e56a2b218b9039b0c27cc22bd69b727a4fd35a1602d796d"
+        },
+        {
+          "stage": "light",
+          "size": [
+            452,
+            512
+          ],
+          "solidPixels": 156016,
+          "masterSha256": "a6906f0d31570bfee3ea2402ada677a12509341fefdffa3e5273ce5dd74aff49",
+          "frameSha256": "0830532d826348ad145e5d60e0ae1364392cbe07780a088f9dd14d0f334bf664",
+          "removedPixels": 118
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            452,
+            512
+          ],
+          "solidPixels": 155805,
+          "masterSha256": "dfe05f9e0df5450712a9405488ec0c15e9062fb49d777aed8f6836db56fd7707",
+          "frameSha256": "0fabd68e3f80c0d0dc2ed3577b4d85d13652ea6eb99fae6d4f6522e3962a71af",
+          "removedPixels": 2404
+        },
+        {
+          "stage": "severe",
+          "size": [
+            452,
+            512
+          ],
+          "solidPixels": 142395,
+          "masterSha256": "88af66485f99ba163ca7e868680c5b08736100795d827145e32fa86404396e6b",
+          "frameSha256": "c91d6715d435240632155bab5eed4f78f17c70f4a9cf6c38f976fce261e55ff8",
+          "removedPixels": 15865
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/picard/masters/intact.png",
+          "sha256": "bf3bf636138f79c2a0ec73add9a39400a62f0d4ad6bc08227b482a94aa46b61b",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/picard/masters/light.png",
+          "sha256": "a6906f0d31570bfee3ea2402ada677a12509341fefdffa3e5273ce5dd74aff49",
+          "inputSha256": "bf3bf636138f79c2a0ec73add9a39400a62f0d4ad6bc08227b482a94aa46b61b"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/picard/masters/heavy.png",
+          "sha256": "dfe05f9e0df5450712a9405488ec0c15e9062fb49d777aed8f6836db56fd7707",
+          "inputSha256": "a6906f0d31570bfee3ea2402ada677a12509341fefdffa3e5273ce5dd74aff49"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/picard/masters/severe.png",
+          "sha256": "88af66485f99ba163ca7e868680c5b08736100795d827145e32fa86404396e6b",
+          "inputSha256": "dfe05f9e0df5450712a9405488ec0c15e9062fb49d777aed8f6836db56fd7707"
+        }
+      ]
+    },
+    {
+      "key": "nebula",
+      "ids": [
+        4
+      ],
+      "source": "ship 04 replacement.png",
+      "sourceSha256": "cb50e9f71e95a4a5118b979cde82ed337ed3a1a452adc21fcee892a12c9f593f",
+      "crop": [
+        20,
+        0,
+        1280,
+        1207
+      ],
+      "size": [
+        512,
+        490
+      ],
+      "lamps": 82,
+      "engines": 80,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            512,
+            490
+          ],
+          "solidPixels": 192058,
+          "masterSha256": "cb50e9f71e95a4a5118b979cde82ed337ed3a1a452adc21fcee892a12c9f593f",
+          "frameSha256": "33a87458457b702d257f195366839f4b4ad9d27eb0d1bec354bde744bf9fb466"
+        },
+        {
+          "stage": "light",
+          "size": [
+            512,
+            490
+          ],
+          "solidPixels": 191757,
+          "masterSha256": "f46686729bc26c33dcd6329a3869b47a80f0ea4c5372d1c3d78b762d89a365e9",
+          "frameSha256": "d40a463819066c17fdd59191b84e436f018e6625a0f6d8c58af5209e81eba017",
+          "removedPixels": 124
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            512,
+            490
+          ],
+          "solidPixels": 189998,
+          "masterSha256": "f8769d54240c5ab8478e548712ad001350fea9f0fff770e2f5a02f3950d66dcb",
+          "frameSha256": "7e039f19014c69fa1eeaa0b2de3424c3c1149cfef072c38e9bc6c77350fd3978",
+          "removedPixels": 4105
+        },
+        {
+          "stage": "severe",
+          "size": [
+            512,
+            490
+          ],
+          "solidPixels": 164523,
+          "masterSha256": "99ead691d207d9ea59edeb7a87a53625bb52abfbd74a7eb958333f6d0e6ae745",
+          "frameSha256": "7b538629e2728daaa563ab29577ca1e1487a72476de63f4956ab51bf7487a7dc",
+          "removedPixels": 24412
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/nebula/masters/intact.png",
+          "sha256": "cb50e9f71e95a4a5118b979cde82ed337ed3a1a452adc21fcee892a12c9f593f",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/nebula/masters/light.png",
+          "sha256": "f46686729bc26c33dcd6329a3869b47a80f0ea4c5372d1c3d78b762d89a365e9",
+          "inputSha256": "cb50e9f71e95a4a5118b979cde82ed337ed3a1a452adc21fcee892a12c9f593f"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/nebula/masters/heavy.png",
+          "sha256": "f8769d54240c5ab8478e548712ad001350fea9f0fff770e2f5a02f3950d66dcb",
+          "inputSha256": "f46686729bc26c33dcd6329a3869b47a80f0ea4c5372d1c3d78b762d89a365e9"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/nebula/masters/severe.png",
+          "sha256": "99ead691d207d9ea59edeb7a87a53625bb52abfbd74a7eb958333f6d0e6ae745",
+          "inputSha256": "f8769d54240c5ab8478e548712ad001350fea9f0fff770e2f5a02f3950d66dcb"
+        }
+      ]
+    },
+    {
+      "key": "mozart",
+      "ids": [
+        13
+      ],
+      "source": "ship 13 replacement.png",
+      "sourceSha256": "85c9f7e8357b53e82f66fe0f3f58fc5b36e6804173b2544c4db830449e673626",
+      "crop": [
+        42,
+        34,
+        985,
+        1472
+      ],
+      "size": [
+        336,
+        512
+      ],
+      "lamps": 17,
+      "engines": 9,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            336,
+            512
+          ],
+          "solidPixels": 122761,
+          "masterSha256": "85c9f7e8357b53e82f66fe0f3f58fc5b36e6804173b2544c4db830449e673626",
+          "frameSha256": "4dd9b18434cf3cfa7de8895377c247d0e8f661d3a6394e675773c97682be0091"
+        },
+        {
+          "stage": "light",
+          "size": [
+            336,
+            512
+          ],
+          "solidPixels": 123622,
+          "masterSha256": "1d7b1bf54834bd42a4e26aba307c4848f67f22dd694f1cb8538b2499d7bb652e",
+          "frameSha256": "325b72daef7b692d3563d7c2e2293ac36962222deddf0cfeb82beb82b23fd1ff",
+          "removedPixels": 33
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            336,
+            512
+          ],
+          "solidPixels": 122305,
+          "masterSha256": "13b40cdbf05ce6bcec999474e0f3df3a7593bfc12a5bed1cbb6b1c5e6b5b12fe",
+          "frameSha256": "705ce50316f5778556192be251d32cdb77aaf8a662dd57502be156ffd53b6104",
+          "removedPixels": 2462
+        },
+        {
+          "stage": "severe",
+          "size": [
+            336,
+            512
+          ],
+          "solidPixels": 109040,
+          "masterSha256": "76133e56ef37315eb9122e752c86689717ea866c8b58c40f4340372ae3fe3cb2",
+          "frameSha256": "0c7ad7dcc7cb2d6b53eecc4a87d82621b0dc283a9c862b7f276644a8f3c60eb0",
+          "removedPixels": 14102
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/mozart/masters/intact.png",
+          "sha256": "85c9f7e8357b53e82f66fe0f3f58fc5b36e6804173b2544c4db830449e673626",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/mozart/masters/light.png",
+          "sha256": "1d7b1bf54834bd42a4e26aba307c4848f67f22dd694f1cb8538b2499d7bb652e",
+          "inputSha256": "85c9f7e8357b53e82f66fe0f3f58fc5b36e6804173b2544c4db830449e673626"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/mozart/masters/heavy.png",
+          "sha256": "13b40cdbf05ce6bcec999474e0f3df3a7593bfc12a5bed1cbb6b1c5e6b5b12fe",
+          "inputSha256": "1d7b1bf54834bd42a4e26aba307c4848f67f22dd694f1cb8538b2499d7bb652e"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/mozart/masters/severe.png",
+          "sha256": "76133e56ef37315eb9122e752c86689717ea866c8b58c40f4340372ae3fe3cb2",
+          "inputSha256": "13b40cdbf05ce6bcec999474e0f3df3a7593bfc12a5bed1cbb6b1c5e6b5b12fe"
+        }
+      ]
+    },
+    {
+      "key": "sovereign",
+      "ids": [
+        38
+      ],
+      "source": "ship 38 replacement.png",
+      "sourceSha256": "ceb872ef7c723fdd11070b992ca5c77ff73813b0f676f4e34911ca62db318520",
+      "crop": [
+        46,
+        2,
+        791,
+        1873
+      ],
+      "size": [
+        204,
+        512
+      ],
+      "lamps": 21,
+      "engines": 16,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            204,
+            512
+          ],
+          "solidPixels": 64339,
+          "masterSha256": "ceb872ef7c723fdd11070b992ca5c77ff73813b0f676f4e34911ca62db318520",
+          "frameSha256": "2d47647df609de54b6c871833d22f554d8534701becc3fc76d14a0f6edb12a2b"
+        },
+        {
+          "stage": "light",
+          "size": [
+            204,
+            512
+          ],
+          "solidPixels": 64781,
+          "masterSha256": "23ade76569e648bbfdd38b0206d535e810f4f5fcc6dc91cf1dd35f567cf4cb48",
+          "frameSha256": "8513be4d31a1e92adfaedd249a9e8510f3b180604228a16aa17dfe9ea8d86135",
+          "removedPixels": 2
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            204,
+            512
+          ],
+          "solidPixels": 65495,
+          "masterSha256": "ae2c44abf5cf8830a6cfa1b2cf46d339e513389e1a237cc7949d2256fbcfe8ac",
+          "frameSha256": "b06b90abe2075c135f4f30b398c4b87217f1ced7a35846e286d0d426d170dcb2",
+          "removedPixels": 648
+        },
+        {
+          "stage": "severe",
+          "size": [
+            204,
+            512
+          ],
+          "solidPixels": 59206,
+          "masterSha256": "627d14b48dbeaf187120e710d62e4f9407603e18efad7f5bfc7b344a13eae673",
+          "frameSha256": "cd09f4c1b63138a675b3aec399ec39ba023b4fb8a84fd2eb8a5f0291ccddf81c",
+          "removedPixels": 7715
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/sovereign/masters/intact.png",
+          "sha256": "ceb872ef7c723fdd11070b992ca5c77ff73813b0f676f4e34911ca62db318520",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/sovereign/masters/light.png",
+          "sha256": "23ade76569e648bbfdd38b0206d535e810f4f5fcc6dc91cf1dd35f567cf4cb48",
+          "inputSha256": "ceb872ef7c723fdd11070b992ca5c77ff73813b0f676f4e34911ca62db318520"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/sovereign/masters/heavy.png",
+          "sha256": "ae2c44abf5cf8830a6cfa1b2cf46d339e513389e1a237cc7949d2256fbcfe8ac",
+          "inputSha256": "23ade76569e648bbfdd38b0206d535e810f4f5fcc6dc91cf1dd35f567cf4cb48"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/sovereign/masters/severe.png",
+          "sha256": "627d14b48dbeaf187120e710d62e4f9407603e18efad7f5bfc7b344a13eae673",
+          "inputSha256": "ae2c44abf5cf8830a6cfa1b2cf46d339e513389e1a237cc7949d2256fbcfe8ac"
+        }
+      ]
+    },
+    {
+      "key": "olympic",
+      "ids": [
+        58
+      ],
+      "source": "ship 58 medical ship replacement.png",
+      "sourceSha256": "88967044eb395490226b3e32ba896d3097dc2887cca2fc4fec543db662322e1d",
+      "crop": [
+        146,
+        241,
+        751,
+        1687
+      ],
+      "size": [
+        214,
+        512
+      ],
+      "lamps": 15,
+      "engines": 13,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            214,
+            512
+          ],
+          "solidPixels": 74248,
+          "masterSha256": "88967044eb395490226b3e32ba896d3097dc2887cca2fc4fec543db662322e1d",
+          "frameSha256": "8804804eb2a21d01455678a58ae227ba7d434669643f6f9c6cda4bff2cc91669"
+        },
+        {
+          "stage": "light",
+          "size": [
+            214,
+            512
+          ],
+          "solidPixels": 75624,
+          "masterSha256": "1f077b62b559d2e921ac912e8fc84d0ef2d5392583c8173a3ce4f161cefae123",
+          "frameSha256": "dfdd71b8f730e318e5ac378361c3e69028e5355d438a4cf52a3d033c93f1972b",
+          "removedPixels": 2
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            214,
+            512
+          ],
+          "solidPixels": 75592,
+          "masterSha256": "ca6d49f799e40069bd8ff194df1998b47c6e7870b6ccf7456caec4077b9e16ae",
+          "frameSha256": "20cc52220008a424318585d9da0a833e05dc56e159b8cd9ff9bd367a6d8b10c0",
+          "removedPixels": 1239
+        },
+        {
+          "stage": "severe",
+          "size": [
+            214,
+            512
+          ],
+          "solidPixels": 69741,
+          "masterSha256": "f5d9e73a0a5a84f4530e2d58031e3800dd4eb35c341177e83555309949e76a9d",
+          "frameSha256": "37afca5e99581b59c5f6ed57fa832d3b03bb08291c00769afff30354b051053d",
+          "removedPixels": 7023
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/olympic/masters/intact.png",
+          "sha256": "88967044eb395490226b3e32ba896d3097dc2887cca2fc4fec543db662322e1d",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/olympic/masters/light.png",
+          "sha256": "1f077b62b559d2e921ac912e8fc84d0ef2d5392583c8173a3ce4f161cefae123",
+          "inputSha256": "88967044eb395490226b3e32ba896d3097dc2887cca2fc4fec543db662322e1d"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/olympic/masters/heavy.png",
+          "sha256": "ca6d49f799e40069bd8ff194df1998b47c6e7870b6ccf7456caec4077b9e16ae",
+          "inputSha256": "1f077b62b559d2e921ac912e8fc84d0ef2d5392583c8173a3ce4f161cefae123"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/olympic/masters/severe.png",
+          "sha256": "f5d9e73a0a5a84f4530e2d58031e3800dd4eb35c341177e83555309949e76a9d",
+          "inputSha256": "ca6d49f799e40069bd8ff194df1998b47c6e7870b6ccf7456caec4077b9e16ae"
+        }
+      ]
+    },
+    {
+      "key": "saber",
+      "ids": [
+        6
+      ],
+      "source": "ship 6 replacement saber class.png",
+      "sourceSha256": "785c3384cf91eb4c647056c2cd71b860ceda4ff7c7fc37bb690426ada2394c82",
+      "crop": [
+        26,
+        50,
+        1150,
+        1279
+      ],
+      "size": [
+        468,
+        512
+      ],
+      "lamps": 71,
+      "engines": 60,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            468,
+            512
+          ],
+          "solidPixels": 161518,
+          "masterSha256": "785c3384cf91eb4c647056c2cd71b860ceda4ff7c7fc37bb690426ada2394c82",
+          "frameSha256": "4ed16a085256039f1fc07cadf34290c4e5ed99c719596c4b62aff31153e70bfd"
+        },
+        {
+          "stage": "light",
+          "size": [
+            468,
+            512
+          ],
+          "solidPixels": 161931,
+          "masterSha256": "ce7795d5065b004890936dbbe8dcd782dc4d5bcfb377cf61434abbc59d7952ff",
+          "frameSha256": "44bb357ef2ba6c0556d5fa6ffd5d28dcc2bc8e467650762e15b2b3a7156cb906",
+          "removedPixels": 25
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            468,
+            512
+          ],
+          "solidPixels": 161343,
+          "masterSha256": "18c8d409716ee69301a4057787b4fd0bbddc85dfb638698cfa66e95b1bdd954b",
+          "frameSha256": "5c23e57af236f73468cde3758edea29894d6da1436d9683c7391b362d4e01851",
+          "removedPixels": 2179
+        },
+        {
+          "stage": "severe",
+          "size": [
+            468,
+            512
+          ],
+          "solidPixels": 144401,
+          "masterSha256": "a0d2c46449cb8b9dd94224bd8ffaf64b48b68ccc2034150afa285c8e94938e88",
+          "frameSha256": "05841d31f288c51fb15b767794b7650779ebddb47ea7a66234ce3b99fb9c25cd",
+          "removedPixels": 16890
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/saber/masters/intact.png",
+          "sha256": "785c3384cf91eb4c647056c2cd71b860ceda4ff7c7fc37bb690426ada2394c82",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/saber/masters/light.png",
+          "sha256": "ce7795d5065b004890936dbbe8dcd782dc4d5bcfb377cf61434abbc59d7952ff",
+          "inputSha256": "785c3384cf91eb4c647056c2cd71b860ceda4ff7c7fc37bb690426ada2394c82"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/saber/masters/heavy.png",
+          "sha256": "18c8d409716ee69301a4057787b4fd0bbddc85dfb638698cfa66e95b1bdd954b",
+          "inputSha256": "ce7795d5065b004890936dbbe8dcd782dc4d5bcfb377cf61434abbc59d7952ff"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/saber/masters/severe.png",
+          "sha256": "a0d2c46449cb8b9dd94224bd8ffaf64b48b68ccc2034150afa285c8e94938e88",
+          "inputSha256": "18c8d409716ee69301a4057787b4fd0bbddc85dfb638698cfa66e95b1bdd954b"
+        }
+      ]
+    },
+    {
+      "key": "dreadnaught",
+      "ids": [
+        60
+      ],
+      "source": "ship 60 replacement.png",
+      "sourceSha256": "2817e2b6e505b1acea0b010b0de84b57cb2b0ced6274eb2d4602d9d8d8eff31a",
+      "crop": [
+        22,
+        23,
+        883,
+        1714
+      ],
+      "size": [
+        261,
+        512
+      ],
+      "lamps": 50,
+      "engines": 42,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            261,
+            512
+          ],
+          "solidPixels": 91769,
+          "masterSha256": "2817e2b6e505b1acea0b010b0de84b57cb2b0ced6274eb2d4602d9d8d8eff31a",
+          "frameSha256": "5de65b9bdbd622ccca9d0ed7ebf932ffe11c022b259ab6f6489776f69a5d6572"
+        },
+        {
+          "stage": "light",
+          "size": [
+            261,
+            512
+          ],
+          "solidPixels": 92183,
+          "masterSha256": "419442292c8bde736bb2095572992a924f10de16c1be82e6c3259a23d6492995",
+          "frameSha256": "2da40d7de2b16e4cfa9ffa1aa9353ae307ca517c295aa27e65c4feea0cd0da63",
+          "removedPixels": 9
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            261,
+            512
+          ],
+          "solidPixels": 90401,
+          "masterSha256": "e42bcf575427cfbab6fbf072e29db6bb2234504a3076e5ef173cf8e9c014ef01",
+          "frameSha256": "66a59124168f4c73c6027fec4c2fd7768ee834b97e8d29d671fe6e11fc8e6b76",
+          "removedPixels": 2440
+        },
+        {
+          "stage": "severe",
+          "size": [
+            261,
+            512
+          ],
+          "solidPixels": 80779,
+          "masterSha256": "5bee2eceb98f76b5c63c0c4241e5e024ad9e1e53b9c98e6087264bebcf443c00",
+          "frameSha256": "bd49245a463504a9b9301c6e02816731846770ca3752cc134d934df00029ad8c",
+          "removedPixels": 9837
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/dreadnaught/masters/intact.png",
+          "sha256": "2817e2b6e505b1acea0b010b0de84b57cb2b0ced6274eb2d4602d9d8d8eff31a",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/dreadnaught/masters/light.png",
+          "sha256": "419442292c8bde736bb2095572992a924f10de16c1be82e6c3259a23d6492995",
+          "inputSha256": "2817e2b6e505b1acea0b010b0de84b57cb2b0ced6274eb2d4602d9d8d8eff31a"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/dreadnaught/masters/heavy.png",
+          "sha256": "e42bcf575427cfbab6fbf072e29db6bb2234504a3076e5ef173cf8e9c014ef01",
+          "inputSha256": "419442292c8bde736bb2095572992a924f10de16c1be82e6c3259a23d6492995"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/dreadnaught/masters/severe.png",
+          "sha256": "5bee2eceb98f76b5c63c0c4241e5e024ad9e1e53b9c98e6087264bebcf443c00",
+          "inputSha256": "e42bcf575427cfbab6fbf072e29db6bb2234504a3076e5ef173cf8e9c014ef01"
+        }
+      ]
+    },
+    {
+      "key": "galaxy-dreadnaught",
+      "ids": [
+        49
+      ],
+      "source": "star trek galaxy dreadnaught class replacement.png",
+      "sourceSha256": "f765185a7dba5c1be71db4acc9065fda19da9bc76b2a70355f513926728d9ca0",
+      "crop": [
+        91,
+        18,
+        1162,
+        1235
+      ],
+      "size": [
+        451,
+        512
+      ],
+      "lamps": 45,
+      "engines": 21,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            451,
+            512
+          ],
+          "solidPixels": 156055,
+          "masterSha256": "f765185a7dba5c1be71db4acc9065fda19da9bc76b2a70355f513926728d9ca0",
+          "frameSha256": "78857eee8fe7b3030a46e61b8be25f3f7316148c2a73bb36278e8fccc052f7c2"
+        },
+        {
+          "stage": "light",
+          "size": [
+            451,
+            512
+          ],
+          "solidPixels": 157247,
+          "masterSha256": "1c3b7ad997250c27670845c95b799c5a3dfa0aa29d3fe9814889470cd27aaea5",
+          "frameSha256": "9414e6dba024a0724b9345f6f0bf72599cb7b3d1680549caf068d6ab72ba218f",
+          "removedPixels": 0
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            451,
+            512
+          ],
+          "solidPixels": 153784,
+          "masterSha256": "0fa47a904c5fd1b228d3debb11caa926d8de46b51d9b0ad6ed89db2616299128",
+          "frameSha256": "71386a4a2dabb35b88866f1ce679890412e0af86e275a23e5d3f31cafbb45891",
+          "removedPixels": 3903
+        },
+        {
+          "stage": "severe",
+          "size": [
+            451,
+            512
+          ],
+          "solidPixels": 139535,
+          "masterSha256": "a81b1c2a0425ea3f0441bd29d6b7494c4048b0dd8dbc6cd1a4ba991ef4295427",
+          "frameSha256": "68ae6013d3dc3cdfb3a70329a1b0257d8debd10b2be90eec6d5d29c8e61fb675",
+          "removedPixels": 15192
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/galaxy-dreadnaught/masters/intact.png",
+          "sha256": "f765185a7dba5c1be71db4acc9065fda19da9bc76b2a70355f513926728d9ca0",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/galaxy-dreadnaught/masters/light.png",
+          "sha256": "1c3b7ad997250c27670845c95b799c5a3dfa0aa29d3fe9814889470cd27aaea5",
+          "inputSha256": "f765185a7dba5c1be71db4acc9065fda19da9bc76b2a70355f513926728d9ca0"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/galaxy-dreadnaught/masters/heavy.png",
+          "sha256": "0fa47a904c5fd1b228d3debb11caa926d8de46b51d9b0ad6ed89db2616299128",
+          "inputSha256": "1c3b7ad997250c27670845c95b799c5a3dfa0aa29d3fe9814889470cd27aaea5"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/galaxy-dreadnaught/masters/severe.png",
+          "sha256": "a81b1c2a0425ea3f0441bd29d6b7494c4048b0dd8dbc6cd1a4ba991ef4295427",
+          "inputSha256": "0fa47a904c5fd1b228d3debb11caa926d8de46b51d9b0ad6ed89db2616299128"
+        }
+      ]
+    },
+    {
+      "key": "stargazer",
+      "ids": [
+        433
+      ],
+      "source": "stargazer replacement.png",
+      "sourceSha256": "b1e831c274394059d9f4e04ea171b47eb0cb17be07c894efff94c1adf191b884",
+      "crop": [
+        218,
+        31,
+        921,
+        1342
+      ],
+      "size": [
+        275,
+        512
+      ],
+      "lamps": 33,
+      "engines": 8,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            275,
+            512
+          ],
+          "solidPixels": 85845,
+          "masterSha256": "b1e831c274394059d9f4e04ea171b47eb0cb17be07c894efff94c1adf191b884",
+          "frameSha256": "586a820f636ca2ddb0ed0fc909f47b4d333104e6b505eef6374424670fbc6007"
+        },
+        {
+          "stage": "light",
+          "size": [
+            275,
+            512
+          ],
+          "solidPixels": 85229,
+          "masterSha256": "47c944f0872c463c413b0e92da9e07c07cd74713013a4aa89c7dcde5994f128e",
+          "frameSha256": "008719bbd378b5b715e8fa764a2214b881e2db386e23dd2cb7c53f7973c50862",
+          "removedPixels": 204
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            275,
+            512
+          ],
+          "solidPixels": 84710,
+          "masterSha256": "0a3b85ba789410b44b354de874e106f20529dc9db324d5014c46fd0dd1541af2",
+          "frameSha256": "ae35326c576d456ebea065ecced5e7bb65fd3f5856afd65573b2a68ed15cd1bf",
+          "removedPixels": 2458
+        },
+        {
+          "stage": "severe",
+          "size": [
+            275,
+            512
+          ],
+          "solidPixels": 76593,
+          "masterSha256": "edf184d325e513df04450de9e24bb1b92d2d5def4369ec615086ef95f49679b8",
+          "frameSha256": "3348302553990593da2e7998f993b8278ae8180da4746db336d974db51ba667a",
+          "removedPixels": 10445
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/stargazer/masters/intact.png",
+          "sha256": "b1e831c274394059d9f4e04ea171b47eb0cb17be07c894efff94c1adf191b884",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/stargazer/masters/light.png",
+          "sha256": "47c944f0872c463c413b0e92da9e07c07cd74713013a4aa89c7dcde5994f128e",
+          "inputSha256": "b1e831c274394059d9f4e04ea171b47eb0cb17be07c894efff94c1adf191b884"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/stargazer/masters/heavy.png",
+          "sha256": "0a3b85ba789410b44b354de874e106f20529dc9db324d5014c46fd0dd1541af2",
+          "inputSha256": "47c944f0872c463c413b0e92da9e07c07cd74713013a4aa89c7dcde5994f128e"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/stargazer/masters/severe.png",
+          "sha256": "edf184d325e513df04450de9e24bb1b92d2d5def4369ec615086ef95f49679b8",
+          "inputSha256": "0a3b85ba789410b44b354de874e106f20529dc9db324d5014c46fd0dd1541af2"
+        }
+      ]
+    },
+    {
+      "key": "tug",
+      "ids": [
+        10,
+        414
+      ],
+      "source": "tug replacement.png",
+      "sourceSha256": "57ef3945a900f442286a1ef7968f849199ab99aa039ad5f0d4bc5983837acee4",
+      "crop": [
+        1,
+        204,
+        904,
+        1423
+      ],
+      "size": [
+        379,
+        512
+      ],
+      "lamps": 28,
+      "engines": 14,
+      "frames": [
+        {
+          "stage": "intact",
+          "size": [
+            379,
+            512
+          ],
+          "solidPixels": 146642,
+          "masterSha256": "57ef3945a900f442286a1ef7968f849199ab99aa039ad5f0d4bc5983837acee4",
+          "frameSha256": "c4907340cb975c3daa24af2ecb9cc219a3e3802523cff0d1b2d3851173a1dac4"
+        },
+        {
+          "stage": "light",
+          "size": [
+            379,
+            512
+          ],
+          "solidPixels": 147025,
+          "masterSha256": "92b3990fc5973cebd2d118e9ca45850842c751bde6245b0df982073ee57f32f3",
+          "frameSha256": "1672f28d5b9306b55a70b920718ecb84df3c62fd85e5c63f3f2cf32896c729ba",
+          "removedPixels": 29
+        },
+        {
+          "stage": "heavy",
+          "size": [
+            379,
+            512
+          ],
+          "solidPixels": 143044,
+          "masterSha256": "450c75f5bcb8d9999b8c080723882a42f17633e5091e06777eeb555371de3369",
+          "frameSha256": "e5f61f25c338f8f9cd8d71cee96c579e0d7161e01b3b715ef76da3ed1abbb688",
+          "removedPixels": 3874
+        },
+        {
+          "stage": "severe",
+          "size": [
+            379,
+            512
+          ],
+          "solidPixels": 124516,
+          "masterSha256": "be41bad86c49af1ee992e486376508752e1c1f4c5ba34cbdaaa6fb767cace67f",
+          "frameSha256": "21e610c14e89137df4f9da2aab7e695940d1899f51630f97ab665f7a60508340",
+          "removedPixels": 17528
+        }
+      ],
+      "lineage": [
+        {
+          "stage": "intact",
+          "master": "replacement-ships/tug/masters/intact.png",
+          "sha256": "57ef3945a900f442286a1ef7968f849199ab99aa039ad5f0d4bc5983837acee4",
+          "inputSha256": null
+        },
+        {
+          "stage": "light",
+          "master": "replacement-ships/tug/masters/light.png",
+          "sha256": "92b3990fc5973cebd2d118e9ca45850842c751bde6245b0df982073ee57f32f3",
+          "inputSha256": "57ef3945a900f442286a1ef7968f849199ab99aa039ad5f0d4bc5983837acee4"
+        },
+        {
+          "stage": "heavy",
+          "master": "replacement-ships/tug/masters/heavy.png",
+          "sha256": "450c75f5bcb8d9999b8c080723882a42f17633e5091e06777eeb555371de3369",
+          "inputSha256": "92b3990fc5973cebd2d118e9ca45850842c751bde6245b0df982073ee57f32f3"
+        },
+        {
+          "stage": "severe",
+          "master": "replacement-ships/tug/masters/severe.png",
+          "sha256": "be41bad86c49af1ee992e486376508752e1c1f4c5ba34cbdaaa6fb767cace67f",
+          "inputSha256": "450c75f5bcb8d9999b8c080723882a42f17633e5091e06777eeb555371de3369"
+        }
+      ]
+    }
+  ]
+}

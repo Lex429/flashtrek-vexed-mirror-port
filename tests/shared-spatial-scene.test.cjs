@@ -131,6 +131,43 @@ test('direct shared shield damage refreshes the spatial surface exactly once wit
  assert.equal(before.shields,50);assert.equal(frames.snapshot(state).counters.sceneCollections,undefined);frames.end(state);
 });
 
+test('shared ship snapshots reuse unchanged data and keep public descriptions independently annotatable',async()=>{
+ const {window:w,state}=await tacticalFixture(),defs=w.nativeShipDefinitions;
+ const first=defs.snapshot(state),again=defs.snapshot(state);assert.equal(again,first);
+ const a=defs.describe(state),b=defs.describe(state);assert.notEqual(a,b);a.x=987654;a.annotation='caller';
+ assert.equal(b.x,first.x);assert.equal(defs.snapshot(state),first);assert.equal(defs.describe(state).annotation,undefined);
+ state.x+=4;const moved=defs.snapshot(state);assert.notEqual(moved,first);assert.equal(moved.x,first.x+4);assert.equal(first.x,0);
+ state.previousX=moved.previousX-7;const swept=defs.snapshot(state);assert.notEqual(swept,moved);assert.equal(swept.previousX,state.previousX);
+ state.hull-=10;const damaged=defs.snapshot(state);assert.notEqual(damaged,swept);assert.equal(damaged.hull,state.hull);assert.equal(swept.hull,100);
+});
+
+test('ship mutations visit their owning registry after many systems are inspected and stale rebuilds are released',async()=>{
+ const {window:w,state,ships}=await tacticalFixture(),systems=w.nativeShipSystems,frames=w.nativeSimulationFrame,ship=ships[0];
+ const query=system=>systems.query(state,{system,minX:-2e6,minY:-2e6,maxX:2e6,maxY:2e6,categories:['civilian']});
+ for(let system=1;system<=60;system++)query(system);
+ frames.begin(state);frames.step(state);const original=systems.resolve(state,ship.id,1);
+ for(let i=0;i<20;i++){ship.x++;systems.refreshShip(state,ship,'civilian');}
+ for(let i=0;i<5;i++){systems.invalidateShips(state,1);query(1);}
+ ship.system=2;systems.refreshShip(state,ship,'civilian',2);
+ assert.ok(!query(1).bystanders.some(t=>t.entity===ship));assert.ok(query(2).bystanders.some(t=>t.entity===ship));
+ ship.system=1;systems.refreshShip(state,ship,'civilian',1);assert.ok(query(1).bystanders.some(t=>t.entity===ship));assert.ok(!query(2).bystanders.some(t=>t.entity===ship));
+ assert.equal(original.x,1e6);assert.equal(original.system,1);
+ assert.ok(frames.snapshot(state).counters.shipRefreshRecordChecks<=30,'An actor mutation scanned unrelated or replaced system registries');frames.end(state);
+});
+
+test('movement-only reads retain the shared equipment policy without constructing pose or artwork geometry',async()=>{
+ const {window:w,state,context}=await tacticalFixture(),defs=w.nativeShipDefinitions,frames=w.nativeSimulationFrame;
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/regional-minerals.js'),'utf8'),context);
+ state.shipType=10;w.nativeShipEquipment.ensure(state);frames.begin(state);frames.step(state);
+ const initial=defs.movementFor(state);for(let i=0;i<100;i++)assert.equal(defs.movementFor(state),initial);
+ assert.equal(frames.snapshot(state).counters.shipDescriptors,undefined);
+ const eq=state.shipEquipment,engine=eq.instances[eq.slots.engineering[0]];engine.upgrades.tugEngineLevel=2;
+ const upgraded=defs.movementFor(state);assert.ok(upgraded.maxSpeed>initial.maxSpeed);assert.equal(upgraded,defs.describe(state).definition.movement);
+ engine.condition=0;assert.equal(defs.movementFor(state),defs.describe(state).definition.movement);
+ engine.condition=100;defs.register(10,{movement:(s,entity)=>({maxSpeed:entity.x+10})});state.x=1;assert.equal(defs.movementFor(state).maxSpeed,11);state.x=3;assert.equal(defs.movementFor(state).maxSpeed,13);
+ frames.end(state);
+});
+
 test('effective equipment statistics and shape caches update without rebuilding on ordinary motion',async()=>{
  const {window:w,state,context}=await tacticalFixture(),defs=w.nativeShipDefinitions,frames=w.nativeSimulationFrame;
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/regional-minerals.js'),'utf8'),context);

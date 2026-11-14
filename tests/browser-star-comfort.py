@@ -1,5 +1,5 @@
 """Exercise real flight inputs and compare rendered low/high-speed star optics."""
-import base64,functools,http.server,json,os,threading
+import base64,functools,http.server,json,math,os,threading
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -41,6 +41,40 @@ try:
         page.wait_for_function('()=>__skyInput?.reducedMotion===true')
         page.emulate_media(reduced_motion='no-preference')
         page.wait_for_function('()=>__skyInput?.reducedMotion===false')
+        page.evaluate('''()=>{
+          const s=nativeNpcDev.getState();s.angle=-Math.PI/2;s.vx=0;s.vy=-427.5;s.speed=427.5;s.motionDrift=true;
+          const update=vexedSpace.update;window.__trailRows=[];
+          vexedSpace.update=function(dt,input){const result=update.call(this,dt,input),m=this.state;
+            __trailRows.push({dt,locx:input.locx,locy:input.locy,inputSpeed:input.speed,physicalSpeed:Math.hypot(s.vx,s.vy),effect:m.speedEffect,
+              angle:m.trailAngle??Math.atan2(m.motionY,m.motionX),frozen:!!window.__trailCameraFreeze});return result;
+          };
+        }''')
+        page.locator('#space').focus();page.keyboard.down('w')
+        page.wait_for_function('()=>vexedSpace.state.speedEffect>.6',timeout=20000)
+        page.evaluate('''()=>{
+          const owner=nativeSimulationFrame,s=nativeNpcDev.getState(),pose=owner.renderPose(s,nativeShipDefinitions.describe(s,s,{category:'player'}));
+          window.__trailFrameOwner=owner;window.__trailCameraFreeze={x:pose.x,y:pose.y};
+          window.nativeSimulationFrame={...owner,renderPose(state,descriptor){const shown=owner.renderPose(state,descriptor);
+            return window.__trailCameraFreeze&&descriptor?.category==='player'?{...shown,...__trailCameraFreeze}:shown;
+          }};
+        }''')
+        page.wait_for_function('()=>__trailRows.filter(r=>r.frozen).length>=5',timeout=15000)
+        page.evaluate('''()=>{window.__trailCameraFreeze=null;window.nativeSimulationFrame=__trailFrameOwner;}''')
+        page.keyboard.down('d');page.wait_for_timeout(2000);page.keyboard.up('d');page.wait_for_timeout(300);page.keyboard.up('w')
+        trail_rows=page.evaluate('__trailRows')
+        empty=[r for r in trail_rows if r['effect']>.2 and r['physicalSpeed']>350 and abs(r['locx'])+abs(r['locy'])<1e-9]
+        assert len(empty)>=3,'The explicit empty-camera regression was not exercised'
+        assert all(r['inputSpeed']>350 for r in empty),'An empty camera frame falsely reported physical braking'
+        jumps=[]
+        for a,b in zip(trail_rows,trail_rows[1:]):
+            if min(a['effect'],b['effect'])<.2:continue
+            step=abs(math.atan2(math.sin(b['angle']-a['angle']),math.cos(b['angle']-a['angle'])))
+            if step>.5:jumps.append(step)
+            assert step<=5*b['dt']+1e-8,{'before':a,'after':b,'angleStep':step}
+        assert not jumps,jumps
+        trail_result={'realFrames':len(trail_rows),'emptyCameraFramesWhileFast':len(empty),'directionSnaps':len(jumps),'frames':trail_rows}
+        (OUT/'turning-trails.json').write_text(json.dumps(trail_result,indent=2),encoding='utf8')
+        page.screenshot(path=str(OUT/'turning-trails.png'))
         report=page.evaluate('''()=>{
           window.requestAnimationFrame=()=>0;
           const game=nativeNpcDev.getState(),before=JSON.stringify(game),canvas=document.createElement('canvas');canvas.width=600;canvas.height=450;
@@ -71,7 +105,7 @@ try:
             for key in ['image','field']:
                 (OUT/f'{name}-{key}.png').write_bytes(base64.b64decode(report[name].pop(key).split(',',1)[1]))
         assert not errors,errors
-        report.update(passed=True,live=live,reducedMotionWired=True,errors=errors)
+        report.update(passed=True,live=live,reducedMotionWired=True,turningTrails={k:v for k,v in trail_result.items() if k!='frames'},errors=errors)
         (OUT/'report.json').write_text(json.dumps(report,indent=2),encoding='utf8');print(json.dumps(report))
         browser.close()
 finally:server.shutdown();server.server_close()

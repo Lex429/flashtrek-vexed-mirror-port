@@ -42,7 +42,7 @@
       ...stats,dimensions:{width:100*1024/1536,height:100},
       artworkProfile,artwork:{source:'flight',frames},
       slots:{weapon:3,repairDrone:2,ability:2,engineering:1,shield:1},
-      emitters:{beam:{x:0,y:-.24},projectile:{x:0,y:-.36}},
+      emitters:window.nativeShipWeaponMounts?.get(id)?.emitters||{beam:{x:0,y:-.24},projectile:{x:0,y:-.36}},
       npcPolicy:'cargo'
     });
     // The installed Games Hub predates definition-owned artwork/flight sizing.

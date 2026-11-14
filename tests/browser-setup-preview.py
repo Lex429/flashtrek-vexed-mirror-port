@@ -199,8 +199,7 @@ try:
         ready()
         assert page.locator('input[name="captain"]').input_value() == 'Lighting Check'
         page.locator('.setup-primary').click()
-        page.wait_for_function('()=>nativeOpeningCinematic.active')
-        page.locator('[data-film-action="skip"]').click()
+        assert not page.evaluate('nativeOpeningCinematic.active')
         page.wait_for_function('() => document.body.classList.contains("playing") && !nativeSetup.active && !nativeMenuTransition.snapshot().active')
         assert page.locator('#pauseBtn').is_visible()
         assert not errors, errors

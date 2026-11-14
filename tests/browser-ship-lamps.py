@@ -45,6 +45,10 @@ CHECK = r"""async () => {
   const cold={uploads:api.snapshot().shipLamps.uploads,fallbacks:api.snapshot().shipLamps.coldFallbacks,
     identical:coldFrames[0].every((value,i)=>value===coldFrames[1][i])};
   if(cold.uploads!==0||!cold.identical||!cold.fallbacks)throw Error('Cold lamps blocked painting or lost the Canvas fallback: '+JSON.stringify(cold));
+  // Sun/no-sun variants share their lamp recipes while both are still queued.
+  const dedupBefore=api.snapshot().shipLamps.preparation.deduplicated;
+  await Promise.all([nativeShipLampGPU.prepare(canvas,coldAsset,117,123),nativeShipLampGPU.prepare(canvas,coldAsset,117,123,{localLight:{direction:0,color:0xffdb9e,bright:.22}})]);
+  if(api.snapshot().shipLamps.preparation.deduplicated<=dedupBefore)throw Error('Concurrent lamp recipes were prepared twice');
   const frames=new Map();
   for(const type of [1,6,7,29,39,52,56,426,427])for(const stage of [0,3])for(const angle of [0,.73])for(const sun of [false,true]){
     const max=nativeShipDefinitions.get(type).hull;
@@ -92,7 +96,8 @@ CHECK = r"""async () => {
 
 
 def main():
-    output = ROOT / 'test-results/ship-lights'
+    failed_worker = os.environ.get('VEXED_LIGHTING_WORKER_FAILURE') == '1'
+    output = ROOT / ('test-results/ship-lights-worker-fallback' if failed_worker else 'test-results/ship-lights')
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='vexed-lamp-pixels-') as storage:
         server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=str(ROOT)))
@@ -104,6 +109,8 @@ def main():
                 launch = {'executable_path': executable} if executable else {'channel': os.environ.get('BROWSER_CHANNEL', 'msedge')}
                 browser = p.chromium.launch(headless=True, **launch)
                 page = browser.new_page(viewport={'width': 1280, 'height': 850})
+                if failed_worker:
+                    page.route('**/ship-lighting-worker.js*', lambda route: route.abort())
                 errors = []
                 page.on('pageerror', lambda e: errors.append(str(e)))
                 page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
@@ -121,6 +128,11 @@ def main():
                 assert all(r['meanError'] == 0 for r in result['results'] if r['stage'] == 3)
                 assert all(v > 0 for v in result['pulseChanges']), 'Running lamps stopped blinking'
                 assert result['resources']['fallbacks'] == 0, result['resources']
+                preparation = result['resources']['preparation']
+                if failed_worker:
+                    assert preparation['completed'] == 0 and preparation['failures'] > 0 and preparation['mainPaints'] > 0, preparation
+                else:
+                    assert preparation['completed'] > 0 and preparation['mainPaints'] == 0 and preparation['failures'] == 0, preparation
                 assert result['resources']['layers'] <= result['resources']['limits']['layers']
                 assert result['standalone']['visible'] and result['standalone']['disabled'] and result['standalone']['emptyHidden'], result['standalone']
                 print(json.dumps({'cases': len(result['results']), 'maxMeanError': max(r['meanError'] for r in result['results']), 'pulseChanges': result['pulseChanges'], 'standalone': result['standalone'], 'errors': errors}))

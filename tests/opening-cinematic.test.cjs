@@ -24,6 +24,7 @@ test('the campaign covers every film second, with recurring Enterprise raids and
  const api=director(),before=JSON.stringify(manifest),cuts=api.cuts(manifest);let end=0;
  for(const cut of cuts){assert.equal(cut.start,end);assert.ok(cut.end>cut.start);end=cut.end;}
  assert.equal(end,manifest.duration);assert.ok(cuts.filter(c=>c.kind==='raid').length>=4);assert.ok(cuts.some(c=>c.kind==='bombardment'));
+ assert.deepEqual(Array.from(cuts.filter(c=>c.kind==='nebula'),c=>c.id),['azure-nebula','badlands-plasma','bassen-rift']);
  assert.ok(new Set(cuts.map(c=>c.world)).size>=10);assert.ok(api.types.includes(426)&&api.types.includes(427));assert.ok(api.types.length>=20);
  for(let t=0;t<manifest.duration;t+=.07){const cut=api.shotAt(manifest,t);assert.ok(cut.local>=0&&Number.isFinite(cut.progress));assert.ok(cut.progress>=0&&cut.progress<=1);}
  assert.equal(JSON.stringify(manifest),before);

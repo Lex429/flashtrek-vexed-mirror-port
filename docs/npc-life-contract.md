@@ -2,6 +2,41 @@
 
 ## Ownership and saved identities
 
+### Continuous nearby piloting
+
+Production traffic in the active physical buffer uses version-4 local movement
+checkpoints. `ship-traffic` chooses pilot intent on each fixed physics step;
+`ship-motion` integrates it with the same definition-owned vector acceleration,
+braking and speed-dependent turn limits as manual flight. Intermediate route
+points guide a moving turn. Only the final destination requires a stop. Sol tugs
+can retain a complete remaining path with `pathEnd`, so intermediate company
+waypoints do not become unloading events.
+
+The existing task owner still owns the destination, berth, reservations and
+delivery transaction. Checkpoints do not settle a job. Changed estimates and
+actual arrival are rescheduled through that owner's `reroute` boundary. Old
+version-2/3 saves remain readable. A version-4 leg contains an immutable physical
+pose, previous pose, waypoint progress and analytical continuation; inspection
+samples copies. Leaving the buffer resumes ordinary analytical travel from the
+actual pose. Coordinate rebasing includes both checkpoint poses, all waypoints,
+the continuation and retained encounter points. Ship contacts update the physical
+checkpoint through `ship-systems.applyContact`.
+
+Passing intent retains a starboard corridor in the encounter's original frame.
+Marginal changes in neighbor threat scores retain the selected encounter. Clear
+separation or a blocker leaving the corridor releases it; a stalled yield can
+attempt a bypass. All nearby hulls still participate in the shared emergency
+braking prediction. Weak, nearly balanced separation signals produce weak
+corrections instead of normalized full-strength reversals. Combat uses this same
+encounter policy while retaining its existing weapon/tactical task owners.
+A faster ship approaching from behind owns its overtaking maneuver; a fleeing
+pilot keeps its forward course instead of braking or turning toward the pursuer.
+
+Run `npc-piloting.test.cjs`, shared motion/traffic/active-region, travel-corridor,
+impact, docking and economy regressions, plus `browser-ship-traffic.py` and the
+same-save browser timing scripts. Functional simulated-time tests do not prove
+delivered display FPS.
+
 This extends the active port and the [shared ship contract](ship-system-contract.md).
 There is no second population. Existing numeric civilian IDs in
 `civilianTraffic.ships` and `tug:N` fleet slots in `solEconomy.freighters` remain

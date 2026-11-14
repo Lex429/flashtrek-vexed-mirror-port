@@ -1,14 +1,14 @@
 /* Common world-target interface. Controllers register consequences, not physics. */
 (() => {
   'use strict';
-  const kinds=new Map(),rockGeometry=new WeakMap(),collections=new WeakMap(),saveArrays=new WeakMap(),persistent=new WeakMap(),cellSize=256;let registryRevision=0;
+  const kinds=new Map(),rockGeometry=new WeakMap(),collections=new WeakMap(),saveArrays=new WeakMap(),persistent=new WeakMap(),indexedRecords=new WeakMap(),membershipStamps=new WeakMap(),cellSize=256;let registryRevision=0;
   const clock=state=>window.nativeSimulation?.seconds?.(state)||(Number(state?.shipSimulation?.seconds)||0);
   const cacheRevisions=new WeakMap();
   function caches(state){
     const result=window.nativeSimulationFrame?.cache?.(state)||window.nativeSimulationFrame?.current(state)?.caches;
     if(result){
-      const definitions=window.nativeShipDefinitions?.revision?.()||0,previous=cacheRevisions.get(result);
-      if(!previous||previous.registry!==registryRevision||previous.definitions!==definitions){result.clear();cacheRevisions.set(result,{registry:registryRevision,definitions});}
+      const definitions=window.nativeShipDefinitions?.revision?.()||0,previous=cacheRevisions.get(result),quiet=!!window.nativeDevTraffic?.active(state);
+      if(!previous||previous.registry!==registryRevision||previous.definitions!==definitions||previous.quiet!==quiet){result.clear();cacheRevisions.set(result,{registry:registryRevision,definitions,quiet});}
     }
     return result;
   }
@@ -33,7 +33,7 @@
   // The native worker clone captures these original arrays synchronously. No
   // observer/index is saved, and the live published array is never replaced.
   function saveCollection(owner,field){const record=owner&&collections.get(owner)?.get(field);return record&&owner[field]===record.items?record.raw:owner?.[field];}
-  const living=target=>target&&(!target.entity||!(target.entity.hull<=0)&&!['destroyed','warp','arriving'].includes(target.entity.phase)&&(target.entity.system??target.system)===target.system)&&
+  const living=target=>target&&!window.nativeDevTraffic?.excludes(target.state,target)&&(!target.entity||!(target.entity.hull<=0)&&!['destroyed','warp','arriving'].includes(target.entity.phase)&&(target.entity.system??target.system)===target.system)&&
     (target.category!=='player'||!target.state?.landed&&!window.vexedWarp?.active&&target.state?.system===target.system);
   function rockTarget(state,rock,system){
     const cached=rockGeometry.get(rock);
@@ -52,7 +52,7 @@
   }
   function collect(state,system=state.system){
     const targets=[];
-    for(const [category,adapter] of kinds)for(const target of adapter.collect(state,system)||[])targets.push({...target,category:target.category||category});
+    for(const [category,adapter] of kinds)if(window.nativeDevTraffic?.allowsCategory(state,category)!==false)for(const target of adapter.collect(state,system)||[])if(!window.nativeDevTraffic?.excludes(state,target,category))targets.push({...target,category:target.category||category});
     return targets;
   }
   function collectShips(state,system=state.system){
@@ -94,7 +94,8 @@
   }
   function describeActor(state,entity,category,id,supplied,reuse=false){
     const adapter=kinds.get(category);
-    let target=reuse?{...supplied,x:entity.x,y:entity.y,heading:entity.heading??entity.angle??0,speed:entity.speed||0,vx:entity.vx||0,vy:entity.vy||0,previousX:entity.previousX??entity.x,previousY:entity.previousY??entity.y,angularVelocity:window.nativeShipMotion?.spinSample?.(entity.motionSpin,clock(state))?.velocity||0}:['player','civilian','tug'].includes(category)?window.nativeShipDefinitions.describe(state,entity,{category}):supplied||(adapter?.resolve?adapter.resolve(state,id,entity?.system??state.system):adapter?.collect(state,entity?.system??state.system)?.find(target=>entity?target.entity===entity:idKey(target.id)===idKey(id)));
+    const definitions=window.nativeShipDefinitions;
+    let target=reuse?{...supplied,x:entity.x,y:entity.y,heading:entity.heading??entity.angle??0,speed:entity.speed||0,vx:entity.vx||0,vy:entity.vy||0,previousX:entity.previousX??entity.x,previousY:entity.previousY??entity.y,angularVelocity:window.nativeShipMotion?.spinSample?.(entity.motionSpin,clock(state))?.velocity||0}:['player','civilian','tug'].includes(category)?(definitions.snapshot||definitions.describe)(state,entity,{category}):supplied||(adapter?.resolve?adapter.resolve(state,id,entity?.system??state.system):adapter?.collect(state,entity?.system??state.system)?.find(target=>entity?target.entity===entity:idKey(target.id)===idKey(id)));
     if(!target)return null;
     if(!target.category||target.system===undefined)target={...target,category:target.category||category,system:target.system??entity?.system??state.system};
     const leg=entity?.localLeg||entity?.lifeLeg;
@@ -111,26 +112,32 @@
   }
   function membership(state,system){
     const npc=window.nativeNpcLives,sol=window.nativeSolEconomy,c=observeCollection(state.civilianTraffic,'ships'),t=observeCollection(state.solEconomy,'freighters');
-    return [registryRevision,window.nativeShipDefinitions.revision?.()||0,npc?.revision?.(state,system)??c?.revision??0,sol?.revision?.(state)??t?.revision??0,state.system].join('|');
+    const definitions=window.nativeShipDefinitions.revision?.()||0,civilian=npc?.revision?.(state,system)??c?.revision??0,tugs=sol?.revision?.(state)??t?.revision??0,quiet=!!window.nativeDevTraffic?.active(state);
+    let stamps=membershipStamps.get(state);if(!stamps)membershipStamps.set(state,stamps=new Map());const old=stamps.get(system);
+    if(old&&old.registry===registryRevision&&old.definitions===definitions&&old.civilian===civilian&&old.tugs===tugs&&old.system===state.system&&old.quiet===quiet&&old.ships===c?.items&&old.freighters===t?.items)return old;
+    const stamp={registry:registryRevision,definitions,civilian,tugs,system:state.system,quiet,ships:c?.items,freighters:t?.items};stamps.set(system,stamp);return stamp;
   }
   function shipRecord(state,system){
     let systems=persistent.get(state);if(!systems)persistent.set(state,systems=new Map());
     let record=systems.get(system);if(record?.building)return record;
     const revision=membership(state,system);if(record&&!record.dirty&&record.revision===revision)return record;
-    record={system,revision,building:true,ships:[],slots:new Map(),space:{grid:new Map(),entries:new Map(),overflow:new Set(),maxVelocity:0}};systems.set(system,record);
-    for(const [category,adapter] of kinds)if(category!=='asteroid')for(const supplied of adapter.collect(state,system)||[]){
+    if(record)for(const target of record.ships)indexedRecords.get(target.entity||target)?.delete(record);
+    record={state,system,revision,building:true,ships:[],slots:new Map(),space:{grid:new Map(),entries:new Map(),overflow:new Set(),maxVelocity:0}};systems.set(system,record);
+    for(const [category,adapter] of kinds)if(category!=='asteroid'&&window.nativeDevTraffic?.allowsCategory(state,category)!==false)for(const supplied of adapter.collect(state,system)||[]){
+      if(window.nativeDevTraffic?.excludes(state,supplied,category))continue;
       const target=describeActor(state,supplied.entity,category,supplied.id,supplied)||supplied;if(living(target))insertTarget(record,{...target,category:target.category||category});
     }
     record.building=false;window.nativeSimulationFrame?.count(state,'shipSpatialBuilds');window.nativeSimulationFrame?.count(state,'shipMembershipBuilds');return record;
   }
   function insertTarget(record,target,reuseRoute=false){
     const identity=target.entity||target;let slots=record.slots.get(identity);if(!slots)record.slots.set(identity,slots=new Map());const old=slots.get(target.category);
+    let owners=indexedRecords.get(identity);if(!owners)indexedRecords.set(identity,owners=new Set());owners.add(record);
     if(old===undefined){slots.set(target.category,record.ships.length);record.ships.push(target);}else record.ships[old]=target;
     let entry=record.space.entries.get(idKey(target.id));if(reuseRoute&&entry){entry.target=target;velocityBand(record.space,entry,Math.max(Math.abs(target.vx||0),Math.abs(target.vy||0)));}else{updateSpatial(record.space,target);entry=record.space.entries.get(idKey(target.id));entry.hardware=hardwareValues(target.entity,target.definition);entry.routeMotion=routeMotion(target);}
     entry.fields=rememberPose(target.entity);entry.at=Number(target.state?.shipSimulation?.seconds)||0;entry.definitionRevision=window.nativeShipDefinitions?.revision?.()||0;
   }
   function removeTarget(record,entry){
-    const target=entry.target,identity=target.entity||target,index=record.slots.get(identity)?.get(target.category);if(index!==undefined){record.ships.splice(index,1);const slots=record.slots.get(identity);slots.delete(target.category);if(!slots.size)record.slots.delete(identity);for(let i=index;i<record.ships.length;i++)record.slots.get(record.ships[i].entity||record.ships[i]).set(record.ships[i].category,i);}
+    const target=entry.target,identity=target.entity||target,index=record.slots.get(identity)?.get(target.category);if(index!==undefined){record.ships.splice(index,1);const slots=record.slots.get(identity);slots.delete(target.category);if(!slots.size){record.slots.delete(identity);indexedRecords.get(identity)?.delete(record);}for(let i=index;i<record.ships.length;i++)record.slots.get(record.ships[i].entity||record.ships[i]).set(record.ships[i].category,i);}
     velocityBand(record.space,entry,0);
     for(const key of entry.cells){const bucket=record.space.grid.get(key);bucket?.delete(idKey(target.id));if(!bucket?.size)record.space.grid.delete(key);}record.space.entries.delete(idKey(target.id));record.space.overflow.delete(idKey(target.id));
   }
@@ -183,13 +190,15 @@
     if(category==='tug')window.nativeSolEconomy?.observeMotion?.(state,entity);
     window.nativeShipRepairs?.observe?.(state,entity,category);
     const records=persistent.get(state);if(!records)return;
-    for(const [otherSystem,record] of records)if(otherSystem!==system&&!record.building){const index=record.slots.get(entity)?.get(category);if(index!==undefined){removeTarget(record,record.space.entries.get(idKey(record.ships[index].id)));acknowledge(state,record);clearCaches(state,otherSystem);}}
+    // A mutation belongs to the actor's indexed records, not every system ever
+    // inspected. Rebuild/removal keep this reverse view with the same owner.
+    for(const owned of indexedRecords.get(entity)||[]){window.nativeSimulationFrame?.count(state,'shipRefreshRecordChecks');const otherSystem=owned.system;if(owned.state===state&&records.get(otherSystem)===owned&&otherSystem!==system&&!owned.building){const index=owned.slots.get(entity)?.get(category);if(index!==undefined){removeTarget(owned,owned.space.entries.get(idKey(owned.ships[index].id)));acknowledge(state,owned);clearCaches(state,otherSystem);}}}
     const record=records.get(system);if(!record||record.building)return;
     const index=record.slots.get(entity)?.get(category),previous=index===undefined?null:record.ships[index],oldEntry=previous&&record.space.entries.get(idKey(previous.id));
     // An explicit notification may change nested equipment/upgrades without
     // changing any pose field. Only pure query touch() may reuse that signature.
     let target=prepared||describeActor(state,entity,category,previous?.id??entity.id);
-    if(target&&target===previous)return previous;
+    if(prepared&&target&&target===previous)return previous;
     if(!target&&!previous&&!['player','civilian','tug'].includes(category))target=kinds.get(category)?.collect(state,system)?.find(t=>t.entity===entity);
     if(!living(target)||target.system!==system){if(oldEntry){removeTarget(record,oldEntry);acknowledge(state,record);clearCaches(state,system);}return null;}
     insertTarget(record,target);window.nativeSimulationFrame?.trackPose?.(state,entity,previous||target,target);
@@ -412,10 +421,11 @@
     if(!state)return [];
     const result=[],seen=new Set();
     for(const [category,adapter] of kinds){
-      if(category==='asteroid')continue;
+      if(category==='asteroid'||window.nativeDevTraffic?.allowsCategory(state,category)===false)continue;
       const entries=adapter.inspect?adapter.inspect(state):
         (window.VexedMirrorWorld.systems||[{id:state.system}]).flatMap(system=>adapter.collect(state,system.id)||[]);
       for(const target of entries||[]){
+        if(window.nativeDevTraffic?.excludes(state,target,category))continue;
         const key=String(target.id);if(seen.has(key))continue;seen.add(key);
         result.push({...target,category:target.category||category});
       }
@@ -429,7 +439,10 @@
     if(!target)return {ok:false};
     const impact={from:result.from||result.point,point:result.point,contact:result.contact,collision:result,
       kind:event.kind,weaponEventId:event.id,source:source.id==='player'?'player':'ai',sourceId:source.id,sourceGovernmentId:event.sourceGovernmentId??source.entity?.ownerGovernmentId};
-    const damageResult=kinds.get(target.category)?.hit(state,target,event.damage,impact)||{ok:false};
+    return applyDamage(state,target,event.damage,impact);
+  }
+  function applyDamage(state,target,amount,impact={}){
+    const damageResult=kinds.get(target.category)?.hit(state,target,amount,impact)||{ok:false};
     if(['player','civilian','tug'].includes(target.category))refreshShip(state,target.entity,target.category,target.system);
     else if(target.category==='asteroid')refreshAsteroid(state,target.entity);
     else if(target.entity)refreshShip(state,target.entity,target.category,target.system);
@@ -445,13 +458,15 @@
       window.nativeShipMotion.applySpinImpulse(entity,pose.angularVelocity-(ship.angularVelocity||0),window.nativeSimulation.seconds(state),window.nativeShipMotion.wrap(pose.heading-ship.heading));
       if(ship.category==='player')entity.angle=pose.heading;else entity.heading=pose.heading;
     }
+    const leg=entity.localLeg||entity.lifeLeg;
+    if(leg?.version===4){const next=window.nativeShipMotion.checkpointPilot(entity,leg,leg.pilot.command,leg.pilot.index,window.nativeSimulation.seconds(state));if(entity.localLeg===leg)entity.localLeg=next;else entity.lifeLeg=next;}
     refreshShip(state,entity,ship.category,ship.system);
   }
-  function move(state,entity,category,command,profile,dt){
+  function move(state,entity,category,command,profile,dt,options={}){
     if(!(dt>0)||window.nativeSimulation.blocked())return {arrived:false,moved:0};
-    const descriptor=window.nativeShipDefinitions.describe(state,entity,{category});
+    const descriptor=options.actor?.entity===entity&&options.actor.category===category?options.actor:window.nativeShipDefinitions.describe(state,entity,{category});
     const pose={x:descriptor.x,y:descriptor.y,heading:descriptor.heading,speed:entity.speed||0,
-      vx:entity.vx,vy:entity.vy,motionReverse:entity.motionReverse,motionDrift:entity.motionDrift,motionAngularVelocity:entity.motionAngularVelocity,motionKick:entity.motionKick,motionSpin:entity.motionSpin,motionTime:window.nativeSimulation.seconds(state)};
+      vx:entity.vx,vy:entity.vy,motionReverse:entity.motionReverse,motionDrift:entity.motionDrift,motionAngularVelocity:entity.motionAngularVelocity,motionActuation:entity.motionActuation,motionKick:entity.motionKick,motionSpin:entity.motionSpin,motionFlow:entity.motionFlow,motionTime:window.nativeSimulation.seconds(state)};
     const origin={x:descriptor.x-entity.x,y:descriptor.y-entity.y};
     profile||=descriptor.definition.movement;
     if(descriptor.definition.thrusterOnly&&profile!==descriptor.definition.movement){
@@ -465,11 +480,16 @@
     const manualPlayer=category==='player'&&entity.hull>0&&command?.manualFlight===true;
     if(entity.hull<=0||entity.phase==='destroyed'||entity.phase==='disabled'&&!manualPlayer){command={coast:true};profile={maxSpeed:Infinity,turnRate:0,damping:0,inertial:true};}
     command=window.nativeShipTraffic?.steer(state,descriptor,command,profile)||command;
-    const result=window.nativeShipMotion.step(pose,command,profile,dt);
+    const vortex=window.nativePlasmaVortices?.sample(state,descriptor),current=window.nativeBadlandsCurrents?.sample(state,descriptor);
+    const flow=current?window.nativeBadlandsCurrents.combine(vortex,current):vortex;
+    if(flow)command={...command,externalFlow:flow};
+    if(!profile.propulsion)pose.motionActuation=undefined;
+    const result=window.nativeShipMotion.step(pose,command,profile,dt,state,entity);
     Object.assign(entity,{x:pose.x-origin.x,y:pose.y-origin.y,speed:pose.speed,vx:pose.vx,vy:pose.vy,motionReverse:pose.motionReverse,motionDrift:pose.motionDrift,motionAngularVelocity:pose.motionAngularVelocity,
-      previousX:pose.previousX,previousY:pose.previousY,motionKick:pose.motionKick,motionSpin:pose.motionSpin});
+      previousX:pose.previousX,previousY:pose.previousY,motionActuation:pose.motionActuation,motionKick:pose.motionKick,motionSpin:pose.motionSpin,motionFlow:pose.motionFlow});
     if(category==='player')entity.angle=pose.heading;else entity.heading=pose.heading;
-    refreshShip(state,entity,category,descriptor.system);
+    if(!options.deferPublish)refreshShip(state,entity,category,descriptor.system);
+    if(flow?.damageRate>0)applyDamage(state,descriptor,flow.damageRate*dt,{kind:'plasma',source:'environment',sourceId:flow.id,from:flow.from});
     return result;
   }
   function player(state,system){
@@ -498,5 +518,5 @@
     }});
   register('asteroid',{collect:asteroidTargets,hit:(state,target,amount,impact)=>window.nativeAsteroidCombat.weaponHit(state,target.rockId,amount,impact)});
   function inspect(state,id){if(String(id)==='player')return inspectPlayer(state)[0];if(String(id).startsWith('tug:'))return window.nativeSolEconomy?.inspect?.(state,String(id).slice(4))||null;return window.nativeNpcLives?.inspect?.(state,id)||null;}
-  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,presentation,countShips:(state,system=state.system)=>shipRecord(state,system).ships.length,scene,collisionScene,query,neighborhood,resolve,applyHit,visualImpact,resolved,move,applyContact,inspectAll,inspect,observeCollection,saveCollection,saveValue:value=>saveArrays.get(value)||value,invalidate,invalidateShips,refreshShip,sampledShip,refreshAsteroid});
+  window.nativeShipSystems=Object.freeze({register,registered:()=>[...kinds.keys()],collect,collectShips,presentation,countShips:(state,system=state.system)=>shipRecord(state,system).ships.length,scene,collisionScene,query,neighborhood,resolve,applyHit,applyDamage,visualImpact,resolved,move,applyContact,inspectAll,inspect,observeCollection,saveCollection,saveValue:value=>saveArrays.get(value)||value,invalidate,invalidateShips,refreshShip,sampledShip,refreshAsteroid});
 })();

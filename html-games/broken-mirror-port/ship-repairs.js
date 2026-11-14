@@ -439,6 +439,8 @@
   }
   function localPoint(p,local){const a=p.heading+Math.PI/2,c=Math.cos(a),sn=Math.sin(a);return {x:p.x+local.x*c-local.y*sn,y:p.y+local.x*sn+local.y*c};}
   function updateWork(p,d,progress){
+    const contact=window.nativePrometheus?.repairContact(p,d,progress);
+    if(contact){d.workLocal={x:contact.x,y:contact.y};d.workNormal={x:contact.nx,y:contact.ny};return;}
     const site=window.nativeRepairWork?.site(p.shipType,progress,d.workSlot||0,d.workCount||1);
     if(site){d.workLocal={x:site.x*p.dimensions.width,y:site.y*p.dimensions.height};d.workNormal={x:site.nx,y:site.ny};d.workSite=site.index;}
     else d.workLocal||={x:0,y:0};
@@ -577,7 +579,7 @@
       for(let i=0;i+1<boundaries.length;i++){
         const from=boundaries[i],to=boundaries[i+1],count=welders.filter(d=>d.lastAt<=from+EPS).length;if(!count)continue;
         const hull=Math.min((to-from)*RATE*count,limit-target.hull,supplies(s,m.carrier)*HULL_PER_TON),spent=consume(s,m.carrier,hull/HULL_PER_TON),restored=spent*HULL_PER_TON;
-        target.hull=Math.min(limit,target.hull+restored);m.spent+=spent;m.restoredHull+=restored;
+        const beforeHull=target.hull;target.hull=Math.min(limit,target.hull+restored);if(target===s)window.nativePrometheus?.repairProgress(s,beforeHull);m.spent+=spent;m.restoredHull+=restored;
         if(target.hull>=limit-EPS||supplies(s,m.carrier)<=EPS){stopAt(from+restored/(RATE*count));break;}
       }
       for(const d of welders)if(d.phase==='repairing'){emitWelds(s,m,d,targetPose,at);d.lastAt=at;}
@@ -685,7 +687,7 @@
       for(let i=0;i+1<boundaries.length;i++){
         const from=boundaries[i],to=boundaries[i+1],count=welders.filter(d=>d.lastAt<=from+EPS).length;if(!count)continue;
         const hull=Math.min((to-from)*RATE*count,limit-target.hull,supplies(s,m.carrier)*HULL_PER_TON),spent=consume(s,m.carrier,hull/HULL_PER_TON),restored=spent*HULL_PER_TON;
-        target.hull=Math.min(limit,target.hull+restored);m.spent+=spent;m.restoredHull+=restored;
+        const beforeHull=target.hull;target.hull=Math.min(limit,target.hull+restored);if(target===s)window.nativePrometheus?.repairProgress(s,beforeHull);m.spent+=spent;m.restoredHull+=restored;
         if(target.hull>=limit-EPS||supplies(s,m.carrier)<=EPS){stopAt(from+restored/(RATE*count));break;}
       }
       for(const d of welders)if(d.phase==='repairing')d.lastAt=at;
@@ -755,6 +757,7 @@
     const result=[];
     for(const m of s.shipRepairs?.missions||[])if(active(m))for(const d of m.drones.map(id=>resolve(s,m.carrier)?.shipEquipment?.instances[id]||resolve(s,m.carrier)?.repairBay?.slots.find(d=>d.id===id)).filter(Boolean))if(d.missionId===m.id&&d.hull>0&&(system===undefined||d.system===system)&&!d.bayTransit?.waiting&&!['stowed','destroyed'].includes(d.phase)&&!(d.phase==='launching'&&d.localLeg?.startedAt>clock(s))){
       const p=dronePose(s,d),base=window.nativeShipDefinitions.describe(s,d,{category:'repair-drone'});
+      if(window.nativeDevTraffic?.excludes(s,base,'repair-drone'))continue;
       result.push({...base,x:p.x,y:p.y,heading:p.heading,speed:p.speed,vx:p.vx,vy:p.vy});
     }
     return result;
@@ -784,7 +787,7 @@
   // advanceMission publishes every changed drone through refreshShip. Its fixed
   // definition/pose may therefore be retained between reads of the same step.
   window.nativeShipSystems.register('repair-drone',{collect:drones,inspect:s=>[],hit,resolve:resolveDrone,retainedPose:true,visualImpact:(s,t,e)=>window.nativeShipEffects.visualImpact(s,t,e)});
-  window.nativeShipRepairs=Object.freeze({initialize,prepare,advance,restock,call,claimed,validCall,releaseClaim,rendezvous,service,ref,key,resolve,pose,launch,deployPlayer,recoverPlayer,playerDistressStatus,requestPlayerDistress,deploymentStatus,playerDronesDeployed,repairMode,setRepairMode,deviceRepairQuote,repairDevice,shieldRepairQuote,repairShields,missionFor,rebaseCivilian,supplies,workPoint,stationPoint,bayPoint,bayGeometry,bayPassage,drones,destroyed,observe,invalidateMembership,
+  window.nativeShipRepairs=Object.freeze({initialize,prepare,advance,restock,call,claimed,validCall,releaseClaim,rendezvous,service,ref,key,resolve,pose,launch,deployPlayer,recoverPlayer,playerDistressStatus,requestPlayerDistress,deploymentStatus,playerDronesDeployed,repairMode,setRepairMode,deviceRepairQuote,repairDevice,shieldRepairQuote,repairShields,missionFor,rebaseCivilian,supplies,workPoint,stationPoint,bayPoint,bayGeometry,bayPassage,drones,resolveDrone,destroyed,observe,invalidateMembership,
     reroute:(s,d,route)=>{if(!d.localLeg||route.valid===false)return false;d.localLeg=route;if(d.bayTransit){d.bayTransit.startedAt=route.startedAt;d.bayTransit.endsAt=route.startedAt+route.duration;}return true;},
     status:(s,e,category)=>({supplies:supplies(s,ref(category,e)),drones:e.repairBay?.slots.filter(d=>d.hull>0).length||0,mission:missionFor(s,ref(category,e))?.id,distress:callFor(s,ref(category,e))?.status}),
     rules:Object.freeze({hullPerTon:HULL_PER_TON,ratePerDrone:RATE,medicalStock:MEDICAL_STOCK,basicType:BASIC,conditionPerOre:CONDITION_PER_ORE,shieldPerTrellium:SHIELD_PER_TRELLIUM})});

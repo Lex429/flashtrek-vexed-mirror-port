@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const root=path.join(__dirname,'..'),port=path.join(root,'html-games/broken-mirror-port');
 const window={};
 const context=vm.createContext({window});
-for(const file of ['world-data.js','ship-debris-geometry.js','ship-definitions.js','constitution-ships.js','federation-ships.js'])vm.runInContext(fs.readFileSync(path.join(port,file),'utf8'),context,{filename:file});
+for(const file of ['world-data.js','orion-world.js','ship-debris-geometry.js','ship-definitions.js','constitution-ships.js','federation-ships.js','orion-ships.js','prometheus-artwork.js','prometheus-definitions.js'])vm.runInContext(fs.readFileSync(path.join(port,file),'utf8'),context,{filename:file});
 const geometry=window.VexedMirrorDebrisGeometry;
 const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 

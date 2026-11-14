@@ -31,7 +31,7 @@
   document.body.appendChild(root);
   let bridge=null,tab='navigation',selected=3,note='',returnFocus=null,timer=null,shipPage=0,routePage=0,previousOverflow='';
   const safe=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const shipIcon=ship=>shipArtIds.has(ship.id)?`<img class="hub-ship-art" src="../flashtrek-broken-mirror/startup/sol-ships/ship-${ship.id}.png" alt="">`:`<span class="hub-ship-icon">${safe(ship.name).charAt(0)}</span>`;
+  const shipIcon=ship=>window.nativeOrionShips?.ids.includes(ship.id)?`<img class="hub-ship-art" src="../flashtrek-broken-mirror/showcase-assets/${safe(ship.artwork.frames[0])}" alt="">`:shipArtIds.has(ship.id)?`<img class="hub-ship-art" src="../flashtrek-broken-mirror/startup/sol-ships/ship-${ship.id}.png" alt="">`:`<span class="hub-ship-icon">${safe(ship.name).charAt(0)}</span>`;
   const fmt=value=>Math.floor(Number(value)||0).toLocaleString();
   const local=state=>state.system===1;
   const population=(state,id)=>window.nativeSystemCatalog ? window.nativeSystemCatalog.population(state,window.nativeSystemCatalog.bodies(state.system).find(body=>body.id===Number(id))) : Math.max(0,Math.round(Number(id===3?state.planetPopulationCounts?.[1]??Number(state.planetPopulations?.[1])*1e9:state.solPopulations?.[id]??solPopulation[id])||0));

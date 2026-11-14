@@ -1,13 +1,19 @@
 /* Continuously evaluated gas. No image assets, baked clouds or gameplay random. */
 (() => {
   'use strict';
+  const root=typeof window==='undefined'?self:window;
+  const moduleURL=typeof document==='undefined'?null:document.currentScript?.src;
   const clamp=n=>Math.max(0,Math.min(1,n)),mix=(a,b,t)=>a+(b-a)*t;
   const smooth=n=>{const t=clamp(n);return t*t*(3-2*t);};
   const palettes=Object.freeze([
     Object.freeze({shadow:[.025,.045,.065],light:[.36,.63,.69]}),
     Object.freeze({shadow:[.05,.025,.065],light:[.65,.35,.57]}),
     Object.freeze({shadow:[.018,.045,.042],light:[.34,.65,.53]}),
-    Object.freeze({shadow:[.07,.022,.014],light:[.95,.52,.30]})
+    Object.freeze({shadow:[.07,.022,.014],light:[.95,.52,.30]}),
+    Object.freeze({shadow:[.008,.020,.085],light:[.18,.47,.98]}),
+    Object.freeze({shadow:[.035,.045,.043],light:[.56,.64,.58]}),
+    Object.freeze({shadow:[.085,.047,.008],light:[.98,.76,.22]}),
+    Object.freeze({shadow:[.075,.009,.016],light:[.92,.25,.22]})
   ]);
   const previewNames=Object.freeze(['purple','red','blue','yellow']);
   const previewPalettes=Object.freeze([
@@ -44,7 +50,11 @@
   uniform vec4 u_wakes[24];
   uniform vec4 u_wakeInfo[24];
   uniform float u_densityFloor;
+  uniform bool u_continuous;
   uniform int u_colourPreview;
+  uniform int u_clearVolumeCount;
+  uniform vec4 u_clearVolumes[16];
+  uniform float u_clearAngles[16];
   const vec3 previewShadow[4]=vec3[4](${previewPalettes.map(p=>'vec3('+p.shadow.map(n=>n.toFixed(3)).join(',')+')').join(',')});
   const vec3 previewLight[4]=vec3[4](${previewPalettes.map(p=>'vec3('+p.light.map(n=>n.toFixed(3)).join(',')+')').join(',')});
   float hash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
@@ -55,7 +65,7 @@
   }
   float fbm(vec3 p){return .57*noise(p)+.29*noise(p*2.03+vec3(8.1,3.7,5.2))+.14*noise(p*4.11+vec3(2.4,9.2,1.7));}
   vec4 gas(vec2 uv,float seed){
-    float edge=1.0-smoothstep(.38,1.0,dot(uv,uv));if(edge<=0.0)return vec4(0);
+    float edge=u_continuous?1.0:1.0-smoothstep(.38,1.0,dot(uv,uv));if(edge<=0.0)return vec4(0);
     float t=u_time;
     vec3 p=vec3(uv*3.7,seed*.23);
     vec2 warp=vec2(noise(p*.67+vec3(.17*t,.11*t,.23*t)),noise(p*.67+vec3(6.3-.13*t,2.1+.15*t,-.19*t)))-.5;
@@ -64,7 +74,8 @@
     float n=fbm(p),fine=noise(p*3.5+vec3(-.11*t,.09*t,.16*t));
     float density=smoothstep(.28,.76,n+(fine-.5)*.13);
     density=max(density,u_densityFloor);
-    if(u_style==3){float a=uv.y-.38-warp.x*.32,b=uv.y+.38+warp.y*.32;density*=min(1.35,exp(-a*a*3.8)+exp(-b*b*3.8));}
+    if(u_style==3&&u_continuous){density*=.84+.16*sin(uv.y*2.0+warp.x*.6);}
+    if(u_style==3&&!u_continuous){float a=uv.y-.38-warp.x*.32,b=uv.y+.38+warp.y*.32;density*=min(1.35,exp(-a*a*3.8)+exp(-b*b*3.8));}
     float shade=clamp(.57+(n-fbm(p+vec3(-.14,-.19,.08)))*3.4,.18,1.18);
     float folds=smoothstep(.22,.75,density)*(.28+.72*shade);
     vec3 shadow=u_shadow,light=u_light;
@@ -80,6 +91,14 @@
   }
   void main(){
     vec2 pixel=vec2(v_uv.x,1.0-v_uv.y)*u_view;vec3 colour=vec3(0);float alpha=0.0;
+    float clear=1.0;
+    for(int i=0;i<16;i++){
+      if(i>=u_clearVolumeCount)break;
+      vec2 d=pixel-u_clearVolumes[i].xy;float a=u_clearAngles[i]>=100.0?0.0:u_clearAngles[i],c=cos(a),s=sin(a);
+      vec2 uv=vec2(c*d.x+s*d.y,-s*d.x+c*d.y)/(u_clearVolumes[i].zw*.5);
+      clear*=u_clearAngles[i]>=100.0?step(1.0,max(abs(uv.x),abs(uv.y))):smoothstep(.38,1.0,dot(uv,uv));
+    }
+    if(clear==0.0){fragColor=vec4(0);return;}
     vec2 push=vec2(0);float clearing=0.0,rim=0.0,pushWeight=0.0;
     for(int j=0;j<24;j++){
       if(j>=u_wakeCount)break;
@@ -103,7 +122,7 @@
       float opacity=clamp(field.a*(1.0-min(.97,clearing))*(1.0+rim*.32)*u_layers[i].x,0.0,1.0);
       colour+=(1.0-alpha)*field.rgb*(1.0+rim*.12)*opacity;alpha+=(1.0-alpha)*opacity;
     }
-    fragColor=vec4(colour,alpha);
+    fragColor=vec4(colour*clear,alpha*clear);
   }`;
   function hash(x,y,z){let n=(Math.imul(x,374761393)^Math.imul(y,668265263)^Math.imul(z,2147483647)^0x47415331)>>>0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967296;}
   function noise(x,y,z){
@@ -112,8 +131,8 @@
     const b=mix(mix(hash(ix,iy,iz+1),hash(ix+1,iy,iz+1),tx),mix(hash(ix,iy+1,iz+1),hash(ix+1,iy+1,iz+1),tx),ty);
     return mix(a,b,tz);
   }
-  function densityAt(x,y,time=0,style=0,seed=0,densityFloor=0){
-    const edge=1-smooth((x*x+y*y-.38)/.62);if(edge<=0)return {density:0,shade:0,detail:0};
+  function densityAt(x,y,time=0,style=0,seed=0,densityFloor=0,continuous=false){
+    const edge=continuous?1:1-smooth((x*x+y*y-.38)/.62);if(edge<=0)return {density:0,shade:0,detail:0};
     let px=x*3.7,py=y*3.7,pz=seed*.23;
     const wx=noise(px*.67+time*.17,py*.67+time*.11,pz*.67+time*.23)-.5;
     const wy=noise(px*.67+6.3-time*.13,py*.67+2.1+time*.15,pz*.67-time*.19)-.5;
@@ -122,12 +141,16 @@
     const n=noise(px,py,pz)*.57+noise(px*2.03+8.1,py*2.03+3.7,pz*2.03+5.2)*.29+noise(px*4.11+2.4,py*4.11+9.2,pz*4.11+1.7)*.14;
     const fine=noise(px*3.5-time*.11,py*3.5+time*.09,pz*3.5+time*.16);
     let density=Math.max(densityFloor,smooth((n+(fine-.5)*.13-.28)/.48));
-    if(style===3){const a=y-.38-wx*.32,b=y+.38+wy*.32;density*=Math.min(1.35,Math.exp(-a*a*3.8)+Math.exp(-b*b*3.8));}
+    if(style===3&&continuous)density*=.84+.16*Math.sin(y*2+wx*.6);
+    if(style===3&&!continuous){const a=y-.38-wx*.32,b=y+.38+wy*.32;density*=Math.min(1.35,Math.exp(-a*a*3.8)+Math.exp(-b*b*3.8));}
     return {density:(1-Math.exp(-density*2.3))*edge,shade:smooth((density-.22)/.53)*(.62+.38*fine),detail:fine};
   }
   let canvas=null,gl=null,program=null,locations=null,vao=null,lost=false,gpuFailed=false,cpu=null,lastKey='';
   const counters={renders:0,cacheHits:0,contextLosses:0,failures:0,compiles:0};
   let width=0,height=0,software=false,reason='';
+  // Uniform uploads copy their inputs. Reuse bounded scratch storage rather
+  // than allocating new typed arrays for every animated cloud and tile.
+  const positions=new Float32Array(12),layerData=new Float32Array(12),wakePositions=new Float32Array(96),wakeInfo=new Float32Array(96),holes=new Float32Array(64),angles=new Float32Array(16);
   function compile(type,source){
     const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
     if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){const info=gl.getShaderInfoLog(shader);gl.deleteShader(shader);throw Error(info||'Gas shader compilation failed');}
@@ -148,7 +171,7 @@
       gl.attachShader(linked,vs);gl.attachShader(linked,fs);gl.linkProgram(linked);gl.deleteShader(vs);gl.deleteShader(fs);
       if(!gl.getProgramParameter(linked,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(linked)||'Gas shader link failed');
       program=linked;vao=gl.createVertexArray();locations={};
-      for(const name of ['u_view','u_planes[0]','u_layers[0]','u_shadow','u_light','u_time','u_seed','u_style','u_wakeCount','u_wakes[0]','u_wakeInfo[0]','u_densityFloor','u_colourPreview'])locations[name]=gl.getUniformLocation(program,name);
+      for(const name of ['u_view','u_planes[0]','u_layers[0]','u_shadow','u_light','u_time','u_seed','u_style','u_wakeCount','u_wakes[0]','u_wakeInfo[0]','u_densityFloor','u_continuous','u_colourPreview','u_clearVolumeCount','u_clearVolumes[0]','u_clearAngles[0]'])locations[name]=gl.getUniformLocation(program,name);
       const debug=gl.getExtension('WEBGL_debug_renderer_info'),renderer=debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):'';
       software=/swiftshader|software|llvmpipe|basic render/i.test(renderer);counters.compiles++;gpuFailed=false;
     }catch(error){gpuFailed=true;reason=String(error.message||error).slice(0,180);counters.failures++;}
@@ -181,19 +204,20 @@
       for(const plane of geometry){
         if(plane.alpha<=0)continue;
         const dx=screenX-wake.pushX-plane.x,dy=screenY-wake.pushY-plane.y,px=(plane.c*dx+plane.s*dy)/(plane.width*.5),py=(-plane.s*dx+plane.c*dy)/(plane.height*.5);
-        const field=densityAt(px,py,time,style,plane.seed,interaction.densityFloor),a=clamp(field.density*(1-wake.clearing)*(1+wake.rim*.32)*plane.alpha),share=(1-alpha)*a*(1+wake.rim*.12);
+        const field=densityAt(px,py,time,style,plane.seed,interaction.densityFloor,interaction.continuous),a=clamp(field.density*(1-wake.clearing)*(1+wake.rim*.32)*plane.alpha),share=(1-alpha)*a*(1+wake.rim*.12);
         const palette=fixedPalette||paletteAt(px,py,1,style);
         r+=mix(palette.shadow[0],palette.light[0],field.shade)*share;
         g+=mix(palette.shadow[1],palette.light[1],field.shade)*share;
         b+=mix(palette.shadow[2],palette.light[2],field.shade)*share;alpha+=(1-alpha)*a;
       }
-      const i=(y*w+x)*4;data[i]=alpha?r/alpha*255:0;data[i+1]=alpha?g/alpha*255:0;data[i+2]=alpha?b/alpha*255:0;data[i+3]=alpha*255;
+      let clear=1;for(const hole of interaction.clearVolumes){const dx=screenX-hole.x,dy=screenY-hole.y,c=Math.cos(hole.angle),s=Math.sin(hole.angle),hx=(c*dx+s*dy)/(hole.width*.5),hy=(-s*dx+c*dy)/(hole.height*.5);clear*=hole.continuous?(Math.max(Math.abs(hx),Math.abs(hy))<1?0:1):smooth((hx*hx+hy*hy-.38)/.62);}
+      const i=(y*w+x)*4;data[i]=alpha?r/alpha*255:0;data[i+1]=alpha?g/alpha*255:0;data[i+2]=alpha?b/alpha*255:0;data[i+3]=alpha*clear*255;
     }
     cpu.ctx.putImageData(cpu.pixels,0,0);width=w;height=h;return cpu.canvas;
   }
   function render(view,planes,style,time,seed,options={}){
     prepare();
-    const interaction={wakes:(options.wakes||[]).slice(0,24),densityFloor:options.densityFloor||0,colourPreview:previewMode(options.colourPreview)};
+    const interaction={wakes:(options.wakes||[]).slice(0,24),clearVolumes:(options.clearVolumes||[]).slice(0,16),densityFloor:options.densityFloor||0,continuous:!!options.continuous,colourPreview:previewMode(options.colourPreview)};
     const key=JSON.stringify([view.w,view.h,style,time,seed,planes.map(p=>[p.x,p.y,p.width,p.height,p.angle,p.alpha]),interaction]);
     if(lastKey===key){counters.cacheHits++;return program&&!lost?canvas:cpu.canvas;}
     lastKey=key;counters.renders++;
@@ -201,18 +225,73 @@
     const maxWidth=software?192:384,ratio=Math.min(1,maxWidth/view.w,288/view.h),w=Math.max(1,Math.round(view.w*ratio)),h=Math.max(1,Math.round(view.h*ratio));
     if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}width=w;height=h;
     gl.viewport(0,0,w,h);gl.disable(gl.BLEND);gl.disable(gl.DEPTH_TEST);gl.useProgram(program);gl.bindVertexArray(vao);
-    const positions=new Float32Array(12),layerData=new Float32Array(12);
     for(let i=0;i<3;i++){const p=planes[i];positions.set([p.x,p.y,p.width,p.height],i*4);layerData.set([p.alpha,p.angle,i*19.3,0],i*4);}
     gl.uniform2f(locations.u_view,view.w,view.h);gl.uniform4fv(locations['u_planes[0]'],positions);gl.uniform4fv(locations['u_layers[0]'],layerData);
     const palette=interaction.colourPreview>1?previewPalettes[interaction.colourPreview-2]:palettes[style];
     gl.uniform3fv(locations.u_shadow,palette.shadow);gl.uniform3fv(locations.u_light,palette.light);
     gl.uniform1i(locations.u_colourPreview,interaction.colourPreview===1?1:0);
     gl.uniform1f(locations.u_time,time);gl.uniform1f(locations.u_seed,seed);gl.uniform1i(locations.u_style,style);
-    const wakePositions=new Float32Array(96),wakeInfo=new Float32Array(96);
     interaction.wakes.forEach((wake,i)=>{wakePositions.set([wake.ax,wake.ay,wake.bx,wake.by],i*4);wakeInfo.set([wake.radius,wake.strength,wake.age||0,0],i*4);});
-    gl.uniform1i(locations.u_wakeCount,interaction.wakes.length);gl.uniform4fv(locations['u_wakes[0]'],wakePositions);gl.uniform4fv(locations['u_wakeInfo[0]'],wakeInfo);gl.uniform1f(locations.u_densityFloor,interaction.densityFloor);
+    gl.uniform1i(locations.u_wakeCount,interaction.wakes.length);if(interaction.wakes.length){gl.uniform4fv(locations['u_wakes[0]'],wakePositions);gl.uniform4fv(locations['u_wakeInfo[0]'],wakeInfo);}gl.uniform1f(locations.u_densityFloor,interaction.densityFloor);
+    gl.uniform1i(locations.u_continuous,interaction.continuous);
+    interaction.clearVolumes.forEach((p,i)=>{holes.set([p.x,p.y,p.width,p.height],i*4);angles[i]=p.continuous?100:p.angle;});
+    gl.uniform1i(locations.u_clearVolumeCount,interaction.clearVolumes.length);if(interaction.clearVolumes.length){gl.uniform4fv(locations['u_clearVolumes[0]'],holes);gl.uniform1fv(locations['u_clearAngles[0]'],angles);}
     gl.drawArrays(gl.TRIANGLES,0,3);return canvas;
   }
   function metrics(){return {...counters,backend:program&&!lost&&!gpuFailed?'webgl2':'canvas-procedural',width,height,software,reason,contextLost:lost,imageRequests:0,textureBytes:0};}
-  window.nativeNebulaGas=Object.freeze({prepare,render,metrics,densityAt,disturbanceAt,palettes,previewNames,previewPalettes,paletteAt});
+  function createTextureRenderer(context){
+    // The material renderer owns this context and target texture. Keep the same
+    // gas shader/resolution, with texture row zero corresponding to world top.
+    const debug=context.getExtension('WEBGL_debug_renderer_info'),device=debug?context.getParameter(debug.UNMASKED_RENDERER_WEBGL):'';
+    software=/swiftshader|software|llvmpipe|basic render/i.test(device);
+    const shaders=[];let linked=null,target=null,array=null;
+    try{
+      const compile=(type,source)=>{const s=context.createShader(type);shaders.push(s);context.shaderSource(s,source);context.compileShader(s);
+        if(!context.getShaderParameter(s,context.COMPILE_STATUS))throw Error(context.getShaderInfoLog(s)||'Gas texture shader failed');return s;};
+      const vs=compile(context.VERTEX_SHADER,vertex.replace('v_uv=p;','v_uv=vec2(p.x,1.0-p.y);')),fs=compile(context.FRAGMENT_SHADER,fragment);
+      linked=context.createProgram();context.attachShader(linked,vs);context.attachShader(linked,fs);context.linkProgram(linked);
+      if(!context.getProgramParameter(linked,context.LINK_STATUS))throw Error(context.getProgramInfoLog(linked)||'Gas texture link failed');
+      const loc={};for(const name of ['u_view','u_planes[0]','u_layers[0]','u_shadow','u_light','u_time','u_seed','u_style','u_wakeCount','u_densityFloor','u_continuous','u_colourPreview','u_clearVolumeCount'])loc[name]=context.getUniformLocation(linked,name);
+      target=context.createFramebuffer();array=context.createVertexArray();counters.textureCompiles=(counters.textureCompiles||0)+1;
+      return {
+        draw(texture,w,h,{view,planes,style,time,seed,options={}}){
+          context.bindFramebuffer(context.FRAMEBUFFER,target);context.framebufferTexture2D(context.FRAMEBUFFER,context.COLOR_ATTACHMENT0,context.TEXTURE_2D,texture,0);
+          context.viewport(0,0,w,h);context.disable(context.SCISSOR_TEST);context.disable(context.BLEND);context.disable(context.DEPTH_TEST);context.useProgram(linked);context.bindVertexArray(array);
+          for(let i=0;i<3;i++){const p=planes[i];positions.set([p.x,p.y,p.width,p.height],i*4);layerData.set([p.alpha,p.angle,i*19.3,0],i*4);}
+          const mode=previewMode(options.colourPreview),palette=mode>1?previewPalettes[mode-2]:palettes[style];
+          context.uniform2f(loc.u_view,view.w,view.h);context.uniform4fv(loc['u_planes[0]'],positions);context.uniform4fv(loc['u_layers[0]'],layerData);
+          context.uniform3fv(loc.u_shadow,palette.shadow);context.uniform3fv(loc.u_light,palette.light);context.uniform1i(loc.u_colourPreview,mode===1?1:0);
+          context.uniform1f(loc.u_time,time);context.uniform1f(loc.u_seed,seed);context.uniform1i(loc.u_style,style);context.uniform1f(loc.u_densityFloor,options.densityFloor||0);
+          context.uniform1i(loc.u_continuous,!!options.continuous);context.uniform1i(loc.u_wakeCount,0);context.uniform1i(loc.u_clearVolumeCount,0);
+          context.drawArrays(context.TRIANGLES,0,3);counters.renders++;counters.textureRenders=(counters.textureRenders||0)+1;
+        },
+        dispose(){context.deleteFramebuffer(target);context.deleteVertexArray(array);context.deleteProgram(linked);}
+      };
+    }catch(error){if(target)context.deleteFramebuffer(target);if(array)context.deleteVertexArray(array);if(linked)context.deleteProgram(linked);throw error;}
+    finally{for(const shader of shaders)context.deleteShader(shader);}
+  }
+  let seedWorker=null,seedSequence=0,seedBusy=false,seedActive=0;const seedRequests=new Map();
+  function failSeeds(reason){seedWorker?.terminate();seedWorker=null;seedBusy=false;seedActive=0;for(const request of seedRequests.values()){clearTimeout(request.timer);request.reject(Error(reason));}seedRequests.clear();}
+  function sendSeed(){
+    if(seedBusy||!seedWorker||!seedRequests.size)return;const request=seedRequests.values().next().value;seedBusy=true;seedActive=request.payload.id;
+    try{seedWorker.postMessage(request.payload);counters.seedWorkerDispatched=(counters.seedWorkerDispatched||0)+1;}
+    catch(error){seedRequests.delete(seedActive);seedBusy=false;seedActive=0;clearTimeout(request.timer);request.reject(error);sendSeed();}
+  }
+  function requestSeed(description,w,h){
+    if(seedRequests.size>=24)throw Error('Nebula seed queue full');
+    if(!seedWorker){
+      const url=new URL('nebula-seed-worker.js',moduleURL||location.href);if(moduleURL)url.search=new URL(moduleURL).search;
+      seedWorker=new Worker(url);
+      seedWorker.onmessage=event=>{const message=event.data,request=seedRequests.get(message.id);if(message.id===seedActive){seedBusy=false;seedActive=0;}
+        if(request){seedRequests.delete(message.id);clearTimeout(request.timer);if(message.error)request.reject(Error(message.error));else{counters.seedWorkerReadbacks=(counters.seedWorkerReadbacks||0)+1;request.resolve(message);}}sendSeed();};
+      seedWorker.onerror=event=>{event.preventDefault();failSeeds(event.message||'Nebula seed worker failed');};
+    }
+    const id=++seedSequence;let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});
+    const request={resolve,reject,payload:{id,description,w,h},timer:setTimeout(()=>{if(seedRequests.has(id))failSeeds('Nebula seed worker timeout');},1500)};
+    seedRequests.set(id,request);counters.seedWorkerRequests=(counters.seedWorkerRequests||0)+1;
+    sendSeed();
+    return {promise,cancel(){const request=seedRequests.get(id);if(request){seedRequests.delete(id);clearTimeout(request.timer);request.resolve(null);}}};
+  }
+  const surfaceSize=view=>{const ratio=Math.min(1,(software?192:384)/view.w,288/view.h);return {w:Math.max(1,Math.round(view.w*ratio)),h:Math.max(1,Math.round(view.h*ratio))};};
+  root.nativeNebulaGas=Object.freeze({prepare,render,metrics,createTextureRenderer,requestSeed,surfaceSize,get canSeedInWorker(){return typeof Worker==='function'&&typeof OffscreenCanvas==='function';},densityAt,disturbanceAt,palettes,previewNames,previewPalettes,paletteAt});
 })();

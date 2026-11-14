@@ -99,8 +99,7 @@ def main():
                 button.click()
                 launch_ms=(time.perf_counter()-start)*1000
                 if mode.startswith('new'):
-                    page.wait_for_function('()=>nativeOpeningCinematic.active')
-                    page.locator('[data-film-action="skip"]').click()
+                    assert not page.evaluate('nativeOpeningCinematic.active')
                 page.wait_for_function('()=>document.body.classList.contains("playing") && window.__npcPerfState',timeout=120000)
                 initial=page.evaluate(SNAPSHOT)
                 if initial.get('bootstrap'):

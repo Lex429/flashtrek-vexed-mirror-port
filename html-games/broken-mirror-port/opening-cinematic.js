@@ -5,7 +5,7 @@
   root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','A Firm Hand — opening cinematic');
   root.innerHTML=`<canvas aria-label="The rise and fall of the Earth Empire, a narrated space battle cinematic"></canvas>
     <div class="opening-top"><p class="opening-kicker">FLASH TREK · VEXED MIRROR<span class="opening-location"></span></p>
-    <div class="opening-controls"><button type="button" data-film-action="pause">Pause</button><button type="button" data-film-action="subtitles" aria-pressed="true">Subtitles on</button><button type="button" data-film-action="audio" aria-expanded="false">Audio</button><button type="button" data-film-action="skip">Skip ↗</button></div></div>
+    <div class="opening-controls"><button type="button" data-film-action="pause">Pause</button><button type="button" data-film-action="subtitles" aria-pressed="true">Subtitles on</button><button type="button" data-film-action="audio" aria-expanded="false">Audio</button><button type="button" data-film-action="skip">Close film</button></div></div>
     <div class="opening-audio" hidden><label>Narration<input data-film-volume="narration" aria-label="Narration volume" type="range" min="0" max="100"></label><label>Music<input data-film-volume="music" aria-label="Music volume" type="range" min="0" max="100"></label><label>Explosions<input data-film-volume="effects" aria-label="Explosion volume" type="range" min="0" max="100"></label></div>
     <p class="opening-subtitles" aria-live="polite"><span></span></p><p class="opening-status" role="status"></p>
     <div class="opening-bottom"><span>A FIRM HAND</span><span class="opening-time"></span></div><div class="opening-progress"><span></span></div>`;
@@ -91,18 +91,14 @@
     renderer.cancelPreparation();renderer.release?.();preparing=null;
     root.hidden=true;document.body.classList.remove('cinematic-playing');root.querySelector('.opening-audio').hidden=true;button('audio').setAttribute('aria-expanded','false');
     for(const [node,value] of ended.inert)node.inert=value;
-    ended.menu.hidden=ended.menuHidden;previousOutcome={reason,mode:ended.mode,time:ended.time};
-    if(reason!=='unload')ended.onFinish?.(reason);
-    if(reason!=='unload'){
-      if(ended.mode==='new-game')document.querySelector('#space')?.focus({preventScroll:true});
-      else if(ended.focus?.isConnected)ended.focus.focus({preventScroll:true});
-    }
+    ended.menu.hidden=ended.menuHidden;previousOutcome={reason,time:ended.time};
+    if(reason!=='unload'&&ended.focus?.isConnected)ended.focus.focus({preventScroll:true});
     return true;
   }
-  function play(options={}){
-    if(run)return false;
+  function play(){
     const menu=document.getElementById('menu-art');
-    const ticket={mode:options.mode||'replay',onFinish:options.onFinish,time:0,last:performance.now(),ready:false,userPaused:false,audioMaster:false,
+    if(run||!menu||menu.hidden||menu.inert||document.body.classList.contains('playing')||window.nativeSetup?.active||window.nativeMenuTransition?.snapshot().active||document.querySelector('#startup:not([hidden])'))return false;
+    const ticket={time:0,last:performance.now(),ready:false,userPaused:false,audioMaster:false,
       score:window.nativeOpeningScore.create(),sounded:new Set(),focus:document.activeElement,menu,menuHidden:menu.hidden,inert:new Map()};
     run=ticket;
     for(const child of document.body.children)if(child!==root&&child.tagName!=='SCRIPT'){ticket.inert.set(child,child.inert);child.inert=true;}
@@ -116,7 +112,7 @@
       await renderer.warm(manifest,()=>run===ticket);if(run!==ticket)return;
       ticket.ready=true;ticket.last=performance.now();audio.currentTime=0;status('');syncPause();paint();
     }).catch(error=>{
-      if(run!==ticket)return;status('The opening film could not load. Select Skip to continue.');console.warn('Opening film preparation failed:',error);
+      if(run!==ticket)return;status('The opening film could not load. Close film to return to the main menu.');console.warn('Opening film preparation failed:',error);
     });
     return true;
   }
@@ -144,7 +140,7 @@
   audio.addEventListener('ended',()=>{if(run&&audio.ended){run.time=manifest?.duration||run.time;finish('complete');}});
   addEventListener('resize',()=>{if(run){renderer.resize();paint();}});
   addEventListener('pagehide',()=>{finish('unload');if(narrationURL)URL.revokeObjectURL(narrationURL);});
-  const replay=document.createElement('button');replay.id='menu-opening-film';replay.type='button';replay.textContent='Opening film';replay.addEventListener('click',()=>play());document.getElementById('menu-art').append(replay);
+  const replay=document.createElement('button');replay.id='menu-opening-film';replay.type='button';replay.textContent='Opening film';replay.addEventListener('click',()=>play());(document.getElementById('main-menu-controls')||document.getElementById('menu-art')).append(replay);
   syncSettings();
   window.nativeOpeningCinematic=Object.freeze({play,prepare,seek,skip:()=>finish('skip'),get active(){return !!run;},
     snapshot:()=>({active:!!run,ready:!!run?.ready,time:run?.time||0,duration:manifest?.duration||0,paused:paused(),audioMaster:!!run?.audioMaster,audioPaused:audio.paused,audioTime:audio.currentTime,seeking:audio.seeking,settings:{...settings},

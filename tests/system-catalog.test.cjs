@@ -7,7 +7,7 @@ const root=path.join(__dirname,'../html-games/broken-mirror-port');
 function fixture(){
  const window={};const context=vm.createContext({window});
  const load=file=>vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file});
- for(const file of ['world-data.js','system-catalog-data.js','system-catalog.js'])load(file);
+ for(const file of ['world-data.js','system-catalog-data.js','badlands-region.js','system-catalog.js'])load(file);
  window.nativeSystemHub={sol:window.nativeSystemCatalog.bodies(1)};
  window.vexedFlightAssets={loadLocalBody:async()=>null,localBody:()=>null,loadImage:async()=>null};
  load('sol-flight.js');load('manual-flight.js');
@@ -21,9 +21,9 @@ test('all original and appended destinations belong to one physical catalog with
  assert.deepEqual(plain(legacy),Array.from({length:91},(_,i)=>i+1));
  for(const system of window.VexedMirrorWorld.systems){
   const bodies=catalog.bodies(system.id),home=bodies.find(b=>b.id===catalog.homeId(system.id));
-  assert.equal(home.legacyWorldId,system.id);assert.ok(bodies.length>=2);
+  assert.equal(home.legacyWorldId,system.id);assert.ok(bodies.length>=(system.id===73?1:2));
   assert.equal(new Set(bodies.map(b=>b.id)).size,bodies.length);
-  assert.ok(bodies.some(b=>b.kind==='star'));
+  assert.equal(bodies.some(b=>b.kind==='star'),system.id!==73);
   for(const b of bodies){assert.ok(Number.isFinite(b.x)&&Number.isFinite(b.y));if(b.parentId!==undefined)assert.ok(bodies.some(p=>p.id===b.parentId));if(b.evidence==='authored')assert.equal(b.port,false);}
  }
 });

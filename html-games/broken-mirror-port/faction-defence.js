@@ -26,6 +26,8 @@
     return {...window.nativeShipDefinitions.describe(state,entity,{category:tug?'tug':'civilian'}),...pose};
   }
   function sourceId(impact={}){
+    if(impact.source==='environment')return null;
+    if(window.nativePrometheus?.isSource(impact.sourceId))return 'player';
     if(impact.sourceId!=null)return impact.sourceId;
     return impact.source==='player'||impact.source==null&&!impact.physicalContact?'player':null;
   }
@@ -48,7 +50,9 @@
     return state.factionDefence?.orders?.some(order=>order.system===system&&order.targetId===id)||false;
   }
   function hit(state,ship,impact={}){
-    if(friendly(state,ship,impact)||!isFaction(ship))return null;
+    // Local law protects civilian citizens too. Their survival policy remains
+    // civilian; only the existing military response team receives these orders.
+    if(window.nativeDevLootDemo?.isPractice(state,ship)||friendly(state,ship,impact))return null;
     const attacker=sourceId(impact),system=region(state,ship),owner=allegiance(ship);
     if(attacker==null||system==null||!owner||government(state,system)!==owner)return null;
     const data=ensure(state),at=seconds(state);let alert=data.systems[system];
@@ -64,6 +68,10 @@
   }
   function threat(state,system,owner){
     const alert=state.factionDefence?.systems?.[system],at=seconds(state);
+    const playerAlert=alert?.government===owner&&alert.aggressors.some(entry=>entry.id==='player'&&(entry.until>at||committed(state,system,'player')));
+    if(playerRegion(state)===system&&(playerAlert||window.nativeFactionStanding.relationship(state,system).status==='Hostile')){
+      const player=resolve(state,'player');if(player)return player;
+    }
     if(alert?.government===owner)for(const entry of alert.aggressors){
       if(entry.until<=at&&!committed(state,system,entry.id))continue;const actor=resolve(state,entry.id);
       if(actor&&region(state,actor.entity??state)===system&&(actor.id==='player'||allegiance(actor.entity)!==owner))return actor;
@@ -132,5 +140,11 @@
     const order=plan(state).get(String(ship.id));
     return order?target(state,ship):null;
   }
-  window.nativeFactionDefence=Object.freeze({role,isFaction,allegiance,government,region,playerRegion,sourceId,friendly,hit,target,hostileToPlayer,ordersDue,plan,engagement,responseLimit,reinforcementLimit});
+  function clearPlayerAlert(state,system){
+    const data=state.factionDefence;if(!data)return;
+    const alert=data.systems[system];if(alert)alert.aggressors=alert.aggressors.filter(entry=>entry.id!=='player');
+    data.orders=(data.orders||[]).filter(order=>!(order.system===system&&order.targetId==='player'));
+    data.revision++;plans.delete(state);passes.delete(state);
+  }
+  window.nativeFactionDefence=Object.freeze({role,isFaction,allegiance,government,region,playerRegion,sourceId,friendly,hit,target,hostileToPlayer,ordersDue,plan,engagement,responseLimit,reinforcementLimit,clearPlayerAlert});
 })();

@@ -43,7 +43,8 @@ CAPTURE=r"""async ({validate,ids:requested})=>{
      const state=stateFor(id,maximum*fraction),entity={...state,id:123},d=nativeShipDefinitions.dimensions(entity,'civilian');
      if(validate){
        const expected=nativeShipDefinitions.artworkProfile(id);
-       check(Math.abs(d.width/d.height-(expected.displayRatio||expected.width/expected.height))<1e-9,'Distorted class '+id);
+       const ratio=window.nativeShipScaleSettings?.ships?.[id]?asset.width/asset.height:(expected.displayRatio||expected.width/expected.height);
+       check(Math.abs(d.width/d.height-ratio)<1e-9,'Distorted class '+id);
        frameDimensions||=[asset.width,asset.height];check(asset.width===frameDimensions[0]&&asset.height===frameDimensions[1],'Damage frame changed bounds '+id);
        const saved=plain(entity);check(JSON.stringify(nativeShipDefinitions.dimensions(saved,'civilian'))===JSON.stringify(d),'Reload changed size '+id);
        for(const zoom of stage===0?[.7,1,1.7]:[1]){
@@ -60,7 +61,9 @@ CAPTURE=r"""async ({validate,ids:requested})=>{
          const on=pixels(render(state,entity,'civilian',npcAsset)),off=pixels(render(state,entity,'civilian',npcAsset,{lights:false}));
          for(let i=0;i<on.length;i+=4)if(Math.abs(on[i]-off[i])+Math.abs(on[i+1]-off[i+1])+Math.abs(on[i+2]-off[i+2])>15)olympicLitPixels++;
          check(olympicLitPixels>10,'Olympic painted lamps are invisible');
-         const coreX=Math.round(260+(120/201-.5)*d.width),coreY=Math.round(260+(310/512-.5)*d.height);
+         const profile=nativeShipDefinitions.artworkProfile(58),core=profile.lights.filter(p=>p.kind==='core'&&(p.color==='#38ddff'||p.tint==='blue'||p.color==='#27caff')).sort((a,b)=>b.w*b.h-a.w*a.h)[0];
+         check(core,'Olympic has no measured engine lamp');
+         const coreX=Math.round(260+(core.x/profile.width-.5)*d.width),coreY=Math.round(260+(core.y/profile.height-.5)*d.height);
          let blue=0;for(let y=coreY-4;y<=coreY+4;y++)for(let x=coreX-4;x<=coreX+4;x++){
            const i=(y*520+x)*4;if(on[i+2]>on[i]+15&&on[i+1]>on[i]+10&&on[i+3]>20)blue++;
          }

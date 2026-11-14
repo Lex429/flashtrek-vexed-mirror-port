@@ -18,6 +18,14 @@
     [445,'Sagan Class',38]
   ].map(Object.freeze));
   const ids=Object.freeze([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,33,34,35,36,37,38,45,46,47,49,56,57,58,60,416,426,427,...additions.map(([id])=>id)]);
+  // New Saber/Runabout commissions include a Photon Torpedo beside the phaser.
+  // Keep the recovered catalog and shared equipment owner in agreement; saved
+  // fittings and hull purchases still retain their already owned equipment.
+  for(const id of [6,7]){
+    const ship=world.ships.find(ship=>ship.id===id),weapons=[1,15,0];
+    ship.defaultWeapons=weapons;
+    window.nativeShipDefinitions.register(id,{equipment:[...weapons]});
+  }
   const finished=new Set(ids),type=416,base=world.ships.find(ship=>ship.id===10);
   const stats={...base,id:type,name:'Tug Class II-A · Armored Freight',
     description:'An armored freight tug with reinforced cargo plating, stronger hull protection and room for 2,000 t of cargo.',
@@ -30,7 +38,7 @@
     ...stats,artworkProfile:profile,dimensions:{width:height*(profile?.width||182)/(profile?.height||504),height},
     artwork:{source:'flight',frames:['tug-class-ii-a.png','tug-class-ii-a-light.png','tug-class-ii-a-heavy.png','tug-class-ii-a-severe.png'].map(file=>'tug-class-ii/'+file)},
     debrisGeometry:window.VexedMirrorDebrisGeometry?.ships?.[type],npcPolicy:'cargo',
-    emitters:{beam:{x:0,y:-.28},beamAft:{x:0,y:.34},projectile:{x:0,y:-.36}}
+    emitters:window.nativeShipWeaponMounts?.get(type)?.emitters||{beam:{x:0,y:-.28},beamAft:{x:0,y:.34},projectile:{x:0,y:-.36}}
   });
   for(const [id,name,templateId] of additions){
     const template=world.ships.find(ship=>ship.id===templateId),profile=window.starterShips?.get(id);
@@ -44,9 +52,9 @@
     const dimensions=window.VexedMirrorDebrisGeometry?.ships?.[id],ratio=profile?.displayRatio||profile?.width/profile?.height||dimensions?.width/dimensions?.height||1;
     window.nativeShipDefinitions.register(id,{
       ...stats,artworkProfile:profile,dimensions:{width:height*ratio,height},
-      artwork:{source:'flight',frames:['','-light','-heavy','-severe'].map(stage=>`new-ship-art/ship-${id}${stage}.png`)},
+      artwork:{source:'flight',frames:profile?.artworkFrames||['','-light','-heavy','-severe'].map(stage=>`new-ship-art/ship-${id}${stage}.png`)},
       debrisGeometry:window.VexedMirrorDebrisGeometry?.ships?.[id],
-      emitters:{...window.nativeShipDefinitions.get(templateId).emitters}
+      emitters:window.nativeShipWeaponMounts?.get(id)?.emitters||profile?.artworkEmitters||{...window.nativeShipDefinitions.get(templateId).emitters}
     });
   }
   window.nativeFederationShips=Object.freeze({ids,additions,isAnimated:id=>finished.has(Number(id)),

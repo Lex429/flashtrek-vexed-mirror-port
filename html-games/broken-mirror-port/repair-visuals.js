@@ -19,13 +19,18 @@
       const frame=document.createElement('iframe');frame.hidden=true;frame.title='Repair artwork cache';
       frame.onload=async()=>{try{
         const w=frame.contentWindow;
-        art={sprites:w.droneSprites,damage:w.dotBasicDamage,showcase:w.droneShowcase};
-        const loaded=await w.droneSprites.ready;
+        const prepared={sprites:w.droneSprites,damage:w.dotBasicDamage,showcase:w.droneShowcase};
+        const loaded=await (prepared.sprites.baseReady||prepared.sprites.ready);
         if(!loaded.every(Boolean))throw Error('Dot artwork preparation failed');
+        // The complete API bundle can draw the original body immediately.
+        // Optional lamps and damage materials keep their full ready contract.
+        art=prepared;
+        const complete=await prepared.sprites.ready;
+        if(!complete.every(Boolean))throw Error('Optional DOT effects unavailable; retaining its body artwork.');
         resolve(art);
       }catch(error){reject(error);}};
       frame.onerror=()=>reject(Error('Could not load repair artwork'));
-      frame.src='../flashtrek-broken-mirror/live-repair-assets.html?v=fleet-culling-1';document.body.append(frame);
+      frame.src='../flashtrek-broken-mirror/live-repair-assets.html?v=fleet-culling-1-dot-loot-1';document.body.append(frame);
     });
     loading.catch(error=>{console.warn(error);});return loading;
   }

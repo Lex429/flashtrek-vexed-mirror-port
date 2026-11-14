@@ -72,6 +72,7 @@ try:
           }
           const scenes=[1,58,31,38,73,34].map(id=>capture(id));
           const [,blue,green,red,sparse]=scenes;
+          if(sparse.energy!==0||sparse.metrics.draws!==0)throw Error('The Badlands must paint no stars');
           if(blue.counts.blue<blue.counts.red*3||green.counts.green<green.counts.red*2||red.counts.red<red.counts.blue*3)
             throw Error('Regional colours are absent from the actual small-star pixels: '+JSON.stringify(scenes.map(s=>s.counts)));
           if(blue.counts.lit<sparse.counts.lit*8)throw Error('Dense and sparse regions look too similar');

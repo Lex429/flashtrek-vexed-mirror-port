@@ -35,6 +35,7 @@
       destroyed:ship.hull<=0,disabled:ship.hull>0&&disableHull>0&&ship.hull<=disableHull,shields:ship.shields,hull:ship.hull};
     if(ship===descriptor.state)window.nativeShipVitals?.impact(descriptor,result);
     window.nativeGameSounds?.impact(descriptor,result,impact);
+    window.nativeControllerHaptics?.impact(descriptor,result,impact);
     return result;
   }
   window.nativeShipDamage=Object.freeze({apply,collision});

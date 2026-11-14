@@ -1,7 +1,9 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function fixture(extra={}){
   const window={},math=Object.create(Math);math.random=()=>{throw Error('Material used gameplay random');};
-  vm.runInNewContext(fs.readFileSync('html-games/broken-mirror-port/nebula-material.js','utf8'),{window,Math:math,...extra});
+  const context=vm.createContext({window,atob,Math:math,...extra});
+  vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/nebula-flow-kernel.js','utf8'),context);
+  vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/nebula-material.js','utf8'),context);
   const api=window.nativeNebulaMaterial,w=24,h=48,alpha=new Uint8Array(w*h);
   for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
     const saucer=Math.pow((x-11.5)/8,2)+Math.pow((y-13)/12,2)<1,neck=x>=9&&x<=14&&y>=20&&y<46;
@@ -26,6 +28,15 @@ test('CPU rendering can sample published density without repeating ship membersh
   assert.equal(runtime.sample(0,0),0,'Interactive sampling stopped protecting the current ship');assert.ok(membershipReads>0);
   runtime.dispose();
 });
+
+test('a long unpublished history retains the most recent swept poses and rebases without an invented bridge',()=>{
+  class WorkerStub{postMessage(){}terminate(){}}
+  const {api,mask}=fixture({Worker:WorkerStub,URL,location:{href:'http://localhost/nebula-material.js'},setTimeout:()=>1,clearTimeout:()=>{}}),f=api.createRuntimeField({minX:-100,minY:-100,width:200,height:200,cell:2});
+  for(let i=0;i<100;i++)f.updateMany([{id:'player',pose:pose(-30+i*.5,0,i*.03),mask}],1/120);
+  const pending=f.pendingMasks;assert.equal(pending.length,32);assert.equal(pending[0].x,4);assert.equal(pending.at(-1).x,19.5);assert.equal(f.pendingMasks,pending,'Unchanged input rebuilt silhouettes');
+  f.updateMany([{id:'player',pose:pose(200,0,1),mask}],1/120,{rebase:true});
+  assert.equal(f.pendingMasks.length,32);assert.equal(f.pendingMasks.at(-1).x,200);assert.ok(f.pendingMasks.every(p=>p.x<=19.5||p.x===200),'Rebase cleared intervening space');f.dispose();
+});
 function speedFlight(api,mask,speed,{heading=0,speedHint=speed,reducedMotion=false}={}){
   const f=api.createField({minX:-320,minY:-160,width:640,height:320,cell:2}),p={...pose(-180,0,heading),width:52,height:83,speed:speedHint};
   f.update(p,mask,1/60,{reducedMotion});
@@ -45,6 +56,96 @@ test('all catalog hull IDs are eligible and actual alpha gaps stay open under ro
   // Local sprite point in the gap between the engineering hull and nacelle.
   const p=pose();assert.equal(api.occupied(mask,p,-8,-2),false);assert.equal(api.occupied(mask,p,5,0),true);
   assert.equal(api.occupied(mask,pose(0,0,Math.PI/2),0,5),true);
+});
+
+test('continuous 100x crossings clear the complete travelled silhouette and conserve gas',()=>{
+  const {api,mask}=fixture();
+  for(const heading of [0,.63,Math.PI/2]){
+    const f=api.createField({minX:-400,minY:-200,width:800,height:400,cell:2}),a={...pose(-320,-50,heading),width:52,height:83,speed:42750},b={...a,x:320,y:50};
+    f.update(a,mask,1/120);f.update(b,mask,1/120);
+    assert.equal(f.metrics().continuousSweeps,1);assert.ok(f.metrics().sweeps<=2,'Distance still multiplied whole-hull stamps');
+    const expected=new Uint8Array(f.density.length),radius=Math.hypot(a.width,a.height)/2;
+    for(let k=0;k<=512;k++){const p={...a,x:a.x+(b.x-a.x)*k/512,y:a.y+(b.y-a.y)*k/512};
+      for(let y=Math.max(1,Math.floor((p.y-radius-f.minY)/2));y<Math.min(f.h-1,Math.ceil((p.y+radius-f.minY)/2));y++)for(let x=Math.max(1,Math.floor((p.x-radius-f.minX)/2));x<Math.min(f.w-1,Math.ceil((p.x+radius-f.minX)/2));x++)if(api.occupied(mask,p,f.minX+(x+.5)*2,f.minY+(y+.5)*2))expected[y*f.w+x]=1;
+    }
+    const leaks=[];let tested=0;for(let i=0;i<expected.length;i++)if(expected[i]){const x=f.minX+(i%f.w+.5)*2,y=f.minY+(Math.floor(i/f.w)+.5)*2,mi=api.maskIndex(mask,b,x,y);if(mi>=0&&mask.openings[mi])continue;tested++;if(f.density[i]>.00001)leaks.push({x,y,d:f.density[i]});}
+    assert.ok(tested>1000);assert.equal(leaks.length,0,'Holes inside an uninterrupted fast crossing '+JSON.stringify({heading,leaks:leaks.slice(0,25)}));
+    assert.ok(Math.abs(f.metrics(true).mass-f.metrics().initialMass)<.08);assert.ok(f.metrics(true).min>=0);
+  }
+});
+
+test('twenty fast overlapping hulls retain all accepted time, gas and checkpoint recovery',()=>{
+  const {api,mask}=fixture(),config={minX:-500,minY:-300,width:1000,height:600,cell:2},f=api.createField(config);
+  const bodies=t=>Array.from({length:20},(_,i)=>{const reverse=i%2?1:-1;return {id:'stress:'+i,mask,pose:{...pose(reverse*(t?350:-350),-230+Math.floor(i/2)*46,.03*i),width:52,height:83,speed:42750}};});
+  f.updateMany(bodies(0),1/120);f.updateMany(bodies(1),1/120);
+  const m=f.metrics(true);assert.equal(m.actorCount,20);assert.equal(m.continuousSweeps,20);assert.ok(m.sweeps<=40);assert.ok(Math.abs(m.mass-m.initialMass)<.15);assert.ok(m.min>=0);assert.equal(m.clock,1/60);
+  const copy=api.createField(config);copy.restore(f.checkpoint());for(const model of [copy,f])model.updateMany(bodies(0),1/120);
+  assert.deepEqual(Array.from(copy.density),Array.from(f.density));assert.equal(copy.metrics().clock,f.metrics().clock);
+});
+
+test('compiled continuous sweeps match JavaScript through fast drift, turns, boundaries and stale speed hints',()=>{
+  const {api,mask}=fixture(),config={minX:-400,minY:-240,width:800,height:480,cell:2},a=api.createField(config),b=api.createField({...config,accelerated:false});
+  const path=[[-600,-100,0],[350,80,.03],[-250,170,.15],[0,-150,1.7],[520,60,2.1],[-650,-40,2.1]];
+  for(const [x,y,heading] of path){const bodies=[{id:'a',mask,pose:{...pose(x,y,heading),width:52,height:83,speed:0}},{id:'b',mask,pose:{...pose(-x,-y,-heading),width:47,height:75,speed:0}}];for(const f of [a,b])f.updateMany(bodies,1/120);}
+  assert.ok(a.metrics().continuousSweeps>10,'A stale engine speed caused fast travel to be treated as a teleport');
+  for(const key of ['density','u','v','rate','swept'])assert.deepEqual(Array.from(a.checkpoint()[key]),Array.from(b.checkpoint()[key]),key);
+  for(const f of [a,b])f.updateMany([],1/30);assert.deepEqual(Array.from(a.density),Array.from(b.density));
+});
+
+test('short and long swept caps retain reference cell boundaries at axis and near-axis headings',()=>{
+  const {api,mask}=fixture(),config={minX:-96,minY:-96,width:192,height:192,cell:2};
+  for(let i=0;i<48;i++){
+    const heading=(i%8)*Math.PI/4+(i<8?0:i<16?1e-13:-1e-13),direction=heading+(i%3)*Math.PI/2+(i>=24?.13+(i%5)*.11:0),distance=i%2?38:260;
+    const a=api.createField(config),b=api.createField({...config,accelerated:false});
+    for(const t of [-.5,.5])for(const f of [a,b])f.update({...pose(Math.cos(direction)*distance*t,Math.sin(direction)*distance*t,heading),width:52,height:83},mask,1/120);
+    const actual=a.checkpoint(),reference=b.checkpoint();
+    for(const key of ['density','u','v','rate','swept'])assert.deepEqual(Array.from(actual[key]),Array.from(reference[key]),key+' case '+i);
+  }
+});
+
+test('a newly observed offscreen crossing uses its shared previous pose and rebases explicitly',()=>{
+  const {api,mask}=fixture(),config={minX:-200,minY:-100,width:400,height:200,cell:2},body={id:'new',mask,from:{...pose(-300),width:52,height:83},pose:{...pose(300),width:52,height:83,speed:0}},f=api.createField(config),rebased=api.createField(config);
+  f.updateMany([body],1/120);assert.ok(f.sample(0,0)<.001,'Both endpoints outside the field hid a complete crossing');assert.ok(Math.abs(f.metrics(true).mass-f.metrics().initialMass)<.03);
+  rebased.updateMany([body],1/120,{rebase:true});assert.ok(rebased.sample(0,0)>.99,'A rebase invented an offscreen route');
+  class WorkerStub{postMessage(){}terminate(){}}
+  const runtime=fixture({Worker:WorkerStub,URL,location:{href:'http://localhost/nebula-material.js'},setTimeout:()=>1,clearTimeout:()=>{}}).api.createRuntimeField(config);
+  runtime.updateMany([body],1/120);assert.equal(runtime.pendingSweeps.length,1);assert.equal(runtime.sample(0,0),0,'Unpublished crossing had an immediate visual hole');runtime.dispose();
+});
+
+test('a long sweep preserves a real unswept channel between disconnected hull pieces',()=>{
+  const {api}=fixture(),alpha=new Uint8Array(32*32);for(let y=2;y<30;y++)for(let x=0;x<32;x++)if(x>=3&&x<8||x>=24&&x<29)alpha[y*32+x]=255;
+  const mask=api.createMask(alpha,32,32),f=api.createField({minX:-400,minY:-100,width:800,height:200,cell:2});
+  for(const x of [-300,300])f.update({x,y:0,width:52,height:83,heading:0,speed:42750},mask,1/120);
+  assert.ok(f.sample(0,0)>.99,'A bounding hull erased a channel that never met any ship surface');assert.ok(f.sample(0,18)<.001);assert.ok(f.sample(0,-18)<.001);assert.ok(Math.abs(f.metrics(true).mass-f.metrics().initialMass)<.03);
+});
+
+test('a complete crossing finishes its interpolated tail once and never bridges a rebase',()=>{
+  class WorkerStub{postMessage(){}terminate(){}}
+  const {api,mask}=fixture({Worker:WorkerStub,URL,location:{href:'http://localhost/nebula-material.js'},setTimeout:()=>1,clearTimeout:()=>{}}),config={minX:-200,minY:-100,width:400,height:200,cell:2},body={id:'fast',mask,pose:{...pose(-300),width:52,height:83},sweepEnd:{...pose(300),width:52,height:83}};
+  const f=api.createRuntimeField(config);f.updateMany([body],1/120);f.updateMany([],1/120);assert.equal(f.pendingSweeps.length,1);assert.equal(f.sample(0,0),0);assert.equal(f.currentBodies.length,1);f.updateMany([],1/120);assert.equal(f.currentBodies.length,0);assert.equal(f.pendingSweeps.length,1,'The closing segment repeated');f.dispose();
+  const rebased=api.createRuntimeField(config);rebased.updateMany([body],1/120,{rebase:true});rebased.updateMany([],1/120);assert.equal(rebased.pendingSweeps.length,0);assert.equal(rebased.sample(0,0),1);rebased.dispose();
+});
+
+test('fast straight interpolants combine without bridging a turn or losing time during recovery',()=>{
+  const workers=[],timers=new Map();let timer=0;
+  class WorkerStub{constructor(){this.posts=[];workers.push(this);}postMessage(m){this.posts.push(m);}terminate(){}}
+  const {api,mask}=fixture({Worker:WorkerStub,URL,location:{href:'http://localhost/nebula-material.js'},performance:{now:()=>0},setTimeout:fn=>{timers.set(++timer,fn);return timer;},clearTimeout:id=>timers.delete(id)}),config={minX:-200,minY:-100,width:400,height:200,cell:2},runtime=api.createRuntimeField(config),reference=api.createField(config),rgba=new Uint8ClampedArray([0,0,0,128]),worker=workers[0];runtime.seed(rgba,1,1);reference.seed(rgba,1,1);
+  const deliver=(sequence,bodies=[])=>worker.onmessage({data:{kind:'updated',sequence,bodies,complete:true,checkpoint:reference.checkpoint(),metrics:reference.metrics()}});deliver(0);
+  const raw=[],processed=[],seen=new Set();
+  function drain(){for(const post of worker.posts)if(post.kind==='advance'&&!seen.has(post)){seen.add(post);for(const c of post.commands){reference.updateMany(c.bodies.map(b=>({...b,mask})),c.dt,c.options);processed.push(c);}deliver(post.commands.at(-1).sequence,post.commands.at(-1).bodies);}}
+  for(let i=0;i<18;i++){const p={...pose(-400+(i<9?i:18-i)*350,i>=12?30:0,i>=12?.1:0),width:52,height:83,speed:42750};raw.push(p);runtime.updateMany([{id:'a',pose:p,mask}],1/120);if(i===0||i%4===0)drain();}
+  runtime.flush();drain();assert.ok(runtime.metrics().mergedCommands>0,'No redundant interpolation was combined');assert.ok(processed.length<raw.length);
+  let previous=0;for(const c of processed){const end=c.sequence-1,start=Math.max(0,previous-1),a=raw[start],b=raw[end];for(let i=previous;i<=end;i++){const p=raw[i],cross=(p.x-a.x)*(b.y-a.y)-(p.y-a.y)*(b.x-a.x);assert.ok(Math.abs(cross)<1e-7,'A corner was replaced with a straight shortcut');assert.equal(p.heading,b.heading);}previous=c.sequence;}
+  assert.ok(Math.abs(reference.metrics().clock-raw.length/120)<1e-10);runtime.forceFallback('coalesced recovery');assert.deepEqual(Array.from(runtime.density),Array.from(reference.density));assert.equal(runtime.metrics().acceptedPoses,raw.length);assert.ok(Math.abs(runtime.metrics().clock-raw.length/120)<1e-10);runtime.dispose();
+});
+
+test('fresh fast movement is sent immediately while only naturally queued inputs can combine',()=>{
+  const workers=[],timers=[];class WorkerStub{constructor(){this.posts=[];workers.push(this);}postMessage(m){this.posts.push(m);}terminate(){}}
+  const {api,mask}=fixture({Worker:WorkerStub,URL,location:{href:'http://localhost/nebula-material.js'},setTimeout:(fn,delay)=>{timers.push(delay);return timers.length;},clearTimeout:()=>{}}),f=api.createRuntimeField({minX:-200,minY:-100,width:400,height:200,cell:3}),worker=workers[0];
+  worker.onmessage({data:{kind:'updated',sequence:0,complete:true,metrics:{clock:0},bodies:[]}});
+  const first={id:'a',mask,pose:{...pose(-150),width:52,height:83}};f.updateMany([first],1/120);assert.equal(worker.posts.filter(m=>m.kind==='advance').length,1);
+  worker.onmessage({data:{kind:'updated',sequence:1,complete:true,metrics:{clock:1/120},bodies:[{id:'a',maskId:1,pose:first.pose}]}});
+  f.updateMany([{...first,pose:{...first.pose,x:150}}],1/120);assert.equal(worker.posts.filter(m=>m.kind==='advance').length,2,'A fresh high-speed push was held for another frame');assert.ok(!timers.some(t=>t>10&&t<20));f.dispose();
 });
 
 test('sweeping the artwork displaces material instead of deleting it or spawning a heading-shaped wake',()=>{
@@ -108,6 +209,134 @@ test('checkpoints retain material, momentum, pose history and queued flow time e
   for(let i=18;i<28;i++){const p=pose(-110+i*8,Math.sin(i*.2)*8,i*.03);a.update(p,mask,.025);b.update(p,mask,.025);}
   assert.deepEqual(Array.from(b.density),Array.from(a.density));assert.equal(b.metrics().pending,a.metrics().pending);
   assert.equal(b.metrics().flowSpeed,a.metrics().flowSpeed);assert.equal(b.metrics().travelDistance,a.metrics().travelDistance);assert.ok(b.metrics().fastFlow>.3);
+});
+
+test('wide transport patches use contiguous rows while narrow patches retain their crop',()=>{
+  const {api}=fixture(),f=api.createField({minX:0,minY:0,width:100,height:80,cell:2}),wide=f.checkpoint({x:2,y:3,w:46,h:5}),narrow=f.checkpoint({x:4,y:6,w:8,h:3});
+  assert.deepEqual(JSON.parse(JSON.stringify(wide.rect)),{x:0,y:3,w:50,h:5});
+  assert.deepEqual(Array.from(wide.density),Array.from(f.density.subarray(150,400)));
+  assert.deepEqual(JSON.parse(JSON.stringify(narrow.rect)),{x:4,y:6,w:8,h:3});assert.equal(narrow.density.length,24);
+});
+
+test('compiled flow matches the JavaScript fallback through drift, overlapping hulls and recovery',()=>{
+  const {api,mask}=fixture();for(const config of [{minX:-160,minY:-100,width:320,height:200,cell:2},{minX:-47,minY:-41,width:94,height:82,cell:2}]){
+  const compiled=api.createField(config),js=api.createField({...config,accelerated:false});
+  assert.equal(compiled.metrics().flowKernel,'webassembly');assert.equal(js.metrics().flowKernel,'javascript');
+  assert.equal(compiled.metrics().flowVectorized,true);
+  const bodies=i=>[{id:'player',pose:pose(-90+i*4,Math.sin(i*.12)*12,i*.03),mask},{id:'other',pose:pose(70-i*3,10,Math.PI-i*.02),mask}];
+  for(let i=0;i<45;i++)for(const f of [compiled,js])f.updateMany(bodies(i),.025,{reducedMotion:i>30});
+  for(let i=0;i<45;i++)for(const f of [compiled,js])f.updateMany([],1/30);
+  for(const key of ['density','u','v','rate'])assert.deepEqual(Array.from(compiled.checkpoint()[key]),Array.from(js.checkpoint()[key]),key);
+  js.restore(compiled.checkpoint());for(let i=45;i<50;i++)for(const f of [compiled,js])f.updateMany(bodies(i),1/30);
+  assert.deepEqual(Array.from(compiled.density),Array.from(js.density));
+  }
+});
+
+test('quiet tiles retain conserved material, wake again, and stay close to the fully active solution',()=>{
+  const {api,mask}=fixture();
+  for(const large of [false,true]){
+  const config=large?{minX:-320,minY:-160,width:640,height:320,cell:2}:{minX:-160,minY:-100,width:320,height:200,cell:2},f=api.createField(config),reference=api.createField({...config,sleepVelocity:0,sleepChange:0,motionEpsilon:1e-12});let p;
+  for(let i=0;i<(large?44:30);i++){p=large?{...pose(-180+i*427.5/60,0,.63),width:52.032202,height:83,speed:427.5}:pose(-90+i*5);for(const model of [f,reference])model.update(p,mask,1/60);}
+  for(let i=0;i<360;i++)for(const model of [f,reference]){if(large)model.update({...p,speed:0},mask,1/30);else model.updateMany([],1/30);}
+  let maximum=0,total=0;for(let i=0;i<f.density.length;i++){const error=Math.abs(Math.exp(-f.density[i])-Math.exp(-reference.density[i]));maximum=Math.max(maximum,error);total+=error;}
+  assert.ok(f.metrics().activeTiles<reference.metrics().activeTiles*.75,JSON.stringify({actual:f.metrics().activeTiles,reference:reference.metrics().activeTiles}));
+  assert.ok(maximum<.025&&total/f.density.length<.001,JSON.stringify({maximum,average:total/f.density.length}));
+  const before=f.metrics(true);assert.ok(Math.abs(before.mass-before.initialMass)<.05);
+  f.update({...p,x:20,y:0,heading:Math.PI/2},mask,1/30);assert.ok(f.sample(20,0)<.02);assert.ok(f.metrics().activeTiles>0);
+  assert.ok(Math.abs(f.metrics(true).mass-before.mass)<.02);
+  }
+});
+
+test('visible alternating density keeps mixing after its per-step change falls below the sleep threshold',()=>{
+  const {api}=fixture();
+  for(const accelerated of [true,false]){
+    const f=api.createField({minX:0,minY:0,width:192,height:192,cell:3,accelerated}),cp=f.checkpoint();
+    for(let y=0;y<f.h;y++)for(let x=0;x<f.w;x++)cp.density[y*f.w+x]=1+((x+y)%2?.1:-.1);
+    cp.state.tiles=Array.from({length:Math.ceil(f.w/16)*Math.ceil(f.h/16)},(_,i)=>i);f.restore(cp);
+    f.updateMany([],1/30);assert.ok(f.metrics().activeTiles>0,'Visible cell alternation went to sleep after one step');
+    for(let i=1;i<1800;i++)f.updateMany([],1/30);
+    let even=0,odd=0;for(let y=16;y<48;y++)for(let x=16;x<48;x++)if((x+y)%2)odd+=f.density[y*f.w+x];else even+=f.density[y*f.w+x];
+    assert.ok(Math.abs(even-odd)/512<.003,'The visible cell grid remained after a minute of settling');
+    assert.ok(Math.abs(f.metrics(true).mass-f.metrics().initialMass)<.02);
+  }
+});
+
+test('uniform gas beside a stationary solid does not accelerate into the hull',()=>{
+  const {api,mask}=fixture();
+  for(const accelerated of [true,false]){
+    const f=api.createField({minX:-90,minY:-90,width:180,height:180,cell:2,accelerated});f.update(pose(),mask,1/30);const cp=f.checkpoint();cp.density.fill(1);for(const i of cp.solid)cp.density[i]=0;
+    cp.u.fill(0);cp.v.fill(0);cp.rate.fill(0);cp.state.initialMass=cp.density.reduce((a,b)=>a+b,0);cp.state.tiles=Array.from({length:Math.ceil(f.w/16)*Math.ceil(f.h/16)},(_,i)=>i);f.restore(cp);
+    for(let i=0;i<12;i++)f.update(pose(),mask,1/30);
+    const after=f.checkpoint();assert.deepEqual(Array.from(after.density),Array.from(cp.density));assert.ok(after.u.every(v=>v===0)&&after.v.every(v=>v===0),'A solid pressure stencil manufactured motion in resting gas');
+  }
+});
+
+test('an empty wake carries no artificial pressure-driven velocity or active fluid work',()=>{
+  const {api}=fixture();
+  for(const accelerated of [true,false]){
+    const f=api.createField({minX:0,minY:0,width:192,height:192,cell:3,accelerated}),rgba=new Uint8ClampedArray(16*16*4);for(let i=0;i<256;i++)rgba[i*4+3]=50+(i%16)*10;f.seed(rgba,16,16);
+    const cp=f.checkpoint();cp.density.fill(0);cp.state.initialMass=0;cp.state.tiles=Array.from({length:Math.ceil(f.w/16)*Math.ceil(f.h/16)},(_,i)=>i);f.restore(cp);f.updateMany([],1/30);
+    const after=f.checkpoint();assert.ok(after.u.every(v=>v===0)&&after.v.every(v=>v===0));assert.ok(after.density.every(v=>v===0));assert.equal(f.metrics().activeTiles,0);
+  }
+});
+
+test('a sub-fluid-step hull push is published without waiting for a 30-Hz boundary',()=>{
+  const messages=[],context={};Object.assign(context,{self:context,atob,location:{search:''},performance:{now:()=>0},setTimeout:()=>{},postMessage:m=>messages.push(m)});vm.createContext(context);
+  context.importScripts=url=>vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/'+url.split('?')[0],'utf8'),context);vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/nebula-material-worker.js','utf8'),context);
+  context.onmessage({data:{kind:'init',config:{minX:-90,minY:-90,width:180,height:180,cell:3},rgba:new Uint8ClampedArray([0,0,0,128]),sw:1,sh:1}});const {mask}=fixture();context.onmessage({data:{kind:'mask',id:1,mask}});messages.length=0;
+  for(let sequence=1;sequence<=2;sequence++){context.onmessage({data:{kind:'advance',commands:[{sequence,bodies:[{id:'a',pose:pose(-20+sequence*20),maskId:1}],dt:1/120,options:{}}]}});const message=messages.at(-1);assert.ok(message.frame,'Fresh displacement was acknowledged without publishing gas');assert.equal(message.sequence,sequence);assert.equal(message.complete,true);assert.ok(message.metrics.clock<1/30);}
+});
+
+test('worker catch-up publishes intermediate states and acknowledges a batch only after every pose',()=>{
+  for(const useChannel of [false,true]){
+  const timers=[],messages=[],context={};let time=0;
+  Object.assign(context,{self:context,atob,location:{search:''},performance:{now:()=>time++},setTimeout:fn=>timers.push(fn),postMessage:m=>messages.push(m)});
+  if(useChannel)context.MessageChannel=class{constructor(){this.port1={};this.port2={postMessage:()=>timers.push(()=>this.port1.onmessage({data:0}))};}};
+  vm.createContext(context);context.importScripts=url=>vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/'+url.split('?')[0],'utf8'),context);
+  vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/nebula-material-worker.js','utf8'),context);
+  const config={minX:-50,minY:-40,width:100,height:80,cell:2},rgba=new Uint8ClampedArray([0,0,0,128]);
+  context.onmessage({data:{kind:'init',config,rgba,sw:1,sh:1}});
+  const {mask}=fixture();context.onmessage({data:{kind:'mask',id:1,mask}});messages.length=0;
+  const commands=Array.from({length:24},(_,i)=>({sequence:i+1,bodies:[{id:'player',pose:pose(-20+i),maskId:1}],dt:1/120,options:{}}));
+  context.onmessage({data:{kind:'advance',commands}});assert.ok(timers.length,'Catch-up never yielded');
+  while(timers.length)timers.shift()();
+  assert.ok(messages.some(m=>m.frame&&m.sequence<24&&!m.complete),'Intermediate material was held until the batch ended');
+  assert.equal(messages.filter(m=>m.complete).length,1);assert.equal(messages.at(-1).sequence,24);
+  const actual=vm.runInContext('field',context),expected=context.nativeNebulaMaterial.createField(config);expected.seed(rgba,1,1);
+  for(const c of commands)expected.updateMany(c.bodies.map(b=>({...b,mask})),c.dt);
+  assert.deepEqual(Array.from(actual.density),Array.from(expected.density));assert.equal(actual.metrics().clock,expected.metrics().clock);
+  }
+});
+
+test('worker publication buffers return to a bounded pool and are reused after consumption',()=>{
+  const messages=[],context={};Object.assign(context,{self:context,atob,location:{search:''},performance:{now:()=>0},setTimeout:()=>{},postMessage:m=>messages.push(m)});vm.createContext(context);
+  context.importScripts=url=>vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/'+url.split('?')[0],'utf8'),context);vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/nebula-material-worker.js','utf8'),context);
+  context.onmessage({data:{kind:'init',config:{minX:-20,minY:-20,width:40,height:40,cell:2},rgba:new Uint8ClampedArray([0,0,0,128]),sw:1,sh:1}});
+  const {mask}=fixture();context.onmessage({data:{kind:'mask',id:1,mask}});
+  const advance=sequence=>context.onmessage({data:{kind:'advance',commands:[{sequence,bodies:[{id:'a',pose:pose(),maskId:1}],dt:1/30,options:{}}]}});
+  const returned=new Set();let reused=false;
+  for(let sequence=1;sequence<=12;sequence++){advance(sequence);const message=messages.find(m=>m.frame&&m.sequence===sequence),buffers=[message.frame.density.buffer,message.frame.rate.buffer];
+    if(message.metrics.reusedBuffers>=2){assert.ok(buffers.every(buffer=>returned.has(buffer)));reused=true;}for(const buffer of buffers)returned.add(buffer);context.onmessage({data:{kind:'recycle',buffers}});
+  }
+  assert.ok(reused,'Stable publication sizes never reused returned buffers');
+  context.onmessage({data:{kind:'recycle',buffers:Array.from({length:100},()=>new ArrayBuffer(1024*1024))}});advance(13);
+  assert.ok(messages.at(-1).metrics.pooledBytes<=32*1024*1024);assert.equal(messages.at(-1).sequence,13,'A recycle message prevented the next movement command');
+});
+
+test('failure during a partial recovery copy commits a coherent checkpoint and replays every later pose',()=>{
+  const workers=[],timers=new Map();let nextTimer=1,time=0;
+  class WorkerStub{constructor(){workers.push(this);}postMessage(){}terminate(){}}
+  const {api,mask}=fixture({Worker:WorkerStub,URL,location:{href:'http://localhost/nebula-material.js'},performance:{now:()=>time++},setTimeout:fn=>{const id=nextTimer++;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id)});
+  const config={minX:-100,minY:-100,width:200,height:200,cell:2},runtime=api.createRuntimeField(config),reference=api.createField(config),rgba=new Uint8ClampedArray([0,0,0,160]);
+  runtime.seed(rgba,1,1);reference.seed(rgba,1,1);
+  const deliver=(sequence,checkpoint)=>workers[0].onmessage({data:{kind:'updated',complete:true,sequence,checkpoint,metrics:reference.metrics(),bodies:[]}});
+  deliver(0,reference.checkpoint());
+  // Run just the first bounded slice, leaving the initial copy incomplete.
+  const [id,copy]=Array.from(timers).at(-1);timers.delete(id);copy();
+  for(let i=0;i<8;i++){const p=pose(-30+i*8,Math.sin(i)*6,i*.04);runtime.update(p,mask,.025);reference.update(p,mask,.025);if(i===3)deliver(4,reference.checkpoint());}
+  runtime.forceFallback('failure inside checkpoint copy');
+  assert.equal(runtime.metrics().transport,'synchronous-fallback');
+  assert.deepEqual(Array.from(runtime.density),Array.from(reference.density));assert.equal(runtime.metrics().clock,reference.metrics().clock);runtime.dispose();
 });
 
 test('fast passage gains force through the hull openings and leaves a longer recovering wake',()=>{

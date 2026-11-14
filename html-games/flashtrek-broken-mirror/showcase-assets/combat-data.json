@@ -4,7 +4,7 @@
     "sha256": "79ea21c47c8252d69a896c1565d1741900a02241bff779ff7304d47047b43565",
     "shipTable": "DefineEditText 1026 (itemtext)",
     "weaponTable": "DefineEditText 1032 (weaponinfo)",
-    "icons": "DefineSprite 576, frames 106\u00e2\u20ac\u201c132",
+    "icons": "DefineSprite 576, frames 106Ã¢â‚¬â€œ132",
     "damageFormula": "weapon base damage only; firing ship rating does not modify damage",
     "iconRemasters": "Generated realistic icons; true RGBA transparency. Native masters and explicitly upscaled 8K exports kept separately.",
     "energySystem": "Removed",
@@ -407,8 +407,60 @@
       "hull": 8000.0,
       "shields": 8000.0
     },
-    "426": {"name":"Kirk's Ship - I.S.S. Enterprise NCC-1701","weaponsRating":3.0,"hull":200.0,"shields":200.0},
-    "427": {"name":"Constitution Class","weaponsRating":3.0,"hull":200.0,"shields":200.0}
+    "426": {
+      "name": "Kirk's Ship - I.S.S. Enterprise NCC-1701",
+      "weaponsRating": 3.0,
+      "hull": 200.0,
+      "shields": 200.0
+    },
+    "427": {
+      "name": "Constitution Class",
+      "weaponsRating": 3.0,
+      "hull": 200.0,
+      "shields": 200.0
+    },
+    "446": {
+      "name": "Orion Dart Scout",
+      "weaponsRating": 2,
+      "hull": 80,
+      "shields": 65
+    },
+    "447": {
+      "name": "Orion Corsair Raider",
+      "weaponsRating": 4,
+      "hull": 240,
+      "shields": 250
+    },
+    "448": {
+      "name": "Orion Ravager Cruiser",
+      "weaponsRating": 5,
+      "hull": 420,
+      "shields": 460
+    },
+    "449": {
+      "name": "Orion Caravan Freighter",
+      "weaponsRating": 4,
+      "hull": 220,
+      "shields": 180
+    },
+    "3701": {
+      "name": "Prometheus Alpha section",
+      "weaponsRating": 3.0,
+      "hull": 100.0,
+      "shields": 125.0
+    },
+    "3702": {
+      "name": "Prometheus Beta section",
+      "weaponsRating": 3.0,
+      "hull": 180.0,
+      "shields": 225.0
+    },
+    "3703": {
+      "name": "Prometheus Gamma section",
+      "weaponsRating": 3.0,
+      "hull": 120.0,
+      "shields": 150.0
+    }
   },
   "weapons": {
     "beam": [

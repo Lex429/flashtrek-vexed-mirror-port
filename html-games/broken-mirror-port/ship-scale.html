@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Federation Ship Scale · Vexed Mirror</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="ship-scale.css?v=danube-1">
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="index.html"><span class="insignia" aria-hidden="true">△</span><span>VEXED MIRROR<small>STARFLEET DESIGN ARCHIVE</small></span></a>
+    <nav aria-label="Page navigation"><a href="#reference-chart">Reference chart <span aria-hidden="true">↘</span></a><a href="index.html">Back to game <span aria-hidden="true">↗</span></a></nav>
+  </header>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="eyebrow">SHIP SCALE ATLAS <span>01 / FEDERATION</span></p><h1 id="page-title">A fleet, in proportion.</h1><p class="lede">Your ships. One shared scale. Compare their current sizes with published reference lengths.</p></div>
+      <div class="anchor-note"><span class="anchor-dot" aria-hidden="true"></span><div><span>DANUBE REFERENCE</span><strong>23.1 m <span>=</span> <span id="anchor-units">—</span> units</strong><small id="anchor-frame">Measuring its current in-game hull…</small></div></div>
+    </section>
+    <div class="fleet-summary" aria-label="Roster summary"><span><strong id="total-count">—</strong> roster entries</span><span><i class="key corrected"></i><strong id="reference-count">—</strong> sourced lengths</span><span><i class="key pending"></i><strong id="pending-count">—</strong> need verification</span><span class="preview-note">Compact gameplay · Danube size retained</span></div>
+    <section class="comparison" aria-labelledby="comparison-title">
+      <div class="comparison-heading"><div><p class="eyebrow">SIDE BY SIDE</p><h2 id="comparison-title">The Federation lineup</h2></div><div class="mode-switch" role="group" aria-label="Ship scale"><button type="button" data-mode="corrected" aria-pressed="false">Reference scale</button><button type="button" data-mode="current" aria-pressed="true">Current game</button></div></div>
+      <div class="comparison-tools"><div class="presets" role="group" aria-label="Comparison presets"><button type="button" id="show-all" class="active">All ships</button><button type="button" id="show-heroes">Danube &amp; flagships</button></div><label class="zoom-control">Zoom <input id="fleet-zoom" type="range" min="0.5" max="4" step="0.1" value="2.4"><output for="fleet-zoom" id="zoom-value">2.4×</output></label><button type="button" id="reset-view" class="text-button">Reset view</button></div>
+      <div class="lineup-scroll" id="lineup-scroll" tabindex="0" role="region" aria-label="Ship comparison. Scroll horizontally to see the full fleet.">
+        <div class="lineup-stage" id="lineup-stage"><div id="ruler" class="ruler" aria-hidden="true"></div><div id="fleet-lineup" class="fleet-lineup"></div></div>
+      </div>
+      <div class="comparison-caption"><span id="lineup-caption">Loading the live Federation roster…</span><span><i class="key corrected"></i> Sourced length <i class="key pending"></i> Provisional / unverified</span><span class="scroll-hint">Scroll to explore the fleet <span aria-hidden="true">↔</span></span></div>
+    </section>
+    <section class="ship-detail" id="ship-detail" aria-label="Selected ship details" hidden></section>
+    <section class="reference-section" id="reference-chart" aria-labelledby="chart-title">
+      <div class="chart-heading"><div><p class="eyebrow">THE NUMBERS BEHIND THE LINEUP</p><h2 id="chart-title">Reference chart <span id="chart-count"></span></h2></div><button type="button" id="export-csv">Export CSV <span aria-hidden="true">↓</span></button></div>
+      <div class="chart-tools"><label class="search-field"><span aria-hidden="true">⌕</span><input id="ship-search" type="search" placeholder="Find a ship or class…" aria-label="Find a ship or class"></label><label class="reference-filter">Show <select id="reference-filter"><option value="all">All roster entries</option><option value="sourced">Sourced lengths</option><option value="pending">Needs verification</option><option value="provisional">Provisional estimates</option><option value="parents">Parent hull only</option><option value="unmatched">No matching length</option></select></label><p>Click a ship to inspect its scale.</p></div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Ship length reference table"><table><thead><tr><th scope="col">Ship / class</th><th scope="col">Reference length</th><th scope="col">Current hull <small>game units</small></th><th scope="col">Corrected hull <small>game units</small></th><th scope="col">Change</th><th scope="col">Reference</th></tr></thead><tbody id="ship-table"></tbody></table></div>
+      <p id="table-empty" class="empty-state" hidden>No ships match those filters.</p>
+    </section>
+    <details class="methodology"><summary>How the comparison works <span aria-hidden="true">+</span></summary><div><p>Danube stays at its current in-game size. Corrected visible length = reference length in meters ÷ 23.1 × Danube’s current visible hull length. Every sourced hull uses this same conversion. Zoom scales the whole lineup together.</p><p>The current column measures the painted hull inside its game sprite. The smaller “sprite” number is the full flight frame, including transparent padding. Danube retains both its visible hull and full frame dimensions; corrected frame dimensions for other ships account for their own padding. Artwork proportions are preserved; reference beam widths and heights are not reconstructed.</p><p>Published dimensions sometimes disagree, and screen shots are not always consistent. Each entry links to the chosen source and records important alternatives. Provisional values are marked. Custom designs with no verified length stay at their current size and are marked “Unverified”; they are not assigned an invented canon length.</p><p>This page reads the shared roster and ship definitions. It does not run the galaxy simulation, write saves, or change gameplay. Gameplay adoption would also need matching collision geometry, weapon positions and navigation clearances.</p></div></details>
+    <div id="load-status" class="load-status" role="status" aria-live="polite">Loading ship artwork…</div>
+  </main>
+  <footer><span>VEXED MIRROR <span class="footer-divider">/</span> FEDERATION SCALE ATLAS</span><span>Original game artwork · reference lengths linked per ship</span></footer>
+  <script src="../flashtrek-broken-mirror/cthia-effects.js"></script>
+  <script src="../flashtrek-broken-mirror/olympic-effects.js"></script>
+  <script src="../flashtrek-broken-mirror/tug-effects.js"></script>
+  <script src="../flashtrek-broken-mirror/constitution-tug-effects.js"></script>
+  <script src="../flashtrek-broken-mirror/starter-effects.js"></script>
+  <script src="../flashtrek-broken-mirror/earth-profiles.js"></script>
+  <script src="../flashtrek-broken-mirror/federation-profiles.js"></script>
+  <script src="../flashtrek-broken-mirror/new-ship-profiles.js"></script>
+  <script src="../flashtrek-broken-mirror/earth-effects.js"></script>
+  <script src="../flashtrek-broken-mirror/constitution-showcase-lights.js"></script>
+  <script src="../flashtrek-broken-mirror/constitution-damage.js"></script>
+  <script src="world-data.js"></script>
+  <script src="flight-reference-data.js"></script>
+<script src="ship-scale-settings.js?v=atlas-scale-1-compact-scale-1-size-175-mvam-compact-1-prometheus-v2"></script>
+  <script src="ship-weapon-mounts.js?v=weapon-mounts-1"></script>
+  <script src="ship-definitions.js?v=atlas-scale-1-compact-scale-1-weapon-mounts-1"></script>
+  <script src="constitution-ships.js?v=weapon-mounts-1"></script>
+  <script src="federation-ships.js?v=weapon-mounts-1"></script>
+  <script src="prometheus-artwork.js?v=mvam-compact-1-prometheus-v2"></script>
+  <script src="prometheus-definitions.js?v=mvam-1-weapon-mounts-1"></script>
+  <script src="ship-scale-data.js?v=references-2"></script>
+  <script src="ship-scale.js?v=references-2-compact-scale-1"></script>
+</body>
+</html>

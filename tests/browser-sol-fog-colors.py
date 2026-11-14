@@ -31,12 +31,15 @@ try:
         page.on('response', lambda r: report['failedRequests'].append(r.url) if r.status >= 400 else None)
         page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
         page.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden', timeout=120000)
-        page.evaluate('startNativeDevGame()')
+        page.evaluate('startNativeDevGame();nativeDevFog.setEnabled(true)')
         page.wait_for_function('()=>nativeDevFog.material()?.field.ready', timeout=120000)
-        page.evaluate('''()=>{const s=nativeNpcDev.getState();nativeShipMotion.stop(s);nativeDevFog.reset({ahead:0});}''')
+        page.evaluate('''()=>{const s=nativeNpcDev.getState();nativeShipMotion.stop(s);nativeDevFog.setPreset('vex');nativeDevFog.setColour('four');nativeDevFog.reset({ahead:0});}''')
         page.wait_for_function('()=>nativeDevFog.material()?.field.ready', timeout=120000)
         page.evaluate('''async()=>{
           window.nativeSimulation={...nativeSimulation,blocked:()=>true};nativeSimulationHost.checkpoint();
+          // Consume the active display tail admitted at the gate edge before
+          // capturing the frozen material; flush covers already accepted input.
+          await new Promise(requestAnimationFrame);
           await nativeDevFog.material().field.flush();window.__colourField=nativeDevFog.material().field;
           window.__colourClock=__colourField.metrics().clock;window.__colourDensity=Array.from(__colourField.density);
         }''')

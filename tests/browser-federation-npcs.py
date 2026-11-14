@@ -19,7 +19,7 @@ try:
   old.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden',timeout=120000)
   old.evaluate('startNativeDevGame()');old.wait_for_function('()=>nativeNpcDev.getState()?.civilianTraffic?.ships?.length===1200',timeout=120000)
   saved=old.evaluate('''()=>{window.nativeSimulation={...nativeSimulation,blocked:()=>true};nativeSimulationHost.checkpoint();return JSON.stringify(nativeNpcDev.getState());}''')
-  original=json.loads(saved);old_types=sorted(set(e['shipType'] for e in original['civilianTraffic']['ships']))
+  original=json.loads(saved);old_types=sorted(set(e['shipType'] for e in original['civilianTraffic']['ships'] if e.get('ownerGovernmentId')==1 and e.get('federationDutyVersion')))
   (OUT/'legacy-save.json').write_text(saved,encoding='utf8')
   assert all(t<433 for t in old_types),old_types
   original_ledger=original['civilianTraffic']['life']['federationFleet']
@@ -35,7 +35,7 @@ try:
    const s=nativeNpcDev.getState();window.__fleetState=s;
    for(const key of ['assigned','commissioned','equipmentIssued','hullsIssued'])if(JSON.stringify(s.civilianTraffic.life.federationFleet[key])!==JSON.stringify(original.civilianTraffic.life.federationFleet[key]))throw Error('Roster extension reset saved fleet accounting: '+key);
    const fields=['id','name','shipType','system','x','y','hull','shields','credits','cargo','task','journey','nextActionAt','shipEquipment'];
-   for(const before of original.civilianTraffic.ships){const after=nativeNpcLives.find(s,before.id);for(const key of fields)if(JSON.stringify(before[key])!==JSON.stringify(after[key]))throw Error('Migration changed an existing job/holder: '+before.id+'/'+key);}
+   for(const before of original.civilianTraffic.ships){const after=nativeNpcLives.find(s,before.id);for(const key of fields)if(JSON.stringify(before[key])!==JSON.stringify(after[key]))throw Error('Migration changed an existing job/holder: '+before.id+'/'+key+' '+JSON.stringify({before:before[key],after:after[key],role:before.role,system:before.system}));}
    return {oldTypes:[...new Set(s.civilianTraffic.ships.map(e=>e.shipType))],queued:nativeNpcLives.initialize(s).federationFleet.pending.length,population:s.civilianTraffic.ships.length};
   }''',saved)
   assert migrated['population']==1200 and migrated['queued']>0,migrated

@@ -74,7 +74,7 @@ INSTALL=r"""() => {
     physicalDebrisAdmissions:p.physicalDebrisAdmissions,environmentalDebrisCalls:p.environmentalDebrisCalls,
     simulationSeconds:nativeSimulation.seconds(nativeNpcDev.getState()),pendingWork:window.nativeSimulationFrame?.pendingWork?.(nativeNpcDev.getState())||{steps:0,tasks:0,cpuMs:0,counters:{}},debris:nativeAsteroidCombat.metrics(),shipParticles:nativeShipEffects.snapshot().particles,asteroids:nativeSolAsteroids.metrics?.(),
     corridorNearbyRocks:window.nativeTravelCorridors?nativeSolAsteroids.nearby(nativeNpcDev.getState().system,nativeNpcDev.getState().system===1?vexedSolFlight.shipPosition(nativeNpcDev.getState()):nativeNpcDev.getState(),500).filter(r=>r.corridor&&!nativeNpcDev.getState().minedAsteroids?.includes(r.slotId)&&!nativeNpcDev.getState().destroyedAsteroids?.includes(r.slotId)).length:0,
-    life:__reviewLife(),region:window.nativeShipDetail?.region?.(nativeNpcDev.getState())||null,save:nativeSaveStorage.metrics?.(),sprite:nativeShipSpriteCache.snapshot(),effects:nativeShipEffects.metrics(),loader:vexedFlightAssets.cacheSnapshot?.(),queue:window.nativeDamageArtPreparation?.snapshot?.()});
+    life:__reviewLife(),region:window.nativeShipDetail?.region?.(nativeNpcDev.getState())||null,save:nativeSaveStorage.metrics?.(),starfield:window.vexedSpace?.starfield,starBatch:window.nativeStarfieldBatch?.snapshot(),sprite:nativeShipSpriteCache.snapshot(),effects:nativeShipEffects.metrics(),loader:vexedFlightAssets.cacheSnapshot?.(),queue:window.nativeDamageArtPreparation?.snapshot?.()});
 }"""
 
 SCRIPTED_INPUT=r"""() => {
@@ -245,6 +245,7 @@ def main():
     parser.add_argument('--dpr',type=float,default=1)
     parser.add_argument('--cpu-slowdown',type=float,default=1,
                         help='CPU slowdown after game startup (for example 4); does not emulate another GPU or RAM limit')
+    parser.add_argument('--star-renderer',choices=['auto','canvas','batch'],help='Matched starfield backend comparison; other rendering and simulation are unchanged')
     parser.add_argument('--width',type=int,default=1280)
     parser.add_argument('--height',type=int,default=850)
     parser.add_argument('--save-probe',action='store_true')
@@ -260,7 +261,7 @@ def main():
     report={'label':args.label,'revision':args.revision_label,'sourceRoot':str(source),'viewport':{'width':args.width,'height':args.height},'randomSeed':args.seed,
         'harnessHashes':{name:hashlib.sha256((ROOT/'tests'/name).read_bytes()).hexdigest() for name in ['browser-performance-review.py','browser-stability.py','browser-npc-performance.py']},
         'fixtureSettings':{'population':args.population,'visibleShips':args.visible_ships,'mixedShips':args.mixed_ships,'distantSystem':args.distant_system,'activeDistant':args.active_distant,'dpr':args.dpr},
-        'cpuSlowdown':args.cpu_slowdown,'cpuThrottleScope':'after-game-startup','cpuThrottlingAppliedPages':0,
+        'starRenderer':args.star_renderer,'cpuSlowdown':args.cpu_slowdown,'cpuThrottleScope':'after-game-startup','cpuThrottlingAppliedPages':0,
         'platform':platform.platform(),'secondsPerWindow':args.seconds,'runs':args.runs,'warmupSeconds':3,'activeWarmupSeconds':args.active_warmup,'warmups':{},
         'sourceHashes':{str(p.relative_to(source)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest()
             for folder in ['html-games/broken-mirror-port','html-games/flashtrek-broken-mirror'] for p in sorted([*(source/folder).rglob('*.js'),*(source/folder).rglob('*.html')])},
@@ -308,7 +309,8 @@ def main():
                 instrument='('+stability.INSTRUMENT+')();('+INSTRUMENT+')()'
                 if args.capacity_matrix:instrument+=';('+CAPACITY_INSTRUMENT+')()'
                 page.add_init_script(instrument)
-                page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+                suffix=f'?starRenderer={args.star_renderer}' if args.star_renderer else ''
+                page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html'+suffix)
                 page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
                 page.evaluate(INSTALL);page.evaluate(stability.INSTALL)
                 if args.capacity_matrix:page.evaluate(CAPACITY_INSTALL)

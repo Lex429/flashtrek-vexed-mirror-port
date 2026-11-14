@@ -30,13 +30,14 @@
   }
   function fleet(state,at,systems=null,forecast=true){
     const area=window.nativeShipDetail?.region(state);
-    if(area)return window.nativeShipSystems.query(state,{...area,predictSeconds:forecast?6:0,categories:['player','tug','civilian','repair-drone']}).bystanders.filter(s=>eligible(s.entity)).map(s=>({...s,at}));
+    if(area)return window.nativeShipSystems.query(state,{...area,predictSeconds:forecast?6:0,categories:['player','tug','civilian','repair-drone','prometheus']}).bystanders.filter(s=>eligible(s.entity)).map(s=>({...s,at}));
     const actors=[],found=new Map();
     if((!systems||systems.has(state.system))&&eligible(state)&&!state.landed&&!window.vexedWarp?.active)actors.push({...window.nativeShipDefinitions.describe(state,state,{category:'player'}),at});
     if(!systems||systems.has(1))for(const ship of window.nativeSolEconomy?.mobile?.(state)||state.solEconomy?.freighters||[])if(eligible(ship)&&(ship.lifeLeg||ship.motionKick||ship.motionSpin||ship.speed>0)){const current=window.nativeShipSystems.resolve(state,'tug:'+ship.id,1);if(current)actors.push({...current,at});}
     const civilians=systems&&window.nativeNpcLives?.mobile?Array.from(systems,id=>window.nativeNpcLives.mobile(state,id)).flat():window.nativeNpcLives?.mobile?.(state)||state.civilianTraffic?.ships||[];
     for(const ship of civilians)if((!systems||systems.has(ship.system))&&eligible(ship)&&(ship.localLeg||ship.motionKick||ship.motionSpin||ship.speed>0)){const current=window.nativeShipSystems.resolve(state,ship.id,ship.system);if(current)actors.push({...current,at});}
     for(const ship of window.nativeShipRepairs?.drones(state)||[])if((!systems||systems.has(ship.system))&&eligible(ship.entity))actors.push(descriptor(state,ship.entity,'repair-drone',at,ship));
+    for(const ship of window.nativePrometheus?.descriptors(state)||[])if(!systems||systems.has(ship.system))actors.push({...ship,at});
     for(const ship of actors)found.set(key(ship),ship);
     if(!forecast)return Array.from(found.values());
     const regions=new Map();
@@ -44,7 +45,7 @@
       const box={system:ship.system,minX:Math.min(ship.previousX,ship.x)-reach,minY:Math.min(ship.previousY,ship.y)-reach,maxX:Math.max(ship.previousX,ship.x)+reach,maxY:Math.max(ship.previousY,ship.y)+reach};
       const existing=regions.get(region);if(existing){existing.minX=Math.min(existing.minX,box.minX);existing.minY=Math.min(existing.minY,box.minY);existing.maxX=Math.max(existing.maxX,box.maxX);existing.maxY=Math.max(existing.maxY,box.maxY);}else regions.set(region,box);
     }
-    for(const box of regions.values())for(const near of window.nativeShipSystems.query(state,{...box,predictSeconds:6,categories:['player','tug','civilian','repair-drone']}).bystanders)if(eligible(near.entity)&&!found.has(key(near)))found.set(key(near),{...near,at});
+    for(const box of regions.values())for(const near of window.nativeShipSystems.query(state,{...box,predictSeconds:6,categories:['player','tug','civilian','repair-drone','prometheus']}).bystanders)if(eligible(near.entity)&&!found.has(key(near)))found.set(key(near),{...near,at});
     return Array.from(found.values());
   }
   function grid(state,ships,cell=768){
@@ -78,21 +79,143 @@
     }};
   }
   function replaceLeg(state,ship,leg){
+    const previous=ship.entity.localLeg||ship.entity.lifeLeg;
+    if(previous?.pathEnd&&!leg.pathEnd)leg={...leg,pathEnd:previous.pathEnd};
     if(ship.category==='civilian')return window.nativeNpcLives?.reroute(state,ship.entity,leg);
     if(ship.category==='tug')return window.nativeSolEconomy?.reroute(state,ship.entity,leg);
     if(ship.category==='repair-drone')return window.nativeShipRepairs?.reroute(state,ship.entity,leg);
     return false;
   }
+  function encounter(state,ship,neighbors,command,profile){
+    const at=time(state),e=ship.entity,advice=motion().trafficAdvice(ship,neighbors,profile);
+    let intent=e.avoidanceIntent;
+    if(intent&&(!Number.isFinite(intent.at)||at-intent.at>2))intent=null;
+    const previous=intent&&neighbors.find(other=>key(other)===intent.obstacle);
+    if(intent&&previous){
+      const clearance=motion().shipRadius(ship)+motion().shipRadius(previous)+24,dx=ship.x-previous.x,dy=ship.y-previous.y;
+      const separating=dx*(ship.vx-previous.vx)+dy*(ship.vy-previous.vy)>=0;
+      const past=dx*intent.ux+dy*intent.uy>clearance;
+      const offCourse=Math.abs(dx*-intent.uy+dy*intent.ux)>clearance*1.5;
+      if(!advice&&offCourse)intent=null;
+      else if(past&&separating&&Math.hypot(dx,dy)>clearance*1.3){intent.clearAt??=at;if(at-intent.clearAt>.5)intent=null;}
+      else delete intent.clearAt;
+    }else if(intent&&!previous)intent=null;
+    if(advice?.overtaking&&intent?.obstacle===key(advice.other))intent=null;
+    if(advice&&!advice.overtaking&&(!intent||intent.obstacle!==key(advice.other))){
+      const heading=Number.isFinite(command.heading)?command.heading:command.goal?Math.atan2(command.goal.y-ship.y,command.goal.x-ship.x):ship.heading;
+      intent={version:1,obstacle:key(advice.other),ux:Math.cos(heading),uy:Math.sin(heading),side:1,startedAt:at,at,progressAt:at,x:ship.x,y:ship.y,mode:advice.yield?'yielding':'passing'};
+    }
+    if(intent){
+      intent={...intent,at};const other=neighbors.find(other=>key(other)===intent.obstacle);
+      if(other){
+        if(Math.hypot(ship.x-intent.x,ship.y-intent.y)>8){intent.progressAt=at;intent.x=ship.x;intent.y=ship.y;}
+        const clearance=motion().shipRadius(ship)+motion().shipRadius(other)+36;
+        const along=(ship.x-other.x)*intent.ux+(ship.y-other.y)*intent.uy;
+        const lateral=(ship.x-other.x)*-intent.uy+(ship.y-other.y)*intent.ux;
+        // Retain a starboard corridor in the encounter's original frame. A
+        // changing nose or a nearly tied neighbor cannot reverse this choice.
+        const forward=along<0&&lateral<clearance*.8?-clearance:clearance*1.4;
+        intent.point={x:other.x+intent.ux*forward-intent.uy*clearance,y:other.y+intent.uy*forward+intent.ux*clearance};
+        if(at-intent.progressAt>3){intent.mode='passing';intent.recovering=true;}
+      }
+      const goal=command.goal||(e.localLeg||e.lifeLeg)?.goal;
+      const blocked=other&&goal&&Math.hypot(goal.x-other.x,goal.y-other.y)<motion().shipRadius(ship)+motion().shipRadius(other)+6&&Math.hypot(other.vx,other.vy)<5;
+      intent.blockedGoal=!!blocked;
+      if(blocked)intent.mode='yielding';
+      e.avoidanceIntent=intent;
+      if((e.localLeg||e.lifeLeg)?.version===4)e.trafficControl={version:3,mode:intent.mode,obstacle:intent.obstacle,nextPlanAt:at+.2,until:at+.6,progressAt:intent.progressAt};
+    }else {delete e.avoidanceIntent;if(e.trafficControl?.version===3)delete e.trafficControl;}
+  }
+  function avoidance(state,ship,neighbors,command,profile){
+    neighbors=neighbors.filter(other=>!window.nativePrometheus?.ignoreContact(state,ship,other));
+    if(!profile.serviceApproach)encounter(state,ship,neighbors,command,profile);
+    if(ship.entity?.avoidanceIntent?.blockedGoal)return {...command,goal:undefined,heading:ship.heading,desiredSpeed:0,brake:true};
+    const result=motion().avoidShips(ship,neighbors,command,profile);
+    if(!profile.serviceApproach&&motion().brakingThreat(ship,neighbors,profile))return {...result,desiredSpeed:0,brake:true};
+    return result;
+  }
+  function steerWith(state,ship,neighbors,command,profile){
+    return motion().avoidBodies(ship,avoidance(state,ship,neighbors,command,profile),profile);
+  }
+  function pilotActive(state,ships,dt,at){
+    const rt=runtime(state);rt.pilots||=new Map();const area=window.nativeShipDetail?.region(state);
+    // A demoted pilot rejoins the existing analytical owner from its actual
+    // pose, retaining the same destination, berth lease, cargo and escrow.
+    for(const [entity,category] of rt.pilots){
+      const leg=entity.localLeg||entity.lifeLeg;
+      if(leg?.version!==4){rt.pilots.delete(entity);continue;}
+      if(!area||!window.nativeShipDetail.contains(state,entity,entity.system)){
+        const profile=window.nativeShipDefinitions.movementFor(state,entity,{category});
+        motion().sampleLeg(entity,leg,at);
+        const tail={...motion().routeLeg(entity,leg.goal,leg.pilot.points.slice(leg.pilot.index,-1),profile,at),...(leg.pathEnd?{pathEnd:leg.pathEnd}:{})};
+        if(replaceLeg(state,{entity,category},tail))window.nativeShipSystems.refreshShip(state,entity,category,entity.system);
+        rt.pilots.delete(entity);
+      }
+    }
+    if(!area)return;
+    const space=grid(state,ships),commands=[];
+    for(const ship of ships){
+      const e=ship.entity,leg=e.localLeg||e.lifeLeg,profile=ship.definition.movement;
+      if(!['civilian','tug'].includes(ship.category)||!leg||leg.valid===false||e.disputeId||e.retaliationId||e.projectileEvade||e.scriptedDemo||e.phase==='disabled'||!window.nativeShipDetail.contains(state,ship,ship.system))continue;
+      if(leg.version!==4){
+        if(leg.startedAt+leg.duration<=at)continue;
+        motion().sampleLeg(e,leg,Math.max(leg.startedAt,at-dt));
+        let route=leg;
+        if(ship.category==='tug'&&Array.isArray(e.path)&&e.path.length>e.routeIndex+1&&e.path.length-e.routeIndex<=64){
+          const path=e.path.slice(e.routeIndex);
+          if(path.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)))route={...motion().routeLeg(e,path.at(-1),path.slice(0,-1),profile,at-dt),pathEnd:e.path.length};
+        }
+        const promoted=motion().pilotLeg(e,route,profile,at-dt);
+        if(!replaceLeg(state,ship,promoted))continue;
+        rt.pilots.set(e,ship.category);
+      }
+      const current=e.localLeg||e.lifeLeg;rt.pilots.set(e,ship.category);if(current.pilot.arrived)continue;
+      const intent=motion().pilotCommand(e,current,profile),reach=Math.max(240,(Math.hypot(e.vx,e.vy)+(profile.maxSpeed||100))*6+motion().shipRadius(ship)+80);
+      const neighbors=space.near(ship,reach),command=steerWith(state,{...ship,x:e.x,y:e.y,heading:e.heading,vx:e.vx,vy:e.vy,speed:e.speed},neighbors,intent.command,profile);
+      commands.push({ship,profile,leg:current,index:intent.index,arrived:intent.arrived,command:{...command,trafficHandled:true}});
+    }
+    for(const {ship,profile,leg,index,arrived,command} of commands){
+      const e=ship.entity,beforeHull=e.hull,beforeShields=e.shields;
+      const actor={...ship,x:e.x,y:e.y,heading:e.heading,speed:e.speed,vx:e.vx,vy:e.vy};
+      window.nativeShipSystems.move(state,e,ship.category,command,motion().pilotProfile(profile),dt,{actor,deferPublish:true});
+      if(arrived){e.x=leg.goal.x;e.y=leg.goal.y;motion().stop(e,{preserveImpulse:true});}
+      let next=motion().checkpointPilot(e,leg,command,index,at,arrived);
+      const refresh=arrived||at-leg.pilot.at>.1||at>=(leg.pilot.continuedAt??leg.startedAt)+.2;
+      if(refresh&&!arrived){
+        const rebuilt=motion().pilotLeg(e,next,profile,at);
+        next={...next,continuation:rebuilt.continuation,pilot:{...next.pilot,continuedAt:at},duration:Math.max(next.duration,rebuilt.duration)};
+      }
+      if(arrived||Math.abs(next.duration-leg.duration)>.1||next.startedAt+next.duration<at+.3){
+        if(!arrived)next={...next,duration:Math.max(at-next.startedAt+1,next.duration)};
+        replaceLeg(state,ship,next);
+      }else if(e.localLeg===leg)e.localLeg=next;else if(e.lifeLeg===leg)e.lifeLeg=next;
+      // Publish the committed checkpoint once. The same-step hardware snapshot
+      // remains valid unless environmental damage changed the fitted hull.
+      const prepared=e.hull===beforeHull&&e.shields===beforeShields?{...actor,x:e.x,y:e.y,heading:e.heading,speed:e.speed,vx:e.vx,vy:e.vy,
+        previousX:e.previousX,previousY:e.previousY,sampledAt:at,sampledLeg:next,motionKick:e.motionKick,motionSpin:e.motionSpin,angularVelocity:motion().spinSample(e.motionSpin,at).velocity}:undefined;
+      window.nativeShipSystems.refreshShip(state,e,ship.category,ship.system,prepared);
+    }
+  }
   function advance(state,dt){
     if(!state||!(dt>0)||window.nativeSimulation.blocked())return;
-    const rt=runtime(state),at=time(state),area=window.nativeShipDetail?.region(state),systems=area?null:dueSystems(state,rt,at,'planning');
+    const rt=runtime(state),at=time(state),area=window.nativeShipDetail?.region(state);
+    // Admit a conservative six-second roster at the existing planning cadence.
+    // Resolve its current poses on every physical step: cached membership must
+    // never mean cached positions, delayed contacts or fewer integration steps.
+    let activeShips=null;
+    if(area){
+      if(rt.pilotArea!==area||at-(rt.pilotRosterAt??-Infinity)>=.2-1e-8){rt.pilotRoster=fleet(state,at);rt.pilotRosterAt=at;rt.pilotArea=area;}
+      activeShips=rt.pilotRoster.map(ship=>window.nativeShipSystems.resolve(state,ship.id,ship.category==='tug'?1:ship.entity.system)).filter(ship=>ship&&eligible(ship.entity)).map(ship=>({...ship,at}));
+    }
+    pilotActive(state,activeShips||[],dt,at);
+    const systems=area?null:dueSystems(state,rt,at,'planning');
     if(area?rt.planningRegion===area&&at-rt.plannedAt<.2-1e-8:systems?!systems.size:at-rt.plannedAt<.2-1e-8)return;rt.plannedAt=at;rt.planningRegion=area;
     const ships=fleet(state,at,systems),space=grid(state,ships);
     // Read a single simultaneous snapshot: enumeration order cannot change who yields.
     for(const ship of ships){
       const e=ship.entity,leg=e.localLeg||e.lifeLeg;
       if(area&&!window.nativeShipDetail.contains(state,ship,ship.system))continue;
-      if(ship.category==='player'||!leg||leg.startedAt+leg.duration<=at||e.disputeId||e.retaliationId||e.scriptedDemo||e.phase==='disabled')continue;
+      if(ship.category==='player'||!leg||leg.version===4||leg.startedAt+leg.duration<=at||e.disputeId||e.retaliationId||e.scriptedDemo||e.phase==='disabled')continue;
       const profile=ship.definition.movement,region=space.metrics(ship.system),neighbors=space.near(ship,Math.max(200,(Math.hypot(ship.vx,ship.vy)+region.speed)*6+region.radius+motion().shipRadius(ship)+80));
       let bodies=motion().navigationBodies(ship.system);const bodyPadding=motion().shipRadius(ship)+24,revision=window.nativeSolAsteroids?.geometryRevision?.(ship.system)||0;
       if(rt.checkedLegs.get(leg)!==revision){
@@ -186,10 +309,18 @@
     }
   }
   function steer(state,ship,command,profile){
-    if(ship.category==='player'||command.hold||command.coast)return command;
+    if(ship.category==='player'||command.trafficHandled||command.hold||command.coast)return command;
     const reach=Math.max(200,Math.hypot(ship.vx,ship.vy)*6+motion().shipRadius(ship)+80);
-    const ships=window.nativeShipSystems.query(state,{system:ship.system,minX:ship.x-reach,minY:ship.y-reach,maxX:ship.x+reach,maxY:ship.y+reach,predictSeconds:6,categories:['player','tug','civilian','repair-drone']}).bystanders.filter(s=>eligible(s.entity));
-    return motion().avoidBodies(ship,motion().avoidShips(ship,ships,command,profile),profile);
+    const ships=window.nativeShipSystems.query(state,{system:ship.system,minX:ship.x-reach,minY:ship.y-reach,maxX:ship.x+reach,maxY:ship.y+reach,predictSeconds:6,categories:['player','tug','civilian','repair-drone','prometheus']}).bystanders.filter(s=>eligible(s.entity));
+    if(profile.propulsion&&command.velocity){
+      const available=ships.filter(other=>!window.nativePrometheus?.ignoreContact(state,ship,other)),adjusted=motion().avoidVectorShips(ship,available,command,profile);
+      const speed=Math.hypot(adjusted.velocity.x,adjusted.velocity.y),heading=speed>.01?Math.atan2(adjusted.velocity.y,adjusted.velocity.x):ship.heading;
+      const intent={...adjusted,velocity:undefined,heading,speed,goal:adjusted.navigationGoal},steered=motion().avoidBodies(ship,intent,profile);
+      if(steered===intent)return adjusted;
+      const wanted=steered.brake?0:Math.min(speed,steered.desiredSpeed??steered.speed??speed),angle=steered.heading??heading;
+      return {...adjusted,velocity:{x:Math.cos(angle)*wanted,y:Math.sin(angle)*wanted},heading:angle,angularVelocity:0,acceleration:undefined,brake:!!steered.brake};
+    }
+    return steerWith(state,ship,ships,command,profile);
   }
   function push(state,ship,pose){return window.nativeShipSystems.applyContact(state,ship,pose);}
   function clearSpawn(state,{nearTraffic=false,view=null}={}){
@@ -220,14 +351,16 @@
     const rt=runtime(state),at=time(state),area=window.nativeShipDetail?.region(state),systems=area?null:dueSystems(state,rt,at,'contacts'),offscreen=!area&&(systems?systems.size>0:at-rt.offscreenAt>=.2-1e-8);
     const player=state.system===1?window.vexedSolFlight?.shipPosition(state)||state:state,radius=window.nativeShipDetail?.radius(state)||6500;
     const localBounds=area||{minX:player.x-radius,minY:player.y-radius,maxX:player.x+radius,maxY:player.y+radius};
-    const active=window.nativeShipSystems.query(state,{...localBounds,categories:['player','tug','civilian','repair-drone']}).bystanders.filter(s=>eligible(s.entity)).map(s=>s.entity.localLeg||s.entity.lifeLeg?descriptor(state,s.entity,s.category,at,s):{...s});
+    const active=window.nativeShipSystems.query(state,{...localBounds,categories:['player','tug','civilian','repair-drone','prometheus']}).bystanders.filter(s=>eligible(s.entity)).map(s=>s.entity.localLeg||s.entity.lifeLeg?descriptor(state,s.entity,s.category,at,s):{...s});
     const activeIds=new Set(active.map(key));
     for(const entity of window.nativeNpcLives?.mobile?.(state,state.system)||[])if(!entity.localLeg&&(entity.motionKick||entity.motionSpin||entity.speed>0)){
       if(area&&!window.nativeShipDetail.contains(state,entity,entity.system))continue;
+      if(activeIds.has('civilian:'+entity.id))continue;
       const current=window.nativeShipSystems.resolve(state,entity.id,entity.system);if(current&&!activeIds.has(key(current))){active.push({...current});activeIds.add(key(current));}
     }
     if(state.system===1)for(const entity of window.nativeSolEconomy?.mobile?.(state)||[])if(!entity.lifeLeg&&(entity.motionKick||entity.motionSpin||entity.speed>0)){
       if(area&&!window.nativeShipDetail.contains(state,entity,1))continue;
+      if(activeIds.has('tug:tug:'+entity.id))continue;
       const current=window.nativeShipSystems.resolve(state,'tug:'+entity.id,1);if(current&&!activeIds.has(key(current))){active.push({...current});activeIds.add(key(current));}
     }
     let ships=active;
@@ -254,8 +387,8 @@
       if(s.system===state.system&&previous?.system===s.system&&(!area||at-previous.at<=dt+1e-8)){s.previousX=previous.x;s.previousY=previous.y;}
       const elapsed=s.contactDt||dt,travel=Math.hypot(s.x-s.previousX,s.y-s.previousY);
       if(travel>Math.max(500,Math.hypot(s.vx,s.vy)*elapsed*3+50)){s.previousX=s.x;s.previousY=s.y;}
-      if(s.category!=='player'&&s.category!=='repair-drone'&&!s.entity.localLeg&&!s.entity.lifeLeg&&(s.entity.motionKick||s.entity.motionSpin)&&!['fighting','ore-theft'].includes(s.entity.phase)){
-        const oldHeading=s.heading,pose={...s,heading:s.heading,motionKick:s.entity.motionKick,motionSpin:s.entity.motionSpin,motionTime:at};motion().step(pose,s.entity.phase==='disabled'?{}:{hold:true},s.definition.movement,elapsed);
+      if(s.category!=='player'&&s.category!=='repair-drone'&&!s.entity.localLeg&&!s.entity.lifeLeg&&(s.entity.motionKick||s.entity.motionSpin)&&!motion().wasIntegrated(state,s.entity)&&!['fighting','ore-theft'].includes(s.entity.phase)){
+        const oldHeading=s.heading,pose={...s,heading:s.heading,motionKick:s.entity.motionKick,motionSpin:s.entity.motionSpin,motionTime:at};motion().step(pose,s.entity.phase==='disabled'?{}:{hold:true},s.definition.movement,elapsed,state,s.entity);
         Object.assign(s.entity,{x:pose.x,y:pose.y,heading:pose.heading,vx:pose.vx,vy:pose.vy,speed:pose.speed,motionKick:pose.motionKick,motionSpin:pose.motionSpin,previousX:pose.previousX,previousY:pose.previousY});Object.assign(s,{x:pose.x,y:pose.y,heading:pose.heading,vx:pose.vx,vy:pose.vy,previousX:pose.previousX,previousY:pose.previousY,angularVelocity:motion().spinSample(pose.motionSpin,at).velocity});
         if(pose.x!==pose.previousX||pose.y!==pose.previousY||pose.heading!==oldHeading)window.nativeShipSystems.refreshShip(state,s.entity,s.category,s.system);
       }
@@ -266,16 +399,21 @@
     const neighbors=new Set(ships.map(key));
     for(const s of ships){const padding=motion().shipRadius(s)+2,box={minX:Math.min(s.x,s.previousX)-padding,minY:Math.min(s.y,s.previousY)-padding,maxX:Math.max(s.x,s.previousX)+padding,maxY:Math.max(s.y,s.previousY)+padding};
       if(s.system===state.system&&box.minX>=localBounds.minX&&box.maxX<=localBounds.maxX&&box.minY>=localBounds.minY&&box.maxY<=localBounds.maxY)continue;
-      const nearby=window.nativeShipSystems.query(state,{system:s.system,...box,categories:['player','tug','civilian','repair-drone']}).bystanders;
+      const nearby=window.nativeShipSystems.query(state,{system:s.system,...box,categories:['player','tug','civilian','repair-drone','prometheus']}).bystanders;
       window.nativeSimulationFrame?.count(state,'shipContactNeighborhoods');window.nativeSimulationFrame?.count(state,'shipContactCandidates',nearby.length);
       for(const target of nearby)if(eligible(target.entity)&&!neighbors.has(key(target))){neighbors.add(key(target));const next=target.entity.localLeg||target.entity.lifeLeg?descriptor(state,target.entity,target.category,at,target):{...target},previous=rt.lastPoses.get(key(next));if(previous?.system===next.system&&(!area||at-previous.at<=dt+1e-8)){next.previousX=previous.x;next.previousY=previous.y;}ships.push(next);}
     }
-    const space=grid(state,ships),seen=new Set();
+    const space=grid(state,ships),seen=new Set(),ordinals=new Map(ships.map((ship,index)=>[ship,index])),pairStride=ships.length;
     for(const a of ships){
       const elapsed=a.contactDt||dt,region=space.metrics(a.system),reach=motion().shipRadius(a)+region.radius+Math.hypot(a.x-a.previousX,a.y-a.previousY)+region.travel+2;
       for(const b of space.near(a,reach)){
-        const pair=[key(a),key(b)].sort().join('|');if(seen.has(pair))continue;seen.add(pair);
+        const ai=ordinals.get(a),bi=ordinals.get(b),pairId=ai<bi?ai*pairStride+bi:bi*pairStride+ai;
+        if(seen.has(pairId))continue;seen.add(pairId);
+        if(window.nativePrometheus?.ignoreContact(state,a,b))continue;
         const result=motion().shipPairContact(a,b,elapsed);if(!result)continue;
+        // Stable history keys are needed only for actual contacts, not every
+        // broad-phase candidate and its reverse ordering.
+        const pair=[key(a),key(b)].sort().join('|');
         push(state,a,result.a);push(state,b,result.b);
         Object.assign(a,result.a);Object.assign(b,result.b);
         const last=rt.contacts.get(pair)??-Infinity;
@@ -291,5 +429,5 @@
     for(const s of ships)rt.lastPoses.set(key(s),{x:s.x,y:s.y,system:s.system,at});
     for(const [k,t] of rt.contacts)if(at-t>1)rt.contacts.delete(k);
   }
-  window.nativeShipTraffic=Object.freeze({advance,collide,steer,clearSpawn,snapshot(state){const rt=runtime(state);return {plans:rt.plans,neighborChecks:rt.checks,neighborCellChecks:rt.neighborCellChecks||0,neighborEntryChecks:rt.neighborEntryChecks||0,contacts:rt.history.map(e=>({...e}))};}});
+  window.nativeShipTraffic=Object.freeze({advance,collide,steer,avoidance,clearSpawn,snapshot(state){const rt=runtime(state);return {plans:rt.plans,neighborChecks:rt.checks,neighborCellChecks:rt.neighborCellChecks||0,neighborEntryChecks:rt.neighborEntryChecks||0,contacts:rt.history.map(e=>({...e}))};}});
 })();

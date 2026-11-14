@@ -74,25 +74,28 @@ try:
                 delete s.weaponCombat;delete s.shipRepairs;delete s.civilianTraffic.life;s.civilianTraffic.ships=[ship];s.civilianTraffic.disputes=[];s.civilianTraffic.retaliations=[];s.civilianTraffic.strayShots=[];s.civilianTraffic.clock=0;s.civilianTraffic.timingVersion=1;s.civilianTraffic.nextAwarenessAt=0;s.civilianTraffic.awarenessCursor=0;s.solEconomy.freighters=[];
                 s.shipSimulation.seconds=0;Object.assign(s,{system:1,localBody:3,x:100000,y:100000,angle:0,speed:0,landed:false,hull:100000,shields:100000});nativeShipMotion.stop(s);
                 for(const key of ['dockingMove','repairBay','shipEquipment','weaponLoadout','localLeg','task','journey','lastJourney','lifeVersion','combatAI','combatInterruption','combatReturn','disputeId','retaliationId','projectileEvade','projectileWatch','nextActionAt','needsDockRecovery','motionKick','motionSpin'])delete ship[key];
-                Object.assign(ship,{shipType:type,system:1,stationSystem:1,homeSystem:1,operatingBase:1,port:3,x:100000,y:100000,heading:0,vx:0,vy:0,speed:0,hull:definition.hull,shields:definition.shields,phase:'docked',cargo:null,oreHold:0,repairDeuranium:policy==='medical'?100:0,credits:10000,timer:10000,deliveries:0,lifeScheduleToken:1,taskSequence:0});
+                Object.assign(ship,{shipType:type,system:1,stationSystem:1,homeSystem:1,operatingBase:1,port:3,x:100000,y:100000,previousX:100000,previousY:100000,heading:0,vx:0,vy:0,speed:0,hull:definition.hull,shields:definition.shields,phase:'docked',cargo:null,oreHold:0,repairDeuranium:policy==='medical'?100:0,credits:10000,timer:10000,deliveries:0,lifeScheduleToken:1,taskSequence:0});
                 check(nativeSaveStorage.write(s).ok,'Fixture write failed');resumeNativeGame();nativeNpcLives.initialize(h.state()).config.economyEnabled=false;
                 return h.ship();
               };
               h.caption=text=>{let label=document.querySelector('#tactics-caption');if(!label){label=document.createElement('div');label.id='tactics-caption';label.style.cssText='position:fixed;left:24px;top:70px;z-index:9999;padding:10px 14px;color:#e1f7ff;background:#07131ee8;border:1px solid #558397;font:16px sans-serif;max-width:600px';document.body.append(label);}label.textContent=text;};
               h.draw=()=>{const effects=nativeShipEffects,painted=[];window.nativeShipEffects={...effects,paintShip(ctx,descriptor,view){const art=effects.paintShip(ctx,descriptor,view);if(descriptor.category==='civilian')painted.push({id:descriptor.id,x:descriptor.x,y:descriptor.y,screenX:view.x,screenY:view.y,art:!!art});return art;}};window.__tacticsDraw(window.__tacticsFrameTime);window.nativeShipEffects=effects;h.lastPaint=painted;};
-              h.putPlayer=(x,y)=>{const s=h.state(),body=nativeSystemHub.sol.find(b=>b.id===s.localBody);s.x=x-body.x;s.y=y-body.y;nativeShipMotion.stop(s);};
+              h.putPlayer=(x,y)=>{const s=h.state(),body=nativeSystemHub.sol.find(b=>b.id===s.localBody);s.x=x-body.x;s.y=y-body.y;s.previousX=x;s.previousY=y;nativeShipMotion.stop(s);};
               h.fit=(ship,kind)=>{const model=VexedMirrorWeapons.find(w=>w.damage>0&&nativeCombatShots.weaponVisual(w).kind===kind);delete ship.shipEquipment;delete ship.weaponLoadout;ship.weapons=[model.id];nativeWeaponLoadout.ensure(h.state(),ship,[model.id]);return model;};
             }"""
             page.evaluate(helper_source)
             page.evaluate("async()=>{window.__tacticsPrepared=await Promise.all([47,56,58].map(type=>nativeShipEffects.prepare(type,'civilian')));if(__tacticsPrepared.some(value=>!value?.optionalReady))throw Error('Incomplete civilian fixture artwork');}")
             detection = page.evaluate("""() => {
-              const h=__tactics,ship=h.fixture(),s=h.state(),shooter=h.copy(ship);Object.assign(shooter,{id:99002,name:'Projectile source',x:ship.x+400,heading:Math.PI});h.fit(shooter,'disruptor');
+              // A close disruptor now arrives before an ordinary crew's saved
+              // reaction delay. Use a longer torpedo approach to test awareness.
+              const h=__tactics,ship=h.fixture(),s=h.state(),shooter=h.copy(ship);Object.assign(shooter,{id:99002,name:'Projectile source',x:ship.x+1200,previousX:ship.x+1200,heading:Math.PI});h.fit(shooter,'torpedo');
               s.civilianTraffic.ships.push(shooter);nativeNpcLives.initialize(s);ship.nextActionAt=shooter.nextActionAt=10000;
               h.putPlayer(ship.x-150,ship.y+300);
               h.fit(ship,'beam');const fired=nativeCombatShots.fireFor({state:s,shooter:nativeShipDefinitions.describe(s,shooter,{category:'civilian'}),target:nativeShipDefinitions.describe(s,ship,{category:'civilian'})});h.check(fired.ok,fired.error);
               // The launch was physical; its original lock is subsequently lost.
               fired.event.targetId='departed-target';h.tick(.14);h.check(!ship.projectileEvade,'Crew reacted before the minimum launch-age delay');
-              h.tick(.41);h.check(ship.projectileEvade&&ship.combatAI.mode==='dodge','Ordinary working civilian did not dodge the shared live projectile '+JSON.stringify({clock:nativeSimulation.seconds(s),watch:ship.projectileWatch,ai:ship.combatAI,phase:ship.phase,event:fired.event,pose:{x:ship.x,y:ship.y},next:s.civilianTraffic.nextAwarenessAt}));
+              for(let i=0;i<90&&!ship.projectileEvade&&fired.event.alive;i++)h.tick(1/60);
+              h.check(ship.projectileEvade&&ship.combatAI.mode==='dodge'&&fired.event.alive,'Ordinary working civilian did not dodge the shared live projectile '+JSON.stringify({clock:nativeSimulation.seconds(s),watch:ship.projectileWatch,ai:ship.combatAI,phase:ship.phase,event:fired.event,pose:{x:ship.x,y:ship.y},next:s.civilianTraffic.nextAwarenessAt}));
               h.check(ship.combatAI.threatId===fired.event.id,'Dodge did not identify the live shot');h.check(!s.civilianTraffic.retaliations.length,'Stray avoidance invented a retaliation');
               h.report.incoming={mode:ship.combatAI.mode,reason:ship.combatAI.decisionReason,shot:fired.event.id,moved:Math.hypot(ship.x-100000,ship.y-100000),owner:'weaponCombat.events'};
               nativeCivilianTraffic.select(ship.id);h.putPlayer(ship.x-180,ship.y+60);h.caption('Civilian crew dodges an incoming live projectile after a reaction delay.');h.draw();return h.report.incoming;

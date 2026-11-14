@@ -23,7 +23,9 @@ try:
           const s=JSON.parse(JSON.stringify(nativeNpcDev.getState()));
           Object.assign(s,{devMode:false,shipType:7,system:2,localBody:0,x:4e6,y:4e6,angle:0,speed:427.5,vx:427.5,vy:0,hull:50,shields:0,phase:'flight',landed:false,localCruise:null,arrivalApproach:null,minerals:{gallicite:30}});
           for(let i=0;i<12;i++){s.y=4e6+i*2000;if(!nativeSolAsteroids.sweptNearby(2,s,{x:s.x+5000,y:s.y},220).length)break;if(i===11)throw Error('No collision-free flight fixture found');}
-          for(const key of ['motionKick','motionSpin','motionDrift','motionReverse','motionAngularVelocity'])delete s[key];s.shipSimulation.schedule.pendingSeconds=0;
+          // This isolated flight sets its own velocity, including removal of
+          // any ambient-current momentum acquired in the Dev starting bank.
+          for(const key of ['motionKick','motionSpin','motionFlow','motionDrift','motionReverse','motionAngularVelocity'])delete s[key];s.shipSimulation.schedule.pendingSeconds=0;
           const eq=nativeShipEquipment.ensure(s);eq.instances[eq.slots.engineering[0]].condition=100;
           const restore=nativeCombatShots.restore;nativeCombatShots.restore=function(state){window.__engineState=state;return restore(state);};
           if(!nativeSaveStorage.write(s).ok)throw Error('Fixture save failed');resumeNativeGame('normal');nativeSystemHub.close(false);nativePlanetEncounter.close(false);

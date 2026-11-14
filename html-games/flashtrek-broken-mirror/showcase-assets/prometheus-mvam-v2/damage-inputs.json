@@ -1,0 +1,17 @@
+{
+  "top": {
+    "light": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-21581f1c-c764-4d95-b37c-95d265392c5c.png",
+    "heavy": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-65d94f67-a496-43dd-b704-05238a5e8151.png",
+    "severe": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-e92427f7-9b88-4b4b-b8a4-193122877b50.png"
+  },
+  "middle": {
+    "light": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-bc7e6506-a759-41da-a0d4-bd2c97ac5b1b.png",
+    "heavy": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-f89ec004-e42f-4e3d-b20c-9d06060e9bf7.png",
+    "severe": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-5339dac2-841d-484a-ba51-0fb05adeb9b7.png"
+  },
+  "bottom": {
+    "light": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-2dfd1939-09fd-4a76-b57d-3caeda0b5b19.png",
+    "heavy": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-7c02c2cd-b800-4d83-9d94-297f194dd6d1.png",
+    "severe": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-ac35efa2-8fa4-4f09-8b7c-d03bfb9ed5c4.png"
+  }
+}

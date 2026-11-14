@@ -1,0 +1,142 @@
+{
+  "canvas_px": [
+    1024,
+    2048
+  ],
+  "nose_direction": "up",
+  "coordinate_system": "x right, y down",
+  "stack_order_bottom_to_top": [
+    "bottom",
+    "middle",
+    "top"
+  ],
+  "assembled_is_exact_layer_composite": true,
+  "parts": [
+    {
+      "name": "top",
+      "file": "Prometheus-top.png",
+      "canvas_px": [
+        1024,
+        2048
+      ],
+      "docking_anchor_px": [
+        512,
+        1024
+      ],
+      "docking_anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "draw_offset_px": [
+        0,
+        0
+      ],
+      "bounds_xywh": [
+        115,
+        64,
+        794,
+        962
+      ],
+      "detached_flight_pivot_px": [
+        512.0,
+        545.0
+      ],
+      "sha256": "e49eb9d99db6d93b9f7be2022a6e3ae6ff09bae23580c458a1296f1e6aa7e19d"
+    },
+    {
+      "name": "middle",
+      "file": "Prometheus-middle.png",
+      "canvas_px": [
+        1024,
+        2048
+      ],
+      "docking_anchor_px": [
+        512,
+        1024
+      ],
+      "docking_anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "draw_offset_px": [
+        0,
+        0
+      ],
+      "bounds_xywh": [
+        130,
+        357,
+        764,
+        1549
+      ],
+      "detached_flight_pivot_px": [
+        512.0,
+        1131.5
+      ],
+      "sha256": "f91deef84d993c7f419f5807d284b321170a012196b7b7d4519eda310c39abda"
+    },
+    {
+      "name": "bottom",
+      "file": "Prometheus-bottom.png",
+      "canvas_px": [
+        1024,
+        2048
+      ],
+      "docking_anchor_px": [
+        512,
+        1024
+      ],
+      "docking_anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "draw_offset_px": [
+        0,
+        0
+      ],
+      "bounds_xywh": [
+        153,
+        440,
+        719,
+        1466
+      ],
+      "detached_flight_pivot_px": [
+        512.5,
+        1173.0
+      ],
+      "sha256": "f18e3ab0cea0d0536321bacb46adfbd3caa2e404af4faa4acd6d6ffe53f18dd0"
+    },
+    {
+      "name": "assembled",
+      "file": "Prometheus-assembled.png",
+      "canvas_px": [
+        1024,
+        2048
+      ],
+      "docking_anchor_px": [
+        512,
+        1024
+      ],
+      "docking_anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "draw_offset_px": [
+        0,
+        0
+      ],
+      "bounds_xywh": [
+        115,
+        64,
+        794,
+        1842
+      ],
+      "detached_flight_pivot_px": [
+        512.0,
+        985.0
+      ],
+      "sha256": "9697845254455aa7e7d919fcef51742b5a2bc34653441bcdf51b7180afc56d36"
+    }
+  ],
+  "docking_instructions": "Draw the three complete PNGs at identical positions, scales and rotations, using the same center anchor. Do not trim independently without retaining offsets.",
+  "projection": "Orthographic top view; lower hulls and their nacelles are occluded by overlapping upper layers when docked."
+}

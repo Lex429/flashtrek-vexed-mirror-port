@@ -77,7 +77,7 @@ CATALOG_CHECK = r'''async ({id,stage})=>{
 
 SETUP_DENSE = r'''count=>{
  const s=nativeNpcDev.getState(),p=vexedSolFlight.shipPosition(s);nativeShipMotion.stop(s);
- nativeDevFog.reset({ahead:0});
+ nativeDevFog.setPreset('vex');nativeDevFog.setColour('four');nativeDevFog.reset({ahead:0});
  const chosen=s.civilianTraffic.ships.filter(ship=>ship.hull>0&&ship.system===1&&!ship.journey).slice(0,count);
  if(chosen.length!==count)throw Error('Not enough existing Sol ships for fog fixture');
  chosen.forEach((ship,i)=>{nativeNpcLives.interrupt(s,ship,'shared fog test fixture');ship.scriptedDemo='benchmark';nativeShipMotion.stop(ship);
@@ -112,6 +112,7 @@ try:
             page.bring_to_front()
             page.wait_for_function('()=>document.hasFocus()&&document.visibilityState==="visible"')
         page.evaluate(stability.INSTALL)
+        page.evaluate('nativeDevFog.setEnabled(true)')
         page.wait_for_function('()=>nativeNpcDev.getState()?.devMode', timeout=120000)
         if args.performance and args.fixture.exists():
             page.evaluate(stability.SETUP, dict(saved=args.fixture.read_text(encoding='utf8'), mode='flight'))

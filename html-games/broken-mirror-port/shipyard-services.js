@@ -7,9 +7,12 @@
  const yard=s=>window.nativeMarsShipyard?.definitionFor(s);
  let bridge=null,tab='upgrades',note='',contact=false,previousFocus=null,profileData=null;
  let selection=null,placement=null,highlight=null,selectedItem=null,selectedBay=null;
+ let panelTransition=null;
+ let overviewScroll=0;
  const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=v=>Math.floor(Number(v)||0).toLocaleString();
  const state=()=>bridge?.getState();
+ const equipmentUi=window.nativeEquipmentPanel.createShipyard({root,getState:state,render});
  const dock=s=>s?.shipyardDock&&s.shipyardDock.station===yard(s)?.id?s.shipyardDock:null;
  const center=s=>window.nativeMarsShipyard?.position(s);
  const ready=fetch('../flashtrek-broken-mirror/earth-shipyard-docking-profiles.json').then(r=>{if(!r.ok)throw Error('Docking profiles unavailable');return r.json();}).then(data=>{profileData=data;return true;}).catch(()=>false);
@@ -25,13 +28,14 @@
  }
  const save=()=>bridge?.save()||window.nativeSaveStorage.write(state());
  function show(isContact=false){
-  const s=state();if(!s)return;previousFocus=document.activeElement;contact=isContact;note='';selection=placement=selectedItem=selectedBay=null;bridge.clearInput();window.nativeShipInventory?.close();window.nativeSystemHub?.close(false);window.nativePlanetEncounter?.close(false);root.hidden=false;render();root.querySelector('button')?.focus({preventScroll:true});
+  const s=state();if(!s)return;previousFocus=document.activeElement;contact=isContact;note='';overviewScroll=0;equipmentUi.reset();selection=placement=selectedItem=selectedBay=null;bridge.clearInput();window.nativeShipInventory?.close();window.nativeSystemHub?.close(false);window.nativePlanetEncounter?.close(false);root.dataset.reveal='true';root.hidden=false;const oldCatalog=root.querySelector('.yard-catalog');if(oldCatalog)oldCatalog.scrollTop=0;render();(root.dataset.screen==='mars-contact'?root.querySelector('[data-yard-action="dock"]'):root.dataset.screen==='mars-services'?root.querySelector('.mars-card-select,[data-yard-tab][aria-current="page"]'):root.querySelector('button'))?.focus({preventScroll:true});
  }
- function close(){root.hidden=true;window.nativeOutfittingView?.stopPreview(root);selection=placement=highlight=null;previousFocus?.focus?.({preventScroll:true});}
+ function close(){window.nativeMarsUpgrades?.releaseMaterials?.(root);window.nativeMarsUpgradeEffects?.stop(root);root.hidden=true;equipmentUi.reset();window.nativeOutfittingView?.stopPreview(root);selection=placement=highlight=null;panelTransition=null;previousFocus?.focus?.({preventScroll:true});}
  function select(){const s=state();if(!center(s))return false;show(dock(s)?.phase!=='docked');return true;}
  function hit(s,view){const p=window.nativeMarsShipyard?.visible({...view,state:s,w:view.w,h:view.h});return !!p&&Math.abs(view.x-p.x)<=p.size*.47&&Math.abs(view.y-p.y)<=p.size*.45;}
  function begin(){
   const s=state(),p=plan(s);if(!s||!p)return {ok:false,error:'There is no shipyard at this location.'};
+  const sections=window.nativePrometheus?.blockedTravel(s);if(sections)return sections;
   if(dock(s))return {ok:false,error:'A docking operation is already in progress.'};
   if(s.hull<=0||s.phase==='disabled')return {ok:false,error:'Repair the hull before docking.'};
   if(s.localCruise||s.arrivalApproach||s.pendingTransit)return {ok:false,error:'Finish your current approach before docking.'};
@@ -78,28 +82,74 @@
   return d.phase==='docked'?{lights:false,lightGain:0}:d.phase==='departing'?{lights:t>.2,lightGain:2.8*Math.floor(t*4)/4}:d.step>0?{lights:true,lightGain:.9}:{};
  }
  function revealPlacement(){const pane=root.querySelector('.yard-vessel'),target=root.querySelector('.outfit-ghost');if(!pane||!target)return;const p=pane.getBoundingClientRect(),t=target.getBoundingClientRect();if(t.bottom>p.bottom-10)pane.scrollTop+=t.bottom-p.bottom+12;}
+ function previewUpgrade(kind){
+  window.nativeMarsUpgradeEffects?.stop(root);
+  selection=selection===kind?null:kind;equipmentUi.clear();placement=selectedItem=selectedBay=null;
+  note=selection&&['weapon','dot','utility'].includes(selection)?'Choose the glowing position for your new empty bay, or keep the default.':'';
+  render();revealPlacement();root.querySelector('.mars-detail-back')?.focus({preventScroll:true});
+ }
+ function previewStats(kind){if(!root.hidden&&!root.dataset.upgradeInstalling&&root.dataset.screen==='mars-services'&&tab==='upgrades')window.nativeMarsUpgrades.previewStats(root,state(),kind);}
+ root.addEventListener('pointerover',event=>{const card=event.target.closest('[data-upgrade-card]');if(card)previewStats(card.dataset.upgradeCard);});
+ root.addEventListener('pointerout',event=>{const card=event.target.closest('[data-upgrade-card]');if(card&&!card.contains(event.relatedTarget))previewStats(event.relatedTarget?.closest?.('[data-upgrade-card]')?.dataset.upgradeCard||document.activeElement?.closest('[data-upgrade-card]')?.dataset.upgradeCard||selection);});
+ root.addEventListener('focusin',event=>{const card=event.target.closest('[data-upgrade-card]');if(card)previewStats(card.dataset.upgradeCard);});
+ root.addEventListener('focusout',()=>queueMicrotask(()=>previewStats(document.activeElement?.closest('[data-upgrade-card]')?.dataset.upgradeCard||selection)));
+ function marsContact(s,p){
+  const station=center(s),pose=window.vexedSolFlight.shipPosition(s),distance=Math.round(Math.hypot(pose.x-station.x,pose.y-station.y));
+  return `<div class="mars-dock-contact">
+   <figure class="mars-dock-visual" aria-label="Mars Orbital Shipyard">
+    <div class="mars-dock-grid" aria-hidden="true"></div><div class="mars-dock-orbit" aria-hidden="true"></div>
+    <div class="mars-dock-station"><img src="../flashtrek-broken-mirror/showcase-assets/structures/280-game-lit.png" alt="The illuminated Mars station and its service frame"></div>
+    <div class="mars-dock-scan" aria-hidden="true"></div>
+   </figure>
+   <section class="mars-dock-clearance" aria-label="Docking request">
+    <h2>Dock your<br><span>ship.</span></h2>
+    <p class="mars-dock-intro">Upgrades, weapons and deflectors.</p>
+    <p class="mars-dock-berth" title="${safe(p?.reason)}"><span>${safe(p?.berth)}</span><span>${distance>1400?'Move within 1,400 u':fmt(distance)+' u away'}</span></p>
+    <button type="button" class="yard-primary mars-dock-request" data-yard-action="dock"><span>Request docking</span><span class="mars-dock-button-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 19 19 5M5 5h14v14"/></svg></span></button>
+   </section>
+  </div>`;
+ }
  function render(){
   const s=state();if(!s||!yard(s))return;
   const y=yard(s);root.setAttribute('aria-label',y.name);
-  const b=refits().budget(s),ship=window.nativeShipDefinitions.forEntity(s),v=window.nativeOutfittingView,p=plan(s);
-  const tabs=[['upgrades','Ship Upgrades'],['weapons','Weapons'],['shields','Shields'],['materials','Materials'],['build','Current Build']];
+  const ship=window.nativeShipDefinitions.forEntity(s),v=window.nativeOutfittingView,p=plan(s);
+  const simple=!contact&&y.id==='mars-earth-shipyard-01';
+  const tabs=[['upgrades',simple?'Upgrades':'Ship Upgrades'],['weapons','Weapons'],['shields','Shields'],['materials','Materials'],['build',simple?'Equipment':'Current Build']];
   const scroll=root.querySelector('.yard-catalog')?.scrollTop||0;
-  const content=contact?`<div class="yard-contact"><img src="../flashtrek-broken-mirror/showcase-assets/structures/280-game-lit.png" alt="${safe(y.name)}"><div><p class="yard-eyebrow">${safe(y.faction)} &middot; ${safe(y.location)}</p><h2>Bring your ship in.</h2><p>Upgrade your hull, fit compatible weapons and configure your deflectors.</p><p><strong>${safe(p?.berth)}</strong><br>${safe(p?.reason)}</p><button type="button" class="yard-primary" data-yard-action="dock">Request docking</button><p class="yard-muted">Your ship will approach beneath the station frame. Services unlock when the docking clamps engage.</p></div></div>`:window.nativeShipyardOutfitting.render(s,{tab,selection,placement,highlight,selectedItem,selectedBay});
+  const previousDetail=root.querySelector('[data-upgrade-detail]')?.dataset.upgradeDetail||'';
+  if(simple&&tab==='upgrades'&&root.querySelector('.mars-upgrade-picker'))overviewScroll=scroll;
+  const mars=contact&&y.id==='mars-earth-shipyard-01';
+  const content=mars?marsContact(s,p):contact?`<div class="yard-contact"><img src="../flashtrek-broken-mirror/showcase-assets/structures/280-game-lit.png" alt="${safe(y.name)}"><div><p class="yard-eyebrow">${safe(y.faction)} &middot; ${safe(y.location)}</p><h2>Bring your ship in.</h2><p>Upgrade your hull, fit compatible weapons and configure your deflectors.</p><p><strong>${safe(p?.berth)}</strong><br>${safe(p?.reason)}</p><button type="button" class="yard-primary" data-yard-action="dock">Request docking</button><p class="yard-muted">Your ship will approach beneath the station frame. Services unlock when the docking clamps engage.</p></div></div>`:window.nativeShipyardOutfitting.render(s,{tab,selection,placement,highlight,selectedItem,selectedBay,simple,equipmentUi:simple?equipmentUi:null});
   root.dataset.visual=String(!contact);
-  root.innerHTML=`<header><div><p class="yard-eyebrow">${safe(y.faction)} &middot; ${safe(y.location)}</p><h1>${safe(y.name)}</h1></div><div class="yard-header-actions"><button data-yard-action="lighting" aria-pressed="${window.nativeFlightLightingEnabled!==false}" title="Toggle flight and station lighting">Lights ${window.nativeFlightLightingEnabled===false?'off':'on'}</button><button data-yard-action="close" class="yard-close" aria-label="Close shipyard">&times;</button></div></header><div class="yard-account">${v.material('latinum',s.latinum,{owned:true})}${v.material('dilithium',s.dilithium,{owned:true})}<span class="yard-budget">REFIT <strong>${b.used} / ${b.total}</strong> <small>${safe(b.className)} hull</small></span></div>${contact?'':`<nav aria-label="Shipyard services">${tabs.map(([key,label])=>`<button data-yard-tab="${key}" aria-current="${tab===key?'page':'false'}">${label}</button>`).join('')}</nav>`}<main>${content}</main><footer><p role="status" class="yard-note">${safe(note||`${s.shipName||ship.name} \u00b7 ${contact?'Docking clearance available':dock(s)?.plan.berth||'Service berth'}`)}</p>${contact?'':`<button data-yard-action="undock" class="yard-primary">Undock</button>`}</footer>`;
-  const catalog=root.querySelector('.yard-catalog');if(catalog)catalog.scrollTop=scroll;
+  root.dataset.screen=mars?'mars-contact':simple?'mars-services':'';
+  root.dataset.serviceTab=tab;
+  const account=mars?'':`<div class="yard-account">${v.material('latinum',s.latinum,{owned:true})}${v.material('dilithium',s.dilithium,{owned:true})}</div>`;
+  root.innerHTML=`<header><div><p class="yard-eyebrow">${safe(y.faction)} &middot; ${safe(y.location)}</p><h1>${safe(y.name)}</h1></div><div class="yard-header-actions"><button data-yard-action="lighting" aria-pressed="${window.nativeFlightLightingEnabled!==false}" title="Toggle flight and station lighting">Lights ${window.nativeFlightLightingEnabled===false?'off':'on'}</button><button data-yard-action="close" class="yard-close" aria-label="Close shipyard">&times;</button></div></header>${account}${contact?'':`<nav aria-label="Shipyard services">${tabs.map(([key,label])=>`<button data-yard-tab="${key}" aria-current="${tab===key?'page':'false'}">${label}</button>`).join('')}</nav>`}<main>${content}</main><footer><p role="status" class="yard-note">${safe((simple&&equipmentUi.status)||note||(mars?s.shipName||ship.name:`${s.shipName||ship.name} \u00b7 ${contact?'Docking clearance available':dock(s)?.plan.berth||'Service berth'}`))}</p>${mars?'<span class="mars-dock-dismiss">ESC <small>CLOSE COMMS</small></span>':''}${contact?'':`<button data-yard-action="undock" class="yard-primary">Undock</button>`}</footer>`;
+  const catalog=root.querySelector('.yard-catalog');
+  if(catalog)catalog.scrollTop=simple&&tab==='upgrades'&&previousDetail!==(selection||'')?(selection?0:overviewScroll):scroll;
+  const upgradePanel=root.querySelector('.mars-upgrade-detail,.mars-upgrade-picker');
+  if(upgradePanel){
+   const key=selection||'choices';
+   if(previousDetail!==(selection||''))panelTransition={key,started:performance.now()};
+   const elapsed=panelTransition?performance.now()-panelTransition.started:Infinity;
+   if(panelTransition?.key===key&&elapsed<500){upgradePanel.dataset.entering='true';upgradePanel.style.setProperty('--upgrade-enter-elapsed',elapsed+'ms');}
+  }
   if(!contact)v.preview(root,s,ship);else v.stopPreview(root);
+  if(simple)equipmentUi.bind();
+  window.nativeMarsUpgrades?.layoutMaterials?.(root);
+  window.nativeMarsUpgradeEffects?.sync(root);
  }
+ root.addEventListener('animationend',event=>{if(event.animationName==='mars-content-arrive'&&event.target.classList.contains('mars-dock-request'))root.dataset.reveal='false';});
  root.addEventListener('click',event=>{
-  const button=event.target.closest('button');if(!button||button.disabled)return;
+  const button=event.target.closest('button')||(root.dataset.screen==='mars-services'?event.target.closest('[data-upgrade-card]')?.querySelector('.mars-card-select'):null);if(!button||button.disabled)return;
   const s=state(),r=refits();
-  if(button.dataset.yardTab){tab=button.dataset.yardTab;selection=placement=selectedItem=selectedBay=null;note='';render();root.querySelector(`[data-yard-tab="${tab}"]`)?.focus();return;}
+  if(button.dataset.yardTab){tab=button.dataset.yardTab;selection=placement=selectedItem=selectedBay=null;if(root.dataset.screen==='mars-services'){equipmentUi.clear();highlight=null;}note='';render();root.querySelector(`[data-yard-tab="${tab}"]`)?.focus();return;}
   if(button.hasAttribute('data-place-bay')&&selection){
    const pending=window.nativeShipyardOutfitting.draft(s,r.preview(s,selection),placement);
    if(!pending||pending.zone!==button.dataset.bayZone)return;
-   placement={cell:Number(button.dataset.placeBay),zone:pending.zone};note='Position selected. Review the cost, then buy and place the bay.';render();revealPlacement();root.querySelector('.outfit-ghost')?.focus({preventScroll:true});return;
+   equipmentUi.clear();placement={cell:Number(button.dataset.placeBay),zone:pending.zone};note=root.dataset.screen==='mars-services'?'Position selected. Buy & install to add the empty bay.':'Position selected. Review the cost, then buy and place the bay.';render();revealPlacement();root.querySelector('.outfit-ghost')?.focus({preventScroll:true});return;
   }
-  const action=button.dataset.yardAction;let result;
+  const action=button.dataset.yardAction;let result,installation=null;
   if(button.dataset.equipmentPlace==='slot'){
    if(selection){note='Choose an unused highlighted mount for the new bay.';render();return;}
    const category=button.dataset.equipmentKind,index=Number(button.dataset.equipmentIndex);
@@ -112,21 +162,30 @@
   else if(action==='close'){close();return;}
   else if(action==='dock')result=begin();
   else if(action==='undock')result=depart();
+  else if(action==='upgrade-thrusters'&&root.dataset.screen==='mars-services'){previewUpgrade('thrusters');return;}
   else if(action==='upgrade-thrusters')result=r.upgradeThrusters(s,save);
+  else if(action==='buy-upgrade'&&root.dataset.screen==='mars-services'){
+   window.nativeMarsUpgradeEffects?.stop(root);
+   const kind=button.dataset.kind,pending=kind==='thrusters'?null:r.preview(s,kind),mount=window.nativeShipyardOutfitting.draft(s,pending,selection===kind?placement:null);
+   const receipt=window.nativeMarsUpgradeEffects?.capture(s,kind);
+   result=kind==='thrusters'?r.upgradeThrusters(s,save):r.upgrade(s,kind,save,mount&&{cell:mount.cell,zone:mount.zone});
+   if(result.ok){installation=receipt;highlight=pending?.newBay||null;selection=placement=null;equipmentUi.clear();}
+  }
   else if(action==='upgrade'){
-   selection=button.dataset.kind;placement=selectedItem=selectedBay=null;note='Preview only. Your resources have not been charged.';render();const catalog=root.querySelector('.yard-catalog');if(catalog)catalog.scrollTop=0;revealPlacement();root.querySelector('[data-yard-action="cancel-preview"]')?.focus({preventScroll:true});return;
+   if(root.dataset.screen==='mars-services'){previewUpgrade(button.dataset.kind);return;}
+   selection=button.dataset.kind;equipmentUi.clear();placement=selectedItem=selectedBay=null;note=root.dataset.screen==='mars-services'?'Upgrade preview. Pay when you buy and install.':'Preview only. Your resources have not been charged.';render();const catalog=root.querySelector('.yard-catalog');if(catalog)catalog.scrollTop=0;revealPlacement();root.querySelector('[data-yard-action="cancel-preview"]')?.focus({preventScroll:true});return;
   }
-  else if(action==='cancel-preview'){selection=placement=null;note='Upgrade preview cancelled. No resources spent.';render();return;}
+  else if(action==='cancel-preview'){const previous=selection;selection=placement=null;note=root.dataset.screen==='mars-services'?'Choose another upgrade.':'Upgrade preview cancelled. No resources spent.';render();if(root.dataset.screen==='mars-services')root.querySelector(`[data-upgrade-card="${previous}"]`)?.focus({preventScroll:true});return;}
   else if(action==='confirm-upgrade'&&selection){
-   const pending=r.preview(s,selection);if(pending.newBay&&!placement){note='Choose the new bay position before purchasing.';render();return;}
-   result=r.upgrade(s,selection,save,placement);if(result.ok){highlight=pending.newBay;selection=placement=null;}
+   const pending=selection==='thrusters'?null:r.preview(s,selection);if(pending?.newBay&&!placement){note='Choose the new bay position before purchasing.';render();return;}
+   result=selection==='thrusters'?r.upgradeThrusters(s,save):r.upgrade(s,selection,save,placement);if(result.ok){highlight=pending?.newBay||null;selection=placement=null;}
   }
-  else if(action==='remove'){result=r.remove(s,button.dataset.kind,save);if(result.ok)selection=placement=highlight=null;}
+  else if(action==='remove'){window.nativeMarsUpgradeEffects?.stop(root);result=r.remove(s,button.dataset.kind,save);if(result.ok)selection=placement=highlight=null;}
   else if(action==='buy')result=r.buy(s,button.dataset.model,save);
   else if(action==='choose-equipment'){selectedItem=button.dataset.instance;selectedBay=null;note='Choose a compatible bay highlighted on your ship.';render();return;}
   else if(action==='fit'){const id=button.dataset.instance,select=[...root.querySelectorAll('[data-yard-slot]')].find(n=>n.dataset.yardSlot===id);result=r.fit(s,id,Number(select?.value),save);if(result.ok)selectedItem=null;}
   else if(action==='unfit'){result=r.unfit(s,button.dataset.kind,Number(button.dataset.slot),save);if(result.ok)selectedBay=null;}
-  if(result){note=result.message||result.error||'Build updated.';bridge.refresh();if(!root.hidden){render();root.querySelector(`[data-yard-tab="${tab}"]`)?.focus();}}
+  if(result){note=result.message||result.error||'Build updated.';bridge.refresh();if(!root.hidden){render();root.querySelector(`[data-yard-tab="${tab}"]`)?.focus();if(installation)window.nativeMarsUpgradeEffects?.celebrate(root,s,installation);}}
  });
  ribbon.addEventListener('click',event=>{if(event.target.closest('[data-yard-cancel]'))abort();});
  root.addEventListener('keydown',event=>{

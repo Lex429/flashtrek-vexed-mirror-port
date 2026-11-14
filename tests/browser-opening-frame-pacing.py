@@ -2,7 +2,7 @@
 
 Rendering and audio are stubbed to isolate scheduling; this is not an FPS benchmark.
 """
-import json
+import json,os
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -35,7 +35,8 @@ SETUP = r'''() => {
 }'''
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(channel='msedge', headless=True)
+    channel=os.environ.get('BROWSER_CHANNEL','msedge')
+    browser = p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
     page = browser.new_page()
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))

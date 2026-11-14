@@ -16,3 +16,5 @@
 .dev-fog-colours [data-dev-fog-colour-chip="blue"]{--fog-colour:#5996ff}
 .dev-fog-colours [data-dev-fog-colour-chip="yellow"]{--fog-colour:#f8d354}
 .dev-fog-colours button[aria-pressed="true"]{border-color:var(--fog-colour);box-shadow:inset 0 -2px var(--fog-colour)}
+.dev-fog-storm-controls{display:grid;gap:7px;padding:9px;border:1px solid #976170;border-radius:5px;background:#291b2b;color:#ead5df;font-size:11px}
+.dev-fog-storm-controls[hidden]{display:none}

@@ -20,9 +20,12 @@
       [r+(k-r)*.48,k,'rebellion','rebellion',12,'VULCAN · SHIELDS FAILING','shield'],
       [k,k+(n-k)*.56,'klingons','klingons',38,"QO’NOS · THE KLINGON ADVANCE",'wide'],
       [k+(n-k)*.56,n,'klingons','klingons',38,'THE CONQUERORS BECOME THE CONQUERED','shield'],
-      [n,n+3.2,'remus','gallery',30,'REMUS · A FRACTURED GALAXY','gallery'],
-      [n+3.2,n+6.4,'cardassia','gallery',50,'CARDASSIA · BORDERS IN FLAMES','gallery'],
-      [n+6.4,w,'border-war','border',31,'ROMULUS · ANOTHER WAR','wide'],
+      [n,n+2.1,'remus','gallery',30,'REMUS · A FRACTURED GALAXY','gallery'],
+      [n+2.1,n+4.2,'cardassia','gallery',50,'CARDASSIA · BORDERS IN FLAMES','gallery'],
+      [n+4.2,n+6.3,'azure-nebula','nebula',1,'THE AZURE NEBULA · REFUGEES IN THE GAS','nebula'],
+      [n+6.3,n+8.4,'badlands-plasma','nebula',73,'THE BADLANDS · PLASMA STORMS','nebula'],
+      [n+8.4,n+10.5,'bassen-rift','nebula',31,'THE BASSEN RIFT · FRACTURED BORDERS','nebula'],
+      [n+10.5,w,'border-war','border',31,'ROMULUS · ANOTHER WAR','wide'],
       [w,w+4.7,'war','war',1,'THE EARTH–KLINGON FRONT','wide'],
       [w+4.7,w+8.9,'war','war',1,'SHIELDS DOWN · HULL BREACHES','shield'],
       [w+8.9,f,'war','war',1,'THE PRICE OF THE WAR','wreck'],
@@ -134,11 +137,11 @@
         left.forEach((type,i)=>add('imperial'+i,type,290-(i%2)*150,135+Math.floor(i/2)*195+(i%2)*65,110+(i===0?65:0),'earth',
           {hull:i===0?.6:.32,shields:cut.kind==='klingons'?.45:.35,delay:.25+i*.18}));
         right.forEach((type,i)=>add('opponent'+i,type,720+(i%2)*160,135+Math.floor(i/2)*195+(i%2)*65,100+(i===1?45:0),cut.kind==='rebellion'?'rebel':'klingon',
-          {hull:.32,shields:cut.kind==='war'?.15:.28,cloak:cut.kind==='klingons'?1:0,delay:cut.kind==='klingons'?4.72*rate:i*.14}));
+          {hull:cut.kind==='war'?1:.32,shields:cut.kind==='war'?.65:.28,cloak:cut.kind==='klingons'?1:0,delay:cut.kind==='klingons'?4.72*rate:i*.14}));
         rocks=[{id:1,slotId:1,x:625,y:380,size:66,file:0},{id:2,slotId:2,x:500,y:675,size:95,file:1},{id:3,slotId:3,x:970,y:580,size:78,file:2}]
           .map(r=>({...r,previousX:r.x,previousY:r.y,vx:0,vy:0,spin:0,angle:r.id*.8,hull:50,maxHull:50,stage:0,system:1}));
       }else if(cut.kind==='resolve')add('survivor',427,660,390,210,'earth',{hull:.42,shields:.1});
-      else if(cut.kind==='gallery'){
+      else if(cut.kind==='gallery'||cut.kind==='nebula'){
         const list=cut.world===30?[7,58,47,18]:cut.world===50?[11,29,25,10]:[427,5,7,58];
         list.forEach((t,i)=>add('traveller'+i,t,220+i*245,280+(i%2)*180,75+(i===1?35:0),'civilian',{civilian:true,delay:999}));
       }
@@ -147,7 +150,7 @@
       if(planet&&a.faction==='earth')return planet.descriptor;
       const enemies=alive().filter(b=>(b.cloak||0)<=.08&&b.faction!==a.faction&&!(b.faction==='earth'&&a.faction==='civilian'));
       if(!enemies.length)return null;
-      if(current.kind==='war'&&a.faction!=='earth'&&clock/rate>4.2){const flagship=enemies.find(e=>e.id==='film:imperial0');if(flagship)return describe(flagship);}
+      if(current.kind==='war'&&a.faction!=='earth'&&clock/rate>2){const flagship=enemies.find(e=>e.id==='film:imperial0');if(flagship)return describe(flagship);}
       enemies.sort((a,b)=>(a.civilian?0:1)-(b.civilian?0:1)||a.hull-b.hull);
       return describe(enemies.find(b=>Math.hypot(b.x-a.x,b.y-a.y)<510)||enemies[0]);
     }
@@ -194,7 +197,7 @@
       filmTime=cut.origin+elapsed;
       return {actors:alive(),rocks,rockBursts,planet,state,shots,current,elapsed,clock,visualTime:clock/rate};
     }
-    return {advance,describe,environment:environmentAdapter,get visualTime(){return clock/rate;},get effects(){return effects;},set effects(value){effects=value;},
+    return {advance,describe,environment:environmentAdapter,get shots(){return shots;},get stats(){return stats;},get events(){return events;},get visualTime(){return clock/rate;},get effects(){return effects;},set effects(value){effects=value;},
       snapshot:()=>({encounter:current?.id,elapsed,clock,actors:actors.map(a=>({id:a.id,type:a.shipType,x:a.x,y:a.y,hull:a.hull,shields:a.shields,phase:a.phase,cloak:a.cloak,dimensions:a.dimensions})),stats:{...stats},events:[...events],history:[...history],rocks:rocks.map(r=>({id:r.id,hull:r.hull,x:r.x,y:r.y}))}),
       clear(){shots?.reset();effects.reset();environment.reset();current=null;actors=[];rocks=[];history=[];events=[];lastRequested=-Infinity;for(const k of Object.keys(stats))stats[k]=0;}};
   }

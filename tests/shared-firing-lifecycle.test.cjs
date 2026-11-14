@@ -163,8 +163,9 @@ test('projectile saved world positions are independent of camera movement and re
   assert.equal(result.event.x,x);assert.equal(result.event.y,y);
   const restored=plain(f.state);f.shots.advance(restored,0);f.shots.paintAll({},{state:restored,ship:{x:0,y:0},cx:400,cy:250});
   close(f.draws.at(-1).geometry.x,400+x,'restored saved projectile');
-  f.window.nativeSimulation.advance(restored,.05);f.shots.advance(restored,.05);
-  close(restored.weaponCombat.events[0].x,x+result.event.vx*.05,'restored shot continues its simulation');
+  const dt=.01;
+  f.window.nativeSimulation.advance(restored,dt);f.shots.advance(restored,dt);
+  close(restored.weaponCombat.events[0].x,x+result.event.vx*dt,'restored shot continues its simulation');
 });
 
 test('misses hit shared asteroid targets and continue after target/shooter destruction or system changes',async()=>{
@@ -212,7 +213,10 @@ test('registry descriptors preserve previous world positions and use relative sw
   target.previousX=50;target.previousY=-80;
   const descriptor=f.descriptor(targetId);assert.equal(descriptor.previousX,50);assert.equal(descriptor.previousY,-80);
   const rules=f.window.nativeWeaponRules,event=rules.startShot(f.window.VexedMirrorWeapons[1],'disruptor',f.descriptor(sourceId),{...descriptor,x:100,y:0,heading:0,speed:0,vx:0,vy:0},0,0);
-  const collision=rules.stepShot(event,f.descriptor(sourceId),descriptor,f.window.nativeShipSystems.scene(f.state),.3,.3,descriptor.radii,descriptor.dimensions);
+  // The body crosses the ray halfway through this step. Preserve that geometry
+  // as projectile speed changes rather than assuming the old 340-unit motor.
+  const dt=100/event.vx;
+  const collision=rules.stepShot(event,f.descriptor(sourceId),descriptor,f.window.nativeShipSystems.scene(f.state),dt,dt,descriptor.radii,descriptor.dimensions);
   assert.equal(collision.kind,'hit');assert.equal(collision.target.id,targetId);
   const origin={x:50,y:-80+160*collision.t},angle=descriptor.heading+Math.PI/2;
   const relative={x:collision.sweepPoint.x-origin.x,y:collision.sweepPoint.y-origin.y};
@@ -248,4 +252,83 @@ test('inventory move validation preserves baseline swaps and rendering never dam
   const health={hull:f.descriptor(targetId).entity.hull,shields:f.descriptor(targetId).entity.shields,latinum:f.state.latinum,ore:f.state.ore};
   for(let i=0;i<20;i++)f.shots.paintAll({},{state:f.state,ship:{x:i,y:i*3},cx:400,cy:250});
   assert.deepEqual({hull:f.descriptor(targetId).entity.hull,shields:f.descriptor(targetId).entity.shields,latinum:f.state.latinum,ore:f.state.ore},health);assert.equal(f.hits.length,0);
+});
+
+test('unlocked projectiles leave the true mount along the nose with inherited velocity for every shooter',async()=>{
+  const discovery=await fixture();
+  for(const role of discovery.roles)for(const model of [2,3]){
+    const f=await fixture(),id=f.put(role,0,0,model),entity=f.descriptor(id).entity;
+    Object.assign(entity,{vx:120,vy:-80});if(role==='player')entity.angle=.7;else entity.heading=.7;
+    const source=f.descriptor(id),fired=f.shots.fireFor({state:f.state,shooter:source,forward:true});
+    assert.equal(fired.ok,true);const e=fired.event,spec=f.window.nativeWeaponRules.weaponSpec(f.window.VexedMirrorWeapons[model-1],fired.kind);
+    assert.equal(e.unguided,true);assert.equal(e.targetId,null);assert.equal(e.targetSnapshot,null);assert.equal(e.turn,0);assert.equal(e.aimError,0);
+    assert.deepEqual(plain(e.spec),plain(spec));
+    const muzzle=f.window.nativeWeaponRules.emitter(source,e);close(e.x,muzzle.x,'actual mount x');close(e.y,muzzle.y,'actual mount y');
+    close(e.vx,120+Math.cos(.7)*spec.speed,'forward motor x plus carrier');close(e.vy,-80+Math.sin(.7)*spec.speed,'forward motor y plus carrier');
+    const launch={x:e.x,y:e.y,vx:e.vx,vy:e.vy};
+    if(role==='player')entity.angle=-2;else entity.heading=-2;entity.vx=-500;entity.vy=400;
+    f.step(.08);close(e.vx,launch.vx,'turning launcher cannot bend shot x');close(e.vy,launch.vy,'turning launcher cannot bend shot y');
+    close(e.x,launch.x+launch.vx*.08,'physical forward path x');close(e.y,launch.y+launch.vy*.08,'physical forward path y');
+    assert.equal(f.shots.fireFor({state:f.state,shooter:f.descriptor(id),forward:true}).reason,'recharge');
+    assert.equal(f.state.latinum,23);assert.equal(f.state.ore,6);
+  }
+});
+
+test('unlocked fire skips phasers in a mixed fit and cannot consume a beam charge without a lock',async()=>{
+  const f=await fixture();f.put('player',0,0,1);
+  const refused=f.shots.fire({state:f.state,forward:true});assert.equal(refused.ok,false);assert.equal(refused.reason,'lock');
+  const beam=f.loadouts.equipped(f.state)[0].instance;assert.equal(beam.readyAt,0);assert.equal(f.state.weaponCombat.events.length,0);
+  delete f.state.shipEquipment;delete f.state.weaponLoadout;f.state.weapons=[1,2,3];f.loadouts.ensure(f.state);
+  const status=f.shots.firingStatus(f.state,f.descriptor('player'),null,{forward:true});assert.equal(status.ok,true);
+  assert.equal(status.weapons.find(w=>w.weapon.id===1).reason,'lock');
+  const first=f.shots.fire({state:f.state,forward:true}),second=f.shots.fire({state:f.state,forward:true});
+  assert.equal(first.kind,'disruptor');assert.equal(second.kind,'torpedo');
+  assert.equal(f.loadouts.equipped(f.state).find(w=>w.weapon.id===1).instance.readyAt,0);
+  assert.equal(f.shots.fire({state:f.state,forward:true}).reason,'recharge');
+  // A present lock always uses ordinary assisted fire, even with the flag set.
+  const id=f.put('civilian',200),locked=f.shots.fire({state:f.state,forward:true,target:f.descriptor(id)});
+  assert.equal(locked.ok,true);assert.equal(locked.kind,'beam');assert.equal(locked.event.unguided,undefined);
+});
+
+test('unlocked shots hit the first shared ship or asteroid surface and apply damage once',async()=>{
+  for(const asteroid of [false,true]){
+    const f=await fixture();f.put('player',0,0,2);const victim=f.put('civilian',240);
+    if(asteroid)f.window.nativeSolAsteroids.placements.push({slotId:17,x:120,y:0,size:14,hull:100});
+    const fired=f.shots.fire({state:f.state,forward:true});assert.equal(fired.ok,true);
+    f.step(.2);assert.equal(fired.event.hitTargetId,asteroid?'rock:17':victim);assert.equal(f.hits.length,1);
+    assert.equal(fired.event.contact.shielded,!asteroid);
+    assert.equal(f.descriptor(victim).shields,asteroid?80:68);
+    for(let i=0;i<10;i++)f.step(.02);assert.equal(f.hits.length,1);
+  }
+});
+
+test('saved unlocked torpedoes remain unguided after restore and expire without inventing a lock',async()=>{
+  const f=await fixture();f.put('player',0,0,3);
+  const fired=f.shots.fire({state:f.state,forward:true});f.step(.05);
+  const saved=plain(f.state),copy=await fixture();Object.assign(copy.state,saved);copy.shots.restore(copy.state);
+  copy.put('civilian',300,150);const event=copy.state.weaponCombat.events[0],velocity={vx:event.vx,vy:event.vy};
+  for(let i=0;i<20;i++)copy.step(.02);
+  assert.equal(event.unguided,true);assert.equal(event.targetId,null);assert.equal(event.turn,0);
+  close(event.vx,velocity.vx,'restored unguided x');close(event.vy,velocity.vy,'restored unguided y');
+  copy.shots.paintAll({},{state:copy.state,ship:{x:0,y:0},cx:400,cy:250});assert.ok(copy.draws.length);
+  copy.step(2);assert.equal(event.resolved,true);assert.equal(event.alive,false);assert.equal(copy.hits.length,0);
+  assert.equal(fired.event.targetSnapshot,null);
+  const imported=copy.shots.importEvent(copy.state,plain(fired.event));assert.equal(imported.unguided,true);assert.equal(imported.targetSnapshot,null);assert.equal(imported.targetId,null);
+});
+
+test('forward fire cannot bypass flight gates, disabled or unarmed hulls, or require implicit target creation',async()=>{
+  for(const gate of ['hidden','pause','inventory','warp','disabled','destroyed','unarmed']){
+    const f=await fixture();f.put('player',0,0,2);const item=f.loadouts.equipped(f.state)[0].instance;
+    if(gate==='hidden')f.document.hidden=true;
+    if(gate==='pause')f.window.nativePause.active=true;
+    if(gate==='inventory')f.window.nativeShipInventory.active=true;
+    if(gate==='warp')f.window.vexedWarp={active:true};
+    if(gate==='disabled')f.state.phase='disabled';
+    if(gate==='destroyed')f.state.hull=0;
+    if(gate==='unarmed')f.window.nativeShipDefinitions.register(7,{capabilities:{armed:false}});
+    assert.equal(f.shots.fire({state:f.state,forward:true}).ok,false,gate);
+    assert.equal(item.readyAt,0);assert.equal(f.state.weaponCombat?.events.length||0,0);
+  }
+  const f=await fixture();f.put('player',0,0,2);
+  assert.equal(f.shots.fire({state:f.state}).reason,'unavailable','An ordinary missing target is not implicit permission to fire');
 });

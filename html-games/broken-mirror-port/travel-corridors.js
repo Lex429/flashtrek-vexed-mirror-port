@@ -15,7 +15,8 @@
       if(a.id>b.id)[a,b]=[b,a];const key=a.id*1000+b.id;if(lanes.has(key))return lanes.get(key);
       const from=anchor(a.id),to=anchor(b.id);if(!from||!to)return;
       const dx=to.x-from.x,dy=to.y-from.y,length=Math.hypot(dx,dy);if(length<10000)return;
-      const count=Math.min(2047,Math.max(1,Math.floor((length-8000)/4000))),lane={id:key,from:a.id,to:b.id,name:a.name+' – '+b.name,length,sites:[],dynamic};
+      const oldA=window.nativeBadlands?.previousChart(a.id),oldB=window.nativeBadlands?.previousChart(b.id),oldLength=oldA&&oldB?Math.hypot(oldA.x-oldB.x,oldA.y-oldB.y)*1000:0;
+      const count=Math.min(2047,Math.max(1,Math.floor((Math.max(length,oldLength)-8000)/4000))),lane={id:key,from:a.id,to:b.id,name:a.name+' – '+b.name,length,sites:[],dynamic};
       lanes.set(key,lane);
       for(const id of [a.id,b.id]){let list=bySystem.get(id);if(!list)bySystem.set(id,list=[]);list.push(lane);}
       for(let i=0;i<count;i++){
@@ -28,6 +29,10 @@
     };
     addLane=add;
     for(const a of rows){const p=anchor(a.id);if(!p)continue;const near=rows.filter(b=>b!==a).sort((b,c)=>{const x=anchor(b.id),y=anchor(c.id);return Math.hypot(x.x-p.x,x.y-p.y)-Math.hypot(y.x-p.x,y.y-p.y)||b.id-c.id;});for(const b of near.slice(0,3))add(a,b);}
+    // Retain old static lane identities too: an in-progress mining claim may
+    // refer to one even when cartographic movement changes nearest neighbors.
+    const previous=window.nativeBadlands?.previousChart;
+    if(previous)for(const a of rows){const p=previous(a.id);if(!p)continue;const near=rows.filter(b=>b!==a&&previous(b.id)).sort((b,c)=>{const x=previous(b.id),y=previous(c.id);return Math.hypot(x.x-p.x,x.y-p.y)-Math.hypot(y.x-p.x,y.y-p.y)||b.id-c.id;});for(const b of near.slice(0,3))add(a,b);}
     const sol=rows.find(s=>s.id===1),orion=rows.find(s=>/^orion$/i.test(s.name));if(sol&&orion)add(sol,orion);
     const points=window.VexedMirrorWorld.systems.map(s=>anchor(s.id)).filter(Boolean);
     extent={minX:Math.min(...points.map(p=>p.x))-12000,minY:Math.min(...points.map(p=>p.y))-12000,maxX:Math.max(...points.map(p=>p.x))+12000,maxY:Math.max(...points.map(p=>p.y))+12000};
@@ -61,7 +66,7 @@
     for(let slot=0;slot<3;slot++){
       const id=sectorBase+((x+sectorBias)*sectorStride+y+sectorBias)*32+slot,r=random(Math.imul(x,73856093)^Math.imul(y,19349663)^slot*83492791);
       const px=x*sectorSize+100+r()*(sectorSize-200),py=y*sectorSize+100+r()*(sectorSize-200);
-      if(window.nativeManualFlight.regionAtPoint?.({devMode:true},{x:px,y:py}).kind==='system')continue;
+      if(window.nativeBadlands?.containsGlobal(px,py,80)||window.nativeManualFlight.regionAtPoint?.({devMode:true},{x:px,y:py}).kind==='system')continue;
       site.slots.push({id,x:px,y:py});
     }
     if(sectors.size>=512)sectors.delete(sectors.keys().next().value);sectors.set(key,site);return site;
@@ -93,10 +98,10 @@
     const r=random(id),angle=(slot/12+.02*r())*Math.PI*2,radius=110+r()*260;
     const info={slotId:Number(id),site:site.id,lane:site.lane,name:site.name,region:site.name,corridor:true,ownerSystem:site.owner,
       globalX:site.x+Math.cos(angle)*radius,globalY:site.y+Math.sin(angle)*radius,
-      oreType:slot===0?'deuranium':slot%7===0?'gallicite':slot%3===0?'dilithium':'trellium',size:27+r()*17,angle:r()*Math.PI*2};infos.set(Number(id),info);return info;
+      oreType:slot===0?'deuranium':slot%7===0?'gallicite':slot%3===0?'dilithium':'trellium',size:27+r()*17,angle:r()*Math.PI*2};if(window.nativeBadlands?.containsGlobal(info.globalX,info.globalY,80))return null;infos.set(Number(id),info);return info;
   }
   function rockIds(site){return site.sector?site.slots.map(p=>p.id):Array.from({length:12},(_,slot)=>baseId+site.lane*stride+site.index*32+slot);}
-  function miningSites(system,ship){build();const list=(bySystem.get(Number(system))||[]).filter(l=>!l.dynamic||activeLanes.has(l.id)).flatMap(l=>l.sites);if(!list.length)return [];const start=(Number(ship.id)*7+(Number(ship.miningTrips)||0))%list.length,result=Array.from({length:Math.min(3,list.length)},(_,i)=>list[(start+i)%list.length]);
+  function miningSites(system,ship){build();const list=(bySystem.get(Number(system))||[]).filter(l=>!l.dynamic||activeLanes.has(l.id)).flatMap(l=>l.sites).filter(s=>!window.nativeBadlands?.containsGlobal(s.x,s.y,520));if(!list.length)return [];const start=(Number(ship.id)*7+(Number(ship.miningTrips)||0))%list.length,result=Array.from({length:Math.min(3,list.length)},(_,i)=>list[(start+i)%list.length]);
     const bounds=window.nativeManualFlight.boundaries?.().find(row=>row.id===(window.nativeSystemCatalog?.physicalId(system)??Number(system)));
     if(bounds&&(Number(ship.id)+(Number(ship.miningTrips)||0))%3===0){const angle=(Number(ship.id)*2.399963229728653),x=bounds.x+Math.cos(angle)*(bounds.rx+2200),y=bounds.y+Math.sin(angle)*(bounds.ry+2200),site=sector(Math.floor(x/sectorSize),Math.floor(y/sectorSize));if(site?.slots.length)result.unshift(site);}
     return result;

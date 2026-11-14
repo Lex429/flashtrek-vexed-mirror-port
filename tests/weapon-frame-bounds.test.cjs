@@ -29,3 +29,13 @@ test('GPU weapon packets preserve transformed CSS coordinates without writing Ca
   assert.deepEqual(JSON.parse(JSON.stringify(transform)),{a:2,b:0,c:0,d:2,e:0,f:0});
   assert.equal(JSON.stringify(source),before,'A paint packet must not mutate its authoritative geometry');
 });
+
+test('live weapons reuse an already fitted display without observing or measuring another canvas',()=>{
+  let packet=null;
+  const canvas={width:800,getBoundingClientRect:()=>assert.fail('Weapon painting measured fitted layout')};
+  const ctx={canvas,getTransform:()=>({a:2,b:0,c:0,d:2,e:0,f:0})};
+  const window={nativeView:{pixelRatio:c=>{assert.equal(c,canvas);return 2;}},nativeEffectProfiles:{weapon:()=>({scale:1}),queueWeapon:(_,shot)=>{packet=shot;return true;}}};
+  vm.runInNewContext(fs.readFileSync('html-games/flashtrek-broken-mirror/weapon-effects.js','utf8'),{window});
+  window.paintShowcaseWeaponShot(ctx,{kind:'beam',style:{color:0xffffff,thickness:2},spin:0,spinSpeed:1},{screenPixels:true,x1:10,y1:20,x2:40,y2:50},0);
+  assert.equal(packet.x1,10);assert.equal(packet.y2,50);
+});

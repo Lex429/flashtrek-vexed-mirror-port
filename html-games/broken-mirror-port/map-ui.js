@@ -1,4 +1,4 @@
-/* One continuous, ship-centered chart for local and interstellar travel. */
+/* Continuous chart with galaxy, solar-system and destination navigation. */
 (() => {
   'use strict';
   const root = document.createElement('section');
@@ -9,6 +9,10 @@
   root.setAttribute('aria-label', 'Navigation map');
   document.getElementById('game').append(root);
   root.innerHTML = `<header class="map-header"><div><h2>Map</h2><p class="map-location"></p><p class="map-coordinates" title="Your ship's coordinates"><span data-coordinate="x"></span><span data-coordinate="y"></span></p></div><div class="map-controls"><button type="button" data-action="center">Center on ship</button><div class="map-zoom"><button type="button" data-action="out" aria-label="Zoom out">−</button><button type="button" data-action="in" aria-label="Zoom in">+</button></div><button type="button" data-action="close" class="map-close">Close <span>Esc</span></button></div></header><div class="map-viewport"><svg class="map-chart" role="group" aria-label="Ship position and destinations"></svg><div class="map-scale"></div><div class="map-legend" aria-label="System relationship colors"></div><p class="map-help">Scroll to zoom · Drag to move · Click a destination</p></div><footer class="map-destination"><div class="map-destination-info"><div class="map-destination-heading"><h3></h3><span class="map-welcome"></span><span class="map-system-status" hidden></span></div><p class="map-destination-meta"></p><dl class="map-system-facts" aria-label="System information"></dl><p class="map-message" role="status" aria-live="polite"></p></div><div class="map-actions"><button type="button" data-action="marker" class="map-marker" aria-label="Set marker" title="Set marker">⚑</button><button type="button" data-action="cruise" class="map-primary">Cruise to</button><button type="button" data-action="warp" class="map-primary">Warp to</button><button type="button" data-action="navigate">Select for navigation</button></div></footer>`;
+  root.querySelector('.map-header>div').insertAdjacentHTML('afterbegin','<nav class="map-breadcrumbs" aria-label="Map view"></nav>');
+  root.querySelector('.map-controls').insertAdjacentHTML('afterbegin','<button type="button" data-map-back class="map-back">← Back <span>○ / B</span></button>');
+  root.querySelector('.map-viewport').insertAdjacentHTML('beforeend','<div class="map-focus-caption" aria-hidden="true"><span></span><strong></strong></div>');
+  root.querySelector('.map-help').setAttribute('aria-live','polite');
   const svg = root.querySelector('svg');
   const viewport = root.querySelector('.map-viewport');
   const hover=document.createElement('div');hover.className='map-hover';hover.hidden=true;hover.setAttribute('role','tooltip');viewport.append(hover);
@@ -36,9 +40,11 @@
   let markers = {};
   try { const saved = JSON.parse(localStorage.getItem(markerKey)); if (saved && typeof saved === 'object' && !Array.isArray(saved)) markers = saved; } catch {}
   if(markers['system:30'])markers['body:31:1']=true;
-  let state, selected, timer, returnFocus, drag, frame = 0, followShip = true, message = '';
+  let state, selected, timer, returnFocus, drag, pointerSelection, frame = 0, followShip = true, message = '';
   let camera = {x:0, y:0, span:6}, goal = {...camera};
   let lastFrame=0, overviewFollow=true, shipArt=null, shipArtKey='', shipArtToken=0;
+  let level='system',cameraFlight=null,lastControllerFrame=0,controllerUsed=false,pathSignature='';
+  const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
   let zoomDelay,zoomRepeat,zoomHeld=false;
   function stopZoomHold(){clearTimeout(zoomDelay);clearInterval(zoomRepeat);}
   function overviewBounds(){
@@ -86,7 +92,7 @@
   }
   function solBodies(system=1) {
     const anchor = window.nativeManualFlight.chartPosition(system);
-    return (window.nativeSystemCatalog?.bodies(system)||window.nativeSystemHub.sol).filter(body=>!body.occludedBy).map(body => {
+    return (window.nativeSystemCatalog?.bodies(system)||window.nativeSystemHub.sol).filter(body=>body.render!==false&&!body.occludedBy).map(body => {
       const position = window.vexedSolFlight.bodyPosition(body);
       const residents=state?.selected?.id===system?state.selected.localPopulations?.[body.id]:undefined;
       const port=Number.isFinite(residents)?(body.port||!!body.legacyWorldId)&&residents>0:body.port;
@@ -96,6 +102,76 @@
   function selectedNode() {
     if (selected.body !== undefined) return solBodies(selected.system).find(body => body.id === selected.body);
     return state.nodes.find(node => node.id === selected.system) || state.selected;
+  }
+  function flyTo(next,duration=650){
+    followShip=false;goal={...next};lastFrame=0;
+    cameraFlight=reducedMotion.matches?null:{from:{...camera},to:{...goal},at:performance.now(),duration};
+    if(reducedMotion.matches)camera={...goal};requestDraw();
+  }
+  function setLevel(value){level=value;root.dataset.level=value;}
+  function pcControls(){
+    controllerUsed=false;
+    if(cameraFlight){cameraFlight=null;goal={...camera};}
+    for(const button of root.querySelectorAll('.map-action-focus'))button.classList.remove('map-action-focus');
+    syncPath();
+  }
+  function syncPath(){
+    const system=state.nodes.find(node=>node.id===selected.system),name=systemName(system),node=selectedNode();
+    const signature=[level,selected.system,selected.body,name,node?.name,controllerUsed].join('|');if(signature===pathSignature)return;pathSignature=signature;root.dataset.input=controllerUsed?'controller':'pc';
+    root.querySelector('.map-breadcrumbs').innerHTML=`<button type="button" data-map-view="galaxy" ${level==='galaxy'?'aria-current="page"':''}>Galaxy</button>${level!=='galaxy'?`<span>›</span><button type="button" data-map-view="system" ${level==='system'?'aria-current="page"':''}>${escape(name)}</button>`:''}${level==='destination'?`<span>›</span><span aria-current="page">${escape(node?.name||name)}</span>`:''}`;
+    const help=controllerUsed?(level==='galaxy'?'D-pad / stick: nearby systems · ✕: open system':level==='system'?'D-pad / stick: nearby planets · ✕: destination details':'D-pad: choose action · ✕: confirm action')+' · L2 / R2: zoom · ○ / B: back · R3: your ship':'Click to select · Double-click to zoom · Scroll to zoom · Drag to move · Esc: close';
+    const helpNode=root.querySelector('.map-help');if(helpNode.textContent!==help)helpNode.textContent=help;
+    const caption=root.querySelector('.map-focus-caption');caption.querySelector('span').textContent=level==='galaxy'?'GALAXY':level==='system'?'SOLAR SYSTEM':'DESTINATION';caption.querySelector('strong').textContent=level==='galaxy'?name:level==='system'?name:node?.name||name;
+    root.querySelector('[data-map-back]').title=level==='destination'?'Back to solar system':level==='system'?'Back to galaxy':'Close map';
+  }
+  function showGalaxy(){
+    setLevel('galaxy');selectDestination(selected.system);const bounds=overviewBounds();
+    flyTo({x:bounds.x,y:bounds.y,span:bounds.spanX},750);
+  }
+  function enterSystem(id=selected.system){
+    const system=state.nodes.find(node=>node.id===Number(id));if(!system)return;
+    const bodies=system.known?solBodies(system.id):[],body=bodies.find(node=>selected.system===system.id&&node.id===selected.body)||bodies.find(node=>node.id===window.nativeSystemCatalog.homeId(system.id))||bodies[0];
+    setLevel('system');selectDestination(system.id,body?.id);flyTo(systemAreaView(system));
+  }
+  function openDestination(system=selected.system,body=selected.body){
+    if(body===undefined&&level==='galaxy'){enterSystem(system);return;}
+    setLevel('destination');selectDestination(system,body);const node=selectedNode(),region=state.nodes.find(node=>node.id===selected.system);
+    if(node)flyTo({x:node.x,y:node.y,span:Math.min(8,Math.max(2.6,systemAreaView(region).span*.24))},550);
+    focusAction();
+  }
+  function back(){
+    if(root.hidden)return;
+    if(level==='destination'){enterSystem();return;}
+    if(level==='system'){showGalaxy();return;}
+    close();
+  }
+  function actionButtons(){return Array.from(root.querySelectorAll('[data-action="cruise"],[data-action="warp"],[data-action="navigate"]')).filter(node=>!node.hidden&&!node.disabled);}
+  function focusAction(direction){
+    const buttons=actionButtons();if(!buttons.length)return;
+    let index=buttons.indexOf(document.activeElement);
+    index=index<0?0:direction?(index+(direction==='left'||direction==='up'?-1:1)+buttons.length)%buttons.length:index;
+    for(const button of root.querySelectorAll('.map-actions button'))button.classList.remove('map-action-focus');
+    buttons[index].classList.add('map-action-focus');buttons[index].focus({preventScroll:true});return buttons[index];
+  }
+  function browse(direction){
+    const items=level==='galaxy'?state.nodes.map(node=>({...node,key:`system:${node.id}`})):(state.nodes.find(node=>node.id===selected.system)?.known?solBodies(selected.system):[]).map(node=>({...node,key:`body:${node.id}`}));
+    const current=items.find(node=>level==='galaxy'?node.id===selected.system:node.id===selected.body)||selectedNode(),view=geometry(goal.span);
+    const next=window.nativeMapControls.next(items,current,direction,{x:view.scaleX,y:view.scaleY});if(!next)return;
+    selectDestination(level==='galaxy'?next.id:next.system,level==='galaxy'?undefined:next.id);
+    flyTo({x:next.x,y:next.y,span:goal.span},320);
+    requestDraw();
+  }
+  function controller(input,at){
+    if(root.hidden)return;if(input.direction||input.pressed.length||input.held[6]||input.held[7]){controllerUsed=true;syncPath();}
+    const dt=lastControllerFrame?clamp((at-lastControllerFrame)/1000,0,.05):0;lastControllerFrame=at;
+    if(input.pressed.includes(1)){back();return;}
+    if(input.pressed.includes(11)){centerOnShip(true);return;}
+    const zoomAxis=Number(!!input.held[6])-Number(!!input.held[7]);
+    if(zoomAxis&&dt){
+      followShip=false;const node=selectedNode();if(node){goal.x=node.x;goal.y=node.y;}zoom(Math.exp(zoomAxis*dt*1.7),undefined,true);
+    }
+    if(input.direction){if(level==='destination')focusAction(input.direction);else browse(input.direction);}
+    if(input.pressed.includes(0)){if(level==='galaxy')enterSystem();else if(level==='system')openDestination();else focusAction()?.click();}
   }
   function markerID() { return selected.body !== undefined ? `body:${selected.system}:${selected.body}` : `system:${selected.system}`; }
   function requestDraw() { if (!frame && !root.hidden) frame = requestAnimationFrame(draw); }
@@ -108,7 +184,7 @@
     updateInfo();
     requestDraw();
   }
-  function open() {
+  function open({controller=false}={}) {
     if (!window.nativeNavigation.active || !call('open')?.ok) return;
     returnFocus = document.activeElement;
     state = call('state');
@@ -116,6 +192,7 @@
     selected = {system:state.current, body:state.localBody};
     const ship = state.shipPosition || state.nodes.find(node => node.current);
     camera = {x:ship.x, y:ship.y, span:6}; goal = {...camera};
+    setLevel('system');cameraFlight=null;lastControllerFrame=0;controllerUsed=controller;pointerSelection=null;
     followShip = true; overviewFollow=true;lastFrame=0; message = ''; drag = null; root.hidden = false;
     window.nativeGameSounds?.ui('map');
     clearInterval(timer); timer = setInterval(refresh, 500);
@@ -125,6 +202,7 @@
     const wasOpen = !root.hidden;
     root.hidden = true; clearInterval(timer); timer = undefined; drag = null;
     hover.hidden=true;
+    cameraFlight=null;lastControllerFrame=0;
     stopZoomHold();zoomHeld=false;
     cancelAnimationFrame(frame); frame = 0;
     if (!wasOpen) return;
@@ -132,12 +210,14 @@
     if (focus) window.nativeGameSounds?.ui('close');
     if (focus) (returnFocus?.isConnected ? returnFocus : mapButton).focus({preventScroll:true});
   }
-  function centerOnShip() {
+  function centerOnShip(hierarchy=false) {
+    if(hierarchy){selected={system:state.current,body:state.localBody};setLevel('system');refresh();}cameraFlight=null;
     followShip = true;overviewFollow=false;
     goal.x = state.shipPosition.x; goal.y = state.shipPosition.y;
     requestDraw();
   }
-  function zoom(factor, point) {
+  function zoom(factor, point, hierarchy=false) {
+    cameraFlight=null;
     const nextSpan = clamp(goal.span * factor, 1.2, overviewBounds().spanX);
     if (!followShip && point) {
       const width = viewport.clientWidth, height = viewport.clientHeight;
@@ -146,6 +226,10 @@
       goal.y += (point.y-before.centerY)/before.scaleY-(point.y-after.centerY)/after.scaleY;
     }
     goal.span = nextSpan;overviewFollow=true;followGoal();
+    if(hierarchy){const region=state.nodes.find(node=>node.id===selected.system),span=systemAreaView(region).span;
+      if(level==='galaxy'&&factor<1&&goal.span<span*1.08)enterSystem();
+      else if(level==='system'&&factor>1&&goal.span>span*1.6)showGalaxy();
+      else if(level==='destination'&&factor>1&&goal.span>span*.7)enterSystem();}
     requestDraw();
   }
   function selectDestination(system, body) {
@@ -158,7 +242,7 @@
     if (!node) return;
     const current = state.nodes.find(node => node.current);
     const local = state.selected.inLocalSystem;
-    root.querySelector('.map-location').textContent = `${state.region?.kind==='interstellar'?'Interstellar space':systemName(state.nodes.find(node=>node.id===state.region?.system)||current)+' solar system'}${state.inLocalTransit ? ' · Cruising' : ''}`;
+    root.querySelector('.map-location').textContent = `Your ship: ${state.region?.kind==='interstellar'?'Interstellar space':systemName(state.nodes.find(node=>node.id===state.region?.system)||current)+' solar system'}${state.inLocalTransit ? ' · Cruising' : ''}`;
     root.querySelector('[data-coordinate="x"]').textContent = `X: ${coordinate(state.galaxyShipPosition.x)}`;
     root.querySelector('[data-coordinate="y"]').textContent = `Y: ${coordinate(state.galaxyShipPosition.y)}`;
     root.querySelector('.map-coordinates').title = "Your ship's galactic coordinates";
@@ -202,6 +286,7 @@
     marker.setAttribute('aria-pressed', String(marked));
     marker.setAttribute('aria-label', marked ? 'Remove marker' : 'Set marker');
     marker.title = marked ? 'Remove marker' : 'Set marker';
+    syncPath();
   }
   function travel(action) {
     let result;
@@ -224,9 +309,10 @@
     if (root.hidden || !state) return;
     const width = viewport.clientWidth, height = viewport.clientHeight;
     if (!width || !height) return;
-    const delta=lastFrame?clamp(timestamp-lastFrame,1,50):16.7,amount=1-Math.exp(-delta/105);
-    const moving=Math.abs(Math.log(camera.span/goal.span))>.00015||Math.abs(camera.x-goal.x)>.001||Math.abs(camera.y-goal.y)>.001;
-    if(moving){camera.x=blend(camera.x,goal.x,amount);camera.y=blend(camera.y,goal.y,amount);camera.span=Math.exp(blend(Math.log(camera.span),Math.log(goal.span),amount));lastFrame=timestamp;}
+    const delta=lastFrame?clamp(timestamp-lastFrame,1,50):16.7,amount=reducedMotion.matches?1:1-Math.exp(-delta/145);
+    let moving=Math.abs(Math.log(camera.span/goal.span))>.00015||Math.abs(camera.x-goal.x)>.001||Math.abs(camera.y-goal.y)>.001;
+    if(cameraFlight){const progress=reducedMotion.matches?1:clamp((timestamp-cameraFlight.at)/cameraFlight.duration,0,1);camera=window.nativeMapControls.camera(cameraFlight.from,cameraFlight.to,progress);moving=progress<1;if(!moving)cameraFlight=null;lastFrame=timestamp;}
+    else if(moving){camera.x=blend(camera.x,goal.x,amount);camera.y=blend(camera.y,goal.y,amount);camera.span=Math.exp(blend(Math.log(camera.span),Math.log(goal.span),amount));lastFrame=timestamp;}
     else {camera={...goal};lastFrame=0;}
     const view=geometry(camera.span),wide=view.wide,legendHeight=root.querySelector('.map-legend').clientHeight;
     const project=point=>({x:width/2+(point.x-camera.x)*view.scaleX,y:view.centerY+(point.y-camera.y)*view.scaleY});
@@ -274,7 +360,7 @@
       const isMarked=!!markers[`system:${node.id}`]||Object.keys(markers).some(key=>key.startsWith(`body:${node.id}:`)&&markers[key]);
       items.push({node,point,isSelected,isCurrent:node.current,isMarked,body:false,opacity});
     }
-    if(bodyOpacity>.03)for(const region of state.nodes.filter(node=>node.known))for(const body of solBodies(region.id)){
+    for(const region of state.nodes.filter(node=>node.known))for(const body of solBodies(region.id)){
       const point=project(body);
       items.push({node:body,point,isSelected:selected.system===body.system&&selected.body===body.id,isCurrent:state.current===body.system&&state.localBody===body.id,isMarked:!!markers[`body:${body.system}:${body.id}`],body:true,opacity:bodyOpacity});
     }
@@ -286,10 +372,10 @@
       const status=!relation?.known?'Unknown':relation.status==='Uninhabited'?'Uninhabited':relation.standing;
       const color=body?(planetColors[node.id]||"#9cbdcf"):mapColors[status]||mapColors.Unknown;
       const name=body?node.name:systemName(node),reputation=!body&&node.known?node.prestige:null;
-      const text=opacity>.5&&(isSelected||isCurrent||isMarked||body||node.known)?label(name,point):'';
+      const text=opacity>.5&&(isSelected||isCurrent||isMarked||body||node.known)?isSelected?`<text class="map-label map-selected-label" x="${point.x+17}" y="${point.y+4}">${escape(name)}</text>`:label(name,point):'';
       const radius=body?(node.kind==='star'?7:5):compact?4.5:5.5;
       const description=`${name} · ${welcome.text}${reputation!==null?` · Standing ${signed(reputation)}`:''}${relation?.status==='Forbidden'?' · Restricted space':''}`;
-      markup+=`<g class="map-destination-node ${isSelected?'selected':''} ${isCurrent?'current':''} ${!relation?.known?'unknown':''}" data-system="${body?node.system:node.id}" ${body?`data-body="${node.id}"`:''} data-reputation="${reputation??''}" data-standing="${escape(status)}" tabindex="${opacity>.5&&onScreen(point)?0:-1}" role="button" aria-label="${escape(description)}" aria-pressed="${isSelected}" opacity="${opacity}" style="--node-color:${color};${opacity<.35?'pointer-events:none':''}"><circle class="map-hit" cx="${point.x}" cy="${point.y}" r="${wide>.5?10:15}"/>${!body&&node.status==='Forbidden'?`<circle class="map-restricted-ring" cx="${point.x}" cy="${point.y}" r="${radius+3}"/>`:''}${isSelected?`<circle class="map-selection-ring" cx="${point.x}" cy="${point.y}" r="${radius+6}"/>`:''}<circle class="map-dot" cx="${point.x}" cy="${point.y}" r="${radius}"/>${body&&node.kind!=='star'&&node.art&&camera.span<18&&onScreen(point)?`<image href="${escape(node.art)}" x="${point.x-13}" y="${point.y-13}" width="26" height="26" pointer-events="none"/>`:""}${isMarked?`<path class="map-saved-marker" d="M ${point.x-3} ${point.y-12} v -9 h 8 v 5 h -8"/>`:''}${text}</g>`;
+      markup+=`<g class="map-destination-node ${isSelected?'selected':''} ${isCurrent?'current':''} ${!relation?.known?'unknown':''}" data-system="${body?node.system:node.id}" ${body?`data-body="${node.id}"`:''} data-reputation="${reputation??''}" data-standing="${escape(status)}" tabindex="${opacity>.5&&onScreen(point)?0:-1}" role="button" aria-label="${escape(description)}" aria-pressed="${isSelected}" opacity="${opacity}" style="--node-color:${color};${opacity<.35?'pointer-events:none':''}"><circle class="map-hit" cx="${point.x}" cy="${point.y}" r="${wide>.5?14:19}"/>${!body&&node.status==='Forbidden'?`<circle class="map-restricted-ring" cx="${point.x}" cy="${point.y}" r="${radius+3}"/>`:''}${isSelected?`<circle class="map-selection-ring" cx="${point.x}" cy="${point.y}" r="${radius+8}"/>`:''}<circle class="map-dot" cx="${point.x}" cy="${point.y}" r="${radius}"/>${body&&node.kind!=='star'&&node.art&&opacity>.5&&camera.span<18&&onScreen(point)?`<image href="${escape(node.art)}" x="${point.x-13}" y="${point.y-13}" width="26" height="26" pointer-events="none"/>`:""}${isMarked?`<path class="map-saved-marker" d="M ${point.x-3} ${point.y-12} v -9 h 8 v 5 h -8"/>`:''}${text}</g>`;
     }
     const angle=state.shipAngle*180/Math.PI+90,size=blend(20,16,wide),iconWidth=shipArt?size*Math.min(1,shipArt.ratio):0,iconHeight=shipArt?size*Math.min(1,1/shipArt.ratio):0;
     function shipIcon(point,offscreen=false){return `<g class="map-your-ship ${offscreen?'map-offscreen-ship':''}" transform="translate(${point.x},${point.y})" data-ship-type="${state.shipType}" data-world-x="${state.shipPosition.x}" data-world-y="${state.shipPosition.y}" aria-label="${escape(state.shipName)}, your current ship${offscreen?', outside this view':''}"><circle r="${offscreen?9:blend(11,9,wide)}"/>${shipArt?`<image href="${shipArt.url}" x="${-iconWidth/2}" y="${-iconHeight/2}" width="${iconWidth}" height="${iconHeight}" transform="rotate(${angle})"/>`:'<circle class="map-ship-loading" r="2"/>'}${camera.span<45&&!offscreen?'<text x="15" y="-10">YOU</text>':''}</g>`;}
@@ -302,6 +388,8 @@
   }
 
   root.addEventListener('click', event => {
+    const backButton=event.target.closest('[data-map-back]'),viewButton=event.target.closest('[data-map-view]');
+    if(backButton){back();return;}if(viewButton){viewButton.dataset.mapView==='galaxy'?showGalaxy():enterSystem();return;}
     const button = event.target.closest('[data-action]');
     if (button && !button.disabled) {
       const action = button.dataset.action;
@@ -313,6 +401,7 @@
     }
   });
   root.addEventListener('pointerdown',event=>{
+    if(event.button===0)pcControls();
     const action=event.target.closest('[data-action]')?.dataset.action;
     if(event.button!==0||!['in','out'].includes(action))return;
     stopZoomHold();zoomHeld=false;
@@ -322,6 +411,7 @@
   addEventListener('pointercancel',stopZoomHold);
   svg.addEventListener('wheel', event => {
     event.preventDefault();
+    pcControls();
     const box=svg.getBoundingClientRect();
     zoom(Math.exp(clamp(event.deltaY,-200,200)*.0025),{x:event.clientX-box.left,y:event.clientY-box.top});
   }, {passive:false});
@@ -345,7 +435,7 @@
     }
     const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
     if(Math.hypot(dx,dy)<4&&!drag.moved)return;
-    drag.moved=true;followShip=false;
+    drag.moved=true;followShip=false;cameraFlight=null;
     const view=geometry(drag.camera.span);
     camera={...drag.camera,x:drag.camera.x-dx/view.scaleX,y:drag.camera.y-dy/view.scaleY};
     goal={...camera};requestDraw();
@@ -355,20 +445,24 @@
     if(!drag)return;
     const {target,moved}=drag;drag=null;
     if(svg.hasPointerCapture(event.pointerId))svg.releasePointerCapture(event.pointerId);
+    pointerSelection=target&&!moved?{system:target.dataset.system,body:target.dataset.body}:null;
     if(target&&!moved)selectDestination(target.dataset.system,target.dataset.body);
   });
   svg.addEventListener('pointercancel',()=>{drag=null;});
   svg.addEventListener('dblclick', event => {
-    const target=event.target.closest('[data-system]');if(!target)return;
-    selectDestination(target.dataset.system,target.dataset.body);
+    // Painting can replace an SVG node between clicks. The browser then sends
+    // dblclick to their shared SVG ancestor; retain the actual last selection.
+    const target=event.target.closest('[data-system]')?.dataset||pointerSelection;if(!target)return;
+    pcControls();selectDestination(target.system,target.body);
     const node=selectedNode();followShip=false;
     goal=selected.body!==undefined?{x:node.x,y:node.y,span:6}:systemAreaView(node);requestDraw();
   });
   svg.addEventListener('keydown', event => {
     const target=event.target.closest('[data-system]');
-    if(target&&(event.key==='Enter'||event.key===' ')){event.preventDefault();selectDestination(target.dataset.system,target.dataset.body);root.querySelector('[data-action="navigate"]').focus();}
+    if(target&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pcControls();selectDestination(target.dataset.system,target.dataset.body);root.querySelector('[data-action="navigate"]').focus();}
   });
   root.addEventListener('keydown', event => {
+    pcControls();
     if(event.key==='Tab'){
       const targets=[...root.querySelectorAll('button:not(:disabled):not([hidden]),[tabindex="0"]')];
       const first=targets[0],last=targets[targets.length-1];
@@ -386,6 +480,6 @@
   },true);
   new ResizeObserver(requestDraw).observe(viewport);
   mapButton.onclick=open;
-  window.nativeGalaxyMap={open,close,refresh,get isOpen(){return !root.hidden;}};
+  window.nativeGalaxyMap={open,close,back,refresh,controller,get isOpen(){return !root.hidden;},inspect:()=>({level,selected:selected?{...selected}:null,camera:{...camera},goal:{...goal},animating:!!cameraFlight,name:state?selectedNode()?.name:null})};
   addEventListener('pagehide',()=>{clearInterval(timer);cancelAnimationFrame(frame);stopZoomHold();});
 })();

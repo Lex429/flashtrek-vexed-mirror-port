@@ -204,11 +204,13 @@
     light=systemLight(view,systemSuns);
     ctx.save();ctx.globalAlpha=1;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
     backgroundNebulae?.render(ctx,view,state);
-    regionalStars?.render(ctx,view,state);
-    for(const star of regionalStars?[]:state.stars){
+    const starless=window.nativeBadlands?.starless(state.system,view);
+    const starlight=window.nativeBadlands?.starlight(state.system,view)??1;
+    if(!starless)regionalStars?.render(ctx,view,state);
+    for(const star of starless||regionalStars?[]:state.stars){
       if(star.layer===5)continue;
       const plane=state.planes[star.layer],sprite=starSprite(star);
-      ctx.globalAlpha=Math.min(1,star.alpha/100);
+      ctx.globalAlpha=Math.min(1,star.alpha/100)*starlight;
       tiles(star.x+plane.x+ox,star.y+plane.y+oy,820,670,w,h,star.layer===5?80:20,(x,y)=>{
         ctx.drawImage(sprite.canvas,x-sprite.x,y-sprite.y,sprite.w,sprite.h);
         if(star.trailVisible&&!view.reducedMotion){
@@ -222,7 +224,7 @@
           ctx.save();ctx.translate(x,y);ctx.rotate(star.trailAngle);
           ctx.globalCompositeOperation='screen';ctx.globalAlpha=1;
           const streak=ctx.createLinearGradient(-length,0,0,0);
-          streak.addColorStop(0,rgba(star.color,0));streak.addColorStop(1,rgba(star.color,.45*motion));
+          streak.addColorStop(0,rgba(star.color,0));streak.addColorStop(1,rgba(star.color,.45*motion*starlight));
           ctx.strokeStyle=streak;ctx.lineWidth=Math.max(.65,star.radius*.8);
           ctx.beginPath();ctx.moveTo(-length,0);ctx.lineTo(0,0);ctx.stroke();ctx.restore();
         }
@@ -237,7 +239,8 @@
       ctx.beginPath();ctx.ellipse(o.x,o.y,o.rx,o.ry,0,0,Math.PI*2);ctx.fill();
       ctx.beginPath();ctx.rect(0,0,w,h);ctx.moveTo(o.x+o.rx,o.y);ctx.ellipse(o.x,o.y,o.rx,o.ry,0,0,Math.PI*2);ctx.clip('evenodd');
     }
-    const bright=brightStars(state,w,h,ox,oy,view);
+    if(starless){systemSuns=[];light=null;shadowPaths=[];shadowSignature='';ctx.restore();return;}
+    const bright=brightStars(state,w,h,ox,oy,view).map(star=>({...star,alpha:star.alpha*starlight}));
     for(const star of bright){
       if(star.x< -80||star.x>w+80||star.y< -80||star.y>h+80)continue;
       ctx.globalAlpha=star.alpha/100;ctx.fillStyle=color(star.color);

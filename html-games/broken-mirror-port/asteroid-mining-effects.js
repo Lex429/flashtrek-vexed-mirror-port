@@ -68,27 +68,33 @@
     const raw=elapsed>=span*2+duration?1:clamp((elapsed-pass*span)/duration,0,1),ease=.5-.5*Math.cos(Math.PI*raw),progress=pass%2?1-ease:ease;
     return{pass,raw,ease,point:data.cut(pass,data.cuts.x0+(data.cuts.x1-data.cuts.x0)*progress)};
   }
+  function appearance(m,now){
+    const age=now-m.born,rock=m.rock;
+    const damage=rock.oreType==='deuranium'?Math.max(Number(m.state?.asteroidDamage?.[rock.slotId])||0,rock.maxHull*.75*clamp(age/6000,0,1)):0;
+    const im=window.nativeSolAsteroids.image(damage?window.nativeSolAsteroids.frame(rock,damage):rock.file);
+    if(!im.complete||!im.naturalWidth)return null;
+    if(!m.effect||m.effect.data.image!==im)m.effect=create(im,rock,now,m.born);
+    const effect=m.effect,{data,parts,unit,preview}=effect,size=rock.size,heatAge=age-3950,pressure=clamp(heatAge/3600,0,1),ease=pressure*pressure*(3-2*pressure),shieldScale=1.05-.43*ease;
+    const dt=clamp((now-effect.clock)/1000,0,.06);effect.clock=now;
+    for(let row=0;row<4;row++){
+      const release=[1550,2750,3950,3950][row],p=parts[row];if(!(dt>0)||age<release||heatAge>=0)continue;
+      const next={x:p.x+p.vx*dt,y:p.y+p.vy*dt,rotation:p.rotation+p.spin*dt};
+      const ca=Math.cos(rock.angle+next.rotation),sa=Math.sin(rock.angle+next.rotation),baseC=Math.cos(rock.angle),baseS=Math.sin(rock.angle);
+      const inside=p.samples.every(q=>{const wx=next.x+(q.x*ca-q.y*sa)*size,wy=next.y+(q.x*sa+q.y*ca)*size;return solid(data,(wx*baseC+wy*baseS)/size,(-wx*baseS+wy*baseC)/size,shieldScale*1.05);});
+      if(inside){Object.assign(p,next);}else{p.vx*=-.35;p.vy*=-.35;p.spin*=-.4;effect.ripples.push({x:p.x,y:p.y,born:now});}
+    }
+    effect.ripples=effect.ripples.filter(r=>now-r.born<520);
+    const gather=1-.86*pressure,scale=1-.4*pressure,drain=clamp((clamp(heatAge/4400,0,1)-.16)/.72,0,1),oreGrowth=clamp((age-7150)/800,0,1),rockFade=1-clamp(oreGrowth/.22,0,1);
+    return {age,rock,im,effect,data,parts,unit,preview,size,heatAge,pressure,shieldScale,gather,scale,drain,rockFade};
+  }
   function draw(ctx,m,{x,y,source,zoom,now,w=Infinity,h=Infinity}){
     const age=now-m.born,rock=m.rock;
     // Cut-piece motion here is presentation only. The mining/ore/physical
     // debris owners continue offscreen; invisible artwork need not be fetched.
     const visible=window.nativeEffectVisibility?.mining(x,y,source,rock.size,{w,h})??true;
     if(!visible)return;
-    const damage=rock.oreType==='deuranium'?Math.max(Number(m.state?.asteroidDamage?.[rock.slotId])||0,rock.maxHull*.75*clamp(age/6000,0,1)):0;
-    const im=window.nativeSolAsteroids.image(damage?window.nativeSolAsteroids.frame(rock,damage):rock.file);
-    if(!im.complete||!im.naturalWidth)return;
-    if(!m.effect||m.effect.data.image!==im)m.effect=create(im,rock,now,m.born);
-    const effect=m.effect,{data,parts,unit,preview}=effect,size=rock.size,heatAge=age-3950,pressure=clamp(heatAge/3600,0,1),ease=pressure*pressure*(3-2*pressure),shieldScale=1.05-.43*ease;
-    const dt=clamp((now-effect.clock)/1000,0,.06);effect.clock=now;
-    for(let row=0;row<4;row++){
-      const release=[1550,2750,3950,3950][row],p=parts[row];if(age<release||heatAge>=0)continue;
-      const next={x:p.x+p.vx*dt,y:p.y+p.vy*dt,rotation:p.rotation+p.spin*dt};
-      const ca=Math.cos(rock.angle+next.rotation),sa=Math.sin(rock.angle+next.rotation),baseC=Math.cos(rock.angle),baseS=Math.sin(rock.angle);
-      const inside=p.samples.every(q=>{const wx=next.x+(q.x*ca-q.y*sa)*size,wy=next.y+(q.x*sa+q.y*ca)*size;return solid(data,(wx*baseC+wy*baseS)/size,(-wx*baseS+wy*baseC)/size,shieldScale*1.05);});
-      if(inside){Object.assign(p,next);}else{p.vx*=-.35;p.vy*=-.35;p.spin*=-.4;effect.ripples.push({x:x+p.x,y:y+p.y,born:now});}
-    }
-    effect.ripples=effect.ripples.filter(r=>now-r.born<520);
-    const gather=1-.86*pressure,scale=1-.4*pressure,drain=clamp((clamp(heatAge/4400,0,1)-.16)/.72,0,1),oreGrowth=clamp((age-7150)/800,0,1),rockFade=1-clamp(oreGrowth/.22,0,1);
+    const a=appearance(m,now);if(!a)return;
+    const {im,effect,data,parts,unit,preview,size,heatAge,pressure,shieldScale,gather,scale,drain,rockFade}=a;
     for(let i=0;i<4;i++){
       const p=parts[i],offsetX=p.x*gather,offsetY=p.y*gather;
       ctx.save();ctx.translate(x+offsetX,y+offsetY);ctx.rotate(rock.angle+p.rotation);ctx.scale(scale,scale);ctx.globalAlpha=(1-.78*drain)*rockFade;
@@ -143,7 +149,7 @@
       ctx.save();ctx.translate(x,y);ctx.rotate(rock.angle);ctx.globalCompositeOperation='lighter';
       ctx.drawImage(arcCanvas,-size/2,-size/2,size,size);ctx.restore();
     }
-    effect.ripples=effect.ripples.filter(r=>now-r.born<520);for(const r of effect.ripples){const t=(now-r.born)/520;ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=(1-t)*.8;ctx.strokeStyle=pressure>.3?'#ff9b43':'#8feaff';ctx.shadowColor=pressure>.3?'#ff651f':'#40cfff';ctx.shadowBlur=9*unit;ctx.lineWidth=1.5*unit;ctx.beginPath();ctx.ellipse(r.x,r.y,(5+16*t)*unit,(3+9*t)*unit,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
+    effect.ripples=effect.ripples.filter(r=>now-r.born<520);for(const r of effect.ripples){const t=(now-r.born)/520;ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=(1-t)*.8;ctx.strokeStyle=pressure>.3?'#ff9b43':'#8feaff';ctx.shadowColor=pressure>.3?'#ff651f':'#40cfff';ctx.shadowBlur=9*unit;ctx.lineWidth=1.5*unit;ctx.beginPath();ctx.ellipse(x+r.x,y+r.y,(5+16*t)*unit,(3+9*t)*unit,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
   }
-  window.nativeAsteroidMiningEffects={draw};
+  window.nativeAsteroidMiningEffects={draw,appearance};
 })();

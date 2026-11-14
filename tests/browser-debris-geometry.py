@@ -48,8 +48,8 @@ PHYSICAL=r'''async()=>{
  }};
  const canvas=document.createElement('canvas');canvas.id='physical-debris-proof';canvas.width=1200;canvas.height=700;
  canvas.style.cssText='position:fixed;left:0;top:0;z-index:2147483647;background:#020610';document.body.append(canvas);
- const ctx=canvas.getContext('2d',{willReadFrequently:true}),cases=[],evidence=document.createElement('canvas');evidence.id='original-art-debris-evidence';evidence.width=1200;evidence.height=700;
- const eg=evidence.getContext('2d');eg.fillStyle='#020610';eg.fillRect(0,0,1200,700);document.body.append(evidence);
+ const ctx=canvas.getContext('2d',{willReadFrequently:true}),cases=[],evidence=document.createElement('canvas');evidence.id='original-art-debris-evidence';evidence.width=1200;evidence.height=1400;
+ const eg=evidence.getContext('2d');eg.fillStyle='#020610';eg.fillRect(0,0,1200,1400);document.body.append(evidence);
  const kinematics=piece=>Object.fromEntries(['x','y','w','h','vx','vy','spin','angle','born','ttl','geometryStage','geometryPart'].filter(key=>piece[key]!==undefined).map(key=>[key,piece[key]]));
  function replay(type,destroyed,camera){
    nativeShipEffects.reset();native.reset();observed.clear();samples.length=0;
@@ -89,7 +89,7 @@ PHYSICAL=r'''async()=>{
        motionKick:target.motionKick,asteroidDamage:state.asteroidDamage},contact};
  }
  try{
-   for(const [type,destroyed]of [[35,false],[49,false],[58,true],[44,true]]){
+   for(const [type,destroyed]of [[35,false],[49,false],[58,true],[44,true],[446,false],[447,false],[448,true],[449,true]]){
      const coldAtStart=!nativeShipEffects.optionalReady(type,'civilian'),cold=replay(type,destroyed,'hidden');
      if(coldAtStart)check(cold.observed.every(piece=>!piece.texture),'Cold physical pieces borrowed unrelated/native artwork');
      const physicalBefore=cold.observed.map(kinematics),stateBefore=JSON.stringify(cold.state),metricsBefore=nativeShipEffects.metrics();

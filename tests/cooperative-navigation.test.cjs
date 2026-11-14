@@ -29,6 +29,19 @@ test('a saved parking search completes even when its commercial job is already c
  assert.equal(f.ship.navigationRequest,undefined);assert.ok(f.ship.localLeg);assert.equal(f.ship.task.status,'completed');assert.equal(f.ship.task.phase,'completed');
 });
 
+test('rebuilding ship membership retains the live route-search budget and the funded delivery',async()=>{
+ const f=await fixture({full:false,economic:false});interactive(f);Object.assign(f.ship,{x:-1000,y:-1000});
+ // System entry and explicit geometry invalidation rebuild the same live index.
+ f.window.nativeShipSystems.invalidate(f.state);
+ f.window.nativeSimulationFrame.begin(f.state);
+ const result=f.lives.startDelivery(f.state,f.ship.id,{fromSystem:1,fromPort:3,toSystem:2,good:5,tons:4});
+ f.window.nativeSimulationFrame.end(f.state);
+ assert.equal(result.ok,true);assert.ok(f.ship.navigationRequest,'A cache rebuild disabled cooperative routing and ran the whole search at once');
+ const task=f.ship.task.id,reservation=plain(f.lives.initialize(f.state).reservations[task]);
+ step(f);assert.ok(f.ship.navigationRequest,'The live search no longer yields after rebuilding membership');
+ assert.equal(f.ship.task.id,task);assert.deepEqual(plain(f.lives.initialize(f.state).reservations[task]),reservation);
+});
+
 test('offline calendar scheduling retains the count budget regardless of measured CPU cost',async()=>{
  let f=await fixture({full:false,economic:false});const saved=plain(f.state),template=saved.civilianTraffic.ships[0];
  saved.system=47;saved.x=saved.y=1e6;saved.civilianTraffic.ships=Array.from({length:8},(_,i)=>({...plain(template),id:90+i,nextActionAt:0,task:null,phase:'docked'}));

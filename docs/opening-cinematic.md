@@ -1,22 +1,25 @@
 ﻿# A Firm Hand — campaign opening
 
-The 99.31-second opening follows the supplied recording. The command screen plays
-it before creating a new game; the menu's Opening film button replays it. Skip
-and completion invoke the existing launch callback once. Neither save mode is
-modified during the film.
+The 99.31-second film follows the supplied recording. It plays only when the
+player selects **Opening film** on the main menu. New Game and Continue launch
+directly. Close film, Escape and natural completion return to the menu and restore
+focus; playback is rejected during setup or gameplay. The button participates in
+the normal keyboard and controller menu navigation. Neither save mode is modified.
 
 ## Campaign and artwork
 
-`opening-campaign.js` directs 21 camera cuts. Enterprise 426, the actual named
+`opening-campaign.js` directs 24 camera cuts. Enterprise 426, the actual named
 I.S.S. Enterprise NCC-1701, leads attacks on civilian traffic at Orion, Vulcan,
 Andoria and Tellar, followed by orbital bombardment. Rebellion, the Klingon advance,
 a border conflict, the Earth–Klingon battle and its aftermath follow. The ending
 shows more of the game's existing worlds before returning to Earth and the title.
 
-Nineteen visible ship classes include both Constitution variants, civilian
+Twenty visible ship classes include both Constitution variants, civilian
 runabouts, shuttles and tugs, an Olympic, and several distinct Imperial, Klingon,
 Vulcan and Romulan hulls. Sixteen world artworks are loaded from the actual system
-catalog. Gallery shots identify the separate worlds being shown. The archive
+catalog, together with up to three real companion planets or moons per system.
+Each uses the current shared limb, atmosphere and directional-lighting functions.
+Gallery shots identify the separate worlds being shown. The archive
 reports the catalog's own totals: 90 physical systems and 311 planets/moons.
 
 Population readouts start from the game's authored population estimates. Film
@@ -31,6 +34,28 @@ sharing the normal weapon catalog, equipment rules, launch mechanics, range,
 cooldowns, collision queries and weapon painting. `nativeShipEffects.fork()` owns
 the film's impacts, damage-stage fragments, hull sparks, shield flashes and
 ship-specific destruction. Default gameplay instances retain their existing APIs.
+The effects fork's `shots: () => campaign.shots` supplies its beam-contact owner;
+the fog renderer's `collect` callback supplies its actor descriptors.
+Shield beam contacts resolve through that same isolated firing runtime. Previously
+they called the live game's combat owner, which could initialize civilian-world
+lookups against the film's deliberately minimal state and terminate its RAF loop.
+
+The film opens the same sprite-cache and hull-batch frame used by gameplay.
+Base hull artwork is available before optional damage materials. Two concurrent
+class jobs use the shared cooperative preparation queue and ordinary bounded
+damage cache; startup no longer waits for every class's full wreck preparation
+or simulates eight future battle scenes. Painting reads campaign counters directly
+instead of cloning diagnostic history on every frame.
+
+Azure Nebula, Badlands plasma and Bassen Rift shots use their current authored
+gas styles and seeds, with independent instances of the game's worker-backed
+material renderer. Film actors supply descriptors to its existing hull-mask and
+fluid path. It never queries the saved civilian population. Gas fields are released
+when the shot changes or the film closes. Badlands shots also use the current
+world weather owner for lightning, sheet flashes, plasma heat, currents and
+material vortices, sampled against a film-owned state and narration clock.
+These are local cinematic compositions of the existing regions, rather than
+changes to their galaxy geography.
 
 The director selects movement goals and targets. `nativeShipMotion.step`,
 `avoidShips` and `shipPairContact` integrate and separate physical hulls. Damage
@@ -127,22 +152,23 @@ contacts and GPU resets while retaining actual visual catalog data.
 shield collapse, hull damage, disabled/destruction progression, debris contacts,
 asteroid health floors, matching effect profile, explosion-only sound and saves,
 and records full-length playback. Evidence is in `test-results/opening-campaign/`.
-`tests/browser-opening-cinematic.py` separately covers real setup launch, audible
+`tests/browser-opening-cinematic.py` separately covers optional menu playback,
+direct New Game and Continue, audible
 narration, synchronization, pause, seeking, controls, replay, both save modes and
-Skip during cold preparation.
+closing during cold preparation. The campaign check also verifies all three gas
+styles, additional catalog bodies, and absence of queries to the live world.
 
 The effect lab records its staged fixture and source hashes; actual-game
 verification uses `tools/validate_effect_game.py`. Renderer timing and headless
-results must not be represented as a foreground 120 FPS approval. The existing
-player-combat unit assertion expecting only x/y in a richer damage contact remains
-a separate, pre-existing failure.
+results must not be represented as a foreground 120 FPS approval.
 
-Final verification evidence (October 25, 2026): the full film reached 99.21 s
-before its natural ending, with 16 worlds visited, 34 actual destructions, and
-no browser errors. Decoded narration is exactly 99.31 s, its first active speech
-is at 3.12 s, and the default listening preview has zero clipping samples.
-The current 25-ship, mixed-damage, 70-pixel, lights-on headless gameplay fixture
-is functionally valid with all 25 ships visible and zero errors, but below the
-120 FPS lab target: 8.56 FPS on Brave / NVIDIA RTX 5070 Laptop GPU. This is not a
-foreground performance approval. The full Node run passed 402 of 403 tests;
-the sole failure is the pre-existing player-combat contact-shape assertion.
+November 12, 2026 verification: uninterrupted playback completed naturally with
+zero browser errors, 17 visited systems, 45 catalog bodies, three gas styles and
+43 actual destructions. The lifecycle check passed audible narration, pause,
+seeking, replay, cold cancellation, a failed-load retry, controller-menu access,
+save isolation, and direct New Game/Continue. Cold menu-click-to-ready time was
+3.73 seconds in that headless Edge run; this is loading latency, not an FPS result.
+The focused Node run passed 98 tests, including shared firing, effect isolation,
+nebula weather and regenerated physical-debris signatures for all 86 hulls.
+Reports and screenshots remain under `test-results/film-repair/`,
+`test-results/opening-cinematic/` and `test-results/opening-campaign/`.

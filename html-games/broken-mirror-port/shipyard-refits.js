@@ -2,20 +2,20 @@
 (() => {
  'use strict';
  const upgrades=Object.freeze({
-  cargo:{name:'Cargo expansion',detail:'+20% base cargo per level',points:1,max:3,price:1600,materials:{tritanium:8,deuranium:4}},
-  hull:{name:'Ablative hull reinforcement',detail:'+15% base hull per level',points:2,max:3,price:2400,materials:{tritanium:14,deuranium:6}},
-  shield:{name:'Shield grid reinforcement',detail:'+15% shield capacity per level',points:2,max:3,price:2600,materials:{trellium:14,dilithium:6}},
-  weapon:{name:'Extra weapon hardpoint',detail:'+1 weapon slot per level',points:3,max:2,price:5500,materials:{tritanium:16,dilithium:14,gallicite:6}},
-  dot:{name:'Extra Dot repair bay',detail:'+1 Dot slot per level; drone purchased separately',points:2,max:2,price:3600,materials:{tritanium:12,deuranium:8,dilithium:8}},
-  engine:{name:'Impulse engine tuning',detail:'+8% flight speed and +1 weapon power per level',points:2,max:2,price:3000,materials:{gallicite:16,dilithium:8}},
-  utility:{name:'Auxiliary systems bay',detail:'+1 ability slot',points:2,max:1,price:4200,materials:{gallicite:10,tritanium:12,dilithium:10}},
-  drive:{name:'Advanced warp tuning',detail:'+12% warp speed and fuel efficiency per level',points:2,max:2,price:6800,materials:{benamite:4,gallicite:12,dilithium:12}}
+  cargo:{name:'Cargo expansion',detail:'+20% base cargo per level',max:3,price:1600,materials:{tritanium:8,deuranium:4}},
+  hull:{name:'Ablative hull reinforcement',detail:'+15% base hull per level',max:3,price:2400,materials:{tritanium:14,deuranium:6}},
+  shield:{name:'Shield grid reinforcement',detail:'+15% shield capacity per level',max:3,price:2600,materials:{trellium:14,dilithium:6}},
+  weapon:{name:'Extra weapon hardpoint',detail:'+1 weapon slot per level',max:2,price:5500,materials:{tritanium:16,dilithium:14,gallicite:6}},
+  dot:{name:'Extra Dot repair bay',detail:'+1 Dot slot per level; drone purchased separately',max:2,price:3600,materials:{tritanium:12,deuranium:8,dilithium:8}},
+  engine:{name:'Impulse engine tuning',detail:'+8% flight speed and +1 weapon power per level',max:2,price:3000,materials:{gallicite:16,dilithium:8}},
+  utility:{name:'Auxiliary systems bay',detail:'+1 ability slot',max:1,price:4200,materials:{gallicite:10,tritanium:12,dilithium:10}},
+  drive:{name:'Advanced warp tuning',detail:'+12% warp speed and fuel efficiency per level',max:2,price:6800,materials:{benamite:4,gallicite:12,dilithium:12}}
  });
  const shields=[
-  {id:'fed-standard',name:'Federation deflector Mk I',description:'Balanced deflector. Full base capacity; no refit points.',factor:1,regen:.012,delay:7,points:0,price:2200,materials:{trellium:8,tritanium:4}},
-  {id:'fed-regenerative',name:'Regenerative deflector',description:'90% capacity. Recharges 3% per second after 4 seconds without a hit.',factor:.9,regen:.03,delay:4,points:2,price:7800,materials:{trellium:24,gallicite:12,dilithium:18}},
-  {id:'fed-capacity',name:'High-capacity deflector',description:'150% capacity. Slow 0.6% recharge after a 10-second delay.',factor:1.5,regen:.006,delay:10,points:3,price:10500,materials:{trellium:34,tritanium:16,dilithium:24}},
-  {id:'fed-adaptive',name:'Adaptive multiphasic deflector',description:'110% capacity. Shield absorbs 20% less damage from a repeated weapon family within 8 seconds. Hull is unaffected.',factor:1.1,regen:.015,delay:6,points:4,price:16000,materials:{trellium:40,benamite:6,gallicite:16,dilithium:32}}
+  {id:'fed-standard',name:'Federation deflector Mk I',description:'Balanced deflector. Full base capacity.',factor:1,regen:.012,delay:7,price:2200,materials:{trellium:8,tritanium:4}},
+  {id:'fed-regenerative',name:'Regenerative deflector',description:'90% capacity. Recharges 3% per second after 4 seconds without a hit.',factor:.9,regen:.03,delay:4,price:7800,materials:{trellium:24,gallicite:12,dilithium:18}},
+  {id:'fed-capacity',name:'High-capacity deflector',description:'150% capacity. Slow 0.6% recharge after a 10-second delay.',factor:1.5,regen:.006,delay:10,price:10500,materials:{trellium:34,tritanium:16,dilithium:24}},
+  {id:'fed-adaptive',name:'Adaptive multiphasic deflector',description:'110% capacity. Shield absorbs 20% less damage from a repeated weapon family within 8 seconds. Hull is unaffected.',factor:1.1,regen:.015,delay:6,price:16000,materials:{trellium:40,benamite:6,gallicite:16,dilithium:32}}
  ].map(s=>Object.freeze({...s,category:'shield',shipyardOnly:true}));
  const weapons=[
   [1001,'Type VII Phaser Array',14,2,9,520,1,2200,{tritanium:4,dilithium:3},'Light, efficient beam array.'],
@@ -34,11 +34,10 @@
  const levels=s=>s.shipRefit?.version===1&&Number(s.shipRefit.hullType)===Number(s.shipType)?s.shipRefit.levels||{}:{};
  const level=(s,k)=>Math.min(upgrades[k]?.max||0,integer(levels(s)[k]));
  function installedShield(s){const eq=s.shipEquipment;return models.get(String(eq?.instances[eq?.slots.shield?.[0]]?.modelId));}
+ // Retained shared API for weapon output and hull class; upgrades have no point budget.
  function budget(s){
-  const d=base(s),tier=d.hull>=350||d.cargo>=400?2:d.hull>=130||d.cargo>=100?1:0,capacity=[8,12,16][tier];
-  const legacy=Object.values(s.mineralUpgrades?.[s.shipType]||{}).reduce((a,n)=>a+2*Math.min(3,integer(n)),0);
-  const used=legacy+Object.entries(upgrades).reduce((a,[k,u])=>a+level(s,k)*u.points,0)+(installedShield(s)?.points||0);
-  return {total:Math.max(capacity,legacy),used,legacy,power:[7,11,16][tier]+level(s,'engine'),className:['Light','Cruiser','Capital'][tier]};
+  const d=base(s),tier=d.hull>=350||d.cargo>=400?2:d.hull>=130||d.cargo>=100?1:0;
+  return {power:[7,11,16][tier]+level(s,'engine'),className:['Light','Cruiser','Capital'][tier]};
  }
  function slots(s,definition=base(s)){return {...definition.slots,weapon:definition.slots.weapon+level(s,'weapon'),repairDrone:definition.slots.repairDrone+level(s,'dot'),ability:definition.slots.ability+level(s,'utility')};}
  function stats(s,d){
@@ -56,7 +55,6 @@
  }
  function validateFit(s,{category,slot,modelId,fromSlot}){
   const eq=s.shipEquipment,b=budget(s),m=window.nativeShipEquipment.model(modelId);
-  if(category==='shield'&&b.used-(installedShield(s)?.points||0)+(m?.points||0)>b.total)return {ok:false,error:'This deflector exceeds the hull refit budget. Remove a refit first.'};
   if(category==='weapon'){
    const replaced=eq?.instances[eq?.slots.weapon?.[slot]],otherPower=replaced?window.nativeShipEquipment.model(replaced.modelId)?.power||1:0;
    const power=(eq?.slots.weapon||[]).reduce((n,id,i)=>n+(i===slot?(m?.power||1):i===fromSlot?otherPower:(id?window.nativeShipEquipment.model(eq.instances[id]?.modelId)?.power||1:0)),0);
@@ -64,11 +62,13 @@
   }
   return {ok:true};
  }
- const docked=s=>s.shipyardDock?.phase==='docked'&&(window.VexedMirrorWorld?.shipyards||[{id:'mars-earth-shipyard-01',system:1}]).some(y=>y.id===s.shipyardDock.station&&y.system===Number(s.system));
+ const docked=s=>s.shipyardDock?.phase==='docked'&&(window.nativeFactionShipyards
+  ?window.nativeFactionShipyards.definitionFor(s)?.id===s.shipyardDock.station
+  :(window.VexedMirrorWorld?.shipyards||[{id:'mars-earth-shipyard-01',system:1}]).some(y=>y.id===s.shipyardDock.station&&y.system===Number(s.system)));
  function quote(s,kind){
   const u=upgrades[kind];if(!u)return null;
-  const current=level(s,kind),factor=current+1,b=budget(s);
-  return {...u,kind,level:current,price:u.price*factor,materials:Object.fromEntries(Object.entries(u.materials).map(([k,n])=>[k,n*factor])),allowed:current<u.max&&b.used+u.points<=b.total};
+  const current=level(s,kind),factor=current+1;
+  return {...u,kind,level:current,price:u.price*factor,materials:Object.fromEntries(Object.entries(u.materials).map(([k,n])=>[k,n*factor])),allowed:current<u.max};
  }
  function atomic(s,action,save,{atPort=false}={}){
   if(!docked(s)&&!atPort)return {ok:false,error:'Complete docking at a shipyard first.'};
@@ -91,11 +91,11 @@
  function preview(s,kind){
   const q=quote(s,kind);if(!q)return null;
   const draft={...s,shipRefit:{version:1,hullType:s.shipType,levels:{...levels(s),[kind]:q.level+1}}},category=bayKind(kind);
-  return {quote:q,before:window.nativeShipDefinitions.forEntity(s),after:window.nativeShipDefinitions.forEntity(draft),budgetBefore:budget(s),budgetAfter:budget(draft),
+  return {quote:q,before:window.nativeShipDefinitions.forEntity(s),after:window.nativeShipDefinitions.forEntity(draft),
    newBay:category&&q.level<q.max?{category,index:window.nativeShipEquipment.capacities(s)[category]}:null};
  }
  function upgrade(s,kind,save,placement){return atomic(s,()=>{
-  const q=quote(s,kind);if(!q?.allowed)return {ok:false,error:'Hull limit or shared refit budget reached.'};
+  const q=quote(s,kind);if(!q?.allowed)return {ok:false,error:'Maximum upgrade tier reached.'};
   const paid=charge(s,q);if(!paid.ok)return paid;
   const before=window.nativeShipDefinitions.forEntity(s),category=bayKind(kind),index=category?window.nativeShipEquipment.capacities(s)[category]:null;
   if(s.shipRefit?.version!==1||s.shipRefit.hullType!==s.shipType)s.shipRefit={version:1,hullType:s.shipType,levels:{}};
@@ -121,7 +121,6 @@
   const after=window.nativeShipDefinitions.forEntity(s),eq=window.nativeShipEquipment.ensure(s);
   if(after.cargo<before.cargo&&window.nativeShipEquipment.cargoUsed(s)>after.cargo)return {ok:false,error:'Unload cargo before removing this expansion.'};
   if(Object.values(eq.instances).some(i=>i.category==='repairDrone'&&!['stowed','destroyed'].includes(i.phase)))return {ok:false,error:'Recover deployed Dots before refitting.'};
-  if(budget(s).used>budget(s).total)return {ok:false,error:'The installed deflector still exceeds this budget.'};
   const power=eq.slots.weapon.reduce((n,id)=>n+(id?window.nativeShipEquipment.model(eq.instances[id]?.modelId)?.power||1:0),0);
   if(power>budget(s).power)return {ok:false,error:'Fit lower-power weapons before removing engine tuning.'};
   s.hull=Math.min(after.hull,(Number(s.hull)||0)*after.hull/Math.max(1,before.hull));s.shields=Math.min(after.shields,Number(s.shields)||0);
@@ -155,5 +154,5 @@
   s.shieldResponse={lastHit:now,family};return adapted?Math.max(0,amount-Math.min(amount,Math.max(0,Number(s.shields)||0)/.8)*.2):amount;
  }
  window.nativeShipyardRefits=Object.freeze({upgrades,weapons,shields,model:id=>models.get(String(id)),level,budget,slots,stats,quote,preview,validateFit,docked,upgrade,upgradeThrusters,remove,buy,fit,unfit,advance,shieldHit,
-  canMineralUpgrade:s=>budget(s).used+2<=budget(s).total});
+  canMineralUpgrade:()=>true});
 })();

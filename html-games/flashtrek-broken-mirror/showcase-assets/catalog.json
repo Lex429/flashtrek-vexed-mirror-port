@@ -135,41 +135,45 @@
     {
       "id": 4,
       "name": "Nebula Class",
-      "origin": "Rebirth",
+      "origin": "User replacement artwork with generated damage stages",
       "frames": [
-        "ship-4-0.png",
-        "ship-4-1.png",
-        "ship-4-2.png",
-        "ship-4-3.png"
+        "replacement-ships/nebula/intact.png",
+        "replacement-ships/nebula/light.png",
+        "replacement-ships/nebula/heavy.png",
+        "replacement-ships/nebula/severe.png"
       ],
-      "original": "original-4.png",
+      "original": "replacement-ships/nebula/intact.png",
       "bounds": [
-        -991,
-        1189,
-        -930,
-        1090
+        0,
+        512,
+        0,
+        490
       ],
       "mass": 600,
       "debrisKind": 1,
       "points": [
         {
           "kind": "beam",
-          "x": -0.3370044052863436,
-          "y": -0.08590308370044053
+          "x": -0.337890625,
+          "y": -0.08571428571428569
         },
         {
           "kind": "beam",
-          "x": 0.3325991189427313,
-          "y": -0.1035242290748899
+          "x": 0.33203125,
+          "y": -0.10408163265306125
         },
         {
           "kind": "torpedo",
-          "x": -0.0022026431718061845,
-          "y": -0.45594713656387664
+          "x": -0.001953125,
+          "y": -0.45510204081632655
         }
       ],
       "size": 227,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "ship 04 replacement.png"
     },
     {
       "id": 5,
@@ -213,36 +217,40 @@
     {
       "id": 6,
       "name": "Saber Class",
-      "origin": "AI remaster",
+      "origin": "User replacement artwork with generated damage stages",
       "frames": [
-        "ship-6-0.png",
-        "ship-6-1.png",
-        "ship-6-2.png",
-        "ship-6-3.png"
+        "replacement-ships/saber/intact.png",
+        "replacement-ships/saber/light.png",
+        "replacement-ships/saber/heavy.png",
+        "replacement-ships/saber/severe.png"
       ],
-      "original": "original-6.png",
+      "original": "replacement-ships/saber/intact.png",
       "bounds": [
-        -293,
-        314,
-        -346,
-        345
+        0,
+        468,
+        0,
+        512
       ],
       "mass": 100,
       "debrisKind": 1,
       "points": [
         {
           "kind": "beam",
-          "x": 0.020000000000000018,
-          "y": -0.36
+          "x": 0.019230769230769273,
+          "y": -0.359375
         },
         {
           "kind": "beam",
-          "x": 0.020000000000000018,
-          "y": 0.24
+          "x": 0.019230769230769273,
+          "y": 0.240234375
         }
       ],
       "size": 50,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "ship 6 replacement saber class.png"
     },
     {
       "id": 7,
@@ -322,25 +330,29 @@
     {
       "id": 10,
       "name": "Tug Class II",
-      "origin": "Supplied missing ship",
+      "origin": "User replacement artwork with generated damage stages",
       "frames": [
-        "ship-10-0.png",
-        "ship-10-1.png",
-        "ship-10-2.png",
-        "ship-10-3.png"
+        "replacement-ships/tug/intact.png",
+        "replacement-ships/tug/light.png",
+        "replacement-ships/tug/heavy.png",
+        "replacement-ships/tug/severe.png"
       ],
-      "original": "original-10.png",
+      "original": "replacement-ships/tug/intact.png",
       "bounds": [
-        -333,
-        314,
-        -1090,
-        930
+        0,
+        379,
+        0,
+        512
       ],
       "mass": 300.7,
       "debrisKind": 1,
       "points": [],
       "size": 200,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "tug replacement.png"
     },
     {
       "id": 11,
@@ -391,25 +403,29 @@
     {
       "id": 13,
       "name": "Mozart Class",
-      "origin": "Supplied missing ship",
+      "origin": "User replacement artwork with generated damage stages",
       "frames": [
-        "ship-13-0.png",
-        "ship-13-1.png",
-        "ship-13-2.png",
-        "ship-13-3.png"
+        "replacement-ships/mozart/intact.png",
+        "replacement-ships/mozart/light.png",
+        "replacement-ships/mozart/heavy.png",
+        "replacement-ships/mozart/severe.png"
       ],
-      "original": "original-13.png",
+      "original": "replacement-ships/mozart/intact.png",
       "bounds": [
-        -626,
-        646,
-        -870,
-        990
+        0,
+        336,
+        0,
+        512
       ],
       "mass": 300.7,
       "debrisKind": 1,
       "points": [],
       "size": 200,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "ship 13 replacement.png"
     },
     {
       "id": 14,
@@ -1200,138 +1216,151 @@
     {
       "id": 36,
       "name": "Intrepid Class",
-      "origin": "AI remaster",
+      "origin": "User replacement artwork with generated damage stages",
       "frames": [
-        "ship-36-0.png",
-        "ship-36-1.png",
-        "ship-36-2.png",
-        "ship-36-3.png"
+        "replacement-ships/intrepid/intact.png",
+        "replacement-ships/intrepid/light.png",
+        "replacement-ships/intrepid/heavy.png",
+        "replacement-ships/intrepid/severe.png"
       ],
-      "original": "original-36.png",
+      "original": "replacement-ships/intrepid/intact.png",
       "bounds": [
-        -341,
-        319,
-        -790,
-        870
+        0,
+        223,
+        0,
+        512
       ],
       "mass": 150,
       "debrisKind": 1,
       "points": [
         {
           "kind": "torpedo",
-          "x": 0.008333333333333304,
-          "y": -0.3833333333333333
+          "x": 0.006726457399103158,
+          "y": -0.3828125
         },
         {
           "kind": "beam",
-          "x": -0.09999999999999998,
-          "y": -0.2
+          "x": -0.1008968609865471,
+          "y": -0.19921875
         },
         {
           "kind": "beam",
-          "x": 0.125,
-          "y": -0.2
+          "x": 0.12331838565022424,
+          "y": -0.19921875
         },
         {
           "kind": "torpedo",
-          "x": 0.008333333333333304,
-          "y": 0.41666666666666663
+          "x": 0.006726457399103158,
+          "y": 0.416015625
         },
         {
           "kind": "beam",
-          "x": -0.08333333333333331,
-          "y": 0.32499999999999996
+          "x": -0.0829596412556054,
+          "y": 0.32421875
         },
         {
           "kind": "beam",
-          "x": 0.09166666666666667,
-          "y": 0.32499999999999996
+          "x": 0.09192825112107628,
+          "y": 0.32421875
         }
       ],
       "size": 120,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "intrpid class replacement.png"
     },
     {
       "id": 37,
       "name": "Prometheus Class",
-      "origin": "Supplied missing ship",
+      "origin": "User supplied aligned Prometheus package",
       "frames": [
-        "ship-37-0.png",
-        "ship-37-1.png",
-        "ship-37-2.png",
-        "ship-37-3.png"
+        "prometheus-mvam-v2/joined/intact.png",
+        "prometheus-mvam-v2/joined/light.png",
+        "prometheus-mvam-v2/joined/heavy.png",
+        "prometheus-mvam-v2/joined/severe.png"
       ],
-      "original": "original-37.png",
+      "original": "prometheus-mvam-v2/joined/intact.png",
       "bounds": [
-        -338,
-        357,
-        -919,
-        840
+        0,
+        512,
+        0,
+        1024
       ],
       "mass": 300.7,
       "debrisKind": 1,
       "points": [],
       "size": 200,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "kind": "ship",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "Three supplied Prometheus modules"
     },
     {
       "id": 38,
       "name": "Sovereign Class",
-      "origin": "Rebirth",
+      "origin": "User replacement artwork with generated damage stages",
       "frames": [
-        "ship-38-0.png",
-        "ship-38-1.png",
-        "ship-38-2.png",
-        "ship-38-3.png"
+        "replacement-ships/sovereign/intact.png",
+        "replacement-ships/sovereign/light.png",
+        "replacement-ships/sovereign/heavy.png",
+        "replacement-ships/sovereign/severe.png"
       ],
-      "original": "original-38.png",
+      "original": "replacement-ships/sovereign/intact.png",
       "bounds": [
-        -811,
-        829,
-        -1750,
-        1910
+        0,
+        204,
+        0,
+        512
       ],
       "mass": 650,
       "debrisKind": 1,
       "points": [
         {
           "kind": "beam",
-          "x": 0,
-          "y": -0.3787878787878788
+          "x": 0.0,
+          "y": -0.37890625
         },
         {
           "kind": "beam",
-          "x": -0.12424242424242427,
-          "y": -0.28181818181818186
+          "x": -0.12254901960784315,
+          "y": -0.28125
         },
         {
           "kind": "beam",
-          "x": 0.11515151515151512,
-          "y": -0.28181818181818186
+          "x": 0.11274509803921573,
+          "y": -0.28125
         },
         {
           "kind": "beam",
-          "x": -0.030303030303030276,
-          "y": 0.21212121212121215
+          "x": -0.02941176470588236,
+          "y": 0.212890625
         },
         {
           "kind": "torpedo",
-          "x": 0,
-          "y": -0.45454545454545453
+          "x": 0.0,
+          "y": -0.455078125
         },
         {
           "kind": "torpedo",
-          "x": 0,
-          "y": 0.26363636363636367
+          "x": 0.0,
+          "y": 0.2578125
         },
         {
           "kind": "beam",
-          "x": 0.06060606060606055,
-          "y": 0.21212121212121215
+          "x": 0.05882352941176472,
+          "y": 0.212890625
         }
       ],
       "size": 330,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "ship 38 replacement.png"
     },
     {
       "id": 39,
@@ -1816,86 +1845,90 @@
     {
       "id": 49,
       "name": "Galaxy Dreadnaught",
-      "origin": "Rebirth",
+      "origin": "User replacement artwork with generated damage stages",
       "frames": [
-        "ship-49-0.png",
-        "ship-49-1.png",
-        "ship-49-2.png",
-        "ship-49-3.png"
+        "replacement-ships/galaxy-dreadnaught/intact.png",
+        "replacement-ships/galaxy-dreadnaught/light.png",
+        "replacement-ships/galaxy-dreadnaught/heavy.png",
+        "replacement-ships/galaxy-dreadnaught/severe.png"
       ],
-      "original": "original-49.png",
+      "original": "replacement-ships/galaxy-dreadnaught/intact.png",
       "bounds": [
-        -1290,
-        1310,
-        -1670,
-        1670
+        0,
+        451,
+        0,
+        512
       ],
       "mass": 700,
       "debrisKind": 1,
       "points": [
         {
           "kind": "beam",
-          "x": -0.26,
-          "y": -0.21333333333333332
+          "x": -0.2605321507760532,
+          "y": -0.212890625
         },
         {
           "kind": "beam",
-          "x": 0.2566666666666667,
-          "y": -0.2
+          "x": 0.25609756097560976,
+          "y": -0.19921875
         },
         {
           "kind": "beam",
-          "x": -0.23333333333333334,
-          "y": 0.38
+          "x": -0.23392461197339248,
+          "y": 0.380859375
         },
         {
           "kind": "beam",
-          "x": 0.22666666666666668,
-          "y": 0.38
+          "x": 0.2272727272727273,
+          "y": 0.380859375
         },
         {
           "kind": "torpedo",
-          "x": -0.033333333333333326,
-          "y": -0.49666666666666665
+          "x": -0.0343680709534368,
+          "y": -0.494140625
         },
         {
           "kind": "torpedo",
-          "x": 0.01666666666666672,
-          "y": -0.49666666666666665
+          "x": 0.016629711751662946,
+          "y": -0.494140625
         },
         {
           "kind": "torpedo",
-          "x": -0.033333333333333326,
-          "y": 0.3966666666666666
+          "x": -0.0343680709534368,
+          "y": 0.396484375
         },
         {
           "kind": "torpedo",
-          "x": 0.01666666666666672,
-          "y": 0.3966666666666666
+          "x": 0.016629711751662946,
+          "y": 0.396484375
         },
         {
           "kind": "beam",
-          "x": -0.010000000000000009,
-          "y": -0.38666666666666666
+          "x": -0.009977827050997756,
+          "y": -0.38671875
         },
         {
           "kind": "disruptor",
-          "x": -0.09333333333333332,
-          "y": -0.2633333333333333
+          "x": -0.0942350332594235,
+          "y": -0.263671875
         },
         {
           "kind": "disruptor",
-          "x": 0.09333333333333338,
-          "y": -0.2633333333333333
+          "x": 0.0942350332594235,
+          "y": -0.263671875
         },
         {
           "kind": "beam",
-          "x": 0.00666666666666671,
-          "y": -0.4666666666666667
+          "x": 0.0077605321507761005,
+          "y": -0.466796875
         }
       ],
       "size": 300,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "star trek galaxy dreadnaught class replacement.png"
     },
     {
       "id": 50,
@@ -2244,25 +2277,29 @@
     {
       "id": 58,
       "name": "Olympic Class",
-      "origin": "Supplied missing ship",
+      "origin": "User replacement artwork with generated damage stages",
       "frames": [
-        "ship-58-0.png",
-        "ship-58-1.png",
-        "ship-58-2.png",
-        "ship-58-3.png"
+        "replacement-ships/olympic/intact.png",
+        "replacement-ships/olympic/light.png",
+        "replacement-ships/olympic/heavy.png",
+        "replacement-ships/olympic/severe.png"
       ],
-      "original": "original-58.png",
+      "original": "replacement-ships/olympic/intact.png",
       "bounds": [
-        -610,
-        630,
-        -1580,
-        1580
+        0,
+        214,
+        0,
+        512
       ],
       "mass": 300.7,
       "debrisKind": 1,
       "points": [],
       "size": 200,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "ship 58 medical ship replacement.png"
     },
     {
       "id": 59,
@@ -2290,25 +2327,29 @@
     {
       "id": 60,
       "name": "Dreadnaught Class",
-      "origin": "Supplied missing ship",
+      "origin": "User replacement artwork with generated damage stages",
       "frames": [
-        "ship-60-0.png",
-        "ship-60-1.png",
-        "ship-60-2.png",
-        "ship-60-3.png"
+        "replacement-ships/dreadnaught/intact.png",
+        "replacement-ships/dreadnaught/light.png",
+        "replacement-ships/dreadnaught/heavy.png",
+        "replacement-ships/dreadnaught/severe.png"
       ],
-      "original": "original-60.png",
+      "original": "replacement-ships/dreadnaught/intact.png",
       "bounds": [
-        -1460,
-        1480,
-        -2820,
-        2820
+        0,
+        261,
+        0,
+        512
       ],
       "mass": 600.4,
       "debrisKind": 1,
       "points": [],
       "size": 200,
-      "shieldColor": "blue"
+      "shieldColor": "blue",
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "replacementSource": "ship 60 replacement.png"
     },
     {
       "id": 61,
@@ -4747,22 +4788,30 @@
       "id": 414,
       "name": "Tug Class II · Standard Freight",
       "kind": "ship",
-      "origin": "User supplied Tug Class II variants",
-      "artworkStatus": "intact-only",
+      "origin": "User replacement artwork with generated damage stages",
+      "artworkStatus": "animated",
       "frames": [
-        "tug-class-ii/tug-class-ii.png",
-        null,
-        null,
-        null
+        "replacement-ships/tug/intact.png",
+        "replacement-ships/tug/light.png",
+        "replacement-ships/tug/heavy.png",
+        "replacement-ships/tug/severe.png"
       ],
-      "original": "tug-class-ii/tug-class-ii.png",
+      "original": "replacement-ships/tug/intact.png",
       "bounds": [
         0,
-        158,
+        379,
         0,
-        446
+        512
       ],
-      "previewSize": 360
+      "previewSize": 360,
+      "damageReady": true,
+      "damageFramesReady": true,
+      "replacementSource": "tug replacement.png",
+      "points": [],
+      "mass": 300.7,
+      "debrisKind": 1,
+      "size": 200,
+      "shieldColor": "blue"
     },
     {
       "id": 415,
@@ -5087,20 +5136,20 @@
       "id": 433,
       "name": "U.S.S. Stargazer NCC-82893",
       "kind": "ship",
-      "origin": "User supplied ship artwork",
-      "artworkStatus": "damage-art",
+      "origin": "User replacement artwork with generated damage stages",
+      "artworkStatus": "animated",
       "frames": [
-        "new-ship-art/ship-433.png",
-        "new-ship-art/ship-433-light.png",
-        "new-ship-art/ship-433-heavy.png",
-        "new-ship-art/ship-433-severe.png"
+        "replacement-ships/stargazer/intact.png",
+        "replacement-ships/stargazer/light.png",
+        "replacement-ships/stargazer/heavy.png",
+        "replacement-ships/stargazer/severe.png"
       ],
-      "original": "new-ship-art/ship-433.png",
+      "original": "replacement-ships/stargazer/intact.png",
       "bounds": [
         0,
-        1024,
+        275,
         0,
-        1536
+        512
       ],
       "previewSize": 360,
       "damageFramesReady": true,
@@ -5111,15 +5160,17 @@
       "points": [
         {
           "kind": "torpedo",
-          "x": 0,
-          "y": -0.35
+          "x": -0.0018181818181818299,
+          "y": -0.349609375
         },
         {
           "kind": "beam",
-          "x": 0,
-          "y": -0.2
+          "x": -0.0018181818181818299,
+          "y": -0.19921875
         }
-      ]
+      ],
+      "damageReady": true,
+      "replacementSource": "stargazer replacement.png"
     },
     {
       "id": 434,
@@ -5277,20 +5328,20 @@
       "id": 438,
       "name": "Intrepid Class",
       "kind": "ship",
-      "origin": "User supplied ship artwork",
-      "artworkStatus": "damage-art",
+      "origin": "User replacement artwork with generated damage stages",
+      "artworkStatus": "animated",
       "frames": [
-        "new-ship-art/ship-438.png",
-        "new-ship-art/ship-438-light.png",
-        "new-ship-art/ship-438-heavy.png",
-        "new-ship-art/ship-438-severe.png"
+        "replacement-ships/intrepid/intact.png",
+        "replacement-ships/intrepid/light.png",
+        "replacement-ships/intrepid/heavy.png",
+        "replacement-ships/intrepid/severe.png"
       ],
-      "original": "new-ship-art/ship-438.png",
+      "original": "replacement-ships/intrepid/intact.png",
       "bounds": [
         0,
-        993,
+        223,
         0,
-        1584
+        512
       ],
       "previewSize": 360,
       "damageFramesReady": true,
@@ -5301,15 +5352,17 @@
       "points": [
         {
           "kind": "torpedo",
-          "x": 0,
-          "y": -0.35
+          "x": -0.0022421524663677195,
+          "y": -0.349609375
         },
         {
           "kind": "beam",
-          "x": 0,
-          "y": -0.2
+          "x": -0.0022421524663677195,
+          "y": -0.19921875
         }
-      ]
+      ],
+      "damageReady": true,
+      "replacementSource": "intrpid class replacement.png"
     },
     {
       "id": 439,
@@ -5353,20 +5406,20 @@
       "id": 440,
       "name": "Picard's Ship - U.S.S. Enterprise NCC-1701-D",
       "kind": "ship",
-      "origin": "User supplied ship artwork",
-      "artworkStatus": "damage-art",
+      "origin": "User replacement artwork with generated damage stages",
+      "artworkStatus": "animated",
       "frames": [
-        "new-ship-art/ship-440.png",
-        "new-ship-art/ship-440-light.png",
-        "new-ship-art/ship-440-heavy.png",
-        "new-ship-art/ship-440-severe.png"
+        "replacement-ships/picard/intact.png",
+        "replacement-ships/picard/light.png",
+        "replacement-ships/picard/heavy.png",
+        "replacement-ships/picard/severe.png"
       ],
-      "original": "new-ship-art/ship-440.png",
+      "original": "replacement-ships/picard/intact.png",
       "bounds": [
         0,
-        1254,
+        452,
         0,
-        1254
+        512
       ],
       "previewSize": 360,
       "damageFramesReady": true,
@@ -5377,15 +5430,17 @@
       "points": [
         {
           "kind": "torpedo",
-          "x": 0,
-          "y": -0.35
+          "x": 0.0,
+          "y": -0.349609375
         },
         {
           "kind": "beam",
-          "x": 0,
-          "y": -0.2
+          "x": 0.0,
+          "y": -0.19921875
         }
-      ]
+      ],
+      "damageReady": true,
+      "replacementSource": "picards ship replacement.png"
     },
     {
       "id": 441,
@@ -5576,6 +5631,242 @@
           "y": -0.2
         }
       ]
+    },
+    {
+      "id": 446,
+      "name": "Orion Dart Scout",
+      "kind": "ship",
+      "origin": "Original Orion artwork, built-in image_gen",
+      "artworkStatus": "animated",
+      "frames": [
+        "orion/orion-scout-intact.png",
+        "orion/orion-scout-light.png",
+        "orion/orion-scout-heavy.png",
+        "orion/orion-scout-severe.png"
+      ],
+      "original": "orion/orion-scout-intact.png",
+      "bounds": [
+        0,
+        512,
+        0,
+        512
+      ],
+      "previewSize": 320,
+      "damageFramesReady": true,
+      "mass": 75,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "beam",
+          "x": -0.12,
+          "y": -0.22
+        },
+        {
+          "kind": "torpedo",
+          "x": -0.12,
+          "y": -0.22
+        }
+      ]
+    },
+    {
+      "id": 447,
+      "name": "Orion Corsair Raider",
+      "kind": "ship",
+      "origin": "Original Orion artwork, built-in image_gen",
+      "artworkStatus": "animated",
+      "frames": [
+        "orion/orion-raider-intact.png",
+        "orion/orion-raider-light.png",
+        "orion/orion-raider-heavy.png",
+        "orion/orion-raider-severe.png"
+      ],
+      "original": "orion/orion-raider-intact.png",
+      "bounds": [
+        0,
+        512,
+        0,
+        512
+      ],
+      "previewSize": 320,
+      "damageFramesReady": true,
+      "mass": 225,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.32
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        }
+      ]
+    },
+    {
+      "id": 448,
+      "name": "Orion Ravager Cruiser",
+      "kind": "ship",
+      "origin": "Original Orion artwork, built-in image_gen",
+      "artworkStatus": "animated",
+      "frames": [
+        "orion/orion-cruiser-intact.png",
+        "orion/orion-cruiser-light.png",
+        "orion/orion-cruiser-heavy.png",
+        "orion/orion-cruiser-severe.png"
+      ],
+      "original": "orion/orion-cruiser-intact.png",
+      "bounds": [
+        0,
+        512,
+        0,
+        512
+      ],
+      "previewSize": 320,
+      "damageFramesReady": true,
+      "mass": 300,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.32
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        }
+      ]
+    },
+    {
+      "id": 449,
+      "name": "Orion Caravan Freighter",
+      "kind": "ship",
+      "origin": "Original Orion artwork, built-in image_gen",
+      "artworkStatus": "animated",
+      "frames": [
+        "orion/orion-freighter-intact.png",
+        "orion/orion-freighter-light.png",
+        "orion/orion-freighter-heavy.png",
+        "orion/orion-freighter-severe.png"
+      ],
+      "original": "orion/orion-freighter-intact.png",
+      "bounds": [
+        0,
+        512,
+        0,
+        512
+      ],
+      "previewSize": 320,
+      "damageFramesReady": true,
+      "mass": 225,
+      "debrisKind": 1,
+      "size": 150,
+      "shieldColor": "blue",
+      "points": [
+        {
+          "kind": "beam",
+          "x": 0,
+          "y": -0.32
+        },
+        {
+          "kind": "torpedo",
+          "x": 0,
+          "y": -0.35
+        }
+      ]
+    },
+    {
+      "id": 3701,
+      "name": "Prometheus Alpha section",
+      "kind": "ship",
+      "origin": "User supplied aligned Prometheus package",
+      "original": "prometheus-mvam-v2/top/intact.png",
+      "frames": [
+        "prometheus-mvam-v2/top/intact.png",
+        "prometheus-mvam-v2/top/light.png",
+        "prometheus-mvam-v2/top/heavy.png",
+        "prometheus-mvam-v2/top/severe.png"
+      ],
+      "bounds": [
+        0,
+        404,
+        0,
+        487
+      ],
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue",
+      "replacementSource": "Three supplied Prometheus modules"
+    },
+    {
+      "id": 3702,
+      "name": "Prometheus Beta section",
+      "kind": "ship",
+      "origin": "User supplied aligned Prometheus package",
+      "original": "prometheus-mvam-v2/middle/intact.png",
+      "frames": [
+        "prometheus-mvam-v2/middle/intact.png",
+        "prometheus-mvam-v2/middle/light.png",
+        "prometheus-mvam-v2/middle/heavy.png",
+        "prometheus-mvam-v2/middle/severe.png"
+      ],
+      "bounds": [
+        0,
+        388,
+        0,
+        888
+      ],
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue",
+      "replacementSource": "Three supplied Prometheus modules"
+    },
+    {
+      "id": 3703,
+      "name": "Prometheus Gamma section",
+      "kind": "ship",
+      "origin": "User supplied aligned Prometheus package",
+      "original": "prometheus-mvam-v2/bottom/intact.png",
+      "frames": [
+        "prometheus-mvam-v2/bottom/intact.png",
+        "prometheus-mvam-v2/bottom/light.png",
+        "prometheus-mvam-v2/bottom/heavy.png",
+        "prometheus-mvam-v2/bottom/severe.png"
+      ],
+      "bounds": [
+        0,
+        369,
+        0,
+        739
+      ],
+      "damageReady": true,
+      "damageFramesReady": true,
+      "artworkStatus": "animated",
+      "mass": 300.7,
+      "debrisKind": 1,
+      "points": [],
+      "size": 200,
+      "shieldColor": "blue",
+      "replacementSource": "Three supplied Prometheus modules"
     }
   ],
   "weapons": {

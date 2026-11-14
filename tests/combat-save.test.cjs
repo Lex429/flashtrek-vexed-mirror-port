@@ -25,6 +25,18 @@ test('normal and Dev queues remain mode-separated and flush before a lifecycle b
   assert.equal(f.api.flush(normal).ok,true);assert.equal(f.api.pending(dev),true);
   f.api.flush(dev);assert.equal(f.api.read('normal').hull,91);assert.equal(f.api.read('dev').hull,50);
 });
+
+test('retiring a destroyed live graph preserves its last playable save and permits a fresh restore',async()=>{
+  const f=fixture(),normal={hull:91,credits:17},dev={devMode:true,hull:50,credits:27};
+  f.api.write(normal);f.api.write(dev);const normalSave=f.data.get(f.api.keys.normal),devSave=f.data.get(f.api.keys.dev);
+  f.api.schedule(normal);normal.hull=0;normal.phase='destroyed';f.api.retire(normal);
+  f.time(20);assert.equal(f.api.flushDue(normal).pending,false);assert.equal(f.api.schedule(normal).pending,false);
+  assert.equal(f.api.flush(normal).pending,false);assert.equal(f.api.write(normal).ok,false);assert.equal((await f.api.writeAsync(normal)).ok,false);
+  assert.equal(f.api.prepare(normal),false);assert.equal(f.api.pending(normal),false);
+  assert.equal(f.data.get(f.api.keys.normal),normalSave);assert.equal(f.data.get(f.api.keys.dev),devSave);
+  const restored=f.api.read('normal');restored.credits=18;assert.equal(f.api.write(restored).ok,true);
+  assert.equal(f.api.read('normal').hull,91);assert.equal(f.api.read('normal').credits,18);
+});
 test('denied and silently lost combat saves report failure, remain dirty and retry at a bounded rate',()=>{
   for(const failure of ['throw','silent']){
     const f=fixture(),state={hull:80};let attempts=0;
@@ -80,6 +92,14 @@ test('an immediate purchase/save supersedes an older worker checkpoint without a
  const f=workerFixture();f.start();f.state.credits=350;f.state.shipSimulation.schedule.pendingSeconds=.375;
  assert.equal(f.api.write(f.state).ok,true);const writes=f.writes.length;f.workers[0].reply();
  assert.equal(f.writes.length,writes);assert.equal(f.api.read('dev').credits,350);assert.equal(f.api.read('dev').shipSimulation.schedule.pendingSeconds,.375);
+});
+
+test('death invalidates an in-flight worker checkpoint without overwriting either mode',()=>{
+  const f=workerFixture();f.api.write(f.state);f.api.write({devMode:false,hull:90});
+  const dev=f.data.get(f.api.keys.dev),normal=f.data.get(f.api.keys.normal);
+  f.start();f.state.hull=0;f.state.phase='destroyed';f.api.retire(f.state);const writes=f.writes.length;
+  f.workers[0].reply();assert.equal(f.writes.length,writes);assert.equal(f.api.pending(f.state),false);
+  assert.equal(f.data.get(f.api.keys.dev),dev);assert.equal(f.data.get(f.api.keys.normal),normal);
 });
 test('new work queued during encoding retains its own checkpoint and mode/state changes reject old results',()=>{
  const f=workerFixture();f.start();f.time(.4);f.state.hull=80;f.api.schedule(f.state);f.workers[0].reply();

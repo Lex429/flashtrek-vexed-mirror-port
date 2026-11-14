@@ -1,10 +1,11 @@
-"""Real new-game film, narration playback, battle frames, controls and save isolation."""
+"""Optional menu film: narration, current shared effects, controls and save isolation."""
 import functools
 import http.server
 import json
 import os
 from pathlib import Path
 import threading
+import time
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -15,6 +16,9 @@ manifest=json.loads((ROOT/'html-games/broken-mirror-port/assets/opening/cinemati
 
 class Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self,*args):pass
+    def do_GET(self):
+        try:super().do_GET()
+        except (ConnectionResetError,BrokenPipeError):pass # Expected cold-close/reload cancellation.
 
 
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(ROOT)))
@@ -36,22 +40,20 @@ try:
         base=f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/'
         page.goto(base+'index.html')
         page.wait_for_function('()=>window.nativeOpeningCinematic&&nativeCombatShots.isReady()&&document.querySelector("#startup").hidden',timeout=120000)
-        # A real setup launch must enter the movie before creating or replacing a save.
-        page.locator('[data-menu="new"]').click()
-        page.locator('.setup-primary').click()
-        page.locator('input[name="captain"]').fill('Cinematic Captain')
-        page.locator('input[name="ship"]').fill('ISS Resolve')
-        page.locator('input[name="government"]').fill('Earth Empire')
+        # Playback is available to both keyboard and controller menu navigation.
+        assert page.locator('#main-menu-controls #menu-opening-film').count()==1
         before=page.evaluate('JSON.stringify([nativeSaveStorage.read("normal"),nativeSaveStorage.read("dev")])')
-        page.locator('.setup-primary').click()
+        film_started=time.perf_counter()
+        page.locator('#menu-opening-film').click()
         wait_ready(page)
+        film_ready_seconds=time.perf_counter()-film_started
         assert page.locator('#opening-cinematic').is_visible()
         assert not page.evaluate('document.body.classList.contains("playing")')
         assert page.evaluate('JSON.stringify([nativeSaveStorage.read("normal"),nativeSaveStorage.read("dev")])')==before
         assert not page.evaluate('nativeOpeningCinematic.play()'),'Duplicate film accepted'
         state=page.evaluate('nativeOpeningCinematic.snapshot()')
         assert not state['renderer']['failures'],state
-        print(json.dumps({'prepared':state['renderer']}),flush=True)
+        print(json.dumps({'prepared':state['renderer']['prepared'],'optionalActive':state['renderer']['optionalActive']}),flush=True)
         page.wait_for_function('()=>nativeOpeningCinematic.snapshot().audioMaster',timeout=15000)
         audio_duration=page.evaluate('__filmMedia.find(a=>a.dataset.openingNarration==="true").duration')
         assert abs(audio_duration-manifest['duration'])<.06,(audio_duration,manifest['duration'])
@@ -120,16 +122,14 @@ try:
         page.evaluate('(t)=>nativeOpeningCinematic.seek(t)',next(c for c in manifest['cues'] if c['scene']=='war')['start']+4)
         page.screenshot(path=str(OUT/'war-compact.png'))
         assert page.locator('[data-film-action="skip"]').evaluate('(b)=>{const r=b.getBoundingClientRect();return r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;}')
-        # Escape completes the pending new-game launch exactly once.
+        # Escape returns to the menu without creating a game or changing saves.
         page.keyboard.press('Escape')
-        page.wait_for_function('()=>document.body.classList.contains("playing")',timeout=120000)
         assert not page.evaluate('nativeOpeningCinematic.active')
-        saved=page.evaluate('nativeSaveStorage.read("normal")')
-        assert saved['captain']=='Cinematic Captain' and saved['shipName']=='ISS Resolve',saved
+        assert page.locator('#menu-art').is_visible()
+        assert not page.evaluate('document.body.classList.contains("playing")')
+        assert page.evaluate('document.activeElement.id')=='menu-opening-film'
+        assert page.evaluate('JSON.stringify([nativeSaveStorage.read("normal"),nativeSaveStorage.read("dev")])')==before
         normal=page.evaluate('JSON.stringify(nativeSaveStorage.read("normal"))')
-        # Reload to the real menu and replay without changing either save mode.
-        page.goto(base+'index.html')
-        page.wait_for_function('()=>window.nativeOpeningCinematic&&document.querySelector("#startup").hidden',timeout=120000)
         page.locator('#menu-opening-film').click()
         wait_ready(page)
         assert page.evaluate('nativeOpeningCinematic.snapshot().settings.narration')==.73
@@ -142,20 +142,51 @@ try:
         assert page.evaluate('JSON.stringify(nativeSaveStorage.read("normal"))')==normal
         assert page.evaluate('nativeSaveStorage.read("dev")') is None
         assert not errors,errors
-        # Skip must work during the menu fade, before cold preparation finishes.
+        # Setup and actual New Game launch never play the film.
+        page.locator('[data-menu="new"]').click()
+        assert not page.evaluate('nativeOpeningCinematic.play()')
+        page.locator('.setup-primary').click()
+        page.locator('input[name="captain"]').fill('Cinematic Captain')
+        page.locator('input[name="ship"]').fill('ISS Resolve')
+        page.locator('input[name="government"]').fill('Earth Empire')
+        page.locator('.setup-primary').click()
+        page.wait_for_function('()=>document.body.classList.contains("playing")&&!nativeSetup.active',timeout=120000)
+        assert not page.evaluate('nativeOpeningCinematic.active||nativeOpeningCinematic.play()')
+        saved=page.evaluate('nativeSaveStorage.read("normal")')
+        assert saved['captain']=='Cinematic Captain' and saved['shipName']=='ISS Resolve'
+        # Continue also launches directly, without a film.
+        page.reload()
+        page.wait_for_function('()=>document.querySelector("#startup").hidden',timeout=120000)
+        page.locator('[data-menu="continue"]').click()
+        page.wait_for_function('()=>document.body.classList.contains("playing")',timeout=120000)
+        assert not page.evaluate('nativeOpeningCinematic.active||nativeOpeningCinematic.play()')
+        # A cold optional film can be closed before preparation finishes.
         cold=browser.new_page(viewport={'width':1280,'height':850})
         cold.on('pageerror',lambda error:errors.append(str(error)))
         cold.goto(base+'index.html')
         cold.wait_for_function('()=>window.nativeOpeningCinematic&&document.querySelector("#startup").hidden',timeout=120000)
-        cold.locator('[data-menu="new"]').click();cold.locator('.setup-primary').click();cold.locator('.setup-primary').click()
+        cold.locator('#menu-opening-film').click()
         cold.wait_for_function('()=>nativeOpeningCinematic.active')
         cold.locator('[data-film-action="skip"]').click()
-        cold.wait_for_function('()=>document.body.classList.contains("playing")',timeout=120000)
+        assert cold.locator('#menu-art').is_visible()
+        assert not cold.evaluate('document.body.classList.contains("playing")')
         cold.wait_for_timeout(350)
         assert cold.evaluate('nativeOpeningCinematic.snapshot().renderer.prepared')<=3
+        # Failure can be closed and retried; no failed request can launch a game.
+        cold.route('**/assets/opening/cinematic.json',lambda route:route.fulfill(status=503,body='Unavailable'))
+        cold.locator('#menu-opening-film').click()
+        cold.wait_for_function('()=>document.querySelector(".opening-status").textContent.includes("could not load")')
+        cold.locator('[data-film-action="skip"]').click()
+        assert cold.locator('#menu-art').is_visible()
+        cold.unroute('**/assets/opening/cinematic.json')
+        # Use the normal controller menu owner to discover and activate the button.
+        cold.evaluate('''()=>{const menu=document.querySelector('#main-menu-controls'),nav=nativeGamepadControls.menuNavigation();
+          document.activeElement.blur();for(let i=0;i<10;i++){if(nav.move(menu,'down')?.id==='menu-opening-film'){nav.activate(menu);nav.clear();return;}}throw Error('Film is not reachable from the controller menu');}''')
+        wait_ready(cold)
+        cold.locator('[data-film-action="skip"]').click()
         assert not errors,errors
         (OUT/'live-effects-delivery.json').write_text(json.dumps(delivery,indent=2)+'\n',encoding='utf-8')
-        report=dict(passed=True,duration=manifest['duration'],audioDuration=audio_duration,narrationLeadSilent=True,scenes=screenshots,audibleNarrationPeak=audio_peak,audioClockSeeking=True,sharedLiveEffects=True,maximumMusicDrift=max(abs(s['audio']-s['score']) for s in delivery['samples']),controls=True,newGameAfterFilm=True,replaySaveIsolation=True,normalCompletion=True,coldSkipCancelsPreparation=True,errors=errors)
+        report=dict(passed=True,duration=manifest['duration'],audioDuration=audio_duration,coldFilmReadySeconds=film_ready_seconds,narrationLeadSilent=True,scenes=screenshots,audibleNarrationPeak=audio_peak,audioClockSeeking=True,sharedLiveEffects=True,maximumMusicDrift=max(abs(s['audio']-s['score']) for s in delivery['samples']),controls=True,newGameAndContinueWithoutFilm=True,menuOnly=True,controllerMenuButton=True,replaySaveIsolation=True,normalCompletion=True,coldSkipCancelsPreparation=True,failureRetry=True,errors=errors)
         (OUT/'browser.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
         print(json.dumps(report))
         browser.close()

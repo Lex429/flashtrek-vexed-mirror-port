@@ -44,3 +44,51 @@ test('preview refresh work is bounded and read-only, while an input press always
  assert.equal(JSON.stringify(s),before);assert.equal(w.nativeSimulation.seconds(s),0);
  model.choose(s,null);assert.ok(calls>count);assert.equal(model.snapshot().refreshes,2);
 });
+
+const ctx={save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},stroke(){}};
+function publish(f,current=null){f.model.paint(ctx,f.state,{ship:{x:f.state.x,y:f.state.y,heading:f.state.angle},cx:640,cy:400,zoom:1,w:1280,h:800,current,visible:true});}
+
+test('nose ray uses an off-center large physical hull before a small object behind it',async()=>{
+ const f=await setup(),{state:s,window:w,model,add}=f;
+ w.nativeShipDefinitions.register(9910,{dimensions:{width:200,height:600}});
+ const large=add(8401,450,180),behind=add(8402,900,0);large.shipType=9910;large.heading=Math.PI/2;w.nativeShipSystems.invalidate(s);
+ const next=model.choose(s,null),rows=model.snapshot().candidates;
+ assert.equal(rows.find(t=>t.key==='civilian:8401').noseHit,true);assert.equal(rows.find(t=>t.key==='civilian:8402').noseHit,false);
+ assert.equal(next.entry,large);assert.notEqual(next.entry,behind);
+});
+
+test('a settled aim gains evidence from elapsed steering history, never from repeated zero-time reads',async()=>{
+ const f=await setup(),{state:s,window:w,model,add}=f;add(8501,500,0);w.nativeShipSystems.invalidate(s);model.update(s);
+ for(let i=0;i<4;i++){w.nativeSimulation.advance(s,.12);model.update(s,{force:true});}
+ const settled=model.snapshot().candidates.find(t=>t.key==='civilian:8501').settled;assert.ok(settled>.7,settled);
+ for(let i=0;i<50;i++)model.update(s,{force:true});assert.equal(model.snapshot().candidates[0].settled,settled);
+ const crossing=add(8502,450,40);crossing.vy=500;w.nativeShipSystems.invalidate(s);model.update(s,{force:true});
+ assert.equal(model.snapshot().candidates.find(t=>t.key==='civilian:8502').settled,0);
+ const turned=add(8503,0,400);s.angle=Math.PI/2;w.nativeShipSystems.invalidate(s);
+ assert.equal(model.choose(s,null).entry,turned,'a deliberate turn still selects immediately');
+});
+
+test('near ties keep the visible preview and a press honours it despite a small fresh ranking change',async()=>{
+ const f=await setup(),{state:s,window:w,model,add}=f;add(8601,500,-50);const second=add(8602,500,50);w.nativeShipSystems.invalidate(s);
+ model.update(s);assert.equal(model.snapshot().preview.key,'civilian:8601');publish(f);assert.equal(model.snapshot().published,'civilian:8601');
+ second.x-=10;second.y-=1;w.nativeShipSystems.refreshShip(s,second,'civilian');model.update(s,{force:true});
+ assert.equal(model.snapshot().candidates[0].key,'civilian:8602');assert.equal(model.snapshot().preview.key,'civilian:8601');
+ assert.equal(model.choose(s,null).key,'civilian:8601');assert.equal(model.choose(s,'civilian:8601').key,'civilian:8602');
+});
+
+test('a lost target or newly active attacker overrides a published preview immediately',async()=>{
+ for(const change of ['destroyed','attacker']){
+  const f=await setup(),{state:s,window:w,model,add}=f,first=add(8701,450,0),other=add(8702,0,400);w.nativeShipSystems.invalidate(s);
+  model.update(s);publish(f);assert.equal(model.snapshot().published,'civilian:8701');
+  if(change==='destroyed')first.hull=0;else{other.retaliationTargetId='player';other.retaliationUntil=100;}
+  w.nativeShipSystems.invalidate(s);assert.equal(model.choose(s,null).key,'civilian:8702',change);
+ }
+});
+
+test('an installed tool is weak evidence until a close approach or braking supports mining',async()=>{
+ const {state:s,window:w,model}=await setup(),rock=w.nativeSolAsteroids.forSystem(1)[0];w.nativeSolAsteroids.relocate(rock,{x:s.x+600,y:s.y+100,angle:rock.angle,vx:0,vy:0});
+ s.miningTool=true;model.update(s);const initial=model.snapshot().candidates.find(t=>t.key==='asteroid:'+rock.slotId).miningWeight;assert.ok(initial<=.2,initial);
+ s.vx=200;s.speed=200;w.nativeSimulation.advance(s,.12);model.update(s,{force:true});s.vx=60;s.speed=60;w.nativeSimulation.advance(s,.12);model.update(s,{force:true});
+ const braking=model.snapshot().candidates.find(t=>t.key==='asteroid:'+rock.slotId).miningWeight;assert.ok(braking>.8,braking);
+ s.miningTool=false;model.update(s,{force:true});assert.equal(model.snapshot().candidates.find(t=>t.key==='asteroid:'+rock.slotId).miningWeight,0);
+});

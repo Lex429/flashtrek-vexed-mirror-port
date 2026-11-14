@@ -1,0 +1,275 @@
+{
+  "tool": "built-in image_gen",
+  "inputs": [
+    {
+      "part": "top",
+      "stage": "intact",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/top/intact.png",
+      "sha256": "7826994514a5ace22389c096cf959e55a06a4d911f24da10e3775bbe19f46ef7"
+    },
+    {
+      "part": "top",
+      "stage": "light",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/top/light.png",
+      "sha256": "ecd47cc287c3db6c8a9b25a79dc8ffd94162f0e72aed75f6c33d3aa5b353b519"
+    },
+    {
+      "part": "top",
+      "stage": "heavy",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/top/heavy.png",
+      "sha256": "179b6415ba7f6527c7605e7ecd3298006d651974b70ac1bc2c19f4d4c3634723"
+    },
+    {
+      "part": "top",
+      "stage": "severe",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/top/severe.png",
+      "sha256": "5a3056b775369e78947e7cc5143d116747d6eaf4450749f97a588700013cc9aa"
+    },
+    {
+      "part": "middle",
+      "stage": "intact",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/middle/intact.png",
+      "sha256": "a2790ccbdd2b1005a7073146bdc23c182204e29d1dfeba664b90c31cc6fde1c3"
+    },
+    {
+      "part": "middle",
+      "stage": "light",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/middle/light.png",
+      "sha256": "0fda5507cd60a23b2e28b19b3a6f60ce44e572586474f185f62f92cbd242615a"
+    },
+    {
+      "part": "middle",
+      "stage": "heavy",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/middle/heavy.png",
+      "sha256": "43772c6391575f0ce862d1e52502e79865f756aee5491de418d9b78ca53198e9"
+    },
+    {
+      "part": "middle",
+      "stage": "severe",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/middle/severe.png",
+      "sha256": "9bc02f5a3feccd05575dfe66880b3ec8e8c589acbb04937c74011d3cb5dd0093"
+    },
+    {
+      "part": "bottom",
+      "stage": "intact",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/bottom/intact.png",
+      "sha256": "1e6bb0b753e42daf0b13fdac63e6a62c127660e96cadee1a1edad39c822bca80"
+    },
+    {
+      "part": "bottom",
+      "stage": "light",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/bottom/light.png",
+      "sha256": "75384b635effc873345134563bb0f61b639b6c4231e7d5da2eab04097a2226a2"
+    },
+    {
+      "part": "bottom",
+      "stage": "heavy",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/bottom/heavy.png",
+      "sha256": "bed66bfcb38d5c9fb2740eb177b8abb307bd0e39ca81e2a1950e73c08c179c9f"
+    },
+    {
+      "part": "bottom",
+      "stage": "severe",
+      "file": "html-games/flashtrek-broken-mirror/showcase-assets/prometheus-mvam/masters/bottom/severe.png",
+      "sha256": "c5a80a42e7a97eac27e85dee40a7bcfe73ccdbbf98d2604eee0ee6d7ede50401"
+    }
+  ],
+  "layout": {
+    "parentType": 37,
+    "canvas": {
+      "width": 512,
+      "height": 1024
+    },
+    "layout": {
+      "top": {
+        "x": 46,
+        "y": 0,
+        "width": 420,
+        "height": 505.9764705882353
+      },
+      "middle": {
+        "x": 16,
+        "y": 37.55984555984554,
+        "width": 480,
+        "height": 948.8803088803089
+      },
+      "bottom": {
+        "x": 66,
+        "y": 210,
+        "width": 380,
+        "height": 754.1085271317829
+      }
+    },
+    "parts": [
+      {
+        "key": "top",
+        "type": 3701,
+        "name": "Prometheus Alpha section",
+        "weight": 0.25,
+        "dimensions": {
+          "width": 36.91406250000001,
+          "height": 44.47058823529412
+        },
+        "offset": {
+          "x": 0.0,
+          "y": -0.2529411764705882
+        },
+        "artworkSize": {
+          "width": 425,
+          "height": 512
+        },
+        "frames": [
+          "prometheus-mvam/top/intact.png",
+          "prometheus-mvam/top/light.png",
+          "prometheus-mvam/top/heavy.png",
+          "prometheus-mvam/top/severe.png"
+        ],
+        "emitters": {
+          "beam": {
+            "x": -0.0011764705882352788,
+            "y": -0.33984375
+          },
+          "beamAft": {
+            "x": -0.0011764705882352788,
+            "y": 0.3203125
+          },
+          "projectile": {
+            "x": -0.0011764705882352788,
+            "y": -0.259765625
+          }
+        }
+      },
+      {
+        "key": "middle",
+        "type": 3702,
+        "name": "Prometheus Beta section",
+        "weight": 0.45,
+        "dimensions": {
+          "width": 42.1875,
+          "height": 83.39768339768341
+        },
+        "offset": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "artworkSize": {
+          "width": 259,
+          "height": 512
+        },
+        "frames": [
+          "prometheus-mvam/middle/intact.png",
+          "prometheus-mvam/middle/light.png",
+          "prometheus-mvam/middle/heavy.png",
+          "prometheus-mvam/middle/severe.png"
+        ],
+        "emitters": {
+          "beam": {
+            "x": -0.0019305019305019266,
+            "y": -0.33984375
+          },
+          "beamAft": {
+            "x": -0.0019305019305019266,
+            "y": 0.3203125
+          },
+          "projectile": {
+            "x": -0.0019305019305019266,
+            "y": -0.259765625
+          }
+        }
+      },
+      {
+        "key": "bottom",
+        "type": 3703,
+        "name": "Prometheus Gamma section",
+        "weight": 0.3,
+        "dimensions": {
+          "width": 33.3984375,
+          "height": 66.27906976744187
+        },
+        "offset": {
+          "x": 0.0,
+          "y": 0.07329517926356588
+        },
+        "artworkSize": {
+          "width": 258,
+          "height": 512
+        },
+        "frames": [
+          "prometheus-mvam/bottom/intact.png",
+          "prometheus-mvam/bottom/light.png",
+          "prometheus-mvam/bottom/heavy.png",
+          "prometheus-mvam/bottom/severe.png"
+        ],
+        "emitters": {
+          "beam": {
+            "x": 0.0,
+            "y": -0.33984375
+          },
+          "beamAft": {
+            "x": 0.0,
+            "y": 0.3203125
+          },
+          "projectile": {
+            "x": 0.0,
+            "y": -0.259765625
+          }
+        }
+      }
+    ],
+    "parentPhysical": {
+      "mass": 11.471039322310087,
+      "inertia": 4693.720367461667
+    },
+    "parentDimensions": {
+      "width": 45.0,
+      "height": 90.0
+    },
+    "parentFrames": [
+      "prometheus-mvam/joined/intact.png",
+      "prometheus-mvam/joined/light.png",
+      "prometheus-mvam/joined/heavy.png",
+      "prometheus-mvam/joined/severe.png"
+    ],
+    "parentEmitters": {
+      "beam": {
+        "x": 0.0,
+        "y": -0.33984375
+      },
+      "beamAft": {
+        "x": 0.0,
+        "y": 0.3203125
+      },
+      "projectile": {
+        "x": 0.0,
+        "y": -0.259765625
+      }
+    }
+  },
+  "sections": [
+    {
+      "id": 3701,
+      "width": 425,
+      "height": 512,
+      "lamps": 12
+    },
+    {
+      "id": 3702,
+      "width": 259,
+      "height": 512,
+      "lamps": 7
+    },
+    {
+      "id": 3703,
+      "width": 258,
+      "height": 512,
+      "lamps": 9
+    },
+    {
+      "id": 37,
+      "width": 512,
+      "height": 1024,
+      "lamps": 20
+    }
+  ],
+  "promptSet": "prompts.json"
+}

@@ -9,6 +9,7 @@
     {id:'vulcan',name:'Vulcan',ships:[25,26,59,63]},
     {id:'cardassian',name:'Cardassian',ships:[16,31,32,62]},
     {id:'ferengi',name:'Ferengi',ships:[17,18,19]},
+    {id:'orion',name:'Orion Syndicate',ships:[446,447,448,449]},
     {id:'dominion',name:'Dominion',ships:[30,48,65]},
     {id:'borg',name:'Borg',ships:[44]},
     {id:'tholian',name:'Tholian',ships:[20,66]},

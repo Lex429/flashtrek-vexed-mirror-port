@@ -5,7 +5,11 @@
   const describe=state=>window.nativeShipDefinitions.describe(state,state,{category:'player'});
   function hit(state,damage,impact={}){
     currentState=state;const descriptor=describe(state),result=window.nativeShipDamage.apply(descriptor,damage,impact);
-    window.nativeShipEffects.hit(state,descriptor,result,impact);
+    if(result.ok&&state.prometheus?.assembly)window.nativePrometheus.repairProgress(state,result.before.hull);
+    const continuing=result.destroyed&&window.nativePrometheus?.canTakeCommand?.(state);
+    const struck=continuing?{...descriptor,entity:{...state,shipEquipment:undefined,repairBay:undefined,prometheus:undefined}}:descriptor;
+    window.nativeShipEffects.hit(state,struck,result,impact);
+    if(continuing){const transfer=window.nativePrometheus.takeCommand(state);if(transfer)return {ok:true,destroyed:false,disabled:state.phase==='disabled',transferred:true,sectionDestroyed:true,message:transfer.message,hull:state.hull,shields:state.shields,beforeStage:result.beforeStage,afterStage:window.nativeShipDefinitions.stage(describe(state))};}
     if(result.ok&&(result.destroyed||result.disabled)){if(result.destroyed)window.nativeShipMotion.stop(state);state.localCruise=null;state.arrivalApproach=null;state.phase=result.destroyed?'destroyed':'disabled';}
     return result.ok?{ok:true,destroyed:result.destroyed,disabled:result.disabled,shields:result.shields,hull:result.hull,beforeStage:result.beforeStage,afterStage:result.afterStage}:result;
   }

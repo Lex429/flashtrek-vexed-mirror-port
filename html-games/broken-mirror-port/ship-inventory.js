@@ -29,12 +29,7 @@
       let columns=gridColumns,rows=gridRows,bays=bayRows,albumColumns=collectableColumns,albumRows=collectableRows;
       if(grid?.getClientRects().length&&grid.clientWidth>0){columns=Math.max(2,Math.min(6,Math.floor((grid.clientWidth+8)/112)));rows=Math.max(1,Math.min(4,Math.floor((grid.clientHeight+8)/104)));}
       if(album?.getClientRects().length&&album.clientWidth>0){albumColumns=Math.max(2,Math.min(3,Math.floor((album.clientWidth+12)/130)));albumRows=Math.ceil(6/albumColumns);root.dataset.collectableCompact=String((album.clientHeight-12*(albumRows-1))/albumRows<125);}
-      if(rig?.getClientRects().length&&rig.clientHeight>0){
-        const banks=[...rig.querySelectorAll('.inventory-weapons,.inventory-systems')],slot=rig.querySelector('.inventory-slot,.outfit-mount');
-        const gap=parseFloat(getComputedStyle(banks[0]).gap)||0;
-        const height=Math.min(...banks.map(bank=>bank.clientHeight-(bank.querySelector('[data-hull-system]')?.offsetHeight||0)-(bank.querySelector('[data-hull-system]')?gap:0)));
-        bays=Math.max(1,Math.min(6,Math.floor((height+gap)/((slot?.offsetHeight||68)+gap))));
-      }
+      if(rig?.getClientRects().length&&rig.clientHeight>0)bays=window.nativeEquipmentPanel.measureRows(rig,bayRows);
       if(columns!==gridColumns||rows!==gridRows||bays!==bayRows||albumColumns!==collectableColumns||albumRows!==collectableRows){
         collectableColumns=albumColumns;collectableRows=albumRows;
         gridColumns=columns;gridRows=rows;bayRows=bays;
@@ -58,7 +53,7 @@
     const resource=String(name).toLowerCase(),icon=customIcon||(kind==='mineral'?window.nativeOutfittingView.minerals[resource]?.icon:null)||itemIcons[resource]||`assets/ui/${kind==='mineral'?'mineral':'freight'}.svg`;
     return `<span class="inventory-item-icon"><img src="${icon}" alt=""></span><span class="inventory-item-name">${safe(kind==='mineral'?window.nativeOutfittingView.minerals[resource]?.name||name:name)}</span><strong class="inventory-item-count">${compact(value)}${unit}</strong>`;
   };
-  const locationFor=node=>node.hasAttribute('data-inventory-cell')?{type:'cell',index:Number(node.dataset.inventoryCell),key:node.dataset.itemKey,category:node.dataset.equipmentKind}:{type:'slot',category:node.dataset.equipmentKind,index:Number(node.dataset.equipmentIndex),key:node.dataset.itemKey};
+  const locationFor=node=>window.nativeEquipmentPanel.location(node);
   function findLocation(at){return at?.type==='cell'?root.querySelector(`[data-inventory-cell="${at.index}"]`):root.querySelector(`[data-equipment-place="slot"][data-equipment-kind="${at?.category}"][data-equipment-index="${at?.index}"]`);}
   function feedback(kind,from,to,origin){
     window.nativeMenuSounds?.inventory(kind);
@@ -92,43 +87,7 @@
     feedback(result?.ok?(to.type==='slot'?'equip':'unequip'):'reject',from,to,origin);
   }
   function inspector(state,ship,eq,tiles){
-    const selected=equipmentSelection,instance=selected?.key?.startsWith('equipment:')?eq.instances[selected.key.slice(10)]:null,data=window.nativeShipEquipment.model(instance?.modelId),tile=tiles.get(selected?.key);
-    if(selected?.type==='hull'){
-      const thrusters=ship.thrusters;
-      const rows=[['Emergency speed',fmt(thrusters.maxSpeed)],['Acceleration',fmt(thrusters.acceleration)],['Braking',fmt(thrusters.braking)],['Turn rate',fmt(thrusters.turnRate*180/Math.PI)+'°/s']];
-      return `<section id="inventory-thruster-details" class="inventory-inspector has-selection" aria-label="Thruster details"><div class="inventory-detail-heading"><span class="inventory-detail-art">${window.nativeOutfittingView.icon('thrusters')}</span><div><span>BUILT-IN HULL SYSTEM</span><strong>Thrusters · Mk ${thrusters.level+1}</strong></div></div><p>Permanent maneuvering thrusters provide controlled flight when the main engine fails or is removed.</p><div class="inventory-detail-stats">${rows.map(([label,value])=>`<div><span>${label}</span><strong>${value}</strong></div>`).join('')}</div><div class="inventory-detail-actions"><p>Upgrade at Port Shop → Services or a docked shipyard's Ship Upgrades.</p><button type="button" data-equipment-action="cancel">Close details</button></div></section>`;
-    }
-    if(!selected)return `<section class="inventory-inspector" aria-label="Item details"><div><span>SHIP DETAILS</span><strong>Built-in thrusters · Mk ${ship.thrusters.level+1}</strong><p>Emergency speed ${fmt(ship.thrusters.maxSpeed)}. Permanent hull system; upgrade at docking stations.</p><strong>Select an item to inspect</strong><p>Compare equipment, choose a bay, then Equip. Drag to fit or arrange directly.</p></div></section>`;
-    const name=data?.name||tile?.name||instance?.modelId||'Item',stored=selected.type==='cell',slots=eq.slots[instance?.category]||[];
-    fitIndex=Math.max(0,Math.min(fitIndex,slots.length-1));
-    let detail='',rows=[],allowed={ok:true};
-    if(instance&&data){
-      const draft={...state,shipEquipment:{...eq,slots:{...eq.slots,[instance.category]:slots.map((id,i)=>i===fitIndex?instance.id:id)}}};
-      const after=window.nativeShipDefinitions.forEntity(draft),before=ship;
-      const stat=(label,value,old,unit='',lower=false)=>{const delta=Number(value)-Number(old);return `<div><span>${safe(label)}</span><strong>${fmt(value)}${safe(unit)}</strong>${stored&&Number.isFinite(delta)&&Math.abs(delta)>.0001?`<small class="${delta*(lower?-1:1)>0?'positive':'negative'}">${delta>0?'+':''}${Number(delta.toFixed(3)).toLocaleString()}${safe(unit)} vs fitted</small>`:''}</div>`;};
-      const current=window.nativeShipEquipment.model(eq.instances[slots[fitIndex]]?.modelId);
-      if(instance.category==='weapon'){
-        const spec=model=>window.nativeWeaponRules.weaponSpec(model,window.nativeCombatShots.weaponVisual(model).kind,{damageMultiplier:ship.weaponDamageMultiplier||1}),next=spec(data),old=current?spec(current):{damage:0,range:0,recharge:0};
-        rows=[stat('Damage',next.damage,old.damage),stat('Range',next.range,old.range),stat('Recharge',next.recharge,old.recharge,' s',true)];
-      }else if(instance.category==='engineering')rows=[stat('Top speed',after.movement.maxSpeed,before.movement.maxSpeed),stat('Acceleration',after.movement.acceleration,before.movement.acceleration)];
-      else if(instance.category==='shield'){rows=[stat('Shield capacity',after.shields,before.shields)];if(data.regen)rows.push(stat('Recharge / second',after.shields*data.regen,undefined));}
-      else if(instance.category==='repairDrone')rows=[stat('Drone hull',instance.hull,data.hull||40),`<div><span>State</span><strong>${safe(instance.phase)}</strong></div>`];
-      detail=data.description||(instance.category==='ability'?'Utility equipment for a compatible ability bay.':'Drag into a compatible bay or use the fitting controls.');
-      if(stored)allowed=slots.length?(window.nativeShipyardRefits?.validateFit(state,{category:instance.category,slot:fitIndex,modelId:instance.modelId})||allowed):{ok:false,error:'This hull has no compatible bays.'};
-      if(instance.category==='repairDrone'&&!['stowed','destroyed'].includes(instance.phase))allowed={ok:false,error:'Recover deployed drones before changing equipment.'};
-    }else if(instance){allowed={ok:false,error:'Legacy equipment remains in storage; this model cannot be fitted.'};}
-    else if(tile){
-      const key=selected.key.split(':').slice(1).join(':');detail=selected.key.startsWith('mineral:')?window.nativeRegionalMinerals.ores[key]?.use||'Raw mineral cargo.':selected.key.startsWith('contract:')?'Contract cargo: deliver it to its destination to receive payment.':'Ship supply or trade cargo. Drag to arrange its saved position.';
-      const value=selected.key.startsWith('mineral:')?state.minerals[key]:selected.key.startsWith('freight:')?state.solFreightHold[key]:state[key];
-      if(value!==undefined)rows=[`<div><span>Quantity</span><strong>${fmt(value)}${selected.key.startsWith('freight:')?' t':''}</strong></div>`];
-    }
-    const condition=window.nativeShipEquipment.condition(instance),repair=condition!==null?window.nativeShipRepairs.deviceRepairQuote(state,instance.id):null;
-    if(repair){
-      rows.unshift(`<div><span>Device condition</span><strong>${fmt(condition)}%${condition===0?' · OFFLINE':''}</strong></div>`);
-      detail+=' Combat damages this device. Repair it with '+(instance.category==='shield'?'Trellium ore; fitted repairs also restore shield energy.':'Gallicite ore to restore speed and thrust.');
-    }
-    const repairControl=repair?`<div class="inventory-device-repair"><div class="inventory-device-cost">${window.nativeOutfittingView.material(repair.currency,repair.cost,{held:repair.held})}${state.devMode?'<small>Free in Dev mode</small>':''}</div><button type="button" data-repair-device="${safe(instance.id)}" data-focus-key="repair-device" aria-describedby="inventory-device-repair-status" ${repair.ok?'':'disabled'}>Repair device</button><p id="inventory-device-repair-status" role="status">${safe(equipmentNote||(repair.ok?(repair.maximum>0?'Restore condition and shield protection.':'Restore device condition.'):repair.error))}</p></div>`:'';
-    return `<section class="inventory-inspector has-selection" aria-label="Item details"><div class="inventory-detail-heading"><span class="inventory-detail-art">${data?equipmentArt(data):tile?.html.match(/<span class="inventory-item-icon">(.*?)<\/span>/)?.[1]||''}</span><div><span>${instance?(stored?'STORED EQUIPMENT':'INSTALLED EQUIPMENT'):'CARGO DETAILS'}</span><strong>${safe(name)}</strong></div></div><p>${safe(detail)}</p><div class="inventory-detail-stats">${rows.join('')}</div>${instance?`<div class="inventory-detail-actions">${repairControl}${stored?`<label>Fit into<select data-fit-slot data-focus-key="fit-slot" aria-label="Equipment destination bay">${slots.map((id,index)=>`<option value="${index}" ${index===fitIndex?'selected':''}>${safe(window.nativeOutfittingView.labels[instance.category]||'Bay')} ${index+1} — ${safe(window.nativeShipEquipment.model(eq.instances[id]?.modelId)?.name||'Empty')}</option>`).join('')}</select></label><button type="button" data-equipment-action="equip" ${allowed.ok?'':'disabled'}>Equip${slots[fitIndex]?' / Replace':''}</button>`:`<button type="button" data-equipment-action="unequip" ${allowed.ok?'':'disabled'}>Unequip</button>`}<button type="button" data-equipment-action="cancel">Cancel</button></div>${!allowed.ok?`<p role="status">${safe(allowed.error)}</p>`:''}`:'<button type="button" data-equipment-action="cancel">Cancel selection</button>'}</section>`;
+    const detail=window.nativeEquipmentPanel.inspect(state,ship,eq,{selection:equipmentSelection,fitIndex,note:equipmentNote,tiles});fitIndex=detail.fitIndex;return detail.html;
   }
   function preview(state,ship){window.nativeOutfittingView.preview(root,state,ship);}
   function collectableSlot({record,number,clueId,clueAvailable}){
@@ -155,13 +114,13 @@
     const collectablePages=Math.max(1,Math.ceil(album.length/collectableSize));collectablePage=Math.max(0,Math.min(collectablePage,collectablePages-1));
     const shownCollectables=album.slice(collectablePage*collectableSize,(collectablePage+1)*collectableSize);
     const bays=equipment.bayLayout(state).bays;
-    const bayPages=Math.max(1,...['weapons','systems','drones'].map(zone=>Math.ceil(Math.max(0,...bays.filter(b=>b.zone===zone).map(b=>b.cell+1))/(zone==='drones'?6:bayRows))));bayPage=Math.max(0,Math.min(bayPage,bayPages-1));
+    const bayView=window.nativeEquipmentPanel.bayPages(bays,bayRows,bayPage),bayPages=bayView.pages;bayPage=bayView.page;
     const used=equipment.cargoUsed(state);
     const minerals=Object.entries(state.minerals||{}).filter(([,amount])=>Number(amount)>0);
     const selected=(kind,type,index)=>equipmentSelection?.category===kind&&equipmentSelection.type===type&&equipmentSelection.index===index;
     const slot=(kind,id,index)=>window.nativeOutfittingView.slot(state,ship,eq,kind,id,index,{selected:selected(kind,'slot',index),compatible:!!equipmentSelection&&equipmentSelection.category===kind});
     const thrusters=ship.thrusters,hullSelected=equipmentSelection?.type==='hull';
-    const hullSystems=`<button type="button" class="inventory-hull-system${hullSelected?' selected':''}" data-hull-system="thrusters" data-focus-key="hull-thrusters" draggable="false" aria-pressed="${hullSelected}" aria-label="Built-in thrusters Mk ${thrusters.level+1}, emergency speed ${fmt(thrusters.maxSpeed)}"><span class="inventory-hull-system-label">BUILT-IN HULL SYSTEM</span><span class="inventory-system-icon">${window.nativeOutfittingView.icon('thrusters')}</span><span class="inventory-hull-system-info"><strong>Thrusters <b>Mk ${thrusters.level+1}</b></strong><small>Emergency speed <em>${fmt(thrusters.maxSpeed)}</em></small></span></button>`;
+    const hullSystems=window.nativeEquipmentPanel.hullSystem(ship,hullSelected);
     const shieldMax=qty(ship.shields),hullMax=qty(ship.hull),capacity=qty(ship.cargo);
     const deployment=window.nativeShipRepairs?.deploymentStatus(state)||{ok:false,error:'Repair systems unavailable',available:0};
     const repairMode=window.nativeShipRepairs?.repairMode(state)||'manual';
@@ -171,7 +130,7 @@
     const standingDisplay=standing>0?`+${standing}`:String(standing),standingStatus=standing>=100?'Allied':standing<0?'Hostile':'Neutral';
     const positiveFill=Math.min(100,Math.max(0,standing))/2,negativeFill=Math.min(100,Math.max(0,-standing))/2;
     const canPlotDelivery=!state.localCruise&&!state.arrivalApproach;
-    const inventoryTiles=[...eq.locker.map((id,index)=>{const instance=eq.instances[id],data=equipment.model(instance.modelId);return {key:'equipment:'+id,kind:'equipment',category:instance.category,name:data?.name||instance.modelId,html:`<span class="inventory-item-icon">${equipmentArt(data)}</span>${window.nativeOutfittingView.deviceCondition(instance)}<span class="inventory-item-name">${safe(data?.name||instance.modelId)}</span>`,locker:index};}),
+    const inventoryTiles=[...eq.locker.map((id,index)=>{const instance=eq.instances[id],data=equipment.model(instance.modelId);return {key:'equipment:'+id,kind:'equipment',category:instance.category,name:data?.name||instance.modelId,html:window.nativeEquipmentPanel.equipmentContents(instance,data),locker:index};}),
       ...[['Antimatter',state.antimatter],['Dilithium',state.dilithium],['Deuranium',state.deuranium],['Food',state.food]].filter(([,amount])=>Number(amount)>0).map(([name,amount])=>({key:'supply:'+name.toLowerCase(),kind:'supplies',name,html:item(name,amount)})),
       ...minerals.map(([name,amount])=>({key:'mineral:'+name,kind:'supplies',name,html:item(name.charAt(0).toUpperCase()+name.slice(1),amount,'','mineral')})),
       ...freightGoods.map(entry=>({key:'freight:'+entry.id,kind:'freight',name:entry.name,html:item(entry.name,entry.amount,' t','freight',goodIcons[entry.id])})),
@@ -203,7 +162,7 @@
       <nav class="inventory-view-tabs" aria-label="Inventory pages"><button type="button" data-focus-key="view-loadout" data-inventory-view="loadout" aria-pressed="${view==='loadout'}">Ship & loadout</button><button type="button" data-focus-key="view-cargo" data-inventory-view="cargo" aria-pressed="${view==='cargo'}">Cargo & deliveries</button></nav>
       <div class="inventory-body">
         <section class="inventory-loadout" aria-label="Ship equipment"><div class="inventory-section-title"><span><b>01</b> SHIP LOADOUT</span><strong>${fittedCount} / ${totalSlots} bays fitted</strong></div>
-          <nav class="inventory-bay-pages" aria-label="Equipment bay pages" ${bayPages>1?'':'hidden'}><button type="button" data-bay-page="previous" ${bayPage===0?'disabled':''} aria-label="Previous equipment bays">&lsaquo;</button><span>Bays ${bayPage+1} / ${bayPages}</span><button type="button" data-bay-page="next" ${bayPage>=bayPages-1?'disabled':''} aria-label="Next equipment bays">&rsaquo;</button></nav>
+          ${bayView.html}
           ${window.nativeOutfittingView.rig(state,ship,eq,{renderSlot:slot,bayWindow:{page:bayPage,rows:bayRows},hullSystems})}
           <div class="inventory-drone-controls"><div class="inventory-repair-mode" role="group" aria-label="Repair drone mode">${['manual','auto'].map(mode=>`<button type="button" data-repair-mode="${mode}" data-focus-key="repair-mode-${mode}" aria-pressed="${repairMode===mode}">${mode==='manual'?'Manual':'Auto'}</button>`).join('')}</div><button type="button" data-deploy-repair-drones data-focus-key="deploy-drones" aria-describedby="inventory-deploy-status" ${repairMode==='manual'?'':'hidden'} ${deployment.ok?'':'disabled'}>Deploy Repair Drones</button><button type="button" data-request-distress data-focus-key="request-distress" aria-label="${safe(distress.label||'Distress Call')}: ${safe(distress.message)}" ${distress.ok||distress.pending?'':'hidden'} ${distress.ok?'':'disabled'}>${safe(distress.label||'Distress Call')}</button><span id="inventory-deploy-status">${safe(distress.pending?distress.message:deployment.error||(repairMode==='auto'?'Auto repair ready':`${deployment.available} DOT${deployment.available===1?'':'s'} ready`)+' · Uses deuranium')}</span></div>
           <div class="inventory-vitals"><div class="inventory-hull"><span>HULL</span><strong>${fmt(state.hull)} / ${fmt(hullMax)}</strong><div class="inventory-meter"><i style="--fill:${hullMax?Math.max(0,Math.min(100,qty(state.hull)/hullMax*100)):0}%"></i></div></div><div class="inventory-shield"><span>SHIELDS</span><strong>${fmt(state.shields)} / ${fmt(shieldMax)}</strong><div class="inventory-meter"><i style="--fill:${shieldMax?Math.max(0,Math.min(100,qty(state.shields)/shieldMax*100)):0}%"></i></div></div></div>
@@ -248,30 +207,10 @@
     root.querySelectorAll('[data-delivery-action]').forEach(button=>button.onclick=()=>{const result=bridge.deliveryNavigation?.(Number(button.dataset.deliveryId),button.dataset.deliveryAction);if(result?.ok){close();document.getElementById('space')?.focus({preventScroll:true});return}deliveryNote=result?.error||'Unable to plot this delivery.';render()});
     root.querySelectorAll('[data-inventory-page]').forEach(button=>button.onclick=()=>{if(button.dataset.inventoryPage==='add'){inventoryPageFloor=inventoryPages+1;inventoryPage=inventoryPages;}else inventoryPage+=button.dataset.inventoryPage==='next'?1:-1;render()});
     root.querySelectorAll('[data-inventory-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.inventoryFilter;inventoryPage=0;render()});
-    const choose=locationFor;
-    const targets=root.querySelectorAll('[data-inventory-cell],[data-equipment-place="slot"]');
-    const clearDrop=()=>root.querySelectorAll('.drop-target').forEach(node=>node.classList.remove('drop-target'));
-    const highlight=()=>root.querySelectorAll('[data-equipment-place="slot"]').forEach(node=>node.classList.toggle('compatible',!!equipmentSelection?.category&&node.dataset.equipmentKind===equipmentSelection.category));
-    const canDrop=(from,to)=>!!from&&from.type!=='hull'&&(to.type==='cell'||!!from.category&&from.category===to.category);
-    targets.forEach(node=>{
-      const at=()=>choose(node);
-      node.onclick=()=>{
-        if(performance.now()<suppressClickUntil)return;
-        const destination=at();
-        if(!destination.key&&equipmentSelection&&equipmentSelection.type!=='hull'){transfer(equipmentSelection,destination);return;}
-        if(destination.key){
-          if(equipmentSelection?.key===destination.key)equipmentSelection=null;
-          else{equipmentSelection=destination;fitIndex=Math.max(0,eq.slots[destination.category]?.findIndex(id=>!id)??0);}
-          equipmentNote='';render();
-        }
-      };
-      node.draggable=!!node.dataset.itemKey;
-      node.ondragstart=event=>{mouseDragging=true;equipmentSelection=at();event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',JSON.stringify(equipmentSelection));node.classList.add('drag-source');highlight();};
-      node.ondragover=event=>{if(canDrop(equipmentSelection,at())){event.preventDefault();event.dataTransfer.dropEffect='move';node.classList.add('drop-target');}};
-      node.ondragleave=()=>node.classList.remove('drop-target');
-      node.ondragend=()=>{mouseDragging=false;root.dataset.dragging='false';clearDrop();node.classList.remove('drag-source');if(equipmentSelection)render();};
-      node.ondrop=event=>{event.preventDefault();event.stopPropagation();clearDrop();try{const from=JSON.parse(event.dataTransfer.getData('text/plain'));transfer(from,at());}catch{equipmentNote='Pick up an item from your inventory or ship bays.';render();}};
-    });
+    window.nativeEquipmentPanel.bindTargets(root,{getSelection:()=>equipmentSelection,setSelection:value=>equipmentSelection=value,
+      suppressed:()=>performance.now()<suppressClickUntil,dragState:value=>mouseDragging=value,transfer,render,
+      choose(value){equipmentSelection=value;if(value)fitIndex=Math.max(0,eq.slots[value.category]?.findIndex(id=>!id)??0);equipmentNote='';render();},
+      reject(message){equipmentNote=message;render();}});
     root.querySelectorAll('[data-inventory-page],[data-inventory-view],[data-right-page="inventory"],[data-bay-page]').forEach(button=>{
       let hover=0;button.ondragover=event=>{if(button.disabled)return;event.preventDefault();if(!hover)hover=setTimeout(()=>{hover=0;button.click();},600);};button.ondragleave=()=>{clearTimeout(hover);hover=0;};button.ondrop=event=>{event.preventDefault();clearTimeout(hover);hover=0;};
     });
@@ -315,5 +254,5 @@
   function open(options={}){if(!bridge?.getState?.()||!root.hidden)return;previousFocus=document.activeElement;equipmentSelection=null;equipmentNote='';inventoryPage=0;inventoryPageFloor=1;bayPage=0;deliveryPage=0;collectablePage=0;rightPage=options?.page==='collectables'?'collectables':'inventory';view=rightPage==='collectables'?'cargo':'loadout';deliveryNote='';filter='all';root.hidden=false;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:true,at:performance.now()}}));render();root.querySelector('.inventory-close')?.focus({preventScroll:true});}
   function close(){if(root.hidden)return;root.hidden=true;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:false,at:performance.now()}}));window.nativeOutfittingView.stopPreview(root);if(touchDrag)clearTimeout(touchDrag.timer);touchDrag=null;root.innerHTML='';equipmentSelection=null;previousFocus?.focus?.({preventScroll:true});}
   addEventListener('resize',()=>{if(!root.hidden)render();});
-  window.nativeShipInventory={attach(value){bridge=value;},open,close,refresh:render,get active(){return !root.hidden}};
+  window.nativeShipInventory={attach(value){bridge=value;window.nativeEquipmentPanel.attachActions(value);},open,close,refresh:render,get active(){return !root.hidden}};
 })();

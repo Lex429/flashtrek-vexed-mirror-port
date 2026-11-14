@@ -51,6 +51,18 @@ test('isolated effects retain their own contacts, clock and GPU without touching
  film.reset();assert.equal(movieResets,1);assert.equal(liveResets,0);
 });
 
+test('isolated beam shield contacts query their own combat owner without waking the live world',()=>{
+ const f=fixture(),w=f.window,role=f.entities().find(r=>r.category==='civilian');let queries=0;
+ w.nativeCombatShots.beamContactFor=()=>{throw Error('Live world must not resolve film contacts');};
+ const movie=w.nativeShipEffects.fork({isolated:true,shots:()=>({beamContactFor:(state,id,target,options)=>{
+   queries++;assert.equal(state,role.state);assert.equal(id,91);assert.equal(target,role.describe().id);assert.equal(options.render,true);
+   return {shielded:true,local:{x:4,y:8},dx:1,dy:0};
+ }})});
+ const d=role.describe();movie.visualImpact(role.state,d,{kind:'beam',weaponEventId:91,from:{x:d.x-100,y:d.y}});
+ movie.paintSurface(f.ctx,d,{x:40,y:80,dimensions:d.dimensions},{front:false});
+ assert.equal(queries,1);
+});
+
 test('weapon hull flares follow the authoritative local hit through movement, rotation and zoom, then expire',()=>{
  const f=fixture(),w=f.window,role=f.entities().find(r=>r.category==='civilian'),events=[];role.entity.shields=0;
  w.nativeEffectProfiles={queueImpact:(ctx,event)=>{events.push(event);return true;}};
@@ -214,6 +226,29 @@ test('rendering never emits destruction, damages targets or advances particles',
     const before=emitted.length,blastCount=explosions.length,view={ship:{x:0,y:0},cx:300,cy:200};
     for(let i=0;i<4;i++)window.nativeShipEffects.paint(role.state,ctx,view);
     assert.equal(emitted.length,before);assert.equal(explosions.length,blastCount);assert.equal(role.entity.hull,0);
+  }
+});
+
+test('destroyed hulls stop painting while their shared wrecks advance and surviving disabled hulls remain visible',async()=>{
+  const f=fixture(),{window,entities,ctx,drawn,emitted}=f;
+  for(const role of entities()){
+    role.entity.shields=0;const descriptor=role.describe();
+    await window.nativeShipEffects.prepare(descriptor.shipType,descriptor.category);
+    const view={ship:{x:0,y:0},cx:300,cy:200};
+    role.entity.hull=5;role.entity.phase='disabled';
+    const before=drawn.filter(row=>row.kind==='ship').length;
+    window.nativeShipEffects.paintShip(ctx,role.describe(),view);
+    assert.equal(drawn.filter(row=>row.kind==='ship').length,before+1,'a repairable hull stays visible');
+    const result=window.nativeShipDamage.apply(role.describe(),99999,{kind:'torpedo'});
+    window.nativeShipEffects.hit(role.state,role.describe(),result,{kind:'torpedo'});
+    const wreck=emitted.filter(row=>row.kind==='wreck').at(-1).wreck,piece=wreck.debris[0],x=piece.x,y=piece.y;
+    const canvasForbidden=new Proxy({}, {get(){throw Error('A destroyed hull reached a Canvas draw');}});
+    for(let frame=0;frame<4;frame++)assert.equal(window.nativeShipEffects.paintShip(canvasForbidden,role.describe(),view),null);
+    f.setTime(1200);window.nativeShipEffects.advance(role.state,.2);
+    assert.ok(piece.x!==x||piece.y!==y,'the shared explosion continues moving its debris');
+    assert.equal(drawn.filter(row=>row.kind==='ship').length,before+1);
+    role.entity.hull=5;role.entity.phase='destroyed';
+    assert.equal(window.nativeShipEffects.paintShip(canvasForbidden,role.describe(),view),null,'the destroyed phase also hides a stale positive hull');
   }
 });
 

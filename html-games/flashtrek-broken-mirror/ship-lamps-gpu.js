@@ -2,6 +2,29 @@
    positions and pulse clocks still come from the ordinary artwork profiles. */
 (() => {
  'use strict';
+ const moduleURL=typeof document==='undefined'?null:document.currentScript?.src;
+ let preparationWorker=null,preparationId=0,preparationFailure='';const preparationJobs=new Map(),preparationStats={requests:0,completed:0,failures:0,workerMs:0,mainPaints:0,deduplicated:0};
+ function stopPreparation(reason){preparationWorker?.terminate();preparationWorker=null;preparationFailure=String(reason);for(const job of preparationJobs.values()){clearTimeout(job.timer);job.reject(Error(preparationFailure));}preparationJobs.clear();preparationStats.failures++;}
+ function prepareInWorker(image,recipe){
+  if(!recipe||preparationFailure||!moduleURL||typeof Worker!=='function'||typeof OffscreenCanvas!=='function'||typeof createImageBitmap!=='function')return null;
+  if(image.width*image.height>1_048_576)return null;
+  if(preparationJobs.size>=8)throw Object.assign(Error('Lighting worker capacity is full'),{capacity:true});
+  if(!preparationWorker){
+   const url=new URL('ship-lighting-worker.js',moduleURL);url.search=new URL(moduleURL).search;const worker=new Worker(url);preparationWorker=worker;
+   worker.onmessage=event=>{if(preparationWorker!==worker)return;const m=event.data,job=preparationJobs.get(m.id);if(!job)return;preparationJobs.delete(m.id);clearTimeout(job.timer);
+    if(m.error)job.reject(Error(m.error));else if(!(m.buffer instanceof ArrayBuffer)||m.buffer.byteLength!==128*128*4)job.reject(Error('Invalid lighting worker pixels'));
+    else{preparationStats.completed++;preparationStats.workerMs+=m.workMs||0;job.resolve({data:new Uint8ClampedArray(m.buffer),width:128,height:128});}};
+   worker.onerror=event=>{if(preparationWorker!==worker)return;event.preventDefault();stopPreparation(event.message||'Lighting worker failed');};
+   worker.onmessageerror=()=>{if(preparationWorker===worker)stopPreparation('Lighting worker message failed');};
+  }
+  const id=++preparationId;let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;}),job={resolve,reject,timer:setTimeout(()=>stopPreparation('Lighting worker timed out'),30000)};
+  preparationJobs.set(id,job);preparationStats.requests++;
+  Promise.resolve().then(()=>createImageBitmap(image)).then(bitmap=>{
+   if(!preparationJobs.has(id)){bitmap.close();return;}
+   try{preparationWorker.postMessage({id,bitmap,recipe},[bitmap]);}catch(error){bitmap.close();preparationJobs.delete(id);clearTimeout(job.timer);reject(error);}
+  }).catch(error=>{preparationJobs.delete(id);clearTimeout(job.timer);reject(error);});return promise;
+ }
+ window.addEventListener?.('pagehide',()=>{if(preparationWorker)stopPreparation('Page closed');});
  const owners=new WeakMap(),standalone=new WeakMap(),standaloneCanvases=new Set(),CELL=128,LAYERS=512,LIMIT=32768,STRIDE=24;
  const vs=`#version 300 es
  precision highp float;
@@ -70,23 +93,33 @@
   for(const p of [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D_ARRAY,p,gl.LINEAR);
   for(const p of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D_ARRAY,p,gl.CLAMP_TO_EDGE);
   const viewport=gl.getUniformLocation(program,'viewport'),sampler=gl.getUniformLocation(program,'atlas');
-  const cache=new WeakMap(),templates=new WeakMap(),retained=[],preparations=new WeakMap(),stats={frames:0,drawCalls:0,ships:0,lamps:0,uploads:0,evictions:0,fallbacks:0,coldFallbacks:0,peakInstances:0};
+  const cache=new WeakMap(),templates=new WeakMap(),retained=[],preparations=new WeakMap(),layerPreparations=new WeakMap(),stats={frames:0,drawCalls:0,ships:0,lamps:0,uploads:0,evictions:0,fallbacks:0,coldFallbacks:0,peakInstances:0};
   let count=0,serial=0,active=false,disposed=false,collecting=null;
   const identity={a:1,b:0,c:0,d:1,e:0,f:0};
   const templateContext={canvas:space,globalCompositeOperation:'source-over',filter:'none',shadowBlur:0,globalAlpha:1,getTransform:()=>identity};
-  function layer(image,key,paint){
+  function layer(image,key,paint,recipe){
    let entries=cache.get(image);if(!entries){entries=new Map();cache.set(image,entries);}
    const hit=entries.get(key);if(hit){hit.serial=serial;return hit;}
-   if(collecting){let keys=collecting.seen.get(image);if(!keys)collecting.seen.set(image,keys=new Set());if(!keys.has(key)){keys.add(key);collecting.jobs.push({image,key,paint});}return {slot:0};}
+   if(collecting){let keys=collecting.seen.get(image);if(!keys)collecting.seen.set(image,keys=new Set());if(!keys.has(key)){keys.add(key);collecting.jobs.push({image,key,paint,recipe});}return {slot:0};}
    // Painting never performs a cold readback/upload. Until preparation finishes,
    // the ordinary Canvas lighting path paints the same lamps and pulse clock.
    return null;
   }
-  function* prepareLayer({image,key,paint}){
+  function* prepareLayer(job){
+   const {image,key}=job;if(cache.get(image)?.has(key))return true;
+   let pending=layerPreparations.get(image);if(!pending)layerPreparations.set(image,pending=new Map());
+   if(pending.has(key)){preparationStats.deduplicated++;return yield pending.get(key);}
+   let resolve,result=false;const promise=new Promise(done=>{resolve=done;});pending.set(key,promise);
+   try{return result=yield* buildLayer(job);}finally{pending.delete(key);resolve(result);}
+  }
+  function* buildLayer({image,key,paint,recipe}){
    if(cache.get(image)?.has(key))return true;
+   let rgba;
+   for(;;){try{const request=prepareInWorker(image,recipe);if(request)rgba=yield request;break;}catch(error){if(!error.capacity)break;yield new Promise(resolve=>setTimeout(resolve,16));}}
+   const pixels=window.nativeDamageArtPreparation?.pixels;
+   if(!rgba){
    const scratch=document.createElement('canvas');scratch.width=scratch.height=CELL;
-   const g=scratch.getContext('2d',{willReadFrequently:true});paint(g);yield 'lighting:paint';
-   const pixels=window.nativeDamageArtPreparation?.pixels;let rgba;
+   const g=scratch.getContext('2d',{willReadFrequently:true});paint(g);preparationStats.mainPaints++;yield 'lighting:paint';
    if(pixels?.readAsync){
     for(;;){try{rgba=yield pixels.readAsync(scratch);break;}catch(error){
      if(/staging capacity is full/.test(error.message)){yield new Promise(resolve=>setTimeout(resolve,16));continue;}
@@ -94,6 +127,7 @@
     }}
    }
    if(!rgba)rgba=pixels?yield* pixels.read(g,CELL,CELL):g.getImageData(0,0,CELL,CELL);
+   }
    if(disposed||gl.isContextLost())return false;
    let entries=cache.get(image);if(!entries)cache.set(image,entries=new Map());
    // Another preparation may have filled this recipe while readback waited.
@@ -141,7 +175,7 @@
      data[o]=m.a;data[o+1]=m.b;data[o+2]=m.c;data[o+3]=m.d;data[o+4]=m.a*x+m.c*y+m.e;data[o+5]=m.b*x+m.d*y+m.f;data[o+14]=opacity;}
     count+=instances;
     const light=appearance.localLight;
-    if(light){const entry=layer(asset.art,'sun',g=>g.drawImage(asset.art,0,0,CELL,CELL)),extent=Math.max(asset.width,asset.height);
+     if(light){const entry=layer(asset.art,'sun',g=>g.drawImage(asset.art,0,0,CELL,CELL),{kind:'sun'}),extent=Math.max(asset.width,asset.height);
      if(!entry){count=before;stats.coldFallbacks++;prepare(asset,w,h,{...appearance,templateSX:sx,templateSY:sy}).catch(()=>{});return false;}
      emit(m,0,0,w,h,entry.slot,entry.slot,1,1,2,0,opacity,{...light,x:Math.cos(light.direction)*asset.width/extent,y:Math.sin(light.direction)*asset.height/extent});}
     stats.ships++;stats.lamps+=count-before;return true;
@@ -149,19 +183,19 @@
    if(effects.forEachLamp)effects.forEachLamp(0,time,(textures,p,pulse)=>{
     if(!ok)return;const rw=Math.max(1,Math.round(p.w/pw*w*sx*2)),rh=Math.max(1,Math.round(p.h/ph*h*sy*2));
     const pad=Math.ceil(4*bloom*2*3),cw=rw+pad*2,ch=rh+pad*2,key=[rw,rh,gain,bloom].join(':');
-    const core=layer(textures.lit,'core:'+key,g=>g.drawImage(textures.lit,pad/cw*CELL,pad/ch*CELL,rw/cw*CELL,rh/ch*CELL));
+    const core=layer(textures.lit,'core:'+key,g=>g.drawImage(textures.lit,pad/cw*CELL,pad/ch*CELL,rw/cw*CELL,rh/ch*CELL),{kind:'core',rw,rh,pad,cw,ch,gain,bloom});
     const glow=layer(textures.lit,'glow:'+key,g=>{
      const c=document.createElement('canvas');c.width=cw;c.height=ch;const b=c.getContext('2d',{willReadFrequently:true});
      b.filter=`brightness(${gain}) blur(${4*bloom*2}px)`;b.drawImage(textures.lit,pad,pad,rw,rh);g.drawImage(c,0,0,CELL,CELL);
-    });
+    },{kind:'glow',rw,rh,pad,cw,ch,gain,bloom});
     ok=!!core&&!!glow&&emit(m,(p.left+p.w/2)/pw*w-w/2,(p.top+p.h/2)/ph*h-h/2,cw/(2*sx),ch/(2*sy),core.slot,glow.slot,pulse,gain,0,bloom,opacity);
    });
    else effects.forEachLightPrimitive(0,time,{lights:true,lightGain:gain},(image,x,y,lw,lh,alpha,screen,brightness)=>{
-    if(!ok)return;const entry=layer(image,'primitive',g=>g.drawImage(image,0,0,CELL,CELL));
+    if(!ok)return;const entry=layer(image,'primitive',g=>g.drawImage(image,0,0,CELL,CELL),{kind:'primitive'});
     ok=!!entry&&emit(m,(x+lw/2)/pw*w-w/2,(y+lh/2)/ph*h-h/2,lw/pw*w,lh/ph*h,entry.slot,entry.slot,alpha,brightness||1,1,0,opacity);
    });
    const light=appearance.localLight;
-   if(ok&&light){const entry=layer(asset.art,'sun',g=>g.drawImage(asset.art,0,0,CELL,CELL)),extent=Math.max(asset.width,asset.height);
+   if(ok&&light){const entry=layer(asset.art,'sun',g=>g.drawImage(asset.art,0,0,CELL,CELL),{kind:'sun'}),extent=Math.max(asset.width,asset.height);
     ok=!!entry&&emit(m,0,0,w,h,entry.slot,entry.slot,1,1,2,0,opacity,{...light,x:Math.cos(light.direction)*asset.width/extent,y:Math.sin(light.direction)*asset.height/extent});}
    if(!ok){count=before;stats.coldFallbacks++;prepare(asset,w,h,{...appearance,templateSX:sx,templateSY:sy}).catch(()=>{});return false;}
    return true;
@@ -175,7 +209,7 @@
    if(!batch.jobs.length)return Promise.resolve(true);
    const iterator=(function*(){for(const job of batch.jobs){if(disposed||gl.isContextLost())return false;if(!(yield* prepareLayer(job)))return false;yield 'lighting:atlas';}return true;})();
    const run=window.nativeDamageArtPreparation?.run;
-   const promise=(run?run(iterator,{priority:1,label:'lighting:atlas'}):new Promise((resolve,reject)=>{const next=()=>{try{const value=iterator.next();if(value.done)resolve(value.value);else setTimeout(next,0);}catch(error){reject(error);}};setTimeout(next,0);})).finally(()=>groups.delete(key));
+   const promise=(run?run(iterator,{priority:1,label:'lighting:atlas'}):new Promise((resolve,reject)=>{const next=(result,failed=false)=>{try{const value=failed?iterator.throw(result):iterator.next(result);if(value.done)resolve(value.value);else Promise.resolve(value.value).then(value=>setTimeout(()=>next(value),0),error=>setTimeout(()=>next(error,true),0));}catch(error){reject(error);}};setTimeout(next,0);})).finally(()=>groups.delete(key));
    groups.set(key,promise);return promise;
   }
   function render(){
@@ -186,7 +220,7 @@
    stats.drawCalls++;stats.peakInstances=Math.max(stats.peakInstances,count);return count;
   }
   const api=Object.freeze({queue,prepare,render,begin(enabled){serial++;count=0;active=enabled&&!disposed;stats.frames++;},get active(){return active&&!disposed&&!gl.isContextLost();},
-   snapshot:()=>({...stats,lastInstances:count,layers:retained.length,textureBytes:CELL*CELL*layers*4,bufferBytes:data.byteLength,limits:{instances:LIMIT,layers}}),
+   snapshot:()=>({...stats,lastInstances:count,layers:retained.length,textureBytes:CELL*CELL*layers*4,bufferBytes:data.byteLength,preparation:{...preparationStats,pending:preparationJobs.size,reason:preparationFailure},limits:{instances:LIMIT,layers}}),
    destroy(){if(disposed)return;disposed=true;active=false;owners.delete(space);gl.deleteProgram(program);gl.deleteBuffer(quad);gl.deleteBuffer(buffer);gl.deleteTexture(texture);gl.deleteVertexArray(vao);retained.length=0;}
   });owners.set(space,api);return api;
  };

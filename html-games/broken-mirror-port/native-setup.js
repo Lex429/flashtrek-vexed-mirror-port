@@ -151,8 +151,7 @@
         if(window.startNativeFactionGame(chosen,trimmed)){close(false)}
         else ui.querySelector('.setup-error').textContent='Unable to launch this faction.';
       };
-      if(window.nativeOpeningCinematic){if(window.nativeOpeningCinematic.play({mode:'new-game',onFinish:launch}))disposePreview();}
-      else launch();
+      launch();
     };
   }
   function open(){if(document.body.classList.contains('playing'))return;selection=2;step=1;names={captain:'Noname',ship:'Unnamed',government:'Unnamed'};menu.inert=true;stage.classList.add('setup-open');ui.hidden=false;syncAtmosphere();render();ui.querySelector('.faction-card[aria-pressed="true"]').focus()}

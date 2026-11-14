@@ -6,7 +6,7 @@ async function combat(){
   const f=await fixture({full:false,economic:false});
   const w=f.window,s=f.state,ship=f.ship;
   Object.assign(s,{x:1000000,y:1000000,angle:0,hull:100,shields:100,weapons:[],weaponInventory:[]});
-  Object.assign(ship,{x:s.x+220,y:s.y,heading:Math.PI,speed:0,vx:0,vy:0,system:s.system,phase:'cruise',hull:100,shields:100});
+  Object.assign(ship,{x:s.x+700,y:s.y,heading:Math.PI,speed:0,vx:0,vy:0,system:s.system,phase:'cruise',hull:100,shields:100});
   delete ship.localLeg;delete ship.journey;
   const model=kind=>w.VexedMirrorWeapons.find(model=>model.damage>0&&w.nativeCombatShots.weaponVisual(model).kind===kind);
   const fit=(...models)=>{delete s.shipEquipment;delete s.weaponLoadout;s.weapons=models.map(model=>model.id);s.weaponInventory=[];};
@@ -50,10 +50,11 @@ test('threat forecast uses shared shield/hull geometry and rejects receding, dis
 
 test('a nearer physical ship or asteroid removes the downstream predicted threat',async()=>{
   for(const category of ['ship','asteroid']){
-    const f=await combat();f.fit(f.model('disruptor'));f.fire();f.tick(.16);
+    const f=await combat();f.fit(f.model('disruptor'));const fired=f.fire();f.tick(.16);
     const descriptor=f.target();
-    f.w.nativeCombatShots.configureScene(()=>category==='ship'?{bystanders:[{...descriptor,id:'blocker',x:f.s.x+140}],rocks:[]}:
-      {bystanders:[],rocks:[{slotId:999,x:f.s.x+140,y:f.s.y,size:50}]});
+    const blockerX=(fired.event.x+descriptor.x)/2;
+    f.w.nativeCombatShots.configureScene(()=>category==='ship'?{bystanders:[{...descriptor,id:'blocker',x:blockerX}],rocks:[]}:
+      {bystanders:[],rocks:[{slotId:999,x:blockerX,y:f.s.y,size:50}]});
     assert.equal(f.w.nativeCombatShots.threats(f.s,descriptor).length,0,category+' intercepts before subject');
   }
 });
@@ -78,10 +79,11 @@ test('restored active projectile retains shared awareness and is not copied into
 test('awareness includes surface entry within its horizon and rejects cancelled cached projectile lookups',async()=>{
   const f=await combat();f.fit(f.model('disruptor'));const fired=f.fire();f.tick(.16);
   const event=fired.event,target=f.target();
-  event.x=target.x-event.vx*.97;event.y=target.y;
-  const threats=f.w.nativeCombatShots.threats(f.s,target,{horizon:.9});
+  const entryMargin=Math.min(target.radii.rx,target.radii.ry)/2;
+  event.x=target.x-event.vx*.3-entryMargin;event.y=target.y;
+  const threats=f.w.nativeCombatShots.threats(f.s,target,{horizon:.3});
   assert.equal(threats.length,1,'shield entry precedes center closest approach');
-  assert.ok(threats[0].timeToImpact<.9);
+  assert.ok(threats[0].timeToImpact<.3);
   assert.equal(f.w.nativeCombatShots.hasActiveProjectiles(f.s),true);
   const snapshot=f.w.nativeCombatShots.activeProjectile(f.s,event.id);snapshot.x=-1;
   assert.notEqual(event.x,-1,'shared read model cannot move a projectile');
@@ -101,12 +103,12 @@ test('firing feedback distinguishes reachable recharge from range and preserves 
   const missing=f.w.nativeCombatShots.firingStatus(f.s,f.source(),null);assert.equal(missing.maxRange,1100);assert.equal(missing.reason,'unavailable');
 });
 
-test('mixed fitted weapons retain long-range reach and independent physical aim',async()=>{
+test('mixed fitted weapons retain long-range reach and their actual mount arcs',async()=>{
   const f=await combat();f.fit(f.model('beam'),f.model('torpedo'));f.ship.x=f.s.x+1300;
   const inspect=()=>f.w.nativeCombatShots.firingStatus(f.s,f.source(),f.target());
   assert.equal(inspect().reason,'ready');assert.equal(inspect().maxRange,1500);
   assert.equal(inspect().weapons.filter(item=>item.canReach).length,1);
-  f.s.angle=Math.PI;assert.equal(inspect().reason,'ready');
+  f.s.angle=Math.PI;assert.equal(inspect().reason,'arc');
   f.s.angle=0;
   f.w.nativeCombatShots.configureScene(()=>({bystanders:[],rocks:[{slotId:999,x:f.s.x+100,y:f.s.y,size:45}]}));
   assert.equal(inspect().reason,'ready','physical interception owns obstructed shots');

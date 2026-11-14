@@ -1,0 +1,20 @@
+#galaxy-map[data-input="pc"] .map-breadcrumbs,#galaxy-map[data-input="pc"] .map-back,#galaxy-map[data-input="pc"] .map-focus-caption{display:none}
+#galaxy-map .map-breadcrumbs{display:flex;align-items:center;gap:9px;min-height:24px;margin:0 0 7px;color:#667f8d;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+#galaxy-map .map-breadcrumbs button{min-height:0;padding:2px 0;border:0;border-radius:0;background:none;color:#829aa8;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+#galaxy-map .map-breadcrumbs [aria-current]{color:#c4e4df}
+#galaxy-map .map-breadcrumbs>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+#galaxy-map .map-back span{margin-left:7px;color:#c6d1d7;font-size:10px}
+#galaxy-map .map-focus-caption{position:absolute;left:24px;top:58px;display:grid;gap:6px;max-width:calc(100% - 48px);pointer-events:none;text-shadow:0 2px 8px #000}
+#galaxy-map .map-focus-caption span{font-size:9px;letter-spacing:.24em;color:#77929d}
+#galaxy-map .map-focus-caption strong{font-size:clamp(18px,2.5vw,32px);font-weight:500;letter-spacing:.025em;color:#e8f4f3}
+#galaxy-map .selected .map-dot{fill:#e5fff4;stroke:#e5fff4;filter:drop-shadow(0 0 6px #8fffd6)}
+#galaxy-map .map-selection-ring{stroke:#a5efda;stroke-width:1.8;filter:drop-shadow(0 0 4px #9af6d1)}
+#galaxy-map .map-selected-label{font-size:13px;font-weight:750;fill:#e8fff6;stroke:#03090b;stroke-width:6px}
+#galaxy-map .map-actions button{transition:background .16s ease,border-color .16s ease,box-shadow .16s ease}
+#galaxy-map .map-actions .map-action-focus{outline:2px solid #d8ebc6;outline-offset:4px;box-shadow:0 0 20px #a5efda25}
+#galaxy-map .map-help{color:#b8d1d2;font-size:11px;line-height:1.6;max-width:calc(100% - 48px)}
+#galaxy-map .map-scale{letter-spacing:.03em}
+@media(max-width:700px){#galaxy-map .map-back span{display:none}#galaxy-map .map-breadcrumbs{gap:6px;font-size:9px}#galaxy-map .map-breadcrumbs button{font-size:9px}#galaxy-map .map-help{font-size:9px}#galaxy-map .map-focus-caption{left:14px;top:50px}}
+@media(max-width:440px){#galaxy-map .map-controls{flex-wrap:wrap;justify-content:flex-end;max-width:200px}#galaxy-map .map-controls .map-back{padding:8px}#galaxy-map .map-breadcrumbs>span:last-child{max-width:100px}body:has(#galaxy-map:not([hidden])) #controller-status{top:6px;bottom:auto;left:auto;right:12px}body:has(#galaxy-map:not([hidden])) #controller-status>span{display:none}}
+@media(max-width:440px){#galaxy-map .map-legend{bottom:57px}#galaxy-map .map-help{font-size:8.5px;line-height:1.45;max-width:calc(100% - 28px)}body:has(#galaxy-map:not([hidden])) #controller-status{top:2px;padding:2px 6px}#galaxy-map .map-controls{padding-top:12px}}
+@media(prefers-reduced-motion:reduce){#galaxy-map .map-actions button{transition:none}}

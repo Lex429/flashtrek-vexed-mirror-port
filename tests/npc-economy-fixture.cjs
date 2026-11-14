@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{execFileSync}=require('node:child_process'),{createHash}=require('node:crypto');
 const root=path.join(__dirname,'../html-games/broken-mirror-port');
-async function fixture({saved,full=true,economic=true,revision,regional=false,access=false,physics=false,traffic=physics,repairs=false,population=false,corridors=false,federation=false}={}){
+async function fixture({saved,full=true,economic=true,revision,regional=false,access=false,physics=false,traffic=physics,repairs=false,population=false,corridors=false,federation=false,factions=false,orion=false,shipyards=false}={}){
  const source=(file,optional=false)=>{if(!revision)return fs.readFileSync(path.join(root,file),'utf8');try{return execFileSync('git',['show',`${revision}:html-games/broken-mirror-port/${file}`],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']});}catch(error){if(optional)return null;throw error;}};
  const hub=source('system-hub.js'),rows=vm.runInNewContext('['+hub.match(/const sol = \[([\s\S]*?)\]\.map/)[1]+']');
  const sol=rows.map(([id,name,x,y,port])=>({id,name,x,y,port}));
@@ -9,7 +9,18 @@ async function fixture({saved,full=true,economic=true,revision,regional=false,ac
   showcaseWeaponAppearance:{units:.91976},showcaseShieldRadii:(w,h)=>({rx:w*.6,ry:h*.6}),createShowcaseWeaponVisual:i=>({...i}),showcaseHullBurst:{burst(){},update(){}}};
  const context=vm.createContext({window,document:{hidden:false},console,performance,
   fetch:async url=>({ok:true,json:async()=>JSON.parse(fs.readFileSync(path.join(root,'../flashtrek-broken-mirror/showcase-assets',url.split('/').pop().split('?')[0]),'utf8'))})});
- for(const file of ['world-data.js',...(corridors?['system-catalog-data.js','system-catalog.js']:[]),...(regional?['regional-minerals.js']:[]),...(access?['civilian-access.js']:[]),'weapon-catalog.js','simulation-clock.js','simulation-frame.js','ship-motion.js','ship-definitions.js',...(federation?['constitution-ships.js','federation-ships.js','federation-fleet.js']:[]),'ship-detail.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','faction-defence.js','port-docking.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','sol-asteroids.js','asteroid-combat.js','manual-flight.js',...(corridors?['travel-corridors.js']:[]),'npc-lives.js',...(repairs?['ship-repairs.js']:[])]){const code=source(file,['simulation-frame.js','ship-detail.js','port-docking.js'].includes(file));if(code)vm.runInContext(code,context,{filename:file});}
+ // Shipyard clearance uses the same measured dimensions sent to startup workers.
+ if(shipyards){
+  // Match the game's fallback hull profiles as well as the measured replacements.
+  // Effects are not painted by this geometry/economy fixture.
+  const starterContext={window:{createShowcaseEffects:()=>({})}};
+  vm.runInNewContext(source('../flashtrek-broken-mirror/starter-effects.js'),starterContext);
+  for(const [id,profile] of starterContext.window.starterShips)window.starterShips.set(id,{width:profile.width,height:profile.height,displayRatio:profile.displayRatio});
+  for(const name of ['earth','federation','klingon','cardassian','vulcan','romulan','ferengi-dominion','independent','new-ship','orion'])vm.runInContext(source('../flashtrek-broken-mirror/'+name+'-profiles.js'),context);
+  for(const [id,profile] of Object.entries(window.earthAnimationProfiles))window.starterShips.set(Number(id),{width:profile.width,height:profile.height,displayRatio:profile.displayRatio});
+  for(const id of [426,427])window.starterShips.set(id,{width:1024,height:1536});
+ }
+ for(const file of ['world-data.js',...(orion?['orion-world.js']:[]),...(corridors||shipyards?['system-catalog-data.js','system-catalog.js']:[]),...(shipyards?['faction-shipyards.js','flight-reference-data.js']:[]),...(regional?['regional-minerals.js']:[]),...(access?['civilian-access.js']:[]),'weapon-catalog.js','simulation-clock.js','simulation-frame.js','ship-motion.js','ship-definitions.js',...(federation||factions?['constitution-ships.js','federation-ships.js','federation-fleet.js']:[]),...(orion?['orion-ships.js']:[]),...(factions?['faction-fleets.js']:[]),'ship-detail.js','ship-damage.js','ship-effects.js','weapon-loadout.js','weapon-rules.js','combat-shots.js','ship-systems.js','rebirth-warp.js','faction-standing.js','faction-defence.js','port-docking.js','sol-economy.js','civilian-combat-ai.js','civilian-traffic.js','sol-asteroids.js','asteroid-combat.js','manual-flight.js',...(corridors?['travel-corridors.js']:[]),'npc-lives.js',...(repairs?['ship-repairs.js']:[])]){const code=source(file,['simulation-frame.js','ship-detail.js','port-docking.js'].includes(file));if(code)vm.runInContext(code,context,{filename:file});}
  // Historical economy fixtures keep their original population. Expanded fleet
  // fixtures opt into the same regional policy loaded by the game and worker.
  if(population)vm.runInContext(source('civilian-population.js'),context,{filename:'civilian-population.js'});

@@ -19,6 +19,16 @@ function fixture(){
 const view={w:900,h:600,playerX:0,playerY:0,reducedMotion:true};
 const close=(a,b,tolerance=1e-10)=>assert.ok(Math.abs(a-b)<tolerance,`${a} differs from ${b}`);
 
+test('painted regional streaks keep their retained northbound axis when a fast camera frame has no displacement',()=>{
+  const {api,window:w,context}=fixture(),model=w.vexedSpaceModel.create(1),ctx=context();
+  const command={speed:450,maxSpeed:450,locx:0,locy:450/13,flightVx:0,flightVy:-450,courseLocked:true};
+  for(let frame=0;frame<240;frame++)model.update(1/60,command);
+  model.update(1/120,{...command,locy:0});assert.equal(model.state.motionX,0);assert.equal(model.state.motionY,0);
+  api.create().render(ctx,{...view,reducedMotion:false},model.state);
+  assert.ok(ctx.gradients.length>0);
+  for(const {points:[x1,y1,x2,y2]} of ctx.gradients){assert.ok(y2>y1);close(x2,x1);}
+});
+
 test('all destinations and arbitrary interstellar coordinates have repeatable bounded geography',()=>{
   const {window:w,api}=fixture();
   for(const system of w.VexedMirrorWorld.systems){
@@ -135,4 +145,51 @@ test('ordinary and reduced-motion flight have no streaks; braking eases away the
   for(let frame=0;frame<120;frame++)model.update(1/60,command(0));
   const stopped=context();field.render(stopped,{...view,reducedMotion:false},model.state);
   assert.equal(stopped.fills.length,0);assert.equal(stopped.strokes.length,0);
+});
+
+test('ordered batching preserves each sprite and flushes before original speed trails',()=>{
+  for(const speed of [0,450]){
+    const {api,window:w,context}=fixture(),model=w.vexedSpaceModel.create(58),viewFast={...view,reducedMotion:false};
+    for(let i=0;i<120;i++)model.update(1/60,{speed,locx:-speed/13,locy:0,maxSpeed:450,courseLocked:true});
+    const baseline=context();api.create().render(baseline,viewFast,model.state);
+    const queued=[],events=[],ctx=context();let ended=false;
+    w.nativeStarfieldBatch={begin:()=>true,add(x,y,sx,sy,alpha){assert.equal(ended,false);queued.push({x,y,sx,sy,alpha});},end(){ended=true;events.push('flush');return {instances:queued.length,draws:1};}};
+    const fill=ctx.fill.bind(ctx);ctx.fill=()=>{events.push('trail');fill();};
+    const field=api.create();field.render(ctx,viewFast,model.state);
+    assert.equal(queued.length+ctx.draws.length,baseline.draws.length);
+    queued.forEach((draw,i)=>{const ref=baseline.draws[i];assert.deepEqual([draw.sx,draw.sy,draw.x,draw.y],[ref.args[1],ref.args[2],ref.args[5],ref.args[6]]);close(draw.alpha,ref.alpha);});
+    assert.deepEqual(ctx.draws,baseline.draws.slice(queued.length));
+    const gradientData=list=>list.map(({points,stops})=>({points,stops}));
+    assert.deepEqual(gradientData(ctx.gradients),gradientData(baseline.gradients));assert.deepEqual(ctx.fills,baseline.fills);
+    assert.equal(events[0],'flush');assert.equal(field.metrics().batchedStars,queued.length);
+    assert.equal(field.metrics().canvasDraws,ctx.draws.length+1);
+    if(speed===0)assert.equal(ctx.draws.length,0);else assert.ok(ctx.draws.length>0&&queued.length>ctx.draws.length);
+  }
+});
+
+test('an unavailable star batch keeps the original Canvas path',()=>{
+  const {api,window:w,context}=fixture(),model=w.vexedSpaceModel.create(25),a=context(),b=context();
+  api.create().render(a,view,model.state);w.nativeStarfieldBatch={begin:()=>false,add(){throw Error('Unavailable GPU used');}};
+  const field=api.create();field.render(b,view,model.state);assert.deepEqual(a.draws,b.draws);
+  assert.equal(field.metrics().renderer,'canvas');assert.equal(field.metrics().canvasDraws,field.metrics().draws);
+});
+
+test('stationary regional data is reused while twinkle still advances and crossings refresh it',()=>{
+  const {api,window:w,context}=fixture(),field=api.create(),model=w.vexedSpaceModel.create(25),ctx=context();
+  const movingView={...view,reducedMotion:false};field.render(ctx,movingView,model.state);const first=ctx.draws.splice(0);
+  model.update(1,{speed:0,locx:0,locy:0,maxSpeed:450,courseLocked:true});
+  field.render(ctx,movingView,model.state);assert.equal(field.metrics().regionBuilds,1);
+  assert.equal(ctx.draws.length,first.length);assert.ok(ctx.draws.some((draw,i)=>draw.alpha!==first[i].alpha));
+  field.render(ctx,{...movingView,playerX:800},model.state);assert.equal(field.metrics().regionBuilds,2);
+  assert.equal(field.metrics().x,api.sample(25,{playerX:800}).x);
+  field.render(ctx,{...movingView,playerX:801},model.state);assert.equal(field.metrics().regionBuilds,3);
+  assert.deepEqual(field.metrics().weights,api.sample(25,{playerX:801}).weights);
+});
+
+test('a fully batched starfield does not write per-star Canvas transparency',()=>{
+  const {api,window:w,context}=fixture(),ctx=context(),queued=[];let writes=0;
+  Object.defineProperty(ctx,'globalAlpha',{get:()=>1,set:()=>writes++,configurable:true});
+  w.nativeStarfieldBatch={begin:()=>true,add(...args){queued.push(args);},end:()=>({draws:1,instances:queued.length})};
+  const field=api.create();field.render(ctx,view,w.vexedSpaceModel.create(25).state);
+  assert.ok(queued.length>1000);assert.equal(writes,0);assert.equal(field.metrics().draws,queued.length);
 });

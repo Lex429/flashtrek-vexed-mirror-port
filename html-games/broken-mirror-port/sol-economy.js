@@ -313,7 +313,7 @@
     const result=window.nativeShipDamage.apply(descriptor,damage,impact);
     if(!result.ok)return result;
     window.nativeShipEffects.hit(state,descriptor,result,impact);
-    const reputation=result.destroyed&&impact.source!=='ai'?window.nativeFactionStanding.shipDestroyed(state,Number(ship.ownerGovernmentId)||solGovernmentId):null;
+    const reputation=result.destroyed&&!['ai','environment'].includes(impact.source)?window.nativeFactionStanding.shipDestroyed(state,Number(ship.ownerGovernmentId)||solGovernmentId):null;
     if(result.destroyed)destroy(economy,ship,result.beforeStage);else if(result.disabled)disable(economy,ship);
     return {...result,reputation};
   }
@@ -401,6 +401,7 @@
         if(sampled.invalid){ship.lifeLeg=null;ship.phase='waiting-route';window.nativeShipMotion.stop(ship);ship.task.status='blocked';ship.task.failureReason='Invalid saved movement; cargo remains aboard';ship.lifeEventAt=at+30;return;}
         if(!sampled.arrived){ship.lifeEventAt=Math.max(at+1/60,ship.lifeLeg.startedAt+ship.lifeLeg.duration);return;}
       }
+      if(ship.lifeLeg?.pathEnd)ship.routeIndex=ship.lifeLeg.pathEnd-1;
       ship.routeIndex++;
       if(ship.routeIndex>=ship.path.length){
         arriveTug(economy,ship);
@@ -617,6 +618,18 @@
     else{ship.phase='waiting';ship.dwell=.01;}
     syncTask(economy,ship);scheduleTug(economy,ship,window.nativeSimulation.seconds(state));return true;
   }
+  function seizeCargo(state,ship,field,tons){
+    if(!ship||ship.phase!=='disabled'||!(ship.hull>0)||!['tons','repairDeuranium'].includes(field))return {ok:false,error:'Cargo is available only from a disabled freighter.'};
+    const available=qty(ship[field]),good=field==='tons'?ship.good:7;
+    if(!Number.isFinite(tons)||tons<=0||tons>available||!Number.isInteger(good)||!goods[good])return {ok:false,error:'That cargo is no longer aboard.'};
+    const economy=initialize(state),assignment=ship.assignment,jobBefore=assignment?{...assignment}:null,oldGood=ship.good,oldLedger=economy.flows.seizedByPlayer,previous=oldLedger?.[good];
+    ship[field]=available-tons;
+    if(field==='tons'&&assignment){assignment.tons=ship.tons;if(!ship.tons){ship.assignment=null;ship.good=null;}}
+    economy.flows.seizedByPlayer||=goods.map(()=>0);economy.flows.seizedByPlayer[good]=qty(previous)+tons;
+    return {ok:true,tons,undo(){ship[field]=available;ship.good=oldGood;ship.assignment=assignment;if(assignment)Object.assign(assignment,jobBefore);
+      if(oldLedger===undefined)delete economy.flows.seizedByPlayer;else{economy.flows.seizedByPlayer=oldLedger;oldLedger[good]=previous;}
+    }};
+  }
   function consumeMaterials(state,port,materials){
     const economy=initialize(state);
     const totals=new Map();
@@ -628,6 +641,6 @@
   function invalidateMembership(state){const rt=state.solEconomy&&runtimes.get(state.solEconomy);if(rt)rt.revision=-1;}
   function calendarPending(state){const economy=initialize(state),at=window.nativeSimulation.seconds(state);return economy.clock>=30||economy.freighters.some(ship=>ship.lifeEventAt!==null&&Number.isFinite(ship.lifeEventAt)&&ship.lifeEventAt<=at);}
   function observeMotion(state,ship){const rt=state.solEconomy&&runtimes.get(state.solEconomy);if(!rt)return;const moving=ship.hull>0&&ship.phase!=='destroyed'&&!!(ship.lifeLeg||ship.motionKick||ship.motionSpin||ship.speed>0);if(rt.mobile.has(ship)!==moving){if(moving)rt.mobile.add(ship);else rt.mobile.delete(ship);rt.mobileView=null;}}
-  window.nativeSolEconomy={freightRate,goods,ports,names,roles,lanes,initialize,advance,calendarPending,settleCalendar:state=>advance(state,0,{catchUp:true}),snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute,resumeAfterRepair,consumeMaterials,find,invalidateMembership,
+  window.nativeSolEconomy={freightRate,goods,ports,names,roles,lanes,initialize,advance,calendarPending,settleCalendar:state=>advance(state,0,{catchUp:true}),snapshot,quote,buySell,contract,deliver,paint,select,clearTarget,target,hitTest,fire,hit,visualImpact,lifeDescriptors,detail,dimensions:()=>tugDimensions(1),reroute,resumeAfterRepair,seizeCargo,consumeMaterials,find,invalidateMembership,
     members:(state,system=1)=>system===1?initialize(state).freighters:[],revision:state=>runtime(state,initialize(state)).revision,inspect:(state,id)=>{const ship=find(state,id);return ship?lifeDescriptor(state,ship):null;},observeMotion,mobile:state=>{const rt=runtime(state,initialize(state));return rt.mobileView||=Object.freeze(Array.from(rt.mobile));}};
 })();

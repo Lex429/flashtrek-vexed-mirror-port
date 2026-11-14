@@ -22,7 +22,7 @@
   function visibleBodies(state, view) {
     if (!state) return [];
     const ship = view.camera || shipPosition(state), zoom = view.zoom, margin = 220;
-    return forSystem(state).filter(body=>body.kind!=='belt'&&!body.occludedBy).map(body => {
+    return forSystem(state).filter(body=>body.render!==false&&body.kind!=='belt'&&!body.occludedBy).map(body => {
       const size = bodySize(body);
       const position = bodyPosition(body);
       const x = view.cx + position.x - ship.x;
@@ -35,6 +35,7 @@
     }).filter(entry => entry.visible);
   }
   function art(id, system=1) {
+    if(forSystem(system).find(b=>b.id===Number(id))?.render===false)return null;
     if(system!==1||id>=12||id===0){
       const body=forSystem(system).find(body=>body.id===Number(id));
       if(!body)return null;
@@ -58,6 +59,7 @@
   function prepareArt(id,system=1){
     const body=forSystem(system).find(body=>body.id===Number(id));
     if(!body)return Promise.reject(new Error('Unknown arrival body.'));
+    if(body.render===false)return Promise.resolve(null);
     const local=system===1&&id>0&&id<12,key=system+':'+id;
     const cached=local?window.vexedFlightAssets.localBody(id):artwork.get(body.art);
     if(cached)return Promise.resolve(cached);
@@ -73,6 +75,7 @@
     const ship = shipPosition(state);
     let nearest = null, distance = Infinity;
     for (const body of forSystem(state)) {
+      if(body.render===false)continue;
       const position = bodyPosition(body);
       const d = Math.hypot(position.x - ship.x, position.y - ship.y);
       if (d < distance) { nearest = body; distance = d; }

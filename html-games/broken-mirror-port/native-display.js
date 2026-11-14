@@ -11,13 +11,17 @@
     return {w:rect.width/scale,h:rect.height/scale,scale,safeBottom:toolbar?Math.max(0,Math.min(toolbar.height,rect.bottom-toolbar.top))/scale:0};
   }
   function measure(element=stage){return fromRect(element.getBoundingClientRect());}
-  function fit(canvas,ctx){
+  function canvasLayout(canvas){
     const density=devicePixelRatio||1;
     let cached=fitted.get(canvas);
     if(!cached||cached.version!==layoutVersion||cached.density!==density){
       const rect=canvas.getBoundingClientRect();cached={rect,view:fromRect(rect),density,version:layoutVersion};
       fitted.set(canvas,cached);sizes.observe(canvas);
     }
+    return cached;
+  }
+  function fit(canvas,ctx){
+    const cached=canvasLayout(canvas);
     const {rect,view}=cached;
     const pixels=Math.max(1,rect.width*rect.height);
     const d=Math.min(devicePixelRatio||1,2,Math.sqrt(4000000/pixels));
@@ -37,6 +41,7 @@
     else{if(document.fullscreenElement)await document.exitFullscreen();setView(value==='classic'?'classic':'widescreen');}
     sync();
   }
-  window.nativeView={measure,fit,choose,get mode(){return mode;},get selection(){return document.fullscreenElement?'fullscreen':mode==='classic'?'classic':'windowed';}};
+  function pixelRatio(canvas){const cached=fitted.get(canvas);return cached&&cached.version===layoutVersion&&cached.density===(devicePixelRatio||1)?canvas.width/Math.max(1,cached.rect.width):null;}
+  window.nativeView={measure,fit,pixelRatio,choose,get mode(){return mode;},get selection(){return document.fullscreenElement?'fullscreen':mode==='classic'?'classic':'windowed';}};
   document.body.dataset.view=mode;const layout=new ResizeObserver(sync);layout.observe(stage);const toolbar=document.querySelector('body > footer');if(toolbar)layout.observe(toolbar);addEventListener('resize',sync);document.addEventListener('fullscreenchange',sync);sync();
 })();

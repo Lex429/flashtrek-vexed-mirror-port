@@ -6,6 +6,10 @@
   const wrap=angle=>Math.atan2(Math.sin(angle),Math.cos(angle));
   const validPoint=point=>point&&Number.isFinite(point.x)&&Number.isFinite(point.y);
   const headingKey=entity=>Number.isFinite(entity.heading)?'heading':'angle';
+  // Contact dispatch supplies motion only for actors without a controller in
+  // this physical step. Keep that ownership runtime-only, keyed by saved time.
+  const integratedOwners=new WeakMap();
+  const wasIntegrated=(state,entity)=>integratedOwners.get(state)?.get(entity)===window.nativeSimulation.seconds(state);
   const combatProfiles={
     18:{speed:.8,turnRate:2.3,acceleration:90},
     23:{speed:.72,turnRate:2.6,acceleration:105},
@@ -17,7 +21,7 @@
   const profiles={
     manual(stats){
       const t=stats?.thrusters,engineSpeed=stats?.thrusterOnly?0:stats?.engineCondition<100?Math.max(0,finite(stats.speedOrOtherStationValue)*4.5):Math.max(36,finite(stats?.speedOrOtherStationValue,35)*4.5),handling=t?.handling||1;
-      return {maxSpeed:Math.max(engineSpeed,t?.maxSpeed||0),acceleration:Math.max(engineSpeed*.75*handling,t?.acceleration||0),braking:Math.max(engineSpeed*1.2*handling,t?.braking||0),turnRate:t?.turnRate??Math.max(.5,finite(stats?.turn,2)/4),vectorFlight:true,lateralAcceleration:Math.max(engineSpeed*.6*handling,(t?.acceleration||0)*.75),softSpeedLimit:!!stats?.thrusterOnly||stats?.engineCondition<100};
+      return {maxSpeed:Math.max(engineSpeed,t?.maxSpeed||0),acceleration:Math.max(engineSpeed*.75*handling,t?.acceleration||0),braking:Math.max(engineSpeed*1.2*handling,t?.braking||0),turnRate:t?.turnRate??Math.max(.5,finite(stats?.turn,2)/4),vectorFlight:true,lateralAcceleration:Math.max(engineSpeed*.6*handling,(t?.acceleration||0)*.75),softSpeedLimit:!!stats?.thrusterOnly||stats?.engineCondition<100,propulsion:stats?.propulsion,serviceApproach:!!stats?.capabilities?.multiVectorSection,engineOnline:stats?.engineOnline!==false};
     },
     tug(){return {maxSpeed:135,acceleration:38,braking:45,turnRate:1.35,alignmentFloor:.26,alignmentDivisor:Math.PI,brakingDistanceOffset:4,arrivalRadius:7,arrivalSpeed:24};},
     civilian(stats){const maxSpeed=Math.max(36,finite(stats?.speedOrOtherStationValue,40)*3);return {maxSpeed,acceleration:maxSpeed*.75,braking:225,turnRate:Infinity,directGoal:true,arrivalRadius:.75,snap:true};},
@@ -36,11 +40,12 @@
     if(resetAngular)entity.motionAngularVelocity=0;
     return entity;
   }
-  function stop(entity,{preserveImpulse=false}={}){entity.speed=0;entity.vx=0;entity.vy=0;delete entity.motionReverse;delete entity.motionDrift;if(!preserveImpulse){delete entity.motionKick;delete entity.motionSpin;}return entity;}
+  function stop(entity,{preserveImpulse=false}={}){entity.speed=0;entity.vx=0;entity.vy=0;delete entity.motionReverse;delete entity.motionDrift;if(!preserveImpulse){delete entity.motionKick;delete entity.motionSpin;delete entity.motionFlow;}return entity;}
   function integrate(entity,command={},profile={},dt){
     const idle={arrived:false,distance:null,headingError:0,moved:false};
     if(!entity||!validPoint(entity)||!Number.isFinite(dt)||dt<=0)return idle;
     if(command.goal&&!validPoint(command.goal))return idle;
+    if(profile.propulsion?.version===1)return actuatedStep(entity,command,profile,dt);
     prepare(entity);
     const key=headingKey(entity),oldX=entity.x,oldY=entity.y,oldHeading=entity[key];
     const goal=command.goal,dx=goal?goal.x-entity.x:0,dy=goal?goal.y-entity.y:0;
@@ -83,6 +88,17 @@
       entity.vx*=damping;entity.vy*=damping;entity.speed=Math.hypot(entity.vx,entity.vy);
       return {arrived:false,distance,headingError:error,moved:entity.x!==oldX||entity.y!==oldY};
     }
+    if(validPoint(command.velocity)){
+      // RCS/formation intent can translate independently of nose direction.
+      // Its velocity change still belongs to the shared acceleration owner.
+      let x=command.brake?0:command.velocity.x,y=command.brake?0:command.velocity.y,wanted=Math.hypot(x,y);
+      if(wanted>top){x*=top/wanted;y*=top/wanted;wanted=top;}
+      const dx=x-entity.vx,dy=y-entity.vy,length=Math.hypot(dx,dy);
+      const rate=wanted<entity.speed?braking:acceleration,blend=length?Math.min(1,rate*dt/length):0;
+      entity.vx+=dx*blend;entity.vy+=dy*blend;entity.speed=Math.hypot(entity.vx,entity.vy);
+      entity.x+=entity.vx*dt;entity.y+=entity.vy*dt;
+      return {arrived:false,distance,headingError:error,moved:entity.x!==oldX||entity.y!==oldY};
+    }
     if(vectorFlight){
       if(command.drift!==undefined)entity.motionDrift=!!command.drift;
       const speed=Math.hypot(entity.vx,entity.vy),throttle=clamp(finite(command.throttle),0,1);
@@ -92,7 +108,8 @@
       }else if(command.reverse||throttle){
         // Thrust changes a velocity vector; pointing the nose cannot teleport
         // existing momentum onto another course.
-        const wanted=command.reverse?-top*.45:top,rate=command.reverse?acceleration*.7:acceleration*throttle;
+        const wanted=command.reverse?-top*.45:Number.isFinite(command.desiredSpeed)?clamp(command.desiredSpeed,0,top):top;
+        const rate=command.reverse?acceleration*.7:Number.isFinite(command.desiredSpeed)&&wanted<speed?braking:acceleration*throttle;
         const dx=Math.cos(entity[key])*wanted-entity.vx,dy=Math.sin(entity[key])*wanted-entity.vy,length=Math.hypot(dx,dy);
         const blend=length>0?Math.min(1,rate*dt/length):0;
         entity.vx+=dx*blend;entity.vy+=dy*blend;
@@ -219,7 +236,7 @@
     entity.motionSpin=leg?{version:1,mode:'scheduled',at,angle:previous.angle+angle,velocity:previous.velocity+velocity}:
       {version:1,mode:'free',velocity:previous.velocity+velocity};
   }
-  function step(entity,command={},profile={},dt){
+  function poweredStep(entity,command={},profile={},dt){
     if(!entity?.motionSpin||!validPoint(entity)||!(dt>0)||!Number.isFinite(dt)||command.goal&&!validPoint(command.goal))return translationStep(entity,command,profile,dt);
     const spin=spinSample(entity.motionSpin,finite(entity.motionTime,entity.motionSpin.at)),rate=command.brake?5:command.turn||command.throttle?4:2;
     const decay=Math.exp(-rate*dt),angle=spin.velocity*(1-decay)/rate,key=headingKey(entity);
@@ -227,6 +244,178 @@
     const result=translationStep(entity,command,profile,dt),velocity=spin.velocity*decay;
     if(Math.abs(velocity)>.00001)entity.motionSpin={version:1,mode:'free',velocity};else delete entity.motionSpin;
     return result;
+  }
+  // Environmental momentum is separate from the engine's rated velocity and
+  // transient collision stabilization. It survives leaving a flow and saving.
+  // Only this owner integrates its displacement, braking and angular response.
+  function step(entity,command={},profile={},dt,state,owner=entity){
+    if(!entity||!validPoint(entity)||!(dt>0)||!Number.isFinite(dt)||command.goal&&!validPoint(command.goal))return poweredStep(entity,command,profile,dt);
+    if(command.referenceFrame)return frameStep(entity,command,profile,dt,state,owner);
+    if(state){let owners=integratedOwners.get(state);if(!owners)integratedOwners.set(state,owners=new WeakMap());owners.set(owner,window.nativeSimulation.seconds(state));}
+    const flow=command.externalFlow,carried=entity.motionFlow;
+    if(!flow&&!carried)return poweredStep(entity,command,profile,dt);
+    prepare(entity);
+    // Braking acts once on the combined engine/flow velocity. Opposing engine
+    // and plasma components must not cancel the pilot's braking authority.
+    const combineBrake=(command.brake||command.hold)&&!entity.motionKick;
+    const old=combineBrake?{vx:entity.vx,vy:entity.vy}:{vx:finite(carried?.vx),vy:finite(carried?.vy)},velocity={...old};
+    if(flow){
+      const blend=1-Math.exp(-Math.max(0,finite(flow.rate))*dt);
+      velocity.vx+=(finite(flow.vx)-entity.vx)*blend+finite(flow.ax)*dt;
+      velocity.vy+=(finite(flow.vy)-entity.vy)*blend+finite(flow.ay)*dt;
+      const spin=spinSample(entity.motionSpin,finite(entity.motionTime));
+      applySpinImpulse(entity,(finite(flow.spin)-spin.velocity)*(1-Math.exp(-Math.max(0,finite(flow.spinRate))*dt)),finite(entity.motionTime));
+    }
+    if(command.brake||command.hold||command.goal){
+      const speed=Math.hypot(velocity.vx,velocity.vy),braking=Math.max(0,finite(profile.braking,profile.acceleration))*Math.max(0,finite(command.brakeFactor,1));
+      const scale=speed?Math.max(0,1-braking*dt/speed):0;velocity.vx*=scale;velocity.vy*=scale;
+    }
+    const before={x:entity.x,y:entity.y};entity.vx-=old.vx;entity.vy-=old.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
+    const result=poweredStep(entity,command,profile,dt);
+    entity.x+=(old.vx+velocity.vx)*.5*dt;entity.y+=(old.vy+velocity.vy)*.5*dt;
+    entity.vx+=velocity.vx;entity.vy+=velocity.vy;entity.speed=Math.hypot(entity.vx,entity.vy);
+    if(entity.speed<1e-5){entity.vx=entity.vy=entity.speed=0;}
+    entity.motionFlow=Math.hypot(velocity.vx,velocity.vy)>.001?{version:1,...velocity}:undefined;
+    result.moved=entity.x!==before.x||entity.y!==before.y;
+    if(command.goal){result.distance=Math.hypot(command.goal.x-entity.x,command.goal.y-entity.y);result.arrived=result.arrived&&result.distance<=(command.arrivalRadius??profile.arrivalRadius??.75)&&entity.speed<=(command.arrivalSpeed??profile.arrivalSpeed??Infinity);}
+    return result;
+  }
+  const frameRotate=(x,y,a)=>({x:x*Math.cos(a)-y*Math.sin(a),y:x*Math.sin(a)+y*Math.cos(a)});
+  // Bounded nonnegative nozzle allocation. This is the only powered motion
+  // integration for craft with an explicit propulsion definition. Effects read
+  // its applied levels and never estimate forces from speed or rendered poses.
+  function actuatedStep(entity,command,profile,dt){
+    prepare(entity);
+    const p=profile.propulsion,key=headingKey(entity),heading=finite(entity[key]),a=heading+Math.PI/2;
+    const before={x:entity.x,y:entity.y},vx=entity.vx,vy=entity.vy,speed=Math.hypot(vx,vy);
+    const acceleration=Math.max(0,finite(profile.acceleration,100))*Math.max(0,finite(command.engineFactor,1)),braking=Math.max(0,finite(profile.braking,acceleration))*Math.max(0,finite(command.brakeFactor,1));
+    const turnRate=Math.max(0,Math.min(p.maxTurnRate,finite(profile.turnRate,1)))*Math.max(0,finite(command.turnFactor,1))/(1+1.2*(Math.min(1,speed/Math.max(1,profile.maxSpeed)))**2);
+    const omega=finite(entity.motionAngularVelocity),error=Number.isFinite(command.heading)?wrap(command.heading-heading):0;
+    const maxAlpha=p.angularAcceleration,desiredOmega=Number.isFinite(command.heading)?finite(command.angularVelocity)+clamp(error*3,-turnRate,turnRate):clamp(finite(command.turn),-1,1)*turnRate;
+    const angular=clamp((desiredOmega-omega)/p.angularResponse,-maxAlpha,maxAlpha);
+    let ax=0,ay=0;
+    if(!command.coast){
+      let target=command.velocity;
+      if(command.brake||command.hold)target={x:0,y:0};
+      else if(!target&&(command.throttle||command.reverse||Number.isFinite(command.speed)||Number.isFinite(command.desiredSpeed))){
+        const facing=Number.isFinite(command.heading)?command.heading:heading;
+        const wanted=command.reverse?-profile.maxSpeed*.45:command.speed??command.desiredSpeed??profile.maxSpeed;
+        target={x:Math.cos(facing)*wanted,y:Math.sin(facing)*wanted};
+      }else if(!target&&!entity.motionDrift&&(command.turn||Number.isFinite(command.heading))&&speed>.1)target={x:Math.cos(heading)*speed,y:Math.sin(heading)*speed};
+      if(target){
+        ax=(target.x-vx)/p.velocityResponse+finite(command.acceleration?.x);ay=(target.y-vy)/p.velocityResponse+finite(command.acceleration?.y);
+        const length=Math.hypot(ax,ay),limit=command.brake||command.hold?braking:Math.max(acceleration,finite(profile.lateralAcceleration,acceleration));
+        const throttle=command.velocity||command.brake||command.hold||Number.isFinite(command.speed)||Number.isFinite(command.desiredSpeed)?1:command.reverse?1:clamp(finite(command.throttle,1),0,1);
+        const factor=length>0?Math.min(1,limit*throttle/length):0;ax*=factor;ay*=factor;
+      }
+    }
+    const desired=frameRotate(ax,ay,-a),scale=Math.max(1,acceleration,braking),requested=[desired.x/scale,desired.y/scale,angular/maxAlpha];
+    const jets=p.jets.map(j=>{
+      const force=j.force*acceleration/p.referenceAcceleration*(j.kind==='engine'&&profile.engineOnline===false?0:1),fx=-j.dx*force,fy=-j.dy*force;
+      return {...j,force,column:[fx/p.mass/scale,fy/p.mass/scale,(j.x*fy-j.y*fx)/p.inertia/maxAlpha]};
+    });
+    const levels=jets.map(()=>0),residual=[...requested];
+    for(let pass=0;pass<28;pass++)for(let i=0;i<jets.length;i++){
+      const c=jets[i].column,cost=jets[i].kind==='engine'?.00008:.0008,norm=c[0]**2+c[1]**2+c[2]**2+cost;
+      const next=clamp(levels[i]+(c[0]*residual[0]+c[1]*residual[1]+c[2]*residual[2]-cost*levels[i])/norm,0,1),change=next-levels[i];
+      levels[i]=next;for(let k=0;k<3;k++)residual[k]-=c[k]*change;
+    }
+    // Remove the allocator's regularisation error on its active nozzles. The
+    // least-squares warm start chooses an economical set; this small bounded
+    // solve then delivers the requested force/torque exactly when achievable.
+    for(let pass=0;pass<8&&Math.hypot(...residual)>1e-9;pass++){
+      const free=levels.map((n,i)=>n>1e-8&&n<1-1e-8?i:-1).filter(i=>i>=0),matrix=Array.from({length:3},(_,r)=>[0,0,0,residual[r]]);
+      for(const i of free)for(let r=0;r<3;r++)for(let c=0;c<3;c++)matrix[r][c]+=jets[i].column[r]*jets[i].column[c];
+      let valid=true;
+      for(let c=0;c<3;c++){
+        let pivot=c;for(let r=c+1;r<3;r++)if(Math.abs(matrix[r][c])>Math.abs(matrix[pivot][c]))pivot=r;
+        if(Math.abs(matrix[pivot][c])<1e-12){valid=false;break;}
+        [matrix[c],matrix[pivot]]=[matrix[pivot],matrix[c]];const scale=matrix[c][c];for(let k=c;k<4;k++)matrix[c][k]/=scale;
+        for(let r=0;r<3;r++)if(r!==c){const scale=matrix[r][c];for(let k=c;k<4;k++)matrix[r][k]-=matrix[c][k]*scale;}
+      }
+      if(!valid)break;
+      const corrections=free.map(i=>jets[i].column.reduce((n,v,k)=>n+v*matrix[k][3],0));let fraction=1;
+      for(let k=0;k<free.length;k++){const value=levels[free[k]],change=corrections[k];if(change>0)fraction=Math.min(fraction,(1-value)/change);else if(change<0)fraction=Math.min(fraction,-value/change);}
+      for(let k=0;k<free.length;k++){const i=free[k],change=corrections[k]*fraction;levels[i]=clamp(levels[i]+change,0,1);for(let r=0;r<3;r++)residual[r]-=jets[i].column[r]*change;}
+    }
+    let fx=0,fy=0,torque=0;
+    const applied=jets.map((j,i)=>{
+      const level=levels[i]<1e-8?0:levels[i],x=-j.dx*j.force*level,y=-j.dy*j.force*level,moment=j.x*y-j.y*x;
+      fx+=x;fy+=y;torque+=moment;
+      return {id:j.id,kind:j.kind,x:j.x,y:j.y,dx:j.dx,dy:j.dy,level,force:j.force,fx:x,fy:y,torque:moment};
+    });
+    const world=frameRotate(fx/p.mass,fy/p.mass,a),alpha=torque/p.inertia;
+    entity.previousX=before.x;entity.previousY=before.y;
+    entity.x+=vx*dt+world.x*dt*dt*.5;entity.y+=vy*dt+world.y*dt*dt*.5;
+    entity.vx=vx+world.x*dt;entity.vy=vy+world.y*dt;entity.speed=Math.hypot(entity.vx,entity.vy);
+    entity[key]=wrap(heading+omega*dt+alpha*dt*dt*.5);entity.motionAngularVelocity=omega+alpha*dt;
+    if(command.drift!==undefined)entity.motionDrift=!!command.drift;
+    entity.motionActuation={version:1,heading,mass:p.mass,inertia:p.inertia,dt,ax:world.x,ay:world.y,alpha,fx,fy,torque,requested:{ax,ay,alpha:angular},residual,jets:applied};
+    return {arrived:false,distance:command.goal?Math.hypot(command.goal.x-entity.x,command.goal.y-entity.y):null,headingError:error,moved:entity.x!==before.x||entity.y!==before.y};
+  }
+  function rendezvousCommand(entity,target,profile,options={}){
+    // The lead has already moved in this physics step. Reconstruct its target
+    // at the escort's starting instant rather than chasing one step ahead.
+    const dt=options.dt??1/60,tx=target.x-finite(target.vx)*dt+finite(target.ax)*dt*dt*.5,ty=target.y-finite(target.vy)*dt+finite(target.ay)*dt*dt*.5;
+    const dx=tx-entity.x,dy=ty-entity.y,distance=Math.hypot(dx,dy),gain=options.gain??1.6;
+    const braking=Math.max(1,Math.min(profile.acceleration,profile.braking));
+    const limit=Math.min(options.maxClosing??150,Math.sqrt(2*braking*Math.max(0,distance-.05))*.72);
+    const closing=distance<.06?0:Math.min(limit,distance*gain),ratio=distance?closing/distance:0;
+    return {velocity:{x:finite(target.vx)-finite(target.ax)*dt+dx*ratio,y:finite(target.vy)-finite(target.ay)*dt+dy*ratio},acceleration:{x:finite(target.ax),y:finite(target.ay)},
+      heading:Number.isFinite(target.heading)?target.heading-finite(target.omega)*dt:undefined,angularVelocity:finite(target.omega),navigationGoal:{x:target.x,y:target.y}};
+  }
+  function avoidVectorShips(ship,neighbors,command,profile){
+    const speed=Math.hypot(command.velocity.x,command.velocity.y),heading=speed>.01?Math.atan2(command.velocity.y,command.velocity.x):ship.heading;
+    const intended={...ship,vx:command.velocity.x,vy:command.velocity.y,heading};
+    const predicted=trafficAdvice(intended,neighbors,profile),actual=trafficAdvice(ship,neighbors,profile);
+    const threat=actual&&(!predicted||actual.t<predicted.t)?actual:predicted;
+    let route=ship.entity?.actuatedAvoidance,other=route&&neighbors.find(e=>e.id===route.id&&e.category===route.category);
+    if(!other||Math.hypot(ship.x-other.x-route.x,ship.y-other.y-route.y)<6){route=null;if(ship.entity)delete ship.entity.actuatedAvoidance;}
+    if(!route&&threat){
+      other=threat.other;
+      const goal=command.navigationGoal||{x:ship.x+command.velocity.x*2,y:ship.y+command.velocity.y*2};
+      const points=obstaclePoints(ship,goal,[{x:other.x,y:other.y,radius:shipRadius(other)+3}],shipRadius(ship)+7);
+      if(points&&points.length===0)return command;
+      if(points?.length){route={id:other.id,category:other.category,x:points[0].x-other.x,y:points[0].y-other.y};if(ship.entity)ship.entity.actuatedAvoidance=route;}
+      else return {...command,velocity:{x:other.vx||0,y:other.vy||0},acceleration:undefined};
+    }
+    if(route){
+      const point={x:other.x+route.x,y:other.y+route.y},distance=Math.hypot(point.x-ship.x,point.y-ship.y);
+      const closing=Math.min(Math.max(35,speed),distance*1.6,Math.sqrt(2*Math.max(1,profile.braking)*distance)*.7),ratio=distance?closing/distance:0;
+      return {...command,velocity:{x:(other.vx||0)+(point.x-ship.x)*ratio,y:(other.vy||0)+(point.y-ship.y)*ratio},acceleration:undefined};
+    }
+    return command;
+  }
+  function framePose(entity,frame,end=true){
+    const anchor=end?frame.to:frame.from,a=anchor.heading+Math.PI/2;
+    const p=frameRotate(entity.x-anchor.x,entity.y-anchor.y,-a),v=frameRotate(finite(entity.vx)-finite(anchor.vx),finite(entity.vy)-finite(anchor.vy),-a),spin=finite(anchor.omega);
+    return {x:p.x,y:p.y,vx:v.x+spin*p.y,vy:v.y-spin*p.x,heading:wrap(finite(entity[headingKey(entity)])-a)};
+  }
+  function frameVelocity(frame,local,end=true){
+    const anchor=end?frame.to:frame.from,spin=finite(anchor.omega),v=frameRotate(finite(local.vx)-spin*local.y,finite(local.vy)+spin*local.x,anchor.heading+Math.PI/2);
+    return {x:finite(anchor.vx)+v.x,y:finite(anchor.vy)+v.y};
+  }
+  function frameStep(entity,command,profile,dt,state,owner){
+    const frame=command.referenceFrame;
+    if(!validPoint(frame.from)||!validPoint(frame.to)||!Number.isFinite(frame.from.heading)||!Number.isFinite(frame.to.heading))throw new TypeError('A moving frame requires two finite poses');
+    const before={x:entity.x,y:entity.y},key=headingKey(entity),local={...entity,...framePose(entity,frame,false)};
+    local.speed=Math.hypot(local.vx,local.vy);delete local.angle;
+    const vector=(data,a)=>{
+      if(!data)return data;const copy={...data};
+      if(Number.isFinite(data.vx)&&Number.isFinite(data.vy)){const v=frameRotate(data.vx,data.vy,a);copy.vx=v.x;copy.vy=v.y;}
+      if(Number.isFinite(data.x)&&Number.isFinite(data.y)){const p=frameRotate(data.x,data.y,a);copy.x=p.x;copy.y=p.y;}
+      return copy;
+    };
+    local.motionKick=vector(entity.motionKick,-frame.from.heading-Math.PI/2);
+    local.motionFlow=vector(entity.motionFlow,-frame.from.heading-Math.PI/2);
+    const localCommand={...command,referenceFrame:undefined,goal:undefined,velocity:command.velocity||{x:0,y:0},heading:command.heading??-Math.PI/2};
+    if(command.goal){const gain=Math.max(0,finite(command.trackingGain,7));localCommand.velocity={x:localCommand.velocity.x+(command.goal.x-local.x)*gain,y:localCommand.velocity.y+(command.goal.y-local.y)*gain};}
+    if(command.externalFlow){const flow={...command.externalFlow},p=framePose({...entity,vx:flow.vx,vy:flow.vy},frame,false),a=frameRotate(finite(flow.ax),finite(flow.ay),-frame.from.heading-Math.PI/2);localCommand.externalFlow={...flow,vx:p.vx,vy:p.vy,ax:a.x,ay:a.y,spin:finite(flow.spin)-finite(frame.from.omega)};}
+    const result=step(local,localCommand,profile,dt,state,owner),p=frameRotate(local.x,local.y,frame.to.heading+Math.PI/2),velocity=frameVelocity(frame,local);
+    Object.assign(entity,local,{x:frame.to.x+p.x,y:frame.to.y+p.y,vx:velocity.x,vy:velocity.y,speed:Math.hypot(velocity.x,velocity.y),previousX:before.x,previousY:before.y});
+    entity[key]=wrap(local.heading+frame.to.heading+Math.PI/2);if(key==='angle')delete entity.heading;
+    entity.motionKick=vector(local.motionKick,frame.to.heading+Math.PI/2);entity.motionFlow=vector(local.motionFlow,frame.to.heading+Math.PI/2);
+    return {...result,distance:command.goal?Math.hypot(command.goal.x-local.x,command.goal.y-local.y):null,moved:entity.x!==before.x||entity.y!==before.y};
   }
   function followPath(entity,path,index,profile,dt,{start}={}){
     if(!Array.isArray(path)||!path.length)return {arrived:true,index:0,progress:1,moved:false};
@@ -267,6 +456,54 @@
   // and distant ships gives promotion/demotion an identical world pose. All
   // acceleration and braking geometry remains here, outside job controllers.
   const arrivalEpsilon=1e-6;
+  // Active pilots retain a physical checkpoint. Inspector/render reads sample a
+  // copy; only traffic commits another checkpoint. The analytical continuation
+  // keeps distant/calendar work bounded and uses the existing job deadline.
+  const pilotFields=['x','y','heading','speed','vx','vy','previousX','previousY','motionAngularVelocity','motionDrift','motionReverse','motionKick','motionSpin','motionFlow'];
+  function pilotPose(entity){const pose={};for(const field of pilotFields)if(entity[field]!==undefined)pose[field]=entity[field]&&typeof entity[field]==='object'?{...entity[field]}:entity[field];return pose;}
+  function pilotProfile(profile){return {...profile,vectorFlight:true,directGoal:false,snap:false,lateralAcceleration:profile.lateralAcceleration??profile.acceleration};}
+  function pilotPoints(leg){return (leg.version===4?leg.pilot.points:leg.segments?leg.segments.filter(part=>part.distance>arrivalEpsilon).map(part=>part.goal):[leg.goal]).map(p=>({x:p.x,y:p.y}));}
+  function pilotLeg(entity,leg,profile,at){
+    const points=pilotPoints(leg),pose=pilotPose(entity),remaining=leg.version===4?leg.pilot.index:0;
+    const continuation=routeLeg(pose,leg.goal,points.slice(remaining,-1),profile,at);
+    const startedAt=leg.version===4?leg.startedAt:at;
+    return {version:4,valid:true,...(leg.pathEnd?{pathEnd:leg.pathEnd}:{}),start:leg.version===4?leg.start:{x:pose.x,y:pose.y},goal:{...leg.goal},startedAt,
+      duration:Math.max(0,at-startedAt)+Math.max(.25,continuation.duration),distance:leg.distance,
+      pilot:{version:1,at,pose,previous:leg.version===4?leg.pilot.pose:pose,points,index:remaining,profile:pilotProfile(profile),command:leg.version===4?leg.pilot.command:null,arrived:false},continuation};
+  }
+  function pilotCommand(entity,leg,profile){
+    const pilot=leg.pilot,points=pilot.points;let index=pilot.index;
+    const speed=Math.hypot(entity.vx||0,entity.vy||0),look=Math.max(12,Math.min(160,speed*.65));
+    while(index<points.length-1){
+      const to=points[index],from=index?points[index-1]:leg.start,dx=to.x-from.x,dy=to.y-from.y;
+      if(Math.hypot(to.x-entity.x,to.y-entity.y)>look&&(entity.x-to.x)*dx+(entity.y-to.y)*dy<0)break;
+      index++;
+    }
+    const target=points[index]||leg.goal,dx=target.x-entity.x,dy=target.y-entity.y,distance=Math.hypot(leg.goal.x-entity.x,leg.goal.y-entity.y);
+    const heading=Math.atan2(dy,dx),error=Math.abs(wrap(heading-finite(entity.heading)));
+    const course=speed>5?Math.abs(wrap(heading-Math.atan2(entity.vy,entity.vx))):0;
+    const alignment=Math.max(.12,1-Math.max(error,course)/1.6),top=Math.max(0,profile.maxSpeed||100);
+    let desiredSpeed=top*alignment;
+    if(index===points.length-1){
+      desiredSpeed=Math.min(desiredSpeed,Math.sqrt(2*Math.max(1,profile.braking||profile.acceleration)*(Math.max(0,distance-.2)))*.8,distance*2);
+      // A final berth may require turning in place. A minimum cruise throttle
+      // here creates an endless orbit around a docking point behind the nose.
+      if(distance<Math.max(80,speed*speed/(2*Math.max(1,profile.braking||profile.acceleration))+speed/Math.max(.1,profile.turnRate))&&error>1)desiredSpeed=0;
+    }
+    const radius=Math.max(.75,profile.arrivalRadius||.75),arrived=distance<=radius&&speed<=Math.max(1,profile.arrivalSpeed===Infinity?1:Math.min(3,profile.arrivalSpeed||1));
+    return {index,arrived,command:{manualFlight:true,heading,throttle:1,desiredSpeed,brake:arrived}};
+  }
+  function checkpointPilot(entity,leg,command,index,at,arrived=false){
+    return {...leg,pilot:{...leg.pilot,at,previous:leg.pilot.pose,pose:pilotPose(entity),command:{...command},index,arrived},duration:arrived?at-leg.startedAt:leg.duration};
+  }
+  function samplePilot(entity,leg,at){
+    const pilot=leg.pilot;if(!pilot?.pose||!validPoint(pilot.pose))return {invalid:true,arrived:false};
+    const elapsed=Math.max(0,at-pilot.at),pose=pilotPose(at<pilot.at-1e-8?pilot.previous:pilot.pose);
+    if(elapsed>.1&&!pilot.arrived)return sampleLeg(entity,leg.continuation,at);
+    if(elapsed>1e-8&&!pilot.arrived)step(pose,pilot.command||pilotCommand(pose,leg,pilot.profile).command,pilot.profile,elapsed);
+    Object.assign(entity,pose);
+    return {arrived:pilot.arrived,distance:Math.hypot(leg.goal.x-pose.x,leg.goal.y-pose.y),progress:pilot.arrived?1:clamp((at-leg.startedAt)/Math.max(.001,leg.duration),0,1)};
+  }
   function planLeg(entity,goal,profile={},startedAt=0){
     if(!validPoint(entity)||!validPoint(goal)||!Number.isFinite(startedAt))return {version:2,valid:false,reason:'Movement needs finite start, goal and simulation time',duration:0,distance:0};
     const start={x:finite(entity.x),y:finite(entity.y)},dx=goal.x-start.x,dy=goal.y-start.y,distance=Math.hypot(dx,dy);
@@ -327,6 +564,7 @@
     return {arrived,progress,distance:Math.max(0,leg.distance-traveled)};
   }
   function sampleLeg(entity,leg,now){
+    if(leg?.version===4)return samplePilot(entity,leg,now);
     const result=sampleLegBase(entity,leg,now);if(result.invalid)return result;
     if(entity.motionSpin){
       if(entity.motionSpin.mode!=='scheduled')entity.motionSpin={...entity.motionSpin,mode:'scheduled',at:leg.startedAt,angle:0};
@@ -378,7 +616,7 @@
     const planned=Math.max(speed,leg&&distance>2?profile.maxSpeed||100:0),vx=speed>10?ship.vx:Math.cos(heading)*planned,vy=speed>10?ship.vy:Math.sin(heading)*planned;
     if(planned<.01)return null;
     const horizon=Math.min(6,Math.max(.5,distance/Math.max(1,planned))),turnRoom=Number.isFinite(profile.turnRate)?Math.min(45,planned/Math.max(.5,profile.turnRate)*.25):0;
-    let threat=null;
+    let threat=null,preferred=null;const commitment=ship.entity?.avoidanceIntent;
     for(const other of neighbors){
       if(other.id===ship.id&&other.category===ship.category||other.system!==ship.system)continue;
       if(window.nativeShipRepairs?.bayPassage(ship,other)||window.nativeShipRepairs?.bayPassage(other,ship))continue;
@@ -421,14 +659,20 @@
       const t=sq?clamp(-closing/sq,0,horizon):0,miss=Math.hypot(rx+rvx*t,ry+rvy*t);
       if(miss>=clearance||Math.hypot(rx,ry)>clearance+planned*horizon+Math.hypot(other.vx,other.vy)*horizon)continue;
       const score=t+miss/Math.max(1,clearance);
-      if(!threat||score<threat.score){
+      {
         const stationary=Math.hypot(other.vx,other.vy)<5,headOn=vx*other.vx+vy*other.vy<-.35*planned*Math.hypot(other.vx,other.vy);
+        const overtaking=!stationary&&!headOn&&rx*Math.cos(heading)+ry*Math.sin(heading)<-clearance&&other.vx*Math.cos(heading)+other.vy*Math.sin(heading)>speed+5;
         const key=s=>s.category+':'+s.id,otherPriority=other.category==='player'||shipMass(other)>shipMass(ship)*1.4||
           shipMass(ship)<=shipMass(other)*1.4&&key(ship)>key(other);
-        threat={other,t,miss,clearance,score,heading,yield:!stationary&&!headOn&&otherPriority,
-          stationary,headOn,distance:Math.hypot(rx,ry)};
+        const candidate={other,t,miss,clearance,score,heading,yield:!stationary&&!headOn&&otherPriority,
+          stationary,headOn,overtaking,distance:Math.hypot(rx,ry)};
+        if(!threat||score<threat.score)threat=candidate;
+        if(commitment?.obstacle===key(other))preferred=candidate;
       }
     }
+    // Similar predictions retain the current encounter. A distinctly more
+    // urgent physical collision can still interrupt a committed pass.
+    if(preferred&&threat&&preferred!==threat&&!(threat.t<.6&&threat.score+.65<preferred.score))return preferred;
     return threat;
   }
   // Rebirth's combat flight blends the goal vector with normalized nearby
@@ -442,14 +686,38 @@
       if(d>radius||d<.000001)continue;
       const weight=1-d/radius;x+=dx/d*weight;y+=dy/d*weight;
     }
-    const length=Math.hypot(x,y);if(!length)return heading;
-    return Math.atan2(Math.sin(heading)+y/length*.55,Math.cos(heading)+x/length*.55);
+    const length=Math.hypot(x,y);if(length<.02)return heading;
+    const strength=Math.min(1,(length-.02)/.8)*.55;
+    return Math.atan2(Math.sin(heading)+y/length*strength,Math.cos(heading)+x/length*strength);
+  }
+  // Encounter commitment never suppresses a third hull's imminent crossing.
+  // Prediction remains in this shared owner, alongside swept physical contact.
+  function brakingThreat(ship,neighbors,profile){
+    for(const other of neighbors){
+      if(other.id===ship.id&&other.category===ship.category||other.system!==ship.system)continue;
+      const dx=other.x-ship.x,dy=other.y-ship.y,vx=(other.vx||0)-(ship.vx||0),vy=(other.vy||0)-(ship.vy||0),distance=Math.hypot(dx,dy),closing=-(dx*vx+dy*vy);
+      if(closing<=0||distance<.001)continue;
+      // Braking cannot resolve a faster pursuer coming from behind. Retain
+      // the forward escape course; the overtaking pilot owns that pass.
+      if(dx*Math.cos(ship.heading)+dy*Math.sin(ship.heading)<0)continue;
+      const square=vx*vx+vy*vy,t=Math.min(1.5,closing/Math.max(1,square)),miss=Math.hypot(dx+vx*t,dy+vy*t);
+      const clearance=shipRadius(ship)+shipRadius(other)+12,rate=closing/distance;
+      if(miss<clearance&&distance<clearance+rate*rate/(2*Math.max(1,profile.braking||profile.acceleration))+rate*.3)return other;
+    }
+    return null;
   }
   function avoidShips(ship,neighbors,command,profile){
     if(profile.serviceApproach)return avoidServiceShips(ship,neighbors,command,profile);
     if(command.hold||command.coast)return command;
     const heading=Number.isFinite(command.heading)?command.heading:command.goal?Math.atan2(command.goal.y-ship.y,command.goal.x-ship.x):ship.heading;
-    const advice=trafficAdvice(ship,neighbors,profile),blend=separationHeading(ship,neighbors,heading);
+    const intent=ship.entity?.avoidanceIntent;
+    const pass=intent?.point,passing=pass?Math.atan2(pass.y-ship.y,pass.x-ship.x):heading;
+    const advice=trafficAdvice(ship,neighbors,profile),blend=separationHeading(ship,neighbors,passing);
+    if(advice?.overtaking)return {...command,goal:undefined,heading:separationHeading(ship,neighbors,heading)};
+    if(pass&&(!advice||advice.t>.75&&advice.distance>shipRadius(ship)+shipRadius(advice.other)+6)){
+      return {...command,goal:undefined,heading:blend,throttle:command.throttle??1,
+        desiredSpeed:Math.min(command.desiredSpeed??profile.maxSpeed,profile.maxSpeed*(intent.mode==='yielding'?.35:.85))};
+    }
     if(!advice&&Math.abs(wrap(blend-heading))<.001)return command;
     if(advice){
       const other=advice.other,dx=ship.x-other.x,dy=ship.y-other.y,d=Math.hypot(dx,dy),clearance=shipRadius(ship)+shipRadius(other)+6;
@@ -461,7 +729,7 @@
       if(advice.t<1.25&&advice.miss<clearance){
         const dx=advice.other.x-ship.x,dy=advice.other.y-ship.y,d=Math.hypot(dx,dy)||1,closing=Math.max(0,((ship.vx-advice.other.vx)*dx+(ship.vy-advice.other.vy)*dy)/d);
         const stopping=closing*closing/(2*Math.max(1,profile.braking||profile.acceleration||100))+closing*.1;
-        const passing=wrap(heading+.55),brake=!!command.brake||advice.distance<clearance+stopping;
+        const passing=pass?blend:wrap(heading+.55),brake=!!command.brake||advice.distance<clearance+stopping;
         return {...command,goal:undefined,heading:passing,brake,throttle:brake?0:Math.max(.35,(command.throttle??1)*.85),speed:brake?0:command.speed};
       }
     }
@@ -552,9 +820,12 @@
       const top=Math.min(...relevant.map(c=>c.y-c.radius-padding))-1,bottom=Math.max(...relevant.map(c=>c.y+c.radius+padding))+1;
       nodes.push({x:left,y:top},{x:right,y:top},{x:right,y:bottom},{x:left,y:bottom});
     }
-    const cost=nodes.map(()=>Infinity),previous=nodes.map(()=>-1),visited=new Set();cost[0]=0;
+    // Straight-line remaining distance is a lower bound on every valid route.
+    // Prioritize it with travelled cost so blocked local routes explore fewer
+    // irrelevant vertices, retaining the shortest path and exact edge checks.
+    const estimate=nodes.map(p=>Math.hypot(p.x-goal.x,p.y-goal.y)),cost=nodes.map(()=>Infinity),previous=nodes.map(()=>-1),visited=new Set();cost[0]=0;
     for(let step=0;step<nodes.length;step++){
-      let best=-1;for(let i=0;i<nodes.length;i++)if(!visited.has(i)&&(best<0||cost[i]<cost[best]))best=i;
+      let best=-1;for(let i=0;i<nodes.length;i++)if(!visited.has(i)&&(best<0||cost[i]+estimate[i]<cost[best]+estimate[best]))best=i;
       if(best<0||!Number.isFinite(cost[best]))break;
       if(best===1){const path=[];for(let at=1;previous[at]>0;at=previous[at])path.unshift(nodes[previous[at]]);return path;}
       visited.add(best);
@@ -604,6 +875,13 @@
     return {x:lx*c-ly*s,y:lx*s+ly*c,r:length};
   }
   const contactAxes=Array.from({length:32},(_,i)=>({x:Math.cos(i*Math.PI/32),y:Math.sin(i*Math.PI/32)}));
+  const contactShapes=new WeakMap();
+  function contactShape(ship){
+    const key=ship.entity||ship,radii=hullRadii(ship),rx=radii.rx,ry=radii.ry,heading=ship.heading,old=contactShapes.get(key);
+    if(old&&old.heading===heading&&old.rx===rx&&old.ry===ry)return old;
+    const c=Math.cos(heading+Math.PI/2),s=Math.sin(heading+Math.PI/2),supports=new Float64Array(contactAxes.length);
+    const shape={heading,rx,ry,c,s,supports,flags:0};contactShapes.set(key,shape);return shape;
+  }
   // Swept supporting planes of both oriented physical hull ellipses. Sampled
   // directions conservatively bound the curves; circles are broad phase only.
   function shipPairContact(a,b,dt){
@@ -613,12 +891,18 @@
     const fx=bx-ax,fy=by-ay,dx=b.x-a.x-fx,dy=b.y-a.y-fy;
     const sweep=dx*dx+dy*dy,closest=sweep?clamp(-(fx*dx+fy*dy)/sweep,0,1):0;
     if(Math.hypot(fx+dx*closest,fy+dy*closest)>shipRadius(a)+shipRadius(b))return null;
+    const shapeA=contactShape(a),shapeB=contactShape(b);
     a={...a,radii:hullRadii(a)};b={...b,radii:hullRadii(b)};
-    const ac=Math.cos(a.heading+Math.PI/2),as=Math.sin(a.heading+Math.PI/2),bc=Math.cos(b.heading+Math.PI/2),bs=Math.sin(b.heading+Math.PI/2);
+    const ac=shapeA.c,as=shapeA.s,bc=shapeB.c,bs=shapeB.s;
     let enter=0,exit=1,normal=null,shallow=Infinity,overlap=true,shallowNormal=null;
     for(let i=0;i<36;i++){
       const axis=i<32?contactAxes[i]:i===32?{x:ac,y:as}:i===33?{x:-as,y:ac}:i===34?{x:bc,y:bs}:{x:-bs,y:bc};
-      const nx=axis.x,ny=axis.y,r=Math.hypot(a.radii.rx*(nx*ac+ny*as),a.radii.ry*(-nx*as+ny*ac))+Math.hypot(b.radii.rx*(nx*bc+ny*bs),b.radii.ry*(-nx*bs+ny*bc));
+      const nx=axis.x,ny=axis.y;let r;
+      if(i<32){const bit=1<<i;
+        if(!(shapeA.flags&bit)){shapeA.supports[i]=Math.hypot(shapeA.rx*(nx*ac+ny*as),shapeA.ry*(-nx*as+ny*ac));shapeA.flags|=bit;}
+        if(!(shapeB.flags&bit)){shapeB.supports[i]=Math.hypot(shapeB.rx*(nx*bc+ny*bs),shapeB.ry*(-nx*bs+ny*bc));shapeB.flags|=bit;}
+        r=shapeA.supports[i]+shapeB.supports[i];
+      }else r=Math.hypot(a.radii.rx*(nx*ac+ny*as),a.radii.ry*(-nx*as+ny*ac))+Math.hypot(b.radii.rx*(nx*bc+ny*bs),b.radii.ry*(-nx*bs+ny*bc));
       const p=fx*nx+fy*ny,v=dx*nx+dy*ny,depth=r-Math.abs(p);
       if(depth<0)overlap=false;
       if(depth<shallow){shallow=depth;const sign=p<0?-1:1;shallowNormal={x:nx*sign,y:ny*sign,r};}
@@ -710,5 +994,5 @@
     }
     const result=asteroidPairContact(target,body,dt);return result?{...result,targetPose:result.a,debrisPose:result.b}:null;
   }
-  window.nativeShipMotion={step,followPath,followCommand,attachmentGoal,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,trafficAdvice,separationHeading,avoidShips,avoidBodies,navigationBodies,navigationObstacles,clearSegment,obstaclePoints,obstacleSearch,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,settleVelocity,collisionDamageFraction,debrisContact};
+  window.nativeShipMotion={step,framePose,frameVelocity,rendezvousCommand,avoidVectorShips,wasIntegrated,followPath,followCommand,attachmentGoal,prepare,stop,powerOff,profiles,wrap,planLeg,sampleLeg,routeLeg,pilotLeg,pilotCommand,pilotProfile,checkpointPilot,pilotPoints,trafficAdvice,separationHeading,brakingThreat,avoidShips,avoidBodies,navigationBodies,navigationObstacles,clearSegment,obstaclePoints,obstacleSearch,shipPairContact,shipMass,shipInertia,shipRadius,arrivalEpsilon,asteroidContact,asteroidPairContact,asteroidMass,applyImpulse,kickSample,applySpinImpulse,spinSample,settleVelocity,collisionDamageFraction,debrisContact};
 })();

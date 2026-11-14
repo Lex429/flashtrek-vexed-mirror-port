@@ -1,0 +1,166 @@
+/* Self-contained Mars requirement cards. Size against the actual review panel. */
+#shipyard-services[data-screen="mars-services"][data-service-tab="upgrades"] .yard-catalog {
+ container-type: size; container-name: mars-upgrades;
+}
+#shipyard-services[data-screen="mars-services"] .mars-upgrade-detail {
+ display: grid; grid-template-rows: max-content max-content minmax(0,1fr) max-content max-content;
+ gap: 10px; height: 100%; min-height: 0;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid {
+ --material-number-cap: 26; --material-name-row: 24px; --material-status-row: 16px;
+ --material-tile-gap: 8px; --material-label-size: 9px; --material-title-size: 13px;
+ --material-number-size: 22px; --material-metric-padding: 7px 9px;
+ display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+ grid-auto-rows: minmax(0,1fr); gap: 10px; min-width: 0; min-height: 0;
+ width: 100%; height: 100%; max-height: 360px; align-self: center;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid:is([data-resource-count="0"],[data-resource-count="1"]) { grid-template-columns: minmax(0,1fr); }
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid:is([data-resource-count="0"],[data-resource-count="1"]) { max-height: 190px; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-resource-count="3"]>.mars-resource-tile:last-child { grid-column: auto; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-tile {
+ position: relative; isolation: isolate; overflow: hidden; box-sizing: border-box;
+ display: grid; grid-template-columns: minmax(0,1fr);
+ grid-template-rows: var(--material-name-row) minmax(0,1fr) var(--material-status-row);
+ align-items: stretch; align-content: stretch; justify-content: normal;
+ min-width: 0; min-height: 0; gap: var(--material-tile-gap); padding: 12px;
+ border: 1px solid #344d59; border-radius: 8px; background: linear-gradient(140deg,#152733,#0d1b25);
+ font-family: system-ui,sans-serif; font-variant-numeric: tabular-nums;
+ transition: border-color .22s ease,background-color .22s ease;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-tile.ready {
+ border-color: #79d8ad88; background: linear-gradient(140deg,#183b35,#10262e);
+ box-shadow: inset 0 1px #c1ffe512,0 0 15px #69e2ad14;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-tile.short { border-color: #40515d; background: linear-gradient(140deg,#172630,#101d27); box-shadow: none; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-tile::before {
+ content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+ background: linear-gradient(105deg,transparent 25%,#b7ffe31c 48%,transparent 70%);
+ transform: translateX(-110%);
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-tile.ready::after {
+ content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+ border: 1px solid #a9f9d554; opacity: .3;
+ animation: mars-material-ready-breathe 3.6s ease-in-out infinite;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-name {
+ display: flex; align-items: center; align-self: stretch; gap: 7px; min-width: 0; min-height: 0;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-name .outfit-mineral-icon { flex: 0 0 auto; width: var(--material-name-row); height: var(--material-name-row); object-fit: contain; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-name>strong {
+ display: block; min-width: 0; font-size: var(--material-title-size); font-weight: 600; line-height: 1.15;
+ color: #b4c6cf; overflow-wrap: normal; white-space: nowrap;
+}
+#shipyard-services[data-screen="mars-services"] .ready .mars-resource-name>strong { color: #dcf7e8; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-name>span {
+ display: grid; place-items: center; flex: 0 0 20px; width: 20px; height: 20px; margin-left: auto;
+ border: 1px solid transparent; border-radius: 50%; font: 600 12px/1 system-ui; color: #c8ffe0;
+}
+#shipyard-services[data-screen="mars-services"] .ready .mars-resource-name>span { border-color: #89e6b96b; background: #7ce8b51a; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-ratio {
+ display: grid; grid-template-columns: minmax(0,1fr) 1px minmax(0,1fr); align-items: stretch; align-self: center;
+ gap: 8px; min-width: 0; min-height: 0; line-height: 1.2;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-ratio>span {
+ align-self: center; height: 60%; padding: 0; background: #6d8b9540; font-size: 0; line-height: 0;
+}
+#shipyard-services[data-screen="mars-services"] :is(.mars-resource-have,.mars-resource-need) {
+ display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 0;
+ padding: var(--material-metric-padding); border: 1px solid #718e9b20; border-radius: 5px;
+ background: #06131b58; text-align: left;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-need { background: #c49b5510; border-color: #d1b17930; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-ratio small {
+ display: block; margin: 0 0 3px; font: 500 var(--material-label-size)/1.2 system-ui;
+ letter-spacing: .75px; color: #93acb7; white-space: nowrap;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-need small { color: #d0b98f; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-ratio b {
+ display: block; margin: 0; min-width: 0; font: 650 var(--material-number-size)/1.2 system-ui;
+ letter-spacing: 0; white-space: nowrap; color: #c2d4df; font-variant-numeric: tabular-nums; text-shadow: none;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-need b { color: #f3dfba; }
+#shipyard-services[data-screen="mars-services"] .ready .mars-resource-have b { color: #c0f7d5; text-shadow: 0 0 12px #80efac2b; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-status {
+ display: flex; align-items: center; align-self: stretch; min-width: 0; min-height: 0; padding: 0;
+ font: 600 9px/1.2 system-ui; letter-spacing: .4px; white-space: nowrap; color: #a2e7c0;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-status strong { font: inherit; }
+#shipyard-services[data-screen="mars-services"] .short .mars-resource-status { color: #f4bd86; letter-spacing: 0; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-meter { height: 3px; background: #78909b1a; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-meter>i { background: #6b8390; }
+#shipyard-services[data-screen="mars-services"] .ready .mars-resource-meter>i { background: #9cf1c5; }
+#shipyard-services[data-screen="mars-services"] .mars-upgrade-detail[data-entering="true"] .mars-resource-tile::before {
+ animation: mars-material-card-sweep .7s ease-out both;
+ animation-delay: calc(.08s + var(--material-row)*.065s - var(--upgrade-enter-elapsed,0ms));
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-tile:hover::before { animation: mars-material-card-sweep .65s ease-out; }
+@keyframes mars-material-card-sweep { from { transform: translateX(-110%); opacity: 0; } 20% { opacity: 1; } to { transform: translateX(110%); opacity: 0; } }
+@keyframes mars-material-ready-breathe { 0%,100% { opacity: .18; } 50% { opacity: .65; } }
+@container mars-upgrades (min-width:700px) {
+ #shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-resource-count="3"] { grid-template-columns: repeat(3,minmax(0,1fr)); max-height: 190px; }
+}
+@container mars-upgrades (max-width:420px) {
+ #shipyard-services[data-screen="mars-services"] .mars-resource-grid { --material-number-cap: 22; --material-title-size: 11px; --material-name-row: 18px; --material-label-size: 7px; --material-metric-padding: 5px 6px; gap: 7px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-tile { padding: 8px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-name { gap: 5px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-name>span { width: 16px; height: 16px; flex-basis: 16px; font-size: 10px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-ratio { gap: 5px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-status { font-size: 8px; letter-spacing: 0; }
+}
+@container mars-upgrades (max-height:380px) {
+ #shipyard-services[data-screen="mars-services"] .mars-upgrade-detail { gap: 6px; }
+ #shipyard-services .mars-detail-heading { gap: 7px; }
+ #shipyard-services .mars-detail-heading>div>small { display: none; }
+ #shipyard-services .mars-detail-heading h2 { font-size: 18px; line-height: 1.15; margin: 0; }
+ #shipyard-services .mars-detail-heading>span:first-child>svg { width: 22px; height: 22px; }
+ #shipyard-services .mars-detail-tier { font-size: 8px; gap: 2px; }
+ #shipyard-services .mars-detail-change { grid-template-columns: auto minmax(0,1fr) 12px minmax(0,1fr) auto; padding: 5px 8px; gap: 5px; }
+ #shipyard-services .mars-detail-change>span { grid-column: auto; max-width: 70px; font-size: 9px; }
+ #shipyard-services .mars-detail-change small { display: none; }
+ #shipyard-services .mars-detail-change strong { font-size: 18px; line-height: 1.2; }
+ #shipyard-services .mars-detail-change>i { font-size: 15px; }
+ #shipyard-services .mars-detail-change>b { font-size: 8px; }
+ #shipyard-services .mars-detail-status { font-size: 8px; line-height: 1.2; min-height: 0; }
+ #shipyard-services .mars-detail-actions button { min-height: 30px; padding: 6px 9px; font-size: 10px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-grid { --material-number-cap: 20; --material-name-row: 18px; --material-status-row: 12px; --material-label-size: 7px; --material-title-size: 11px; --material-tile-gap: 4px; --material-metric-padding: 3px 6px; gap: 7px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-tile { padding: 7px 9px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-status { font-size: 8px; letter-spacing: 0; }
+}
+@container mars-upgrades (max-height:300px) {
+ #shipyard-services[data-screen="mars-services"] .mars-upgrade-detail { gap: 4px; }
+ #shipyard-services .mars-detail-heading h2 { font-size: 15px; }
+ #shipyard-services .mars-detail-heading>span:first-child>svg { width: 18px; height: 18px; }
+ #shipyard-services .mars-detail-change { padding: 3px 7px; gap: 4px; }
+ #shipyard-services .mars-detail-change strong { font-size: 16px; }
+ #shipyard-services .mars-detail-tier,#shipyard-services .mars-detail-remove { font-size: 7px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-grid { --material-number-cap: 18; --material-name-row: 14px; --material-status-row: 10px; --material-label-size: 6px; --material-title-size: 10px; --material-tile-gap: 3px; --material-metric-padding: 2px 5px; gap: 5px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-tile { padding: 5px 7px; border-radius: 5px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-name>span { width: 14px; height: 14px; flex-basis: 14px; font-size: 9px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-ratio { gap: 4px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-ratio small { margin-bottom: 2px; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-status { font-size: 7px; }
+}
+/* Choose card density from its actual allocated height, not the whole catalog. */
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="compact"] {
+ --material-number-cap: 22; --material-name-row: 18px; --material-status-row: 12px;
+ --material-label-size: 7px; --material-title-size: 11px; --material-tile-gap: 4px;
+ --material-metric-padding: 3px 6px;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="compact"] .mars-resource-tile { padding: 7px 9px; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="compact"] .mars-resource-status { font-size: 8px; letter-spacing: 0; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="tight"] {
+ --material-number-cap: 18; --material-name-row: 14px; --material-status-row: 10px;
+ --material-label-size: 6px; --material-title-size: 10px; --material-tile-gap: 2px;
+ --material-metric-padding: 1px 5px;
+}
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="tight"] .mars-resource-tile { padding: 4px 7px; border-radius: 5px; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="tight"] .mars-resource-name { gap: 5px; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="tight"] .mars-resource-name>span { width: 14px; height: 14px; flex-basis: 14px; font-size: 9px; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="tight"] .mars-resource-ratio { gap: 4px; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="tight"] .mars-resource-ratio small { margin-bottom: 1px; }
+#shipyard-services[data-screen="mars-services"] .mars-resource-grid[data-material-density="tight"] .mars-resource-status { font-size: 7px; letter-spacing: 0; }
+@media (prefers-reduced-motion:reduce) {
+ #shipyard-services[data-screen="mars-services"] .mars-resource-tile::before,
+ #shipyard-services[data-screen="mars-services"] .mars-resource-tile.ready::after { animation: none!important; opacity: 0; }
+ #shipyard-services[data-screen="mars-services"] .mars-resource-tile { transition: none; }
+}

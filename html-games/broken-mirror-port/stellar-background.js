@@ -25,6 +25,8 @@
     return result;
   }
   function project(system,view){
+    if(window.nativeBadlands?.starless(system,view))return [];
+    const visibility=window.nativeBadlands?.starlight(system,view)??1;
     const cx=view.w/2,cy=view.h/2;
     const cameraX=Number(view.cameraX??view.playerX)||0,cameraY=Number(view.cameraY??view.playerY)||0;
     return sources(system).map(source=>{
@@ -34,7 +36,7 @@
       const parallax=sunLayerParallax;
       const radius=Math.max(24,Math.min(68,54*Math.sqrt(source.size/266)));
       return {...source,x:cx+dx*parallax,y:cy+dy*parallax,radius,sourceRadius:radius,parallax,
-        intensity:source.primary?1:.72};
+        intensity:(source.primary?1:.72)*visibility};
     });
   }
   function canvas(width,height,paint){

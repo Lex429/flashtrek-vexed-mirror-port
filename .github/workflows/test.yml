@@ -2,12 +2,13 @@ name: Ship systems and persistent lives
 on:
   push:
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  regression:
+  unit:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,288 +19,80 @@ jobs:
           python-version: '3.12'
       - name: Unit and architecture regression tests
         run: node --test tests/*.test.cjs tests/*.test.js
-      - name: Standalone local site and Git synchronization
-        run: python -m unittest discover -s tests -p test_local_site.py -v
+      - name: Standalone local site, Git synchronization and publication integrity
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+  browser:
+    name: browser-${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    env:
+      BROWSER_CHANNEL: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install browser test dependencies
         run: |
           python -m pip install -r requirements-test.txt
           python -m playwright install --with-deps chromium
-      - name: Flight, jobs, combat and showcase browser smoke
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-smoke.py
-      - name: Beam attachments and shield/hull alignment in a real browser
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-ship-contract.py
-      - name: Rearward beam targeting, physical interception and rotating shield contacts
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-beam-targeting.py
-      - name: Retained GPU shield pixels, default gameplay, pause and context recovery
-        env:
-          BROWSER_CHANNEL: ''
-        run: |
-          python tests/browser-shield-gpu-visuals.py --output test-results/shield-gpu-design
-          python tests/browser-shield-gpu-live.py
-          git fetch --no-tags --depth=1 origin ab5bb2504957c1de4cf239bfee882b810e1128e2
-          mkdir -p test-results/shield-cinematic-baseline
-          git show ab5bb2504957c1de4cf239bfee882b810e1128e2:html-games/flashtrek-broken-mirror/shield-gpu.js > test-results/shield-cinematic-baseline/shield-gpu.js
-          python tests/browser-shield-cinematic.py --baseline test-results/shield-cinematic-baseline --output test-results/shield-cinematic
-      - name: Civilian live-shot awareness, survival policies and preserved jobs
-        env:
-          BROWSER_CHANNEL: ''
-        run: |
-          python tests/browser-civilian-tactics.py
-          python tests/browser-faction-defence.py
-      - name: Held fire, steering-preserving selection and fitted weapon feedback
-        env:
-          BROWSER_CHANNEL: ''
-        run: |
-          python tests/browser-combat-controls.py
-          python tests/browser-shield-maintenance.py
-          python tests/browser-engine-failure.py
-          python tests/browser-thrusters.py
-      - name: Reverse, exact stop, turnaround and contextual long-range targeting
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-flight-feel.py
-      - name: Reused lighting surfaces, animation cadence and turning damage states
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-ship-lighting.py
-      - name: Incremental artwork pixels and reusable painted lamp textures
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-incremental-art.py
-      - name: Bounded optional artwork worker, original pixel algorithms and explicit readiness
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-optional-art-worker.py
-      - name: Shared spatial scenes, complete catch-up and durable reload
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-spatial-performance.py
-      - name: Cold physical debris, original topology and camera-independent contacts
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-debris-geometry.py
-      - name: Fixed display-independent physics, interpolation and 5000-record verified reload
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-foundation.py
-      - name: Warp bearings, destination readiness and durable retry/resume
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-warp-transition.py
-      - name: Warp zoom raster reuse, live lighting and artwork
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-warp-rendering.py
-      - name: Aries Dev selection, nacelle charge and powered ship roster
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-warp-charge-ships.py
-      - name: Visible warp disappearance point, starburst and paused flash
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-warp-departure.py
-      - name: Shared NPC departures, simultaneous starbursts and preserved fleet
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-npc-warp.py
-      - name: Distance-based body navigation, cruise override and visible cancellation
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-cruise-navigation.py
-      - name: Active chunk boundaries, sleeping journeys, launched shots and full worker checkpoint reload
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-active-regions.py
-      - name: Interstellar fields, local travellers, partial mining and full-fleet Continue
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-travel-corridors.py
-      - name: Animated flight telemetry, actual system crossings and corridor ramming
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-flight-status.py
-      - name: Impact-reactive hull and shield console
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-ship-vitals.py
-      - name: Animated weapon and resource HUD
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-hud-feedback.py
-      - name: Physical system-boundary activation and bounded arrival preparation
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-system-entry.py
-      - name: Real activity jobs, fixed expedition departures and retained claims
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-player-activity.py
-      - name: Current ship appearance first, damage promotion and loading fallback
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-cold-ship-loading.py
-      - name: Visible mixed-hull working set survives optional artwork eviction
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-ship-working-set.py
-      - name: Fractional Olympic settlement and retained hull-change drone capacity
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-review-gameplay.py
-      - name: Showcase control pages, window fit and repair fleet actions
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-showcase-workspace.py
-      - name: Full fleet dimensions, four damage frames and player/NPC lighting parity
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-ship-presentation.py
-      - name: Conservative ship padding, whole-fleet native pixels and camera edges
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-ship-padding.py
-      - name: Setup showcase lighting, animation lifecycle and screen fit
-        env:
-          BROWSER_CHANNEL: ''
-        run: |
-          python tests/browser-setup-preview.py
-          python tests/browser-setup-animations.py
-          python tests/browser-setup-showcase.py
-          python tests/browser-menu-transition.py
-          python tests/browser-menu-emblem.py
-      - name: Typed equipment, real hull purchases, six drone bays and mode-separated saves
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-unified-equipment.py
-      - name: Constitution flight, weapons, damaged hulls and saved equipment
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-constitution-ships.py
-      - name: Finished animated Federation roster, purchases, NPCs and saved hulls
-        env:
-          BROWSER_CHANNEL: ''
-        run: |
-          python tests/browser-federation-ships.py
-          python tests/browser-federation-npcs.py
-      - name: Animated GPU lamps preserve original hull and damage pixels
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-ship-lamps.py
-      - name: Inventory mouse and touch dragging
-        env:
-          BROWSER_CHANNEL: ''
-        run: |
-          python tests/browser-inventory-upgrade.py
-          python tests/browser-inventory-fit.py
-          python tests/browser-inventory-drag.py
-      - name: Earth bonus items, transporter reveal and saved collection
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-collectables.py
-      - name: Physical collectable drift, keyboard ram and saved impact motion
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-collectable-physics.py
-      - name: Engine upgrades, generated icons and keyboard flight without an engine
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-engine-equipment.py
-      - name: Manual repair drone deployment and midway reload
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-manual-repair.py
-      - name: Player distress calls, Continue and real medical assistance
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-distress-call.py
-      - name: Visible DOT launch, hull approach and bay recovery
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-drone-launch.py
-      - name: Asteroid weapon hits, physical hull pushes, local contact glints and saved drift
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-asteroid-physics.py
-      - name: Ship collisions, shared traffic avoidance and blocked-delivery reload
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-ship-traffic.py
-      - name: Hull-clear shield passage, angular impacts and actual player movement keys
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-impact-controls.py
-      - name: Persistent freighter life, observer inspection and distant delivery
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-npc-lives.py
-      - name: Verify cold and cached New Game and Continue
-        run: python tests/browser-startup-recovery.py --seconds 1 --label ci
-      - name: Live Dot repair nozzles, saved simulation, hull restoration and destruction
-        env:
-          BROWSER_CHANNEL: ''
-        run: |
-          python tests/browser-ship-repairs.py
-          python tests/browser-fleet-repairs.py
-      - name: Audited Earth traffic jam in local flight and Dev inspector
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-earth-jam.py
-      - name: Galaxy map dragging, zoom, ship search and following
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-galaxy-controls.py
-      - name: Remote regional mining, local refinery and mineral engineering
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-regional-mining.py
-      - name: Deuranium damage artwork, player refinery and Olympic mining to rescue
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-deuranium-mining.py
-      - name: Offscreen mining preserves gameplay without drawing ore effects
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-ore-performance.py --label ci
-      - name: Regional civilian population, medical coverage and saved fleet migration
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-civilian-population.py
-      - name: Civilian exclusions and mining-only visits to empty systems
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-civilian-access.py
-      - name: Player lighting, damage stages and warp pixel regressions
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-render-paths.py --visual-only --label ci
-      - name: Planet limbs, smooth eclipses and stable system illumination
-        env:
-          BROWSER_CHANNEL: ''
-        run: |
-          python tests/browser-star-comfort.py
-          python tests/browser-planet-lighting.py --label ci
-          python tests/browser-background-suns.py
-          python tests/browser-regional-starfield.py
-          python tests/browser-parallax-nebulae.py
-          python tests/browser-fleet-fog.py --catalog-stages 0,1,2,3
-          python tests/browser-intrepid-fog.py
-          python tests/browser-sol-fog-colors.py
-      - name: Retained canvas layout follows real viewport and footer changes
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-frame-reuse.py
-      - name: Cold damage artwork, pause and map preparation boundaries
-        env:
-          BROWSER_CHANNEL: ''
-        run: python tests/browser-stability.py --label ci
+      - name: Run existing browser regressions
+        run: python tools/run_browser_ci.py --shard ${{ matrix.shard }} --shards 8
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: browser-regression-results
+          name: browser-regression-results-${{ matrix.shard }}
           path: test-results/
+          retention-days: 7
+  regression:
+    needs: [unit, browser]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every unit and browser group to pass
+        env:
+          UNIT_RESULT: ${{ needs.unit.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: test "$UNIT_RESULT" = success && test "$BROWSER_RESULT" = success
+  deploy:
+    name: Publish vexedmirror.com
+    needs: regression
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: vexedmirror-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://vexedmirror.com/html-games/broken-mirror-port/index.html
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check that this is still the latest main commit
+        id: latest
+        shell: bash
+        run: |
+          current=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$current" = "$GITHUB_SHA" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "A newer commit is on main; its checked workflow will publish it."
+          fi
+      - name: Publish exact Git bytes and verify public SHA-256 hashes
+        if: steps.latest.outputs.publish == 'true'
+        env:
+          VEXED_FTP_HOST: ${{ secrets.VEXED_FTP_HOST }}
+          VEXED_FTP_USERNAME: ${{ secrets.VEXED_FTP_USERNAME }}
+          VEXED_FTP_PASSWORD: ${{ secrets.VEXED_FTP_PASSWORD }}
+        run: python tools/publish_site.py

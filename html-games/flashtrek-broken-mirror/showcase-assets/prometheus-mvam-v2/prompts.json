@@ -1,0 +1,59 @@
+{
+  "tool": "built-in image_gen",
+  "prompts": [
+    {
+      "part": "top",
+      "stage": "light",
+      "prompt": "Use case: precise-object-edit. Production game damage sprite. Edit ONLY the supplied Prometheus top section into its LIGHT DAMAGE state. Keep the exact supplied design, panel layout, top-down orthographic view, nose straight up, silver metal finish, identical scale and position inside the ORIGINAL 1024 x 2048 transparent canvas. Preserve EVERY empty padding area, original docking registration and all original engines present. Add a small number of clearly visible localized charcoal-black impacts, fractured plates and tiny exposed dark-metal punctures over about 5 percent of the hull; a few subdued orange embers. Keep at least 95 percent of the silhouette and all nacelle tips/forward tip in exactly their original positions. Keep original cyan, amber and red lamps on surviving hull in their exact locations. Do not add engines to sections that have none. True alpha-transparent background and puncture holes, no background, stars, smoke, loose debris, new parts, text, matte, shadow or glow halo. No crop, zoom, reframing, rotation, stretch, perspective or redesign. Return one lightly damaged section only on the same full canvas.",
+      "output": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-21581f1c-c764-4d95-b37c-95d265392c5c.png"
+    },
+    {
+      "part": "middle",
+      "stage": "light",
+      "prompt": "Use case: precise-object-edit. Production game damage sprite. Edit ONLY the supplied Prometheus middle section into its LIGHT DAMAGE state. Keep the exact supplied design, panel layout, top-down orthographic view, nose straight up, silver metal finish, identical scale and position inside the ORIGINAL 1024 x 2048 transparent canvas. Preserve EVERY empty padding area, original docking registration and all original engines present. Add a small number of clearly visible localized charcoal-black impacts, fractured plates and tiny exposed dark-metal punctures over about 5 percent of the hull; a few subdued orange embers. Keep at least 95 percent of the silhouette and all nacelle tips/forward tip in exactly their original positions. Keep original cyan, amber and red lamps on surviving hull in their exact locations. Do not add engines to sections that have none. True alpha-transparent background and puncture holes, no background, stars, smoke, loose debris, new parts, text, matte, shadow or glow halo. No crop, zoom, reframing, rotation, stretch, perspective or redesign. Return one lightly damaged section only on the same full canvas.",
+      "output": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-bc7e6506-a759-41da-a0d4-bd2c97ac5b1b.png"
+    },
+    {
+      "part": "bottom",
+      "stage": "light",
+      "prompt": "Use case: precise-object-edit. Production game damage sprite. Edit ONLY the supplied Prometheus bottom section into its LIGHT DAMAGE state. Keep the exact supplied design, panel layout, top-down orthographic view, nose straight up, silver metal finish, identical scale and position inside the ORIGINAL 1024 x 2048 transparent canvas. Preserve EVERY empty padding area, original docking registration and all original engines present. Add a small number of clearly visible localized charcoal-black impacts, fractured plates and tiny exposed dark-metal punctures over about 5 percent of the hull; a few subdued orange embers. Keep at least 95 percent of the silhouette and all nacelle tips/forward tip in exactly their original positions. Keep original cyan, amber and red lamps on surviving hull in their exact locations. Do not add engines to sections that have none. True alpha-transparent background and puncture holes, no background, stars, smoke, loose debris, new parts, text, matte, shadow or glow halo. No crop, zoom, reframing, rotation, stretch, perspective or redesign. Return one lightly damaged section only on the same full canvas.",
+      "output": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-2dfd1939-09fd-4a76-b57d-3caeda0b5b19.png"
+    },
+    {
+      "part": "top",
+      "stage": "heavy",
+      "prompt": "Use case: precise-object-edit. Production top-down Prometheus top separation hull HEAVY damage state. EDIT the supplied lightly damaged section, retaining and enlarging all existing scars. Add torn scorched armor, dark exposed structural ribs, substantial ragged perforations and physically alpha-transparent holes removing 15–20 percent of original material, restrained orange embers. Keep the same intact forward tip and all original nacelle tips, central load-bearing spine, surviving panel lines, original top-down nose-up orientation, exact scale and placement, full existing canvas and all transparent padding. Every surviving part must remain at the same coordinates. Keep undamaged amber, red and cyan lamps working; damaged local banks may be dark. Do not add any engines or parts. Preserve true transparency around and through the ship. No crop, zoom, reframe, rotate, perspective, stretching, smoke cloud, starfield, loose debris, glow halo, shadow, lettering, border or background. One heavily damaged module sprite only.",
+      "output": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-65d94f67-a496-43dd-b704-05238a5e8151.png"
+    },
+    {
+      "part": "middle",
+      "stage": "heavy",
+      "prompt": "Use case: precise-object-edit. Production top-down Prometheus middle separation hull HEAVY damage state. EDIT the supplied lightly damaged section, retaining and enlarging all existing scars. Add torn scorched armor, dark exposed structural ribs, substantial ragged perforations and physically alpha-transparent holes removing 15–20 percent of original material, restrained orange embers. Keep the same intact forward tip and all original nacelle tips, central load-bearing spine, surviving panel lines, original top-down nose-up orientation, exact scale and placement, full existing canvas and all transparent padding. Every surviving part must remain at the same coordinates. Keep undamaged amber, red and cyan lamps working; damaged local banks may be dark. Do not add any engines or parts. Preserve true transparency around and through the ship. No crop, zoom, reframe, rotate, perspective, stretching, smoke cloud, starfield, loose debris, glow halo, shadow, lettering, border or background. One heavily damaged module sprite only.",
+      "output": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-f89ec004-e42f-4e3d-b20c-9d06060e9bf7.png"
+    },
+    {
+      "part": "bottom",
+      "stage": "heavy",
+      "prompt": "Use case: precise-object-edit. Production top-down Prometheus bottom separation hull HEAVY damage state. EDIT the supplied lightly damaged section, retaining and enlarging all existing scars. Add torn scorched armor, dark exposed structural ribs, substantial ragged perforations and physically alpha-transparent holes removing 15–20 percent of original material, restrained orange embers. Keep the same intact forward tip and all original nacelle tips, central load-bearing spine, surviving panel lines, original top-down nose-up orientation, exact scale and placement, full existing canvas and all transparent padding. Every surviving part must remain at the same coordinates. Keep undamaged amber, red and cyan lamps working; damaged local banks may be dark. Do not add any engines or parts. Preserve true transparency around and through the ship. No crop, zoom, reframe, rotate, perspective, stretching, smoke cloud, starfield, loose debris, glow halo, shadow, lettering, border or background. One heavily damaged module sprite only.",
+      "output": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-7c02c2cd-b800-4d83-9d94-297f194dd6d1.png"
+    },
+    {
+      "part": "top",
+      "stage": "severe",
+      "prompt": "Use case: precise-object-edit. Production top-down Prometheus top hull CRITICAL DAMAGE state. Edit the supplied heavy-damage section only. Preserve and enlarge its existing wounds into connected surviving wrecked structure: about 30–35 percent of original hull material missing as irregular alpha-transparent holes and edge cutaways, twisted black ribs, blackened cracked metal and a few tiny dull orange embers. IMPORTANT: ALL cyan engine strips, red collectors, amber windows, bridge lights, and gold luminous rails are OFF and DARK, with no powered glow. The remaining ship must keep the same design, the exact nose-up orthographic view, exact scale/positions, full existing canvas and all transparent padding. Preserve the central forward tip and every original nacelle tip as alignment landmarks; do not add engines or other parts. Transparent background AND genuinely transparent holes, clean edges. No crop, zoom, reframing, rotation, perspective, stretch, redesign, loose debris, stars, smoke, cloud, shadow, halo, matte, lettering or border. One critical-damage section only.",
+      "output": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-e92427f7-9b88-4b4b-b8a4-193122877b50.png"
+    },
+    {
+      "part": "middle",
+      "stage": "severe",
+      "prompt": "Use case: precise-object-edit. Production top-down Prometheus middle hull CRITICAL DAMAGE state. Edit the supplied heavy-damage section only. Preserve and enlarge its existing wounds into connected surviving wrecked structure: about 30–35 percent of original hull material missing as irregular alpha-transparent holes and edge cutaways, twisted black ribs, blackened cracked metal and a few tiny dull orange embers. IMPORTANT: ALL cyan engine strips, red collectors, amber windows, bridge lights, and gold luminous rails are OFF and DARK, with no powered glow. The remaining ship must keep the same design, the exact nose-up orthographic view, exact scale/positions, full existing canvas and all transparent padding. Preserve the central forward tip and every original nacelle tip as alignment landmarks; do not add engines or other parts. Transparent background AND genuinely transparent holes, clean edges. No crop, zoom, reframing, rotation, perspective, stretch, redesign, loose debris, stars, smoke, cloud, shadow, halo, matte, lettering or border. One critical-damage section only.",
+      "output": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-5339dac2-841d-484a-ba51-0fb05adeb9b7.png"
+    },
+    {
+      "part": "bottom",
+      "stage": "severe",
+      "prompt": "Use case: precise-object-edit. Production top-down Prometheus bottom hull CRITICAL DAMAGE state. Edit the supplied heavy-damage section only. Preserve and enlarge its existing wounds into connected surviving wrecked structure: about 30–35 percent of original hull material missing as irregular alpha-transparent holes and edge cutaways, twisted black ribs, blackened cracked metal and a few tiny dull orange embers. IMPORTANT: ALL cyan engine strips, red collectors, amber windows, bridge lights, and gold luminous rails are OFF and DARK, with no powered glow. The remaining ship must keep the same design, the exact nose-up orthographic view, exact scale/positions, full existing canvas and all transparent padding. Preserve the central forward tip and every original nacelle tip as alignment landmarks; do not add engines or other parts. Transparent background AND genuinely transparent holes, clean edges. No crop, zoom, reframing, rotation, perspective, stretch, redesign, loose debris, stars, smoke, cloud, shadow, halo, matte, lettering or border. One critical-damage section only.",
+      "output": "C:\\Users\\alphi\\.codex\\generated_images\\01a1d30e-4b38-7cf0-ae28-397eb6489f6f\\exec-ac35efa2-8fa4-4f09-8b7c-d03bfb9ed5c4.png"
+    }
+  ]
+}

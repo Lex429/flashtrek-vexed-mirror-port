@@ -73,6 +73,7 @@ try:
             if args.synchronous:
                 page.evaluate('window.nativeNebulaMaterial={...nativeNebulaMaterial,createRuntimeField:nativeNebulaMaterial.createField}')
             page.evaluate(stability.INSTALL)
+            page.evaluate('nativeDevFog.setEnabled(true)')
             page.wait_for_function('()=>nativeNpcDev.getState()?.devMode', timeout=120000)
             return page
 
@@ -94,7 +95,7 @@ try:
             page.evaluate('__resetFogRandom()')
             page.evaluate(stability.SETUP, dict(saved=saved, mode='flight'))
             page.wait_for_function('()=>nativeDevFog.material()?.pose.shipType===438&&nativeDevFog.snapshot().renderer.backend==="webgl2"', timeout=120000)
-            page.evaluate('nativeDevFog.reset()')
+            page.evaluate("nativeDevFog.setPreset('vex');nativeDevFog.setColour('four');nativeDevFog.reset()")
             page.wait_for_timeout(1200)
             if args.fog_off:
                 page.evaluate('nativeDevFog.setEnabled(false)')

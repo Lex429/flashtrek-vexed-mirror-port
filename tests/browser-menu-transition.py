@@ -137,7 +137,7 @@ try:
         page.set_viewport_size({'width':1280,'height':850})
         # Normal saves still launch/continue through the actual menu callbacks.
         button.click();page.wait_for_selector('#setup-ui:not([hidden])');page.wait_for_function('()=>!nativeMenuTransition.snapshot().active');page.locator('.setup-primary').click();page.locator('.setup-primary').click()
-        page.wait_for_function('()=>nativeOpeningCinematic.active');page.locator('[data-film-action="skip"]').click()
+        assert not page.evaluate('nativeOpeningCinematic.active')
         page.wait_for_function('()=>document.body.classList.contains("playing")&&!nativeMenuTransition.snapshot().active')
         assert not page.evaluate('nativeMenuTransition.snapshot().active')
         page.reload();page.wait_for_function('()=>document.querySelector("#startup").hidden',timeout=90000)

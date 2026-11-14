@@ -112,10 +112,14 @@
   }
   function shiftFrame(state,ship,systemId){
     if(ship.system===systemId)return;const old=ship.system,a=anchor(old),b=anchor(systemId),dx=a.x-b.x,dy=a.y-b.y;
-    const shiftLeg=leg=>({...leg,start:{x:leg.start.x+dx,y:leg.start.y+dy},goal:{x:leg.goal.x+dx,y:leg.goal.y+dy},...(leg.segments?{segments:leg.segments.map(shiftLeg)}:{})});
+    const shiftPoint=p=>({...p,x:p.x+dx,y:p.y+dy,...(Number.isFinite(p.previousX)?{previousX:p.previousX+dx}:{}),...(Number.isFinite(p.previousY)?{previousY:p.previousY+dy}:{})});
+    const shiftLeg=leg=>({...leg,start:shiftPoint(leg.start),goal:shiftPoint(leg.goal),...(leg.segments?{segments:leg.segments.map(shiftLeg)}:{}),
+      ...(leg.pilot?{pilot:{...leg.pilot,pose:shiftPoint(leg.pilot.pose),previous:shiftPoint(leg.pilot.previous),points:leg.pilot.points.map(shiftPoint)},continuation:shiftLeg(leg.continuation)}:{})});
     ship.x+=dx;ship.y+=dy;ship.previousX=ship.x;ship.previousY=ship.y;
     if(Number.isFinite(ship.goalX))ship.goalX+=dx;if(Number.isFinite(ship.goalY))ship.goalY+=dy;
-    if(ship.localLeg)ship.localLeg=shiftLeg(ship.localLeg);ship.system=systemId;indexMove(runtime.get(state),ship,old);window.nativeShipRepairs?.rebaseCivilian?.(state,ship,old,systemId,shiftFrame);
+    if(ship.localLeg)ship.localLeg=shiftLeg(ship.localLeg);
+    if(ship.avoidanceIntent)ship.avoidanceIntent={...ship.avoidanceIntent,x:ship.avoidanceIntent.x+dx,y:ship.avoidanceIntent.y+dy,...(ship.avoidanceIntent.point?{point:shiftPoint(ship.avoidanceIntent.point)}:{})};
+    ship.system=systemId;indexMove(runtime.get(state),ship,old);window.nativeShipRepairs?.rebaseCivilian?.(state,ship,old,systemId,shiftFrame);
   }
   function resumeJourney(state,ship,at){
     const saved=ship.travelResume;if(!saved)return false;
@@ -203,6 +207,7 @@
     delete ship.warpVisual;delete ship.warpResumePhase;delete ship.encounterApproach;
   }
   function initialize(state,cooperative=false){
+    window.nativeBadlands?.reconcile(state);
     const job=cooperativeJobs.get(state);
     if(job&&!job.running&&!cooperative){while(!job.next().done){}return state.civilianTraffic.life;}
     window.nativeTravelCorridors?.restore?.(state);
@@ -217,7 +222,7 @@
       const resident=new Set();
       for(const ship of traffic.ships){
         ship.operatingBase??=Number(ship.stationSystem||ship.homeBase?.system||ship.system);
-        if(!inhabited(state,ship.operatingBase))ship.operatingBase=access().nearestHome(state,ship.operatingBase)??1;
+        if(!inhabited(state,ship.operatingBase)&&!window.nativeFactionFleets?.militaryResidence(state,ship,ship.operatingBase))ship.operatingBase=access().nearestHome(state,ship.operatingBase)??1;
         if(ship.role!=='patrol'&&!resident.has(ship.operatingBase)&&permits(ship,'mining')&&stats(ship).capabilities.canMine!==false){ship.regionalResident=true;resident.add(ship.operatingBase);}
       }
     }
@@ -231,7 +236,9 @@
     }
     const collection=window.nativeShipSystems?.observeCollection?.(traffic,'ships');let rt=runtime.get(state);
     if(!rt||rt.ships!==traffic.ships||rt.count!==traffic.ships.length||collection&&rt.collectionRevision!==collection.revision){
-      rt={state,ships:traffic.ships,count:traffic.ships.length,collectionRevision:collection?.revision,initializing:true,byId:new Map(),bySystem:new Map(),indexedSystems:new Map(),memberViews:new Map(),systemRevisions:new Map(),transit:new Set(),transitView:null,localTravel:new Set(),corridorActors:new Set(),mobile:new Set(),mobileView:null,mobileSystems:new Map(),mobileLocations:new Map(),mobileSystemViews:new Map(),controlled:new Set(),controlledView:null,miners:new Set(),minerView:null,heap:[],lastNow:now(state),stats:{detailedShips:0,distantUpdates:0,scheduledEvents:0,backlog:0,simulationMs:0}};
+      // Membership/geometry refreshes must retain the host's live work policy.
+      // Losing it makes subsequent navigation run synchronously during flight.
+      rt={state,interactive:rt?.interactive,ships:traffic.ships,count:traffic.ships.length,collectionRevision:collection?.revision,initializing:true,byId:new Map(),bySystem:new Map(),indexedSystems:new Map(),memberViews:new Map(),systemRevisions:new Map(),transit:new Set(),transitView:null,localTravel:new Set(),corridorActors:new Set(),mobile:new Set(),mobileView:null,mobileSystems:new Map(),mobileLocations:new Map(),mobileSystemViews:new Map(),controlled:new Set(),controlledView:null,miners:new Set(),minerView:null,heap:[],lastNow:now(state),stats:{detailedShips:0,distantUpdates:0,scheduledEvents:0,backlog:0,simulationMs:0}};
       runtime.set(state,rt);
       const build=(function*(){
         for(const ship of traffic.ships){yield;migrateShip(state,ship,life);rt.byId.set(ship.id,ship);indexMove(rt,ship);if(Number.isFinite(ship.nextActionAt))push(rt.heap,{at:ship.nextActionAt,id:ship.id,token:ship.lifeScheduleToken});}
@@ -271,18 +278,60 @@
       for(const entry of world.systems)for(const port of portsIn(state,entry.id))market(state,entry.id,port);
     }
     if(access()&&!rt.initializing&&!rt.accessAuditing&&!rt.accessSignature)auditAccess(state,life,rt);
-    if(!rt.initializing)planFederationDuty(state,life);
+    if(!rt.initializing)planFleetDuty(state,life);
     return life;
   }
-  function planFederationDuty(state,life){
-    const fleet=window.nativeFederationFleet;if(!fleet||!state.civilianTraffic.population||life.federationFleet?.version===fleet.version&&life.federationFleet.rosterVersion===fleet.rosterVersion&&Array.isArray(life.federationFleet.pending))return;
-    const ledger=life.federationFleet||={version:fleet.version,assigned:0,commissioned:0,equipmentIssued:0,hullsIssued:{},pending:[]},counts=new Map();
+  const fleetGovernment=fleet=>fleet.governmentId??1;
+  const assignmentKey=fleet=>fleetGovernment(fleet)===1?'federationAssignment':'factionAssignment';
+  const dutyKey=fleet=>fleetGovernment(fleet)===1?'federationDutyVersion':'factionDutyVersion';
+  function fleetLedger(life,fleet,create=false){
+    const fresh=()=>({version:fleet.version,assigned:0,commissioned:0,equipmentIssued:0,hullsIssued:{},pending:[]});
+    if(fleetGovernment(fleet)===1)return create?life.federationFleet||=fresh():life.federationFleet;
+    if(create){life.factionFleets||={version:1,governments:{}};return life.factionFleets.governments[fleetGovernment(fleet)]||=fresh();}
+    return life.factionFleets?.governments?.[fleetGovernment(fleet)];
+  }
+  function commissionedFleet(state,ship){
+    if(window.nativeFactionFleets)return window.nativeFactionFleets.forShip(state,ship);
+    const fleet=window.nativeFederationFleet;return fleet?.has(ship.shipType)&&ship.federationDutyVersion===fleet.version?fleet:null;
+  }
+  function commissioningFleet(state,ship,life){
+    const registry=window.nativeFactionFleets;
+    if(!registry)return window.nativeFederationFleet;
+    if(ship.federationAssignment)return registry.get(1);
+    if(ship.factionAssignment)return registry.get(ship.factionAssignment.governmentId);
+    const restricted=registry.rosters.find(fleet=>fleetLedger(life,fleet)?.recruits?.[ship.id]);
+    return restricted||commissionedFleet(state,ship)||registry.forSystem(state,ship.operatingBase??ship.stationSystem??ship.system);
+  }
+  function planFleetDuty(state,life){
+    if(!state.civilianTraffic.population)return;
+    const registry=window.nativeFactionFleets,rt=runtime.get(state);
+    if(registry&&rt.fleetRosterRegistry===registry&&rt.federationRoster===window.nativeFederationFleet)return;
+    for(const fleet of registry?.rosters||[window.nativeFederationFleet].filter(Boolean))planFleetRoster(state,life,fleet);
+    if(registry){rt.fleetRosterRegistry=registry;rt.federationRoster=window.nativeFederationFleet;}
+  }
+  function planFleetRoster(state,life,fleet){
+    let ledger=fleetLedger(life,fleet);
+    const security=!!window.nativeFactionFleets;
+    if(ledger?.version===fleet.version&&ledger.rosterVersion===fleet.rosterVersion&&Array.isArray(ledger.pending)&&(!security||ledger.securityVersion===1))return;
+    ledger=fleetLedger(life,fleet,true);const counts=new Map(),government=fleetGovernment(fleet),assignment=assignmentKey(fleet),duty=dutyKey(fleet);
     ledger.rosterVersion=fleet.rosterVersion;
     for(const type of ledger.pending)counts.set(type,(counts.get(type)||0)+1);
-    for(const ship of state.civilianTraffic.ships){if(ship.hull<=0||ship.phase==='destroyed')continue;const type=ship.federationAssignment?.type??ship.shipType;counts.set(type,(counts.get(type)||0)+1);}
+    for(const ship of state.civilianTraffic.ships){if(ship.hull<=0||ship.phase==='destroyed')continue;
+      if(government!==1&&!(ship[assignment]?.governmentId===government||ship[duty]===fleet.version&&Number(ship.ownerGovernmentId)===government))continue;
+      const type=ship[assignment]?.type??ship.shipType;counts.set(type,(counts.get(type)||0)+1);}
     // Reserve classes, not busy crews. Whichever eligible crew completes its
     // real work first can take the next hull without touching paid agreements.
-    for(const type of fleet.types){const quota=world.ships.find(ship=>ship.id===type).massClass>=5?1:2;for(let i=counts.get(type)||0;i<quota;i++)ledger.pending.push(type);}
+    for(const type of fleet.types){const quota=world.ships.find(ship=>ship.id===type).massClass>=5?1:2;let count=counts.get(type)||0;for(;count<quota;count++)ledger.pending.push(type);counts.set(type,count);}
+    if(security){
+      const bases=fleet.bases(state),patrolTypes=fleet.weighted.filter(type=>fleet.duty(type)==='patrol');
+      const required=bases.reduce((sum,id)=>sum+window.nativeFactionFleets.defenderTarget(state,id),0)+Math.max(1,Math.floor(bases.length/3));
+      let guards=fleet.types.filter(type=>fleet.duty(type)==='patrol').reduce((sum,type)=>sum+(counts.get(type)||0),0);
+      // A class showcase quota can leave an older three-system Ferengi save
+      // with only two Marauders. Queue enough existing-crew refits for station
+      // watches plus travelling patrols, retaining every paid job and identity.
+      while(bases.length&&patrolTypes.length&&guards<required){ledger.pending.push(patrolTypes[(government*7+guards)%patrolTypes.length]);guards++;}
+      ledger.securityVersion=1;
+    }
     // A prior roster may already have commissioned every Earth-owned crew.
     // Reserve surplus crews for later refit; their current work remains intact.
     const candidates=ledger.refitCandidates||={},available=new Map();
@@ -290,44 +339,93 @@
     let needed=Math.max(0,ledger.pending.length-Object.keys(candidates).length);
     for(const ship of state.civilianTraffic.ships){
       if(!needed)break;
-      if(candidates[ship.id]||ship.federationAssignment||ship.federationDutyVersion!==fleet.version||ship.regionalResident||ship.scriptedDemo||ship.lifeDemoName||Number(ship.ownerGovernmentId)!==1||!fleet.has(ship.shipType)||ship.hull<=0||ship.phase==='destroyed')continue;
+      if(candidates[ship.id]||ship[assignment]||ship[duty]!==fleet.version||ship.regionalResident||ship.scriptedDemo||ship.lifeDemoName||Number(ship.ownerGovernmentId)!==government||!fleet.has(ship.shipType)||ship.hull<=0||ship.phase==='destroyed')continue;
       const quota=world.ships.find(type=>type.id===ship.shipType).massClass>=5?1:2;
       if(available.get(ship.shipType)<=quota)continue;
       candidates[ship.id]=fleet.rosterVersion;available.set(ship.shipType,available.get(ship.shipType)-1);needed--;
     }
-  }
-  function commissionFederationHull(state,ship,at){
-    const fleet=window.nativeFederationFleet;if(!fleet||medical(ship)||ship.regionalResident||ship.scriptedDemo||ship.lifeDemoName||ship.journey||ship.localLeg||ship.dockingMove||ship.combatInterruption||ship.cargo||ship.oreHold>0||ship.hull<stats(ship).hull*.8)return false;
-    const life=initialize(state),job=ship.task;if(ship.federationDutyVersion===fleet.version&&!life.federationFleet?.refitCandidates?.[ship.id]||job?.status==='active'&&!['idle','selecting','completed','fleet-refit'].includes(job.phase)||life.reservations[job?.id])return false;
-    if(!ship.federationAssignment){
-      if(Number(ship.ownerGovernmentId)!==1||!fleet.bases(state).includes(ship.operatingBase??ship.stationSystem??ship.system)||!life.federationFleet?.pending.length)return false;
-      ship.federationAssignment={version:fleet.version,type:life.federationFleet.pending.shift()};life.federationFleet.assigned++;
+    if(fleet.recruitTransferredResidents&&ledger.pending.length){
+      // Independence can leave every local crew commissioned into the former
+      // government. Reserve residents for normal berth refits after paid work;
+      // retaining that old commission must not permanently prevent an Orion fleet.
+      const recruits=ledger.recruits||={},bases=new Set(fleet.bases(state));
+      const residents=state.civilianTraffic.ships.filter(ship=>bases.has(ship.operatingBase??ship.stationSystem??ship.system)&&
+        !medical(ship)&&!ship.regionalResident&&!ship.scriptedDemo&&!ship.lifeDemoName&&!ship.federationAssignment&&!ship.factionAssignment&&
+        ship.hull>0&&ship.phase!=='destroyed'&&!(Number(ship.ownerGovernmentId)===government&&ship[duty]===fleet.version));
+      residents.sort((a,b)=>Number(!!commissionedFleet(state,a))-Number(!!commissionedFleet(state,b))||a.id-b.id);
+      for(const ship of residents){if(Object.keys(recruits).length>=ledger.pending.length)break;recruits[ship.id]=fleet.rosterVersion;}
     }
-    const assignment=ship.federationAssignment;if(!fleet.has(assignment.type))return false;
-    const equipment=window.nativeShipEquipment,allowed=equipment.canChangeHull(state,assignment.type,{holder:ship});if(!allowed.ok)return false;
+    // Old civilian saves had no residents at Vex. Recruit existing crews for
+    // these missing hulls; they finish work, refit at a real port and travel
+    // there. No additional crew, cargo, money or instantaneous relocation.
+    if(fleet.militaryOnly&&ledger.pending.length){
+      const recruits=ledger.recruits||={},home=fleet.bases(state)[0],refuge=home!=null?access()?.nearestHome(state,home):null;
+      const candidates=state.civilianTraffic.ships.filter(ship=>!medical(ship)&&!ship.regionalResident&&!ship.scriptedDemo&&!ship.lifeDemoName&&!ship.federationAssignment&&!ship.factionAssignment&&!ship.federationDutyVersion&&!ship.factionDutyVersion&&ship.hull>0&&ship.phase!=='destroyed'&&
+        (ship.seedSystem===home||(ship.operatingBase??ship.stationSystem)===refuge)).sort((a,b)=>Number(b.seedSystem===home)-Number(a.seedSystem===home)||a.id-b.id);
+      for(const ship of candidates){if(Object.keys(recruits).length>=ledger.pending.length)break;recruits[ship.id]=fleet.rosterVersion;}
+    }
+  }
+  function commissionFleetHull(state,ship,at){
+    if(!window.nativeFactionFleets&&!window.nativeFederationFleet)return false;
+    if(medical(ship)||ship.regionalResident||ship.scriptedDemo||ship.lifeDemoName||ship.journey||ship.localLeg||ship.dockingMove||ship.combatInterruption||ship.cargo||ship.oreHold>0||ship.hull<stats(ship).hull*.8)return false;
+    const life=initialize(state),fleet=commissioningFleet(state,ship,life);if(!fleet||!fleet.bases(state).length)return false;
+    const ledger=fleetLedger(life,fleet),assignment=assignmentKey(fleet),duty=dutyKey(fleet),government=fleetGovernment(fleet),job=ship.task;
+    if(ship[duty]===fleet.version&&Number(ship.ownerGovernmentId)===government&&!ledger?.refitCandidates?.[ship.id]||job?.status==='active'&&!['idle','selecting','completed','fleet-refit'].includes(job.phase)||life.reservations[job?.id])return false;
+    if(!ship[assignment]){
+      const base=ship.operatingBase??ship.stationSystem??ship.system;
+      const based=fleet.bases(state).includes(base)&&(!!window.nativeFactionFleets||Number(ship.ownerGovernmentId)===1);
+      if((!based&&!ledger?.recruits?.[ship.id])||!ledger?.pending.length)return false;
+      ship[assignment]={version:fleet.version,type:ledger.pending.shift(),...(government!==1?{governmentId:government}:{})};ledger.assigned++;
+    }
+    const order=ship[assignment];if(!fleet.has(order.type))return false;
+    const equipment=window.nativeShipEquipment,allowed=equipment.canChangeHull(state,order.type,{holder:ship});if(!allowed.ok)return false;
     if(!atBerth(state,ship)){
-      task(state,ship,'reposition','Report to port for Federation fleet duty',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},{fleetRefit:true},at);
+      task(state,ship,'reposition','Report to port for '+(fleet.label||'Federation')+' fleet duty',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},{fleetRefit:true},at);
       approachDock(state,ship,ship.port,at,'unloading');return true;
     }
     const before=Object.keys(ship.shipEquipment.instances).length,oldType=ship.shipType,old=stats(ship),hullFraction=ship.hull/old.hull,shieldFraction=old.shields>0?ship.shields/old.shields:0;
-    const changed=equipment.changeHull(state,assignment.type,{holder:ship});if(!changed.ok)return false;
+    const changed=equipment.changeHull(state,order.type,{holder:ship});if(!changed.ok)return false;
     const definition=stats(ship);window.nativeWeaponLoadout.refit(state,[...definition.defaultWeapons,...(definition.npcStartingEquipment?.ability||[])],{holder:ship});
-    ship.hull=Math.min(definition.hull,definition.hull*hullFraction);ship.shields=Math.min(stats(ship).shields,stats(ship).shields*shieldFraction);ship.role=fleet.duty(ship.shipType);ship.federationDutyVersion=assignment.version;
-    ship.previousHullType=oldType;ship.name=`${definition.name} ${String(ship.id+1).padStart(2,'0')}`;delete ship.federationAssignment;
+    ship.hull=Math.min(definition.hull,definition.hull*hullFraction);ship.shields=Math.min(stats(ship).shields,stats(ship).shields*shieldFraction);ship.role=fleet.duty(ship.shipType);ship[duty]=order.version;
+    ship.ownerGovernmentId=government;ship.npcRole=ship.role==='patrol'?'faction':'civilian';
+    if(fleet.militaryOnly){const base=fleet.bases(state)[0];ship.operatingBase=ship.stationSystem=ship.homeSystem=base;ship.homeBase={system:base,port:0};}
+    ship.previousHullType=oldType;ship.name=`${definition.name} ${String(ship.id+1).padStart(2,'0')}`;delete ship[assignment];
     if(job?.requirements?.fleetRefit){job.status='completed';job.phase='completed';job.completedAt=at;job.progress=1;}
-    const ledger=initialize(state).federationFleet;ledger.commissioned++;ledger.equipmentIssued+=Object.keys(ship.shipEquipment.instances).length-before;ledger.hullsIssued[ship.shipType]=(ledger.hullsIssued[ship.shipType]||0)+1;
+    ledger.commissioned++;ledger.equipmentIssued+=Object.keys(ship.shipEquipment.instances).length-before;ledger.hullsIssued[ship.shipType]=(ledger.hullsIssued[ship.shipType]||0)+1;
     delete ledger.refitCandidates?.[ship.id];
+    delete ledger.recruits?.[ship.id];
     event(state,ship,'commissioned','Crew commissioned into '+definition.name+'; previous owned equipment retained',at);
     docking().release(state,ship);schedule(state,ship,at+4);park(state,ship,at);indexMove(runtime.get(state),ship);return true;
   }
-  function chooseFederationPatrol(state,ship,at){
-    const fleet=window.nativeFederationFleet;if(!fleet||ship.role!=='patrol'||ship.federationDutyVersion!==fleet.version)return false;
+  function chooseFleetPatrol(state,ship,at){
+    const fleet=commissionedFleet(state,ship);if(!fleet||ship.role!=='patrol')return false;
     const base=ship.operatingBase??ship.stationSystem??ship.system,from=anchor(ship.system);
-    const routes=fleet.bases(state).filter(id=>id!==ship.system).sort((a,b)=>{const x=anchor(a),y=anchor(b);return Math.hypot(x.x-from.x,x.y-from.y)-Math.hypot(y.x-from.x,y.y-from.y);}).slice(0,3);
-    const destination=ship.system!==base&&inhabited(state,base)?base:routes[(ship.id+finite(ship.legs))%Math.max(1,routes.length)];
-    if(destination==null)return false;
+    const bases=fleet.bases(state),routes=bases.filter(id=>id!==ship.system).sort((a,b)=>{const x=anchor(a),y=anchor(b);return Math.hypot(x.x-from.x,x.y-from.y)-Math.hypot(y.x-from.x,y.y-from.y);}).slice(0,3);
+    const destination=ship.system!==base&&bases.includes(base)?base:routes[(ship.id+finite(ship.legs))%Math.max(1,routes.length)];
+    const stationTarget=window.nativeFactionFleets?.defenderTarget(state,ship.system)||0;
+    let defenders=0;
+    if(stationTarget&&bases.includes(ship.system)){
+      // Use the existing local membership, not a galaxy-wide census. Free
+      // crews retain a station watch before surplus patrols depart between
+      // systems; active response teams do not consume the reserve watch.
+      const rt=runtime.get(state),physical=window.nativeSystemCatalog?.physicalId?.(ship.system)??ship.system;
+      for(const id of rt.bySystem.get(ship.system)||[]){
+        const other=rt.byId.get(id);
+        if(!other||other.role!=='patrol'||Number(other.ownerGovernmentId)!==fleetGovernment(fleet)||other.journey||other.retaliationId||other.factionResponse||other.hull<=0||['disabled','destroyed','warp','arriving'].includes(other.phase))continue;
+        if((window.nativeFactionDefence?.region(state,other)??other.system)!==physical)continue;
+        if(other.hull<=stats(other).hull*.25||!window.nativeCivilianCombatAI.combatRange(state,other).range)continue;
+        defenders++;if(defenders>stationTarget)break;
+      }
+    }
+    if(destination==null||stationTarget&&bases.includes(ship.system)&&defenders<=stationTarget){
+      if(!bases.includes(ship.system))return false;
+      const center=docking().center(ship.system,ship.port),angle=(ship.id*.61803398875+finite(ship.patrolLegs)*.25)*Math.PI*2,radius=1000+(ship.id%4)*300;
+      docking().release(state,ship);const job=task(state,ship,'reposition',(fleet.label||'Federation')+' territorial patrol',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},{fleetPatrol:true},at);
+      job.completion='Reach the saved territorial patrol waypoint';
+      localLeg(state,ship,{x:center.x+Math.cos(angle)*radius,y:center.y+Math.sin(angle)*radius},at,'fleet-patrol');return true;
+    }
     docking().release(state,ship);
-    task(state,ship,'reposition','Federation patrol between '+system(ship.system).name+' and '+system(destination).name,{system:ship.system,port:ship.port},{system:destination,port:destination===1?3:0},{fleetPatrol:true},at);
+    task(state,ship,'reposition',(fleet.label||'Federation')+' patrol between '+system(ship.system).name+' and '+system(destination).name,{system:ship.system,port:ship.port},{system:destination,port:destination===1?3:0},{fleetPatrol:true},at);
     depart(state,ship,at);return true;
   }
   function miningVisit(state,ship){
@@ -366,6 +464,11 @@
         // A claimed medical rescue may enter an empty or excluded system solely
         // to reach this casualty. It grants no residency, market or mining access.
         if(window.nativeShipRepairs?.claimed(state,ship)||medical(ship)&&ship.task?.status==='active'&&ship.task.requirements?.medicalReturn&&inhabited(state,ship.task.destination.system))continue;
+        // Military residence is not civilian permission to trade or mine.
+        // In particular, Borg patrols remain at Vex without opening a market.
+        if(window.nativeFactionFleets?.militaryResidence(state,ship,ship.operatingBase)&&
+          (inhabited(state,ship.system)||window.nativeFactionFleets.militaryResidence(state,ship))&&
+          (!ship.journey||window.nativeFactionFleets.militaryResidence(state,ship,ship.journey.destination)))continue;
         if(!refuges.has(ship.system))refuges.set(ship.system,policy.nearestHome(state,ship.system));
         const safe=refuges.get(ship.system);if(!safe)continue;
         const base=inhabited(state,ship.operatingBase)?ship.operatingBase:inhabited(state,ship.stationSystem)?ship.stationSystem:safe;
@@ -964,6 +1067,35 @@
     if(reason==='disabled'||reason==='destroyed'){ship.phase=reason;delete ship.journey;ship.nextActionAt=null;(reason==='destroyed'?window.nativeShipMotion.stop:window.nativeShipMotion.powerOff)(ship);updateTransit(runtime.get(state),ship);}
     else{ship.phase='docked';schedule(state,ship,at+initialize(state).config.idleSeconds);}
   }
+  function seizeCargo(state,ship,field,tons){
+    if(!ship||ship.phase!=='disabled'||!(ship.hull>0)||!['cargo','oreHold','repairDeuranium'].includes(field))return {ok:false,error:'Cargo is available only from a disabled ship.'};
+    const cargo=field==='cargo'?ship.cargo:null,available=field==='cargo'?finite(cargo?.tons):finite(ship[field]),good=field==='cargo'?cargo?.good:field==='oreHold'?0:7;
+    if(!Number.isFinite(tons)||tons<=0||tons>available||!Number.isInteger(good)||good<0||good>=costs.length)return {ok:false,error:'That cargo is no longer aboard.'};
+    const life=initialize(state),job=ship.task,reservation=life.reservations[job?.id],reservationBefore=reservation?{...reservation}:null,markets=[];
+    const remember=m=>markets.push({m,reserved:finite(m.reserved[good]),incoming:finite(m.incoming[good]),funds:finite(m.fundsReserved)});
+    if(field==='cargo'&&reservation){remember(market(state,reservation.system,reservation.port));if(reservation.destinationReserved)remember(market(state,reservation.destination.system,reservation.destination.port));}
+    const jobBefore=job?{...job}:null,interruption=ship.combatInterruption,combatReturn=ship.combatReturn,ledger=life.economicLedger,oldLedger=ledger.seizedByPlayer,previous=oldLedger?.[good];
+    if(field==='cargo'){
+      // The old buyer must not pay for goods now owned by the player. Keep the
+      // casualty's repair mission running while releasing its freight agreement.
+      release(state,ship);delete ship.combatInterruption;delete ship.combatReturn;
+      if(job?.status==='active'){job.status='failed';job.phase='interrupted';job.failedAt=now(state);job.failureReason='Cargo stolen';}
+      if(tons===available)ship.cargo=null;else cargo.tons-=tons;
+    }else ship[field]=available-tons;
+    ledger.seizedByPlayer||=costs.map(()=>0);ledger.seizedByPlayer[good]=finite(previous)+tons;
+    updateTransit(runtime.get(state),ship);
+    return {ok:true,tons,cargo:cargo?{...cargo,tons}:null,undo(){
+      if(field==='cargo'){ship.cargo=cargo;cargo.tons=available;
+        if(job){for(const key of Object.keys(job))delete job[key];Object.assign(job,jobBefore);}
+        if(interruption===undefined)delete ship.combatInterruption;else ship.combatInterruption=interruption;
+        if(combatReturn===undefined)delete ship.combatReturn;else ship.combatReturn=combatReturn;
+        if(reservation){Object.assign(reservation,reservationBefore);life.reservations[job.id]=reservation;}
+        for(const row of markets){row.m.reserved[good]=row.reserved;row.m.incoming[good]=row.incoming;row.m.fundsReserved=row.funds;}
+      }else ship[field]=available;
+      if(oldLedger===undefined)delete ledger.seizedByPlayer;else{ledger.seizedByPlayer=oldLedger;oldLedger[good]=previous;}
+      updateTransit(runtime.get(state),ship);
+    }};
+  }
   function suspendCombat(state,ship,reason='Combat interrupted work',at=now(state)){
     if(!ship||ship.journey||['destroyed','disabled'].includes(ship.phase))return false;
     initialize(state);delete ship.navigationRequest;runtime.get(state)?.navigation?.delete(ship);
@@ -1177,8 +1309,9 @@
     task(state,ship,miningReturn?'mining':'reposition',miningReturn?'Mining trip ended; return to an inhabited port':'Return to the crew operating base for local work',{system:ship.system,port:ship.port},{system:base,port},miningReturn?{returning:true}:{},at);depart(state,ship,at);
   }
   function choose(state,ship,at){
+    if(commissionedFleet(state,ship)?.militaryOnly&&!ship.cargo&&!ship.oreHold&&chooseFleetPatrol(state,ship,at))return;
     if(!inhabited(state,ship.system)){returnToBase(state,ship,ship.operatingBase,at);return;}
-    if(commissionFederationHull(state,ship,at))return;
+    if(commissionFleetHull(state,ship,at))return;
     window.nativeShipRepairs?.restock(state,ship);
     if(ship.oreHold>0&&!ship.cargo){ship.cargo={good:0,tons:ship.oreHold,owner:ship.id,fromSystem:ship.system,fromPort:ship.port,toSystem:1,toPort:1};ship.oreHold=0;}
     if(ship.cargo){if(!ship.task||ship.task.status!=='active')task(state,ship,'freight','Find a funded buyer for cargo already owned aboard',{system:ship.cargo.fromSystem||ship.system,port:ship.cargo.fromPort??ship.port},{system:ship.cargo.toSystem||ship.system,port:ship.cargo.toPort||0},{good:ship.cargo.good,tons:ship.cargo.tons},at);
@@ -1213,7 +1346,7 @@
       task(state,ship,'medical-standby','Regional medical coverage; ready for distress calls',{system:ship.system,port:ship.port},{system:ship.system,port:ship.port},{},at);
       ship.task.phase='idle';ship.phase='docked';schedule(state,ship,at+30+(ship.id%15));park(state,ship,at);return;
     }
-    if(chooseFederationPatrol(state,ship,at))return;
+    if(chooseFleetPatrol(state,ship,at))return;
     const custom=roles.get(ship.role);if(custom?.(state,ship,{at,startDelivery,chooseMining,schedule}))return;
     if(at>=(ship.nextActivityAt||0)&&runtime.get(state)?.activityFocus&&activityRoom(state,'mining')&&chooseMining(state,ship,at,{activity:true}))return;
     if(minerals()&&!medical(ship)&&permits(ship,'mining')&&(ship.regionalResident||ship.role==='mining')){
@@ -1250,7 +1383,7 @@
       window.nativeCivilianTraffic.hail(state,a,text);window.nativeCivilianTraffic.hail(state,b,mining?'Understood. Watching your mining beam.':'Acknowledged. Safe travels.');
       event(state,a,'conversation',text,at,{partner:b.id});event(state,b,'conversation','Exchanged a local traffic hail with '+a.name,at,{partner:a.id});
       value.seed=(Math.imul(value.seed,1664525)+1013904223)>>>0;
-      const confrontational=s=>!medical(s)&&!policy(s).combat.survivalFirst&&window.nativeCivilianCombatAI.traits(s).aggression>.5&&stats(s).capabilities.armed;
+      const confrontational=s=>!medical(s)&&!window.nativeFactionDefence?.isFaction(s)&&!policy(s).combat.survivalFirst&&window.nativeCivilianCombatAI.traits(s).aggression>.5&&stats(s).capabilities.armed;
       if(mining&&confrontational(a)&&confrontational(b)&&value.seed/4294967296<.15&&window.nativeCivilianTraffic.startDispute(state,a,b,'mining claim and right of way')){value.disputes++;a.socialNextAt=b.socialNextAt=at+240;}
     }
     value.cursor=(value.cursor+12)%local.length;window.nativeSimulationFrame?.count(state,'localSocialPasses');
@@ -1260,7 +1393,7 @@
     if(ship.scriptedDemo||ship.disputeId||ship.retaliationId||['fighting','ore-theft'].includes(ship.phase)){schedule(state,ship,now(state)+5);return;}
     const job=ship.task;
     if(job?.phase==='fleet-refit'){
-      if(!commissionFederationHull(state,ship,at))schedule(state,ship,Math.max(at,now(state))+1);
+      if(!commissionFleetHull(state,ship,at))schedule(state,ship,Math.max(at,now(state))+1);
       return;
     }
     if(ship.factionResponse&&!window.nativeFactionDefence?.engagement(state,ship)){resumeWork(state,ship,'System defence contact ended');return;}
@@ -1278,6 +1411,11 @@
       event(state,ship,'corridor-watch','Inspecting the prospect and monitoring local traffic',at);window.nativeCivilianTraffic.hail(state,ship,'Traffic watch on station. Report any distress.');schedule(state,ship,at+25);return;
     }
     if(job?.phase==='corridor-watch'){if(job.destination.system===ship.system)approachDock(state,ship,job.destination.port,at,'unloading');else depart(state,ship,at);return;}
+    if(job?.phase==='fleet-patrol'){
+      if(!arriveLeg(state,ship,at))return;
+      delete ship.localLeg;window.nativeShipMotion.stop(ship,{preserveImpulse:true});ship.patrolLegs=finite(ship.patrolLegs)+1;
+      job.status='completed';job.phase='completed';job.progress=1;job.completedAt=at;ship.phase='holding';schedule(state,ship,at+4);return;
+    }
     if(ship.combatReturn){
       if(ship.combatReturn.phase==='repairing'&&!ship.localLeg){returnPaidRepair(state,ship,at);return;}
       if(!ship.localLeg||!arriveLeg(state,ship,at))return;
@@ -1322,6 +1460,10 @@
       const journey=ship.journey;if(!journey){depart(state,ship,at);return;}
       const oldSystem=ship.system;ship.system=journey.destination;Object.assign(ship,journey.to);ship.heading=Math.atan2(journey.galaxyTo.y-journey.galaxyFrom.y,journey.galaxyTo.x-journey.galaxyFrom.x);
       ship.lastJourney={...journey,progress:1,arrivedAt:at};ship.journey=null;ship.destinationSystem=null;ship.legs=finite(ship.legs)+1;indexMove(runtime.get(state),ship,oldSystem);
+      if(job.requirements.fleetPatrol&&window.nativeFactionFleets?.militaryResidence(state,ship)){
+        job.status='completed';job.phase='completed';job.progress=1;job.completedAt=at;ship.phase='holding';schedule(state,ship,at+.01);
+        event(state,ship,'arrival',`Arrived at ${system(ship.system)?.name} for territorial patrol`,at);return;
+      }
       event(state,ship,'arrival',`Arrived at ${system(ship.system)?.name}; approaching destination dock`,at);approachDock(state,ship,job.destination.port,at,'unloading');return;
     }
     if(job.phase==='approaching'){
@@ -1507,6 +1649,6 @@
     initialize(state);if(!ship.localLeg||ship.journey||!(ship.task?.status==='active'||ship.dockingMove)||leg.valid===false)return false;
     ship.localLeg=leg;schedule(state,ship,leg.startedAt+leg.duration);return true;
   }
-  window.nativeNpcLives={buyPlayerFreightPermit,playerFreightQuote,loadPlayerFreight,deliverPlayerFreight,initialize,prepare,advance,interactive(state,enabled=true){initialize(state);runtime.get(state).interactive=!!enabled;},descriptors,find,members,mobile,controlled,mining,observeMotion,observeCourse,activity(state){const value=state?.civilianTraffic?.life?.activity;return value?{...value,current:value.current?{...value.current}:undefined,assigned:{...value.assigned},assignments:value.assignments.map(a=>({...a,point:{...a.point}})),timing:{...runtime.get(state)?.activityMetrics},course:runtime.get(state)?.activityFocus?{x:runtime.get(state).activityFocus.x,y:runtime.get(state).activityFocus.y,ux:runtime.get(state).activityFocus.ux,uy:runtime.get(state).activityFocus.uy,speed:runtime.get(state).activityFocus.speed,route:runtime.get(state).activityFocus.route?{...runtime.get(state).activityFocus.route}:null}:null}:null;},ready:state=>!!runtime.get(state)&&!runtime.get(state).initializing,revision:membershipRevision,invalidateMembership,transits,queryTransits,travelHeading,systems:state=>{initialize(state);return Array.from(runtime.get(state).bySystem.keys());},galaxyPosition,pose:localPose,detail,inspect,metrics,promoteJourney,resumeJourney,social,registerRole,configure,visit,startDelivery,startDemo,interrupt,suspendCombat,respondToThreat,resumeWork,escapeRoute,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,refineDeuranium,upgradeMinerals,reroute,startRescue,
+  window.nativeNpcLives={buyPlayerFreightPermit,playerFreightQuote,loadPlayerFreight,deliverPlayerFreight,initialize,prepare,advance,interactive(state,enabled=true){initialize(state);runtime.get(state).interactive=!!enabled;},descriptors,find,members,mobile,controlled,mining,observeMotion,observeCourse,activity(state){const value=state?.civilianTraffic?.life?.activity;return value?{...value,current:value.current?{...value.current}:undefined,assigned:{...value.assigned},assignments:value.assignments.map(a=>({...a,point:{...a.point}})),timing:{...runtime.get(state)?.activityMetrics},course:runtime.get(state)?.activityFocus?{x:runtime.get(state).activityFocus.x,y:runtime.get(state).activityFocus.y,ux:runtime.get(state).activityFocus.ux,uy:runtime.get(state).activityFocus.uy,speed:runtime.get(state).activityFocus.speed,route:runtime.get(state).activityFocus.route?{...runtime.get(state).activityFocus.route}:null}:null}:null;},ready:state=>!!runtime.get(state)&&!runtime.get(state).initializing,revision:membershipRevision,invalidateMembership,transits,queryTransits,travelHeading,systems:state=>{initialize(state);return Array.from(runtime.get(state).bySystem.keys());},galaxyPosition,pose:localPose,detail,inspect,metrics,promoteJourney,resumeJourney,social,registerRole,configure,visit,startDelivery,startDemo,interrupt,seizeCargo,suspendCombat,respondToThreat,resumeWork,escapeRoute,market,exchange,refreshLocation,availableFunds,demand,mineralQuote,sellMineral,refineDeuranium,upgradeMinerals,reroute,startRescue,
     scheduled:state=>{initialize(state);return runtime.get(state).heap.length;}};
 })();

@@ -166,7 +166,10 @@ test('moving launchers pass their velocity to pulses and torpedoes, including ho
     const spec=rules.weaponSpec({damage:12,range:1500,recharge:13},kind),event=rules.launch(source,target,{...spec,muzzle:10},kind,0);
     event.spec=spec;
     close(event.vx-velocity.x,spec.speed);close(event.vy-velocity.y,0);
-    for(let i=0;i<60;i++){
+    // Current faster motors reach this target in under a second. Exercise the
+    // translating launch frame before contact, then compare restored guidance.
+    const steps=Math.min(60,Math.floor((500-10)/spec.speed*60*.5));
+    for(let i=0;i<steps;i++){
       source.x+=velocity.x/60;source.y+=velocity.y/60;
       target.previousX=target.x;target.previousY=target.y;target.x+=velocity.x/60;target.y+=velocity.y/60;
       const result=rules.stepProjectile(event,target,1/60,[],{rx:1,ry:1},{width:2,height:2});
@@ -219,7 +222,7 @@ test('legacy homing shots without launch velocity remain readable at their saved
   close(Math.hypot(event.vx,event.vy),225);assert.ok(Number.isFinite(event.x)&&Number.isFinite(event.y));
 });
 
-test('all weapon models support rear fire while projectile flight and torpedo homing remain model-specific', async () => {
+test('beams and turrets support rear fire while forward projectiles retain model arcs and torpedo guidance', async () => {
   const f = await fixture(), rules = f.window.nativeWeaponRules, source = f.describe('player');
   const target = { ...source, id: 5, x: -200, y: 0, vx: 0, vy: 120 };
   for (const weapon of [f.window.VexedMirrorWeapons[0], f.window.VexedMirrorWeapons[3]]) {
@@ -227,7 +230,7 @@ test('all weapon models support rear fire while projectile flight and torpedo ho
   }
   for (const kind of ['disruptor', 'torpedo']) {
     const spec = rules.weaponSpec(f.window.VexedMirrorWeapons[kind === 'torpedo' ? 2 : 1], kind);
-    assert.equal(rules.firingSolution(source, target, spec, kind, { bystanders: [], rocks: [] }), true, `${kind} supports independent targeting`);
+    assert.equal(rules.firingSolution(source, target, spec, kind, { bystanders: [], rocks: [] }), false, `${kind} retains its forward firing arc`);
     const ahead = { ...target, x: 300, y: 0 }, event = rules.startShot({ damage: 12 }, kind, source, ahead, 0, 0);
     assert.equal(event.projectile, true); assert.ok(event.vy > 0, 'projectile launch still leads a moving target');
     const heading = Math.atan2(event.vy, event.vx), speed = Math.hypot(event.vx, event.vy);
@@ -238,6 +241,8 @@ test('all weapon models support rear fire while projectile flight and torpedo ho
     if (kind === 'torpedo') { assert.ok(turn > 0); assert.ok(turn <= spec.turn * .01 + 1e-9, 'homing turn stays rate limited'); }
     else close(turn, 0, 'unguided projectiles do not track the target');
   }
+  const turret=rules.weaponSpec({id:11,damage:12,range:900},'disruptor');
+  assert.equal(rules.firingSolution(source,target,turret,'disruptor',{bystanders:[],rocks:[]}),true,'turrets retain rear coverage');
 });
 
 test('rear beams choose the nearest configured hardware emitter and keep it attached as the source rotates', async () => {

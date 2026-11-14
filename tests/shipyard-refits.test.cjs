@@ -18,7 +18,7 @@ test('refits are hull-local, typed, capped and identical for every ownership cat
   assert.equal(da.slots.weapon,w.nativeShipDefinitions.get(ship.id).slots.weapon+1);
  }
  assert.equal(r.level({shipType:7,shipRefit:{version:1,hullType:8,levels:{hull:3}}},'hull'),0);
- assert.ok(r.budget(s).total>=8);
+ assert.ok(r.budget(s).power>=7);assert.equal(r.budget(s).total,undefined);
 });
 test('purchases charge real ore exactly once, preserve damage and survive JSON reload',async()=>{
  const {window:w,state:s,r,save}=await setup(),before=w.nativeShipDefinitions.forEntity(s);s.hull=before.hull*.5;
@@ -36,15 +36,28 @@ test('save failure, insufficient resources and an undocked purchase leave resour
  s.latinum=0;const poor=JSON.stringify(s);assert.equal(r.buy(s,1003,save).ok,false);assert.deepEqual(plain(s),JSON.parse(poor));
  delete s.shipyardDock;const undocked=JSON.stringify(s);assert.equal(r.upgrade(s,'cargo',save).ok,false);assert.deepEqual(plain(s),JSON.parse(undocked));
 });
-test('shared budget forces a shield-versus-hull tradeoff and legacy technology cannot bypass it',async()=>{
+test('all refit families can reach their own tier caps without a shared points limit, including legacy ships',async()=>{
  const {window:w,state:s,r,save}=await setup();
- while(r.quote(s,'hull').allowed)assert.equal(r.upgrade(s,'hull',save).ok,true);
- while(r.quote(s,'shield').allowed)assert.equal(r.upgrade(s,'shield',save).ok,true);
- assert.ok(r.budget(s).used<=r.budget(s).total);
- assert.equal(r.upgrade(s,'weapon',save).ok,false);assert.equal(r.canMineralUpgrade(s),false);
+ s.mineralUpgrades={[s.shipType]:{hull:3,shield:3,engine:3}};
+ const legacy=plain(s.mineralUpgrades);
+ for(const [kind,spec] of Object.entries(r.upgrades)){
+  for(let tier=0;tier<spec.max;tier++){
+   const q=r.quote(s,kind),money=s.latinum;assert.equal(q.allowed,true,kind);
+   assert.equal(r.upgrade(s,kind,save).ok,true,kind);assert.equal(s.latinum,money-q.price);
+   assert.equal(r.level(s,kind),tier+1);
+  }
+  const before=plain(s);assert.equal(r.quote(s,kind).allowed,false);assert.equal(r.upgrade(s,kind,save).ok,false);assert.deepEqual(plain(s),before);
+ }
+ assert.deepEqual(plain(s.mineralUpgrades),legacy);assert.equal(r.canMineralUpgrade(s),true);
  assert.equal(r.buy(s,'fed-adaptive',save).ok,true);
- const eq=w.nativeShipEquipment.ensure(s),id=eq.locker.find(id=>eq.instances[id].modelId==='fed-adaptive'),before=JSON.stringify(eq);
- assert.equal(r.fit(s,id,0,save).ok,false);assert.equal(JSON.stringify(w.nativeShipEquipment.ensure(s)),before);
+ const eq=w.nativeShipEquipment.ensure(s),id=eq.locker.find(id=>eq.instances[id].modelId==='fed-adaptive'),old=eq.slots.shield[0];
+ assert.equal(r.fit(s,id,0,save).ok,true);assert.equal(eq.slots.shield[0],id);assert.ok(eq.locker.includes(old));
+ const technology=w.nativeRegionalMinerals.upgradeQuote(s,'drive'),money=s.latinum,ore=s.minerals.benamite;
+ const portUpgrade=w.nativeNpcLives.upgradeMinerals(s,'drive',5);assert.equal(portUpgrade.ok,true,portUpgrade.error);
+ assert.equal(s.latinum,money-technology.price);assert.equal(s.minerals.benamite,ore-technology.materials.benamite);
+ assert.equal(w.nativeRegionalMinerals.level(s,'drive'),1);
+ const restored=plain(s);w.nativeShipEquipment.ensure(restored);
+ for(const [kind,spec] of Object.entries(r.upgrades))assert.equal(r.level(restored,kind),spec.max);
 });
 test('Federation weapons use real shared visuals, power limits, range and cooldowns',async()=>{
  const {window:w,state:s,r,save,ship}=await setup();
@@ -91,6 +104,7 @@ test('all playable hulls have finite approach plans and oversized ships face an 
  f.context.document.createElement=node;f.context.document.querySelector=node;w.addEventListener=()=>{};
  w.nativeMarsShipyard={definition:{size:220},definitionFor:()=>({size:220}),position:()=>({x:5100,y:1755})};
  const fetch=f.context.fetch;f.context.fetch=async url=>String(url).includes('earth-shipyard-docking-profiles')?{ok:true,json:async()=>JSON.parse(fs.readFileSync('html-games/flashtrek-broken-mirror/earth-shipyard-docking-profiles.json','utf8'))}:fetch(url);
+ vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/equipment-panel.js','utf8'),f.context);
  vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/shipyard-services.js','utf8'),f.context);assert.equal(await w.nativeShipyardServices.ready,true);
  let external=0;
  for(const ship of w.VexedMirrorWorld.ships){

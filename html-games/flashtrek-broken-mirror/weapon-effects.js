@@ -11,8 +11,11 @@
   if(geometry.screenPixels){
    // Transform positions first, then draw in CSS pixels so even the shader's minimum widths stay identical.
    const matrix=ctx.getTransform(),frame=bounds.get(ctx.canvas);
-   const rect=frame?(frame.rect&&frame.width===ctx.canvas.width?frame.rect:(frame.width=ctx.canvas.width,frame.rect=ctx.canvas.getBoundingClientRect())):ctx.canvas.getBoundingClientRect();
-   pixelRatio=ctx.canvas.width/Math.max(1,rect.width);
+   pixelRatio=window.nativeView?.pixelRatio?.(ctx.canvas);
+   if(!(pixelRatio>0)){
+    const rect=frame?(frame.rect&&frame.width===ctx.canvas.width?frame.rect:(frame.width=ctx.canvas.width,frame.rect=ctx.canvas.getBoundingClientRect())):ctx.canvas.getBoundingClientRect();
+    pixelRatio=ctx.canvas.width/Math.max(1,rect.width);
+   }
    const point=(x,y)=>({x:(matrix.a*x+matrix.c*y+matrix.e)/pixelRatio,y:(matrix.b*x+matrix.d*y+matrix.f)/pixelRatio});
    geometry={...geometry,zoom:1};
    for(const [x,y] of [['x','y'],['x1','y1'],['x2','y2']])if(Number.isFinite(geometry[x])&&Number.isFinite(geometry[y])){const mapped=point(geometry[x],geometry[y]);geometry[x]=mapped.x;geometry[y]=mapped.y;}

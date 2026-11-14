@@ -72,12 +72,13 @@ try:
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True,**({'channel':os.environ.get('BROWSER_CHANNEL','msedge')} if os.environ.get('BROWSER_CHANNEL','msedge') else {}))
         page=browser.new_page(viewport={'width':1450,'height':1000})
+        page.add_init_script("Object.defineProperty(navigator,'getGamepads',{value:()=>[]});")
         errors=[];failed=[]
         page.on('pageerror',lambda e:errors.append(str(e)))
         page.on('response',lambda r:failed.append(f'{r.status} {r.url}') if r.status>=400 else None)
         page.goto(base+'/html-games/broken-mirror-port/index.html')
         page.locator('[data-menu="dev"]').click(timeout=30000)
-        page.wait_for_function('window.nativeNpcDev?.getState() && nativeSolAsteroids.placements.length')
+        page.wait_for_function('()=>window.nativeNpcDev?.getState() && nativeSolAsteroids.placements.length')
         report={}
         report['artwork']=page.evaluate(r'''async()=>{
           const check=(v,m)=>{if(!v)throw Error(m);};
@@ -112,7 +113,10 @@ try:
           const s=nativeNpcDev.getState(),rock=nativeSolAsteroids.forSystem(43).find(r=>r.oreType==='deuranium'&&!s.minedAsteroids?.includes(r.slotId)&&!s.destroyedAsteroids?.includes(r.slotId));
           for(const e of s.civilianTraffic.ships){nativeNpcLives.interrupt(s,e,'browser fixture');e.nextActionAt=null;e.lifeScheduleToken++;}
           s.solEconomy.freighters=[];nativeAsteroidCombat.clear();
-          Object.assign(s,{devMode:false,deuranium:20,latinum:500,system:43,planet:'Hof-Maso',x:rock.x-100,y:rock.y,speed:0,angle:Math.PI/2,miningTool:true,localCruise:null,arrivalApproach:null,phase:'flight',landed:false});
+          // Dev grants exceed an ordinary hold's capacity. Start this production
+          // mining trial with an empty hold and the ship's normal full vitals.
+          const def=nativeShipDefinitions.get(s.shipType,'player');
+          Object.assign(s,{devMode:false,deuranium:0,minerals:{},solFreightHold:{},localContracts:[],hull:def.hull,shields:def.shields,latinum:500,system:43,planet:'Hof-Maso',x:rock.x-100,y:rock.y,speed:0,angle:Math.PI/2,miningTool:true,localCruise:null,arrivalApproach:null,phase:'flight',landed:false});
           nativeShipEquipment.grant(s,'mining-laser',{location:'slot',slot:0});window.__deuraniumState=s;window.__deuraniumRock=rock;window.__oreBefore=s.minerals?.deuranium||0;
           vexedSpace.enterSystem(43,true);const view=nativeView.measure(document.querySelector('#space'));return {x:view.w/2+100,y:view.h/2,w:view.w,h:view.h};
         }''')
@@ -127,8 +131,19 @@ try:
         page.screenshot(path=str(OUT/'actual-player-mining.png'))
         page.evaluate('()=>{nativeSaveStorage.write(__deuraniumState);const initialize=nativeShipRepairs.initialize;window.nativeShipRepairs={...nativeShipRepairs,initialize:s=>{window.__deuraniumState=s;return initialize(s);}};resumeNativeGame();window.nativeShipRepairs={...nativeShipRepairs,initialize};window.nativeSimulation={...nativeSimulation,blocked:__originalBlocked};window.nativeSimulationHost?.checkpoint();}')
         page.wait_for_function('()=>__deuraniumState.minedAsteroids?.includes(__deuraniumRock.slotId)',timeout=15000)
+        # Save/resume and real contacts can move the camera/rock. Collect at the
+        # current rendered world position, rather than the pre-cut pixel.
+        point=page.evaluate('''()=>{const s=__deuraniumState,p=s.system===1?vexedSolFlight.shipPosition(s):s,r=__deuraniumRock,v=nativeView.measure(document.querySelector('#space'));return {x:v.w/2+r.x-p.x,y:v.h/2+r.y-p.y,w:v.w,h:v.h};}''')
+        box=page.locator('#space').bounding_box()
+        x=box['x']+point['x']/point['w']*box['width'];y=box['y']+point['y']/point['h']*box['height']
         page.mouse.click(x,y)
-        page.wait_for_function('()=>__deuraniumState.asteroidOreDrops[__deuraniumRock.slotId]===0')
+        try:
+            page.wait_for_function('()=>__deuraniumState.asteroidOreDrops[__deuraniumRock.slotId]===0')
+        except Exception:
+            diagnostic=page.evaluate('''()=>{const s=__deuraniumState,r=nativeSolAsteroids.find(__deuraniumRock.slotId,s.system);return {isGameState:s===nativeNpcDev.getState(),system:s.system,phase:s.phase,player:{x:s.x,y:s.y},rock:r,ore:s.asteroidOreDrops,minerals:s.minerals,cargo:nativeShipEquipment.cargoUsed(s),view:nativeView.measure(document.querySelector('#space')),paused:nativeSimulation.blocked(),notice:document.querySelector('#message')?.textContent};}''')
+            (OUT/'collection-failure.json').write_text(json.dumps(dict(diagnostic=diagnostic,point=point,box=box,errors=errors),indent=2),encoding='utf8')
+            page.screenshot(path=str(OUT/'collection-failure.png'))
+            raise
         assert page.evaluate('__deuraniumState.minerals.deuranium===__oreBefore+4')
         page.mouse.click(x,y)
         assert page.evaluate('__deuraniumState.minerals.deuranium===__oreBefore+4')

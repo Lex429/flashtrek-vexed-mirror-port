@@ -1,5 +1,6 @@
 """Real Intrepid drift, nacelle inflow, conservative wake refill and artwork alignment."""
 import base64
+import argparse
 import functools
 import http.server
 import json
@@ -11,7 +12,12 @@ import threading
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'test-results' / 'intrepid-fog'
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('base',nargs='?')
+parser.add_argument('--source-root',type=Path,default=ROOT)
+parser.add_argument('--output',type=Path,default=ROOT/'test-results/intrepid-fog')
+args=parser.parse_args()
+OUT = args.output
 OUT.mkdir(parents=True, exist_ok=True)
 
 
@@ -21,10 +27,10 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 
 
 server = None
-if len(sys.argv) > 1:
-    base = sys.argv[1].rstrip('/')
+if args.base:
+    base = args.base.rstrip('/')
 else:
-    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=str(ROOT)))
+    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=str(args.source_root)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     base = f'http://127.0.0.1:{server.server_port}'
 errors, failed = [], []
@@ -33,6 +39,9 @@ try:
         channel = os.environ.get('BROWSER_CHANNEL', 'msedge')
         browser = p.chromium.launch(headless=True, **({'channel': channel} if channel else {}))
         page = browser.new_page(viewport={'width': 1280, 'height': 850}, reduced_motion='no-preference')
+        # This fixture drives keyboard coasting; attached hardware must not add
+        # a second source of steering during the released-controls assertions.
+        page.add_init_script("Object.defineProperty(navigator,'getGamepads',{value:()=>[]})")
         page.add_init_script('''{
           const getContext=HTMLCanvasElement.prototype.getContext;
           HTMLCanvasElement.prototype.getContext=function(kind,...args){const ctx=getContext.call(this,kind,...args);if(kind==='webgl2'&&this.dataset.nebulaMaterial)window.__materialGL=ctx;return ctx;};
@@ -44,7 +53,7 @@ try:
         page.evaluate('''()=>{
           window.__legacyIntrepidDraws=0;const flow=nativeNebulaFlow;
           window.nativeNebulaFlow={...flow,render(...args){if(nativeNebulaMaterial.supported(nativeNpcDev.getState()?.shipType))__legacyIntrepidDraws++;return flow.render(...args);}};
-          startNativeDevGame();
+          startNativeDevGame();nativeDevFog.setEnabled(true);nativeDevFog.setPreset('vex');nativeDevFog.setColour('four');
         }''')
         page.wait_for_function('()=>nativeNpcDev.getState()?.devMode', timeout=120000)
 
@@ -56,6 +65,10 @@ try:
 
         equip(438)
         assert page.evaluate('nativeNpcDev.getState().civilianTraffic.ships.length') == 1200
+        # Keep the entire fleet, with a clear route inside Sol for this specific
+        # coasting/refill check. Overlapping hulls have their own fleet fixture.
+        page.evaluate('''()=>{const s=nativeNpcDev.getState(),p=vexedSolFlight.shipPosition(s);nativeShipMotion.stop(s);
+          s.x+=13500-p.x;s.y+=-4000-p.y;nativeManualFlight.initializeRegion(s);nativeShipSystems.invalidate(s);}''')
         page.locator('#devToolsBtn').click()
         page.locator('[data-dev-fog-reset]').click()
         page.locator('#dialog [data-close]').click()
@@ -93,7 +106,13 @@ try:
         stopped_clock = page.evaluate('nativeDevFog.material().field.metrics().clock')
         refill = []
         for seconds in [.5, 2, 5, 10, 15]:
-            page.wait_for_function('a=>nativeDevFog.material().field.metrics().clock-a.start>a.seconds', arg=dict(start=stopped_clock, seconds=seconds), timeout=45000)
+            try:
+                page.wait_for_function('a=>nativeDevFog.material().field.metrics().clock-a.start>a.seconds', arg=dict(start=stopped_clock, seconds=seconds), timeout=45000)
+            except Exception:
+                diagnostic=page.evaluate('''()=>{const s=nativeNpcDev.getState();return {fog:nativeDevFog.snapshot(),pause:nativePause.active,visibility:document.visibilityState,blocked:nativeSimulation.blocked(s),state:{system:s.system,hull:s.hull,shields:s.shields,phase:s.phase,landed:s.landed,speed:s.speed},errors:window.__errors||[]};}''')
+                (OUT/'refill-failure.json').write_text(json.dumps(dict(start=stopped_clock,target=seconds,diagnostic=diagnostic,errors=errors),indent=2),encoding='utf8')
+                page.screenshot(path=str(OUT/'refill-failure.png'))
+                raise
             refill.append(page.evaluate('''async p=>{const m=nativeDevFog.material();await m.field.flush?.();return {clock:m.field.metrics().clock,density:m.field.sample(p.x,p.y)};}''', cut))
         persistence = page.evaluate('p=>{const m=nativeDevFog.material();return {remaining:m.field.sample(p.x,p.y),initial:m.field.sampleInitial(p.x,p.y),audit:m.field.metrics(true)};}', cut)
         assert persistence['remaining'] > max(.025, persistence['initial'] * .1), persistence
@@ -122,7 +141,7 @@ try:
               }
               const rows=[];
               for(const heading of [0,.63])for(const speed of [120,270,427.5]){
-                const field=api.createField({minX:-220,minY:-220,width:440,height:440,cell:2}),c=Math.cos(heading),s=Math.sin(heading),pose={...m.pose,x:-160*c,y:-160*s,heading,speed};
+                const field=api.createField({minX:-220,minY:-220,width:440,height:440,cell:m.field.metrics().cell}),c=Math.cos(heading),s=Math.sin(heading),pose={...m.pose,x:-160*c,y:-160*s,heading,speed};
                 field.update(pose,mask,1/30);for(let step=1;step<=Math.ceil(240*30/speed);step++){const distance=step*speed/30-160;pose.x=distance*c;pose.y=distance*s;field.update(pose,mask,1/30);}
                 const sample=point=>{const lx=(point.u-.5)*pose.width,ly=(.5-point.v)*pose.height;return field.sample(pose.x+c*ly-s*lx,pose.y+s*ly+c*lx);};
                 const sides=[-1,1].map(sign=>{const values=points.filter(p=>Math.sign(p.u-.5)===sign).map(sample);return {count:values.length,mean:values.reduce((a,b)=>a+b,0)/values.length,filled:values.filter(d=>d>.08).length/values.length};});
@@ -177,7 +196,7 @@ try:
             }''')
             alignments.append(alignment)
         worker_transport = page.evaluate('''async()=>{
-          const api=nativeNebulaMaterial,mask=nativeDevFog.material().mask,config={minX:-280,minY:-120,width:560,height:240,cell:2,uniform:0};
+          const api=nativeNebulaMaterial,material=nativeDevFog.material(),mask=material.mask,config={minX:-280,minY:-120,width:560,height:240,cell:material.field.metrics().cell,uniform:0};
           const reference=api.createField(config),transport=api.createRuntimeField(config),rgba=new Uint8ClampedArray(16*16*4);
           for(let i=0;i<16*16;i++)rgba[i*4+3]=160;
           reference.seed(rgba,16,16);transport.seed(rgba,16,16);

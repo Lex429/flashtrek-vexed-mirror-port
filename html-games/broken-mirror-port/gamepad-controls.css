@@ -1,0 +1,17 @@
+.gamepad-focus{outline:2px solid #84e9ff!important;outline-offset:3px!important;box-shadow:0 0 14px #54d9ff55!important}
+#controller-status{position:fixed;z-index:220;top:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;max-width:calc(100vw - 24px);padding:6px 10px;border:1px solid #405869;border-radius:20px;background:#0b1828ed;color:#bac9d6;font:11px system-ui,sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 3px 15px #0007}
+#controller-status svg{width:20px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+#controller-status i{width:6px;height:6px;border-radius:50%;background:#718598;flex-shrink:0}
+#controller-status[data-state="connected"]{color:#a4f0d4;border-color:#497f73}
+#controller-status[data-state="connected"] i{background:#78e5b0;box-shadow:0 0 7px #65e6a988}
+#controller-status[data-vibration="setup"]{color:#f2d09c;border-color:#967345}
+#controller-status[data-vibration="setup"] i{background:#f2ba6c;box-shadow:0 0 7px #f2ba6c55}
+#controller-status[data-state="disconnected"],#controller-status[data-state="unsupported"]{color:#f2c89d;border-color:#a47c50}
+#controller-status[data-state="disconnected"] i,#controller-status[data-state="unsupported"] i{background:#f2b46c}
+#controller-notice{position:fixed;z-index:221;top:88px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:14px 24px;border:1px solid #67c7ae;border-radius:8px;background:#102b2bf5;color:#d7fff0;box-shadow:0 10px 35px #0009;font:600 15px system-ui,sans-serif;text-align:center;pointer-events:none;animation:controller-notice-enter .2s ease-out}
+#controller-notice[hidden]{display:none}
+#controller-notice[data-state="disconnected"],#controller-notice[data-state="unsupported"]{border-color:#d6a36b;background:#34271bf5;color:#ffe4c2}
+@keyframes controller-notice-enter{from{opacity:0;margin-top:-6px}to{opacity:1;margin-top:0}}
+.controller-help{padding-top:12px;border-top:1px solid #304557;color:#a9c5d3;font-size:13px;line-height:1.7}
+@media(max-width:850px){#controller-status{top:auto;bottom:76px;left:12px;transform:none;font-size:10px;padding:5px 8px}}
+@media(prefers-reduced-motion:reduce){#controller-notice{animation:none}}

@@ -1,0 +1,110 @@
+{
+  "3701": {
+    "id": 3701,
+    "name": "Prometheus Alpha section",
+    "kind": "ship",
+    "origin": "User supplied aligned Prometheus package",
+    "original": "prometheus-mvam-v2/top/intact.png",
+    "frames": [
+      "prometheus-mvam-v2/top/intact.png",
+      "prometheus-mvam-v2/top/light.png",
+      "prometheus-mvam-v2/top/heavy.png",
+      "prometheus-mvam-v2/top/severe.png"
+    ],
+    "bounds": [
+      0,
+      404,
+      0,
+      487
+    ],
+    "damageReady": true,
+    "damageFramesReady": true,
+    "artworkStatus": "animated",
+    "mass": 300.7,
+    "debrisKind": 1,
+    "points": [],
+    "size": 200,
+    "shieldColor": "blue"
+  },
+  "3702": {
+    "id": 3702,
+    "name": "Prometheus Beta section",
+    "kind": "ship",
+    "origin": "User supplied aligned Prometheus package",
+    "original": "prometheus-mvam-v2/middle/intact.png",
+    "frames": [
+      "prometheus-mvam-v2/middle/intact.png",
+      "prometheus-mvam-v2/middle/light.png",
+      "prometheus-mvam-v2/middle/heavy.png",
+      "prometheus-mvam-v2/middle/severe.png"
+    ],
+    "bounds": [
+      0,
+      388,
+      0,
+      888
+    ],
+    "damageReady": true,
+    "damageFramesReady": true,
+    "artworkStatus": "animated",
+    "mass": 300.7,
+    "debrisKind": 1,
+    "points": [],
+    "size": 200,
+    "shieldColor": "blue"
+  },
+  "3703": {
+    "id": 3703,
+    "name": "Prometheus Gamma section",
+    "kind": "ship",
+    "origin": "User supplied aligned Prometheus package",
+    "original": "prometheus-mvam-v2/bottom/intact.png",
+    "frames": [
+      "prometheus-mvam-v2/bottom/intact.png",
+      "prometheus-mvam-v2/bottom/light.png",
+      "prometheus-mvam-v2/bottom/heavy.png",
+      "prometheus-mvam-v2/bottom/severe.png"
+    ],
+    "bounds": [
+      0,
+      369,
+      0,
+      739
+    ],
+    "damageReady": true,
+    "damageFramesReady": true,
+    "artworkStatus": "animated",
+    "mass": 300.7,
+    "debrisKind": 1,
+    "points": [],
+    "size": 200,
+    "shieldColor": "blue"
+  },
+  "37": {
+    "id": 37,
+    "name": "Prometheus Class",
+    "kind": "ship",
+    "origin": "User supplied aligned Prometheus package",
+    "original": "prometheus-mvam-v2/joined/intact.png",
+    "frames": [
+      "prometheus-mvam-v2/joined/intact.png",
+      "prometheus-mvam-v2/joined/light.png",
+      "prometheus-mvam-v2/joined/heavy.png",
+      "prometheus-mvam-v2/joined/severe.png"
+    ],
+    "bounds": [
+      0,
+      512,
+      0,
+      1024
+    ],
+    "damageReady": true,
+    "damageFramesReady": true,
+    "artworkStatus": "animated",
+    "mass": 300.7,
+    "debrisKind": 1,
+    "points": [],
+    "size": 200,
+    "shieldColor": "blue"
+  }
+}

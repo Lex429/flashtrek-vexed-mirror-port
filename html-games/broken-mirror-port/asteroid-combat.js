@@ -360,5 +360,5 @@
     }
     for(const entry of collections){if((entry.rock.system??1)===state.system)drawOreTransport(ctx,entry,{ship,cx,cy,now,zoom,w,h});}
   }
-  window.nativeAsteroidCombat={miningRange,environmentalDamage,makeRockShards,advanceRockFragments,paintRockFragments,select,deselect,autoTarget,clear,collect,collectField,fire,hit,weaponHit,debrisHit,destroy,completeMining,miningTiming,miningDamage,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,metrics:()=>({bursts:bursts.length,chips:bursts.filter(b=>b.chips).length,pieces:bursts.reduce((n,b)=>n+b.pieces.length,0)}),get target(){return target();},get miningId(){return mining?.rock.slotId??null;}};
+  window.nativeAsteroidCombat={miningRange,environmentalDamage,makeRockShards,advanceRockFragments,paintRockFragments,select,deselect,autoTarget,clear,collect,collectField,fire,hit,weaponHit,debrisHit,destroy,completeMining,miningTiming,miningDamage,mine,oreHit,advance,paint,weaponVisual,drawTargetFrame:drawCombatTargetFrame,metrics:()=>({bursts:bursts.length,chips:bursts.filter(b=>b.chips).length,pieces:bursts.reduce((n,b)=>n+b.pieces.length,0)}),get target(){return target();},miningVisual:state=>mining?.state===state?mining:null,get miningId(){return mining?.rock.slotId??null;}};
 })();

@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   function start(state){
+    if(window.nativeDevTraffic?.active(state))return {ok:false,error:'NPC demonstrations are suspended in the local Dev test.'};
     if(!state?.devMode)return {ok:false,error:'A repair demonstration requires Dev mode.'};
     if(state.devRepairDemo)return {ok:true,...state.devRepairDemo};
     const lives=window.nativeNpcLives,repairs=window.nativeShipRepairs,definitions=window.nativeShipDefinitions;

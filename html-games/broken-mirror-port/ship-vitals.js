@@ -9,13 +9,14 @@
   const find=selector=>root.querySelector(selector);
   const meters=Object.fromEntries(['shield','hull'].map(kind=>{const node=find(`[data-vital="${kind}"]`);return [kind,{node,track:node.querySelector('.vitals-track'),fill:node.querySelector('.vitals-fill'),loss:node.querySelector('.vitals-loss'),flash:node.querySelector('.vitals-hit-flash'),ripple:node.querySelector('.vitals-hit-ripple'),arcs:node.querySelector('.vitals-hit-arcs'),percent:node.querySelector('.vitals-percent'),label:node.querySelector('.vitals-readout span')}];}));
   const reduced=matchMedia('(prefers-reduced-motion: reduce)'),animations=new Map(),pausedAnimations=new Set();
-  const number=value=>Math.max(0,Number.isFinite(Number(value))?Number(value):0),fmt=value=>number(value).toLocaleString(undefined,{maximumFractionDigits:1});
+  const numberFormat=new Intl.NumberFormat(undefined,{maximumFractionDigits:1});
+  const number=value=>Math.max(0,Number.isFinite(Number(value))?Number(value):0),fmt=value=>numberFormat.format(number(value));
   const put=(node,value)=>{if(node.textContent!==value)node.textContent=value;};
   const attr=(node,key,value)=>{value=String(value);if(node.getAttribute(key)!==value)node.setAttribute(key,value);};
   const data=(node,key,value)=>{value=String(value);if(node.dataset[key]!==value)node.dataset[key]=value;};
   let observed=null,previous=null,values=null,clock=0,impactUntil=0,paused=false,shieldHits=0,hullHits=0,lastImpact=null;
   const recoveryUntil={shield:0,hull:0};
-  function cancel(){for(const animation of animations.values())animation.cancel();animations.clear();pausedAnimations.clear();}
+  function cancel(){for(const animation of animations.values())animation.cancel();animations.clear();pausedAnimations.clear();meters.shield.last=meters.hull.last=null;}
   function animate(key,node,frames,duration=650,delay=0,easing='cubic-bezier(.16,.7,.2,1)'){
     animations.get(key)?.cancel();
     if(root.hidden||paused||reduced.matches)return;
@@ -29,13 +30,14 @@
   }
   function hide(){root.hidden=true;cancel();impactUntil=0;}
   function meter(kind,value,maximum,label){
-    const m=meters[kind],ratio=maximum>0?Math.min(1,value/maximum):0,transform=`scaleX(${ratio})`;
+    const m=meters[kind];if(m.last&&m.last.value===value&&m.last.maximum===maximum&&m.last.label===label)return m.last;
+    const ratio=maximum>0?Math.min(1,value/maximum):0,transform=`scaleX(${ratio})`;
     const level=maximum<=0?'absent':ratio<=.25?'critical':ratio<=.5?'low':'healthy';
     if(m.fill.style.transform!==transform)m.fill.style.transform=transform;
     if(m.loss.style.transform!==transform)m.loss.style.transform=transform;
     put(m.percent,maximum>0?Math.round(ratio*100)+'%':'—');put(m.label,label);
     attr(m.track,'aria-valuemax',Math.max(1,maximum));attr(m.track,'aria-valuenow',Math.min(maximum,value));attr(m.track,'aria-valuetext',`${fmt(value)} of ${fmt(maximum)}. ${label}`);data(m.node,'level',level);
-    return {value,maximum,ratio,label,level};
+    return m.last={value,maximum,ratio,label,level};
   }
   function update(state,{dt=0,visible=true,paused:isPaused=false,safeBottom=0}={}){
     if(!state||!visible){hide();return;}

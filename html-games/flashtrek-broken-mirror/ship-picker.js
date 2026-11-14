@@ -2,16 +2,17 @@
    the effects actually enabled in this showcase, rather than artwork origin. */
 (() => {
   'use strict';
-  // Civilian is the selected five-class roster; tugs also have a separate work-ship role.
-  const civilianShips=new Set([17,18,23,47,52]);
-  const workShips=new Set([10,47,56,57,...Array.from({length:12},(_,index)=>414+index)]);
+  // Civilian and work roles can also appear under their native faction fleet.
+  const civilianShips=new Set([17,18,23,47,52,446,449]);
+  const workShips=new Set([10,47,56,57,446,449,...Array.from({length:12},(_,index)=>414+index)]);
   const fleets=[
-    {id:'earth',name:'Earth / Federation',ships:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,33,34,35,36,37,38,45,46,47,49,56,57,58,60,414,415,416,417,418,419,420,421,422,423,424,425,426,427,...Array.from({length:13},(_,i)=>433+i)]},
+    {id:'earth',name:'Earth / Federation',ships:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,33,34,35,36,37,3701,3702,3703,38,45,46,47,49,56,57,58,60,414,415,416,417,418,419,420,421,422,423,424,425,426,427,...Array.from({length:13},(_,i)=>433+i)]},
     {id:'klingon',name:'Klingon',ships:[39,40,41,42,43,61]},
     {id:'romulan',name:'Romulan / Reman',ships:[27,28,29,53,64]},
     {id:'vulcan',name:'Vulcan',ships:[25,26,59,63]},
     {id:'cardassian',name:'Cardassian',ships:[16,31,32,62]},
     {id:'ferengi',name:'Ferengi',ships:[17,18,19]},
+    {id:'orion',name:'Orion Syndicate',ships:[446,447,448,449]},
     {id:'dominion',name:'Dominion',ships:[30,48,65]},
     {id:'borg',name:'Borg',ships:[44]},
     {id:'tholian',name:'Tholian',ships:[20,66]},

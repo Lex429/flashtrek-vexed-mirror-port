@@ -28,6 +28,7 @@ try:
         channel = os.environ.get('BROWSER_CHANNEL', 'msedge')
         browser = p.chromium.launch(headless=True, **({'channel': channel} if channel else {}))
         page = browser.new_page(viewport={'width': 1280, 'height': 850})
+        page.add_init_script('navigator.getGamepads=()=>[]')
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
         page.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden', timeout=120000)

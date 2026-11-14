@@ -224,7 +224,7 @@
   }
   function hit(state,descriptor,result,event={}){
     if(!result?.ok||!(result.amount>0))return result;
-    if(result.destroyed&&!options.isolated)window.nativeShipRepairs?.destroyed(state,descriptor.entity,descriptor.category);
+    if(result.destroyed&&!options.isolated&&!(descriptor.category==='player'&&window.nativePrometheus?.canTakeCommand?.(state)))window.nativeShipRepairs?.destroyed(state,descriptor.entity,descriptor.category);
     if(descriptor.definition.renderer){descriptor.definition.renderer.hit?.(state,descriptor,result,event);return result;}
     if(descriptor.system===state.system){
       if(result.absorbed>0)flash(state,descriptor,result.contacts.shield,event,result.absorbed);
@@ -287,7 +287,7 @@
     // The hot contact of a still-visible beam uses the same pure line query as
     // the beam. The saved flash remains a historical effect after it fades out.
     if(impact?.kind==='beam'&&impact.weaponEventId!=null){
-      const current=window.nativeCombatShots.beamContactFor?.(descriptor.state,impact.weaponEventId,descriptor.id,{render:true});
+      const current=(options.shots?options.shots():window.nativeCombatShots)?.beamContactFor?.(descriptor.state,impact.weaponEventId,descriptor.id,{render:true});
       if(current?.shielded)impact={...impact,x:current.local.x,y:current.local.y,dx:current.dx,dy:current.dy};
     }
     const hull=value?.hullFlash;
@@ -313,6 +313,9 @@
     ctx.restore();
   }
   function paintShip(ctx,descriptor,view){
+    // A destroyed hull is replaced by its existing physical wreck, not a
+    // stationary final damage plate. Surviving disabled ships remain paintable.
+    if(!descriptor?.entity||descriptor.entity.hull<=0||descriptor.entity.phase==='destroyed')return null;
     descriptor=window.nativeSimulationFrame?.renderPose?.(descriptor.state,descriptor)||descriptor;
     // Visibility is presentation-only. Do this before custom renderers, artwork
     // requests or repair compositing; offscreen mechanics continue in advance.

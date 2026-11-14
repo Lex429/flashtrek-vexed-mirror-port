@@ -120,7 +120,9 @@ try:
    // Keep the saved crews, weapons and shared motion/route owners.
    for(const id of team){const ship=nativeNpcLives.find(s,id),eq=nativeShipEquipment.ensure(s,ship),engine=eq.instances[eq.slots.engineering[0]];engine.condition=40;nativeShipSystems.refreshShip(s,ship,'civilian');}
    let waypoint=0,sleepingSamples=0,longestSleep=0,currentSleep=0,restored=false;
-   for(let sample=0;sample<300;sample++){
+   // Different legitimate roster hulls take different times to fall behind.
+   // Retain the full 120-second off-screen requirement with a 180-second tour.
+   for(let sample=0;sample<360;sample++){
     const player=nativeShipDefinitions.describe(s),goal=waypoints[waypoint];
     if(Math.hypot(goal.x-player.x,goal.y-player.y)<500)waypoint=(waypoint+1)%waypoints.length;
     const next=waypoints[waypoint],flight={heading:Math.atan2(next.y-player.y,next.x-player.x),throttle:1,manualFlight:true};__policyTick(30,flight);
@@ -132,7 +134,7 @@ try:
     }
     if(sample===259){if(!nativeSaveStorage.write(s).ok)throw Error('Off-screen pursuit checkpoint failed');resumeNativeGame('dev');window.__defenceState=nativeNpcDev.getState();s=__defenceState;s.hull=100000;restored=true;}
    }
-   if(longestSleep<=120||nativeSimulation.seconds(s)-began<149)throw Error('Fixture did not exercise off-screen flight beyond the old incident timeout: '+JSON.stringify({longestSleep,sleepingSamples}));
+   if(longestSleep<=120||nativeSimulation.seconds(s)-began<179)throw Error('Fixture did not exercise off-screen flight beyond the old incident timeout: '+JSON.stringify({longestSleep,sleepingSamples}));
    const insideOrders=s.factionDefence.orders.length,region=nativeManualFlight.currentRegion(s),row=nativeManualFlight.boundaries().find(row=>row.id===1),position=nativeManualFlight.position(s),angle=Math.atan2((position.y-row.y)/row.ry,(position.x-row.x)/row.rx),outside={x:row.x+Math.cos(angle)*(row.rx+2),y:row.y+Math.sin(angle)*(row.ry+2)};
    s.x+=outside.x-position.x;s.y+=outside.y-position.y;s.previousX=s.x;s.previousY=s.y;nativeShipSystems.refreshShip(s,s,'player');nativeManualFlight.initializeRegion(s);__policyTick(30);
    if(nativeManualFlight.currentRegion(s).system===1)throw Error('Exit fixture did not cross the physical boundary');

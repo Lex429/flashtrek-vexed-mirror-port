@@ -144,9 +144,9 @@
         slots:slots.slice(),models:slots.map(id=>ship.shipEquipment?.instances?.[id]?.modelId),command});
       window.nativeSimulationFrame?.count(scene.state,'tacticalDecisions');
     }else{command=previous.command;window.nativeSimulationFrame?.count(scene.state,'tacticalDecisionReuses');}
-    if(actor){command=window.nativeShipMotion.avoidShips(actor,scene.bystanders||[],command,movement);command=window.nativeShipMotion.avoidBodies(actor,command,movement,[...window.nativeShipMotion.navigationBodies(ship.system),...(scene.bodies||[]),...(scene.rocks||[]).map(r=>({x:r.x,y:r.y,radius:r.radius??r.size*.43}))]);}
-    ship.motionTime=scene.clock;window.nativeShipMotion.step(ship,command,movement,scene.dt);return ship.combatAI;
+    if(actor){command=scene.state&&window.nativeShipTraffic?.avoidance?window.nativeShipTraffic.avoidance(scene.state,actor,scene.bystanders||[],command,movement):window.nativeShipMotion.avoidShips(actor,scene.bystanders||[],command,movement);command=window.nativeShipMotion.avoidBodies(actor,command,movement,[...window.nativeShipMotion.navigationBodies(ship.system),...(scene.bodies||[]),...(scene.rocks||[]).map(r=>({x:r.x,y:r.y,radius:r.radius??r.size*.43}))]);}
+    ship.motionTime=scene.clock;window.nativeShipMotion.step(ship,command,movement,scene.dt,scene.state);return ship.combatAI;
   }
-  function coast(ship,dt){if(ship.combatAI)window.nativeShipMotion.step(ship,{coast:true},window.nativeShipMotion.profiles.coast(),dt);}
+  function coast(ship,dt,state){if(ship.combatAI)window.nativeShipMotion.step(ship,{coast:true},window.nativeShipMotion.profiles.coast(),dt,state);}
   window.nativeCivilianCombatAI={profile,traits,begin,decide,observe,combatRange,pursuitPoint,intercept,weaponSpec,circleSweep,targetSweep,obstacleHit,canFire,launch,stepProjectile,steer,coast,wrap};
 })();

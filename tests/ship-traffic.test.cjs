@@ -29,6 +29,42 @@ function tick(f,ships,dt=1/60){
   w.nativeShipTraffic.collide(s,dt);
 }
 
+test('contact discovery reuses already admitted free movers without resolving each ship a second time',async()=>{
+ const f=await setup(),w=f.window,s=f.state,ships=[add(f,{id:901,x:0}),add(f,{id:902,x:1000})];
+ s.x=500;s.y=500;
+ for(const ship of ships){delete ship.localLeg;Object.assign(ship,{speed:10,vx:10,vy:0,phase:'cruise'});w.nativeNpcLives.observeMotion(s,ship);}
+ w.nativeShipSystems.invalidate(s);let resolutions=0;const api=w.nativeShipSystems,resolve=api.resolve;
+ w.nativeShipSystems={...api,resolve(...args){resolutions++;return resolve(...args);}};
+ w.nativeShipTraffic.collide(s,1/60);
+ assert.equal(resolutions,0);assert.equal(w.nativeShipTraffic.snapshot(s).contacts.length,0);
+ assert.deepEqual(ships.map(ship=>ship.hull),[100,100]);
+});
+
+test('contact dispatch does not integrate an already moved ship twice and still advances an unowned free impulse',async()=>{
+ const f=await setup(),w=f.window,s=f.state,ship=add(f,{id:903,x:0,moving:false});
+ Object.assign(ship,{phase:'cruise',speed:40,vx:40,vy:0,motionKick:{version:1,mode:'free',vx:40,vy:0}});
+ w.nativeNpcLives.observeMotion(s,ship);w.nativeShipSystems.invalidate(s);w.nativeSimulation.advance(s,1/60);
+ w.nativeShipSystems.move(s,ship,'civilian',{coast:true},{maxSpeed:200,acceleration:100,braking:100,turnRate:1,damping:0},1/60);
+ const moved={x:ship.x,y:ship.y,kick:copy(ship.motionKick)};w.nativeShipTraffic.collide(s,1/60);
+ near(ship.x,moved.x);near(ship.y,moved.y);assert.deepEqual(copy(ship.motionKick),moved.kick);
+ w.nativeSimulation.advance(s,1/60);const before=ship.x;w.nativeShipTraffic.collide(s,1/60);
+ assert.ok(ship.x>before,'A free impulse without a movement owner stopped integrating');
+});
+
+test('legacy cruise owns its movement while a disabled NPC retains one free contact-dispatch step',async()=>{
+ for(const phase of ['cruise','disabled']){
+  const f=await setup(),w=f.window,s=f.state,ship=add(f,{id:904,x:0,moving:false});s.x=500;s.y=500;
+  Object.assign(ship,{phase,scriptedDemo:'contact regression',goalX:1000,goalY:0,speed:40,vx:40,vy:0,combatAI:{},motionKick:{version:1,mode:'free',vx:40,vy:0}});
+  w.nativeNpcLives={...w.nativeNpcLives,advance(){},controlled:()=>[ship]};w.nativeNpcLives.observeMotion(s,ship);w.nativeShipSystems.invalidate(s);w.nativeSimulation.advance(s,1/60);
+  w.nativeCivilianTraffic.advance(s,1/60);assert.equal(w.nativeShipMotion.wasIntegrated(s,ship),phase==='cruise',phase);
+  const expected={...ship,motionTime:w.nativeSimulation.seconds(s)};
+  if(phase==='disabled')w.nativeShipMotion.step(expected,{},w.nativeShipDefinitions.movementFor(s,ship,{category:'civilian'}),1/60);
+  const before={x:expected.x,y:expected.y,kick:copy(expected.motionKick)};w.nativeShipTraffic.collide(s,1/60);
+  assert.deepEqual({x:ship.x,y:ship.y,kick:copy(ship.motionKick)},before,phase);
+  w.nativeShipTraffic.collide(s,1/60);assert.deepEqual({x:ship.x,y:ship.y,kick:copy(ship.motionKick)},before,phase+' repeated dispatch');
+ }
+});
+
 test('expanded regional planning keeps every system at five Hz while distributing independent systems across physical steps',async()=>{
  const f=await setup(true),w=f.window,s=f.state,ships=[],times=new Map();s.system=32;
  for(let system=2;system<14;system++){ships.push(add(f,{id:100+system,system,x:-5000,y:5000,goal:{x:5000,y:5000}}));times.set(system,[]);}

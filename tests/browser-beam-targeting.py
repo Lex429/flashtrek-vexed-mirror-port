@@ -48,7 +48,7 @@ try:
         page.evaluate("""() => {
           const clone=value=>JSON.parse(JSON.stringify(value)),liveState=window.__beamState,base=clone(liveState);
           const weapon=VexedMirrorWeapons.find(model=>model.damage>0&&nativeCombatShots.weaponVisual(model).kind==='beam');
-          function fixture({rear=false,bearing=rear?Math.PI:0,distance=240,live=false,shield='active'}={}) {
+          function fixture({rear=false,bearing=rear?Math.PI:0,distance=240,live=false,shield='active',keepRock=null}={}) {
             nativeCombatShots.reset();nativeShipEffects.reset();
             const state=live?liveState:clone(base);if(live)Object.assign(state,clone(base));
             delete state.weaponCombat;delete state.shipSimulation;delete state.shipEquipment;delete state.weaponLoadout;
@@ -57,14 +57,21 @@ try:
             state.civilianTraffic.ships=[];state.civilianTraffic.disputes=[];state.civilianTraffic.retaliations=[];state.civilianTraffic.strayShots=[];
             state.solEconomy.freighters=[];nativeShipMotion.stop(state);
             const origin=vexedSolFlight.shipPosition(state);
+            // Real corridor rocks now populate these distant coordinates.
+            // Isolate this single-ship beam fixture from unrelated auto-locks.
+            state.minedAsteroids=nativeSolAsteroids.nearby(1,origin,5000).filter(rock=>rock.slotId!==keepRock).map(rock=>rock.slotId);
             const target={...clone(base.civilianTraffic.ships[0]),id:98002,shipType:47,system:1,phase:'cruise',x:origin.x+Math.cos(bearing)*distance,y:origin.y+Math.sin(bearing)*distance,heading:0,speed:0,hull:1000,shields:shield==='absent'?0:shield==='collapse'?weapon.damage/2:1000};
             for(const key of ['localLeg','journey','previousX','previousY','motionSpin','motionKick','combatAI','disputeId','retaliationId'])delete target[key];
             nativeShipMotion.stop(target);state.civilianTraffic.ships=[target];
+            // Device damage enforces real generator capacity on impact. Use a
+            // legal target fit so that clamping is not counted as beam damage.
+            const maximum=nativeShipDefinitions.forEntity(state,target,{category:'civilian'});
+            target.hull=maximum.hull;if(shield==='active')target.shields=maximum.shields;
             // This fixture explicitly rebinds simulation time. Rebind the live
             // host too, so time spent loading the previous fixture's artwork
             // cannot age this new beam before its synthetic pixel check.
             if(live)window.nativeSimulationHost?.reset();
-            return {state,target,origin,source:()=>nativeShipDefinitions.describe(state,state,{category:'player'}),victim:()=>nativeShipDefinitions.describe(state,target,{category:'civilian'})};
+            return {state,target,origin,initialHull:target.hull,initialShields:target.shields,source:()=>nativeShipDefinitions.describe(state,state,{category:'player'}),victim:()=>nativeShipDefinitions.describe(state,target,{category:'civilian'})};
           }
           const tick=(test,dt)=>{const elapsed=nativeSimulation.advance(test.state,dt);nativeCombatShots.advance(test.state,elapsed);nativeShipEffects.advance(test.state,elapsed);return elapsed;};
           const fire=test=>nativeCombatShots.fire({state:test.state,target:test.victim()});
@@ -188,7 +195,7 @@ try:
                   h.near(test.state.angle,0,'Space input turned the shooter');
                   await h.art(test);h.tick(test,.08);h.tick(test,.02);h.check(event.hitTargetId===test.target.id,'Native control beam missed');
                   h.check(h.counts.get(test.state)===1,'Native input applied damage more than once');
-                  h.check(test.target.shields<1000&&test.target.hull===1000,'Native beam bypassed shields');
+                  h.check(test.target.shields<test.initialShields&&test.target.hull===test.initialHull,'Native beam bypassed shields');
                   h.surface(test,h.lastFire.shot);
                   return {bearing:name,realShiftAndSpace:true,hit:true,shieldFirst:true};
                 }""", name)
@@ -196,7 +203,7 @@ try:
             results = page.evaluate("""async () => {
               const h=__beam,{fixture,fire,tick,check,near}=h,results={};
               const checkedFire=test=>{const shot=fire(test);check(shot.ok,'Shared beam rejected: '+shot.error);return shot;};
-              const damageTotal=test=>1000-test.target.hull+(test.initialShields??1000)-test.target.shields;
+              const damageTotal=test=>test.initialHull-test.target.hull+test.initialShields-test.target.shields;
               const motion=[];
               for(const mode of ['shooter rotation','target translation','both move and rotate','small fast target','close range']){
                 const test=fixture({distance:mode==='close range'?105:240});
@@ -241,9 +248,9 @@ try:
                 h.surface(test,fired.shot);tick(test,.08);tick(test,.02);
                 check(fired.event.hitTargetId===test.target.id,'Missing '+shield+' impact');h.surface(test,fired.shot);
                 near(damageTotal(test),fired.event.damage,shield+' damage accounting');
-                if(shield==='active')check(test.target.hull===1000,'Active shields did not absorb first');
-                if(shield==='collapse')check(test.target.shields===0&&test.target.hull<1000,'Shield collapse lost legitimate hull overflow');
-                if(shield==='absent')check(test.target.hull<1000,'Unshielded hull took no damage');
+                if(shield==='active')check(test.target.hull===test.initialHull,'Active shields did not absorb first');
+                if(shield==='collapse')check(test.target.shields===0&&test.target.hull<test.initialHull,'Shield collapse lost legitimate hull overflow');
+                if(shield==='absent')check(test.target.hull<test.initialHull,'Unshielded hull took no damage');
                 for(const heading of [.4,1.6,Math.PI,4.8]){
                   test.target.heading=heading;test.target.x+=2;test.target.y+=3;test.state.y-=2;
                   nativeShipSystems.invalidate(test.state);h.surface(test,fired.shot);
@@ -259,29 +266,29 @@ try:
                 const fired=checkedFire(test);if(moving){blocker.previousY=blocker.y;blocker.y=test.origin.y;}
                 nativeShipSystems.invalidate(test.state);tick(test,.08);tick(test,.02);
                 check(fired.event.hitTargetId===blocker.id,'Intervening ship did not receive the first physical hit');
-                check(test.target.shields===1000&&blocker.shields<1000,'Beam damaged selected target through a ship');
+                check(test.target.shields===test.initialShields&&blocker.shields<test.initialShields,'Beam damaged selected target through a ship');
                 await nativeShipEffects.prepare(47,'civilian');h.surface(test,fired.shot,nativeShipDefinitions.describe(test.state,blocker,{category:'civilian'}));
                 check(h.counts.get(test.state)===1,'Interception applied duplicate damage');intercept.push({kind:'ship',movedInBeforeResolution:moving});
               }
               const rock=nativeSolAsteroids.placements[0],old={x:rock.x,y:rock.y,angle:rock.angle};
               try{
                 for(const moving of [false,true]){
-                  const test=fixture();nativeSolAsteroids.relocate(rock,{x:test.origin.x+120,y:test.origin.y+(moving?150:0)});
+                  const test=fixture({keepRock:rock.slotId});nativeSolAsteroids.relocate(rock,{x:test.origin.x+120,y:test.origin.y+(moving?150:0)});
                   nativeShipSystems.invalidate(test.state);const fired=checkedFire(test);
                   if(moving)nativeSolAsteroids.relocate(rock,{x:test.origin.x+120,y:test.origin.y});
                   nativeShipSystems.invalidate(test.state);tick(test,.08);
                   check(fired.event.hitTargetId==='rock:'+rock.slotId,'Intervening asteroid did not intercept the beam');
-                  check(test.state.destroyedAsteroids.includes(rock.slotId)&&test.target.shields===1000,'Asteroid interception hit the locked ship');
+                  check(test.state.destroyedAsteroids.includes(rock.slotId)&&test.target.shields===test.initialShields,'Asteroid interception hit the locked ship');
                   const geometry=h.geometry(test,fired.shot),view=h.view(test),endpoint={x:test.origin.x+(geometry.x2-view.cx)/view.zoom,y:test.origin.y+(geometry.y2-view.cy)/view.zoom};
                   near(Math.hypot(endpoint.x-rock.x,endpoint.y-rock.y),rock.size*.43,'Asteroid beam endpoint');
                   check(h.counts.get(test.state)===1,'Asteroid damage applied twice');intercept.push({kind:'asteroid',movedInBeforeResolution:moving});
                 }
-                const test=fixture();test.target.x=test.origin.x+120;nativeSolAsteroids.relocate(rock,{x:test.origin.x+260,y:test.origin.y});
+                const test=fixture({keepRock:rock.slotId});test.target.x=test.origin.x+120;nativeSolAsteroids.relocate(rock,{x:test.origin.x+260,y:test.origin.y});
                 nativeShipSystems.invalidate(test.state);nativeAsteroidCombat.select(rock);
                 const fired=nativeAsteroidCombat.fire(test.state,test.origin,test.source().dimensions.width,test.source().dimensions.height);
                 check(fired.ok,'Native asteroid lock refused an intercepted shot');await h.art(test);tick(test,.08);tick(test,.02);
                 check(fired.event.hitTargetId===test.target.id&&fired.event.contact.shielded,'Asteroid-lock callback bypassed the intercepting ship shield');
-                check(test.target.hull===1000&&test.target.shields===1000-fired.event.damage,'Asteroid-lock ship interception did not absorb shields first');
+                check(test.target.hull===test.initialHull&&test.target.shields===test.initialShields-fired.event.damage,'Asteroid-lock ship interception did not absorb shields first');
                 check(!test.state.destroyedAsteroids.includes(rock.slotId),'Asteroid-lock directly damaged the selected rock through a ship');
                 h.surface(test,fired.shot);check(h.counts.get(test.state)===1,'Asteroid-lock interception damaged twice');
                 intercept.push({kind:'shielded ship',selectedTarget:'asteroid',nativeController:true});
@@ -356,7 +363,7 @@ try:
             saved_attack = page.evaluate("""() => {
               const h=__beam,test=h.nativeTest;h.check(h.lastFire?.ok,'Native reload fixture did not fire '+JSON.stringify({last:h.lastFire?.error,notice:document.querySelector('#notice')?.textContent,target:nativeCivilianTraffic.target(test.state)?.id,pause:nativePause.active,inventory:nativeShipInventory.active,modal:document.querySelector('#modal')?.hidden}));h.tick(test,.025);
               const event=test.state.weaponCombat.events[0],owned=nativeWeaponLoadout.equipped(test.state)[0];
-              return {eventId:event.id,dueAt:event.dueAt,clock:nativeSimulation.seconds(test.state),targetId:test.target.id,shields:test.target.shields,weaponId:owned.instance.id,readyAt:owned.instance.readyAt,damage:event.damage};
+              return {eventId:event.id,dueAt:event.dueAt,clock:nativeSimulation.seconds(test.state),targetId:test.target.id,hull:test.target.hull,shields:test.target.shields,weaponId:owned.instance.id,readyAt:owned.instance.readyAt,damage:event.damage};
             }""")
             page.keyboard.press('Escape')
             page.locator('#pause-menu [data-save]').click()
@@ -387,7 +394,7 @@ try:
               nativeSimulation.advance(state,.055);nativeCombatShots.advance(state,.055);
               const health={shields:target.shields,hull:target.hull};
               for(let i=0;i<8;i++){nativeSimulation.advance(state,.004);nativeCombatShots.advance(state,.004);}
-              if(event.hitTargetId!==target.id||target.shields!==saved.shields-saved.damage||target.hull!==1000||hits!==1)throw Error('Continued beam did not resolve exactly once at the current pose');
+              if(event.hitTargetId!==target.id||target.shields!==saved.shields-saved.damage||target.hull!==saved.hull||hits!==1)throw Error('Continued beam did not resolve exactly once at the current pose');
               if(JSON.stringify(health)!==JSON.stringify({shields:target.shields,hull:target.hull}))throw Error('Continued beam damaged a second time');
               return {realPauseSave:true,pageReload:true,normalContinue:true,pendingAttackResolvedAtCurrentPose:true,ownedRechargePreserved:true,damageApplications:hits};
             }""", saved_attack)

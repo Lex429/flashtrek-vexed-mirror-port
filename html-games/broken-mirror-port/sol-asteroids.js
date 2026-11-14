@@ -44,7 +44,7 @@
   function corridorQuery(system,box,{swept=true,predictSeconds=0,segment=null}={}){
     const paths=window.nativeTravelCorridors,origin=paths?.anchor(system);if(!origin||!catalogData)return [];
     const margin=corridorReach+corridorSpeed*Math.max(0,predictSeconds),capsule=segment?{from:{x:segment.from.x+origin.x,y:segment.from.y+origin.y},to:{x:segment.to.x+origin.x,y:segment.to.y+origin.y},radius:segment.radius+margin}:null,sites=paths.query({minX:box.minX+origin.x-margin,minY:box.minY+origin.y-margin,maxX:box.maxX+origin.x+margin,maxY:box.maxY+origin.y+margin},{capsule}),result=[];
-    for(const site of sites)for(const id of paths.rockIds(site)){const rock=corridorRock(id,system),r=rock.size*.43,px=swept?rock.previousX:rock.x,py=swept?rock.previousY:rock.y,fx=rock.x+rock.vx*predictSeconds,fy=rock.y+rock.vy*predictSeconds;
+    for(const site of sites)for(const id of paths.rockIds(site)){const rock=corridorRock(id,system);if(!rock)continue;const r=rock.size*.43,px=swept?rock.previousX:rock.x,py=swept?rock.previousY:rock.y,fx=rock.x+rock.vx*predictSeconds,fy=rock.y+rock.vy*predictSeconds;
       if(Math.min(px,rock.x,fx)-r<=box.maxX&&Math.max(px,rock.x,fx)+r>=box.minX&&Math.min(py,rock.y,fy)-r<=box.maxY&&Math.max(py,rock.y,fy)+r>=box.minY)result.push(rock);}
     return result;
   }
@@ -133,6 +133,7 @@
     placements=points;catalogData=rocksByOre;
   }
   function forSystem(system=1){
+    if(Number(system)===73&&window.nativeBadlands){if(!systems.has(73))systems.set(73,[]);ensureIndex(73,systems.get(73));return systems.get(73);}
     system=Number(system);if(!catalogData){if(system===1)ensureIndex(system,placements);return system===1?placements:[];}
     if(!systems.has(system)){
       const geology=window.nativeRegionalMinerals;

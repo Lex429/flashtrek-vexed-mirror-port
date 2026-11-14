@@ -18,6 +18,12 @@ and `browser-unified-equipment.py`, including actual Inventory evidence.
 
 The active entry point is `html-games/broken-mirror-port/index.html`. Shared showcase artwork and shaders live in `html-games/flashtrek-broken-mirror/`. Do not migrate the archived previews as if they were active gameplay.
 
+`faction-shipyards.js` registers the 17 physical yards for all 16 territorial
+governments without adding crews, markets or civilian access. Reuse the shared
+renderer, docking controller and atomic refit owner; keep old yard IDs/offsets
+and Romulus/Remus coordinate views valid. See `docs/faction-shipyards.md` and run
+its unit/browser regressions with the existing Mars outfitting checks.
+
 System suns are a nearer background star layer, using the existing artwork,
 animated illumination and approved lens flare. Their apparent size and parallax
 rate stay constant as the player travels. Do not add proximity growth or camera
@@ -42,8 +48,10 @@ queues or a private projectile simulation. `npcPolicy.combat` and saved crew
 traits choose intent; shared equipment and motion keep their ordinary statistics.
 Combat detours use `npc-lives.suspendCombat` / `resumeWork`, retaining valid cargo,
 agreements and escrow while physically rebuilding the interrupted route. Held
-Space latches one target and requests at most once per host frame; target changes
-stop fire without clearing steering. `firingStatus` supplies shared range/recharge
+Space latches one target or explicit forward-fire mode and requests at most once
+per host frame; acquiring, losing or changing a lock stops fire without clearing
+steering. Unlocked fire admits only torpedoes/disruptors through the shared
+projectile owner, with no fabricated lock or guidance. `firingStatus` supplies shared range/recharge
 feedback. Only redundant hit checkpoints use the verified save owner's bounded
 queue; explicit durable actions still write immediately. Run the new civilian
 tactics, combat awareness/save and player controls Node/browser regressions with
@@ -53,6 +61,23 @@ performance comparison; report frame delivery separately from save/CPU costs.
 Run the existing Node and browser tests before and after migrations. Add reusable regression coverage and real-browser beam/impact alignment checks. No completion claims for unrun checks. Preserve save compatibility through versioned migrations. Do not commit generated screenshots, profiles, caches or local installation backups.
 
 Independent work may be delegated, with explicit file ownership and shared API agreements. Do not edit a teammate's files without coordinating. Push only the reviewed, tested result when the user authorizes it.
+
+`faction-fleets.js` owns finished hull rosters and territorial duties; the existing
+traffic/life owners create and commission the same saved crews. Preserve 1,200
+total crews and 100 medical ships, paid work, identities and the legacy Federation
+ledger. Borg military residency at Vex grants no civilian market/mining access.
+Do not substitute unrelated ships for missing faction artwork. See
+`docs/faction-fleets.md`; run the faction fleet unit/browser checks with the
+existing faction, equipment, civilian access, economy and active-region suites.
+Keep local station coverage alongside interstellar patrols. Home-territory
+defenders protect civilian citizens without changing their civilian AI roles.
+Orion government 45 and hulls 446–449 are defined in `orion-world.js` and
+`orion-ships.js`. Preserve the once-only independence migration and played
+conquests. Former-government residents finish jobs before berth refits; keep
+their cargo, escrow and owned fitting. See `docs/orion-faction.md` and run its
+unit/browser checks, shared presentation and physical-debris signature checks.
+Ship-index rebuilds must retain `npc-lives`' live interactive work budget; run
+the cooperative-navigation rebuild regression and Ferengi response browser test.
 
 Persistent NPC lives extend `civilianTraffic.ships` and `solEconomy.freighters`; never seed a competing fleet. `npc-lives.js` owns civilian task selection, reservations, economic transactions, journey deadlines and bounded event scheduling. Sol freight policy remains in `sol-economy.js`. Scheduled local movement belongs to `ship-motion.js`, and calendar skips to `world-time.js`. Inspection reads the registered lightweight `inspectAll` interface; opening a map must not activate a galaxy's artwork, combat or steering. See `docs/npc-life-contract.md` for saved schemas, scheduling, conflict rules, role extension and the repeatable delivery demonstration.
 

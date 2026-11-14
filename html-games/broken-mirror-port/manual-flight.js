@@ -113,5 +113,27 @@
     state.discovered=[...new Set([...(state.discovered||[]),system.id])];
     return true;
   }
-  window.nativeManualFlight={systems,chartPosition,anchor,position,chartShipPosition,boundaries,regionAtPoint,regionAt,initializeRegion,currentRegion,advanceRegion,planetPosition,guidance,nearbySystem,enter,unitsPerChartPoint,arrivalRadius,boundaryMargin};
+  // Recovery refuge stays in the existing coordinate frame, including Sol's
+  // body-relative player offsets. Normal system crossing remains unchanged.
+  function relocateOutside(state,{clearance=12000,accepts=()=>true}={}){
+    const point=position(state),rows=boundaries(),origin=anchor(state.system);
+    if(!point||!origin||!rows.length)return null;
+    const nearest=rows.reduce((a,b)=>Math.hypot(point.x-a.x,point.y-a.y)<Math.hypot(point.x-b.x,point.y-b.y)?a:b);
+    for(let ring=1;ring<=64;ring++){
+      let best=null,distance=Infinity;
+      for(let i=0;i<32;i++){
+        const angle=i*Math.PI/16,candidate={x:nearest.x+Math.cos(angle)*(nearest.rx+clearance*ring),y:nearest.y+Math.sin(angle)*(nearest.ry+clearance*ring)};
+        if(rows.some(row=>Math.hypot((candidate.x-row.x)/(row.rx+clearance*.5),(candidate.y-row.y)/(row.ry+clearance*.5))<=1)||!accepts(candidate))continue;
+        const gap=Math.hypot(candidate.x-point.x,candidate.y-point.y);
+        if(gap<distance){distance=gap;best=candidate;}
+      }
+      if(!best)continue;
+      const local=localPosition(state);
+      state.x=(Number(state.x)||0)+best.x-origin.x-local.x;state.y=(Number(state.y)||0)+best.y-origin.y-local.y;
+      state.previousX=state.x;state.previousY=state.y;state.landed=false;
+      initializeRegion(state);return best;
+    }
+    return null;
+  }
+  window.nativeManualFlight={systems,chartPosition,anchor,position,chartShipPosition,boundaries,regionAtPoint,regionAt,initializeRegion,currentRegion,advanceRegion,planetPosition,guidance,nearbySystem,enter,relocateOutside,unitsPerChartPoint,arrivalRadius,boundaryMargin};
 })();

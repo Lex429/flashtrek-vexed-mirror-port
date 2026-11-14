@@ -102,16 +102,20 @@
     const local=part=>{const nativeX=part.cx/ratio-definition.pivot[0],nativeY=part.cy/ratio-definition.pivot[1];return Object.freeze({...part,x:-nativeY*definition.scale,y:nativeX*definition.scale,width:part.width/ratio*definition.scale,height:part.height/ratio*definition.scale});};
     prepared.set(key(tier,role),{frames,lampFrames,fragments:painted?painted.wrecks[3].map(local):fragments,wrecks:painted?.wrecks.map(parts=>parts.map(local)),transitions:painted?.transitions.map(parts=>parts.map(local)),damageSites:painted?.damageSites,hardware,lightCache:[]});pictures.delete(key(tier,role));return true;
   }
+  const baseLoads=[];
   const ready=Promise.all(Object.entries(variants).flatMap(([role,tiers])=>Object.entries(tiers).filter(([tier])=>!window.droneSpriteSelection||window.droneSpriteSelection.includes(key(tier,role))).map(([tier,d])=>new Promise(resolve=>{
+    let publishBase;baseLoads.push(new Promise(done=>{publishBase=done;}));
     let attempts=0;
     const load=()=>{const picture=new Image();picture.onload=async()=>{
       pictures.set(key(tier,role),picture);
+      publishBase(true);
       if(window.dotBasicDamage){const loaded=await (role==='repair'&&tier==='basic'?window.dotBasicDamage.ready:window.droneDamageArt?.ready||Promise.resolve([true]));if(!loaded.every(Boolean)){resolve(false);return;}}
       const iterator=prepare(picture,tier,role);
       if(window.nativeDamageArtPreparation)window.nativeDamageArtPreparation.run(iterator).then(()=>resolve(true),()=>resolve(false));
       else{let result;do{result=iterator.next();}while(!result.done);resolve(true);}
-    };picture.onerror=()=>{if(attempts<2){attempts++;setTimeout(load,attempts*250);}else resolve(false);};picture.src=d.src+(attempts?`?retry=${attempts}`:'');};load();
+    };picture.onerror=()=>{if(attempts<2){attempts++;setTimeout(load,attempts*250);}else{publishBase(false);resolve(false);}};picture.src=d.src+(attempts?`?retry=${attempts}`:'');};load();
   }))));
+  const baseReady=Promise.all(baseLoads);
   function lampOn(i,s,time){return s<4&&(s===0||noise(i+13)>[0,.2,.57,.86][s])&&(s===0||Math.sin(time*.021+i*7)>[-2,-.94,-.65,-.25][s]);}
   function hardwareOn(i,s,time){return s<3?lampOn(i+2,s,time):s===3&&i===0&&time%1800<180;}
   const unit=n=>Math.max(0,Math.min(1,Number(n)||0));
@@ -198,7 +202,7 @@
       for(const index of new Set(p.transitions[s].map(piece=>piece.site))){const [x,y]=window.dotBasicDamage.sites[index];sites.push({x:(d.pivot[1]-y/ratio)*d.scale,y:(x/ratio-d.pivot[0])*d.scale,stage:s,site:index});}
     }return {pieces,sites};
   }
-  const api={ready,stage,nozzle,muzzle,draw,drawPreview,drawSurface:paint,inspect,lightState,lightProfiles,damageChange,fragments:(tier,role='repair',sourceStage=3)=>{const p=prepared.get(key(tier,role));return p?.wrecks?.[Math.max(0,Math.min(3,sourceStage))]||p?.fragments||[];}};
+  const api={ready,baseReady,stage,nozzle,muzzle,draw,drawPreview,drawSurface:paint,inspect,lightState,lightProfiles,damageChange,fragments:(tier,role='repair',sourceStage=3)=>{const p=prepared.get(key(tier,role));return p?.wrecks?.[Math.max(0,Math.min(3,sourceStage))]||p?.fragments||[];}};
   window.dotSprites=Object.freeze({definitions,...api});
   window.droneSprites=Object.freeze({definitions:variants,...api});
 })();

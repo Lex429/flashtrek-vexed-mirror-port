@@ -35,6 +35,21 @@ try:
         page.on('response', lambda response: failed.append(response.url)
                 if response.status >= 400 and '/html-games/broken-mirror-port/' in response.url else None)
         page.add_init_script('''(()=>{
+          // Hold the independent physical service with RAF, so real key events
+          // cannot be consumed between the fixture's synthetic display frames.
+          Object.defineProperty(window,'nativeSimulationFrame',{configurable:true,set(api){
+            const descriptors=Object.getOwnPropertyDescriptors(api),create=api.createService,createHost=api.createHostTime;
+            const fixtureTime=()=>window.__impactHold&&Number.isFinite(window.__impactStamp)?window.__impactStamp:performance.now();
+            descriptors.createHostTime={...descriptors.createHostTime,value:options=>{
+              const host=createHost({...options,now:fixtureTime});
+              return Object.freeze({...host,checkpoint:time=>host.checkpoint(window.__impactHold?fixtureTime():time)});
+            }};
+            descriptors.createService={...descriptors.createService,value:options=>create({...options,postTask:service=>{
+              if(window.__impactHold)window.__impactService=service;
+              else setTimeout(()=>{if(window.__impactHold)window.__impactService=service;else service();},0);
+            }})};
+            Object.defineProperty(window,'nativeSimulationFrame',{configurable:true,writable:true,value:Object.defineProperties({},descriptors)});
+          }});
           const raf=requestAnimationFrame;window.requestAnimationFrame=fn=>raf(t=>{
             if(fn.name==='draw'){window.__impactDraw=fn;window.__impactStamp=t;if(window.__impactHold)return;}
             fn(t);
@@ -50,13 +65,25 @@ try:
         page.evaluate('window.__impactHold=true;window.requestAnimationFrame=()=>0')
         host.wait_for_timeout(100)
         page.evaluate(r'''()=>{
+          // This fixture isolates keyboard/ram controls from the Dev cloud's
+          // independent plasma forces, which can turn a clear hull passage.
+          window.nativePlasmaVortices?.setEnabled(false);
+          // Pay the startup world's accepted physical debt before cloning it.
+          // Otherwise a few synthetic display frames may advance the ram by
+          // hundreds of milliseconds while an old startup backlog is serviced.
+          const initial=nativeNpcDev.getState(),debt=initial.shipSimulation.schedule.pendingSeconds,clock=nativeSimulation.seconds(initial);
+          let turns=0;while(!nativeSimulationFrame.transitionReady(initial)&&turns++<1000){
+            __impactDraw(__impactStamp);const service=window.__impactService;if(service){window.__impactService=null;service();}
+          }
+          if(!nativeSimulationFrame.transitionReady(initial))throw Error('Startup physical debt did not settle');
+          window.__impactStartup={before:debt,after:initial.shipSimulation.schedule.pendingSeconds,advanced:nativeSimulation.seconds(initial)-clock};
           const copy=v=>JSON.parse(JSON.stringify(v));window.__impactBase=copy(nativeNpcDev.getState());
           const template=copy(__impactBase.solEconomy.freighters[0]);
           const check=(v,m)=>{if(!v)throw Error(m);};
           window.__impactCheck=check;
           // Real input/gate events checkpoint wall time between synthetic RAFs.
           // The next test RAF must follow that boundary, retaining saved debt.
-          window.__impactTick=n=>{for(let i=0;i<n;i++){__impactStamp=Math.max(__impactStamp,nativeSimulationHost.snapshot().at);__impactStamp+=1000/60;__impactDraw(__impactStamp);}};
+          window.__impactTick=n=>{for(let i=0;i<n;i++){__impactStamp=Math.max(__impactStamp,nativeSimulationHost.snapshot().at);__impactStamp+=1000/60;__impactDraw(__impactStamp);const service=window.__impactService;if(service){window.__impactService=null;service();}}};
           window.__impactPlayer=(s,x,y)=>{const p=vexedSolFlight.shipPosition(s);s.x+=x-p.x;s.y+=y-p.y;};
           window.__impactActivate=(speed=null)=>{
             const s=copy(__impactBase);Object.assign(s,{system:1,localBody:3,x:6000,y:6000,angle:0,speed:0,vx:0,vy:0,landed:false,localCruise:null,arrivalApproach:null});
@@ -79,6 +106,7 @@ try:
             // saved physical debt; elapsed timestamps from the previous test
             // world are not active flight time in this newly loaded fixture.
             const restored=nativeNpcDev.getState(),pending=restored.shipSimulation.schedule.pendingSeconds,previousHost=nativeSimulationHost.snapshot();
+            __impactStamp=Math.max(__impactStamp,previousHost.at,performance.now());
             nativeSimulationHost.reset(__impactStamp);
             check(restored.shipSimulation.schedule.pendingSeconds===pending,'Fixture host reset discarded saved physical debt');
             window.__impactActivation={stamp:__impactStamp,previousHostAt:previousHost.at,host:nativeSimulationHost.snapshot()};
@@ -94,7 +122,7 @@ try:
             host.keyboard.up(key)
             return page.evaluate('__impactSnapshot()')
 
-        report = {'keys': {}}
+        report = {'keys': {}, 'startupDebt': page.evaluate('__impactStartup')}
         # Real key events while rendering is deliberately held: release the tap
         # before any simulation step, then prove it is consumed once on resume.
         page.evaluate('__impactActivate()')
@@ -158,13 +186,15 @@ try:
 
         impacts = []
         for speed in (40, 150):
-            page.evaluate('(speed)=>__impactActivate(speed)', speed)
+            # Warm before releasing a moving ship: the independent simulation
+            # service can otherwise complete the ram during artwork loading.
             page.evaluate('''async()=>{
               const s=nativeNpcDev.getState();await nativeShipEffects.prepare(s.shipType,'player');await nativeShipEffects.prepare(10,'tug');
             }''')
+            page.evaluate('(speed)=>__impactActivate(speed)', speed)
             impact = page.evaluate('''(speed)=>{
               const s=nativeNpcDev.getState(),t=s.solEconomy.freighters[0];let steps=0;
-              while(!t.motionSpin&&steps++<600)__impactTick(1);
+              while((!t.motionSpin||!nativeShipTraffic.snapshot(s).contacts.length)&&steps++<600)__impactTick(1);
               __impactCheck(Math.abs(t.motionSpin?.velocity||0)>.01,'Actual keyboard-frame ram did not twist tug '+JSON.stringify({activation:__impactActivation,steps,player:__impactSnapshot(),tug:{x:t.x,y:t.y,vx:t.vx,vy:t.vy,spin:t.motionSpin},debt:s.shipSimulation.schedule.pendingSeconds,traffic:nativeShipTraffic.snapshot(s)}));
               return {speed,heading:t.heading,angularVelocity:t.motionSpin.velocity,vx:t.vx,vy:t.vy,cargo:t.tons,hull:t.hull,shields:t.shields};
             }''', speed)

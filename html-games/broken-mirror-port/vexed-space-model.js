@@ -23,7 +23,7 @@
     }
     const state={system:Number(system),seed,tick:0,warp:0,elapsed:0,frames:0,clouds,planes,stars,
       vexTravelX:0,vexTravelY:0,nebula:[0,1,2].map(()=>({x:-100,y:-75})),velocity:0,flightSpeed:0,
-      speedEffect:0,motionX:0,motionY:0,travelX:0,travelY:0};
+      speedEffect:0,motionX:0,motionY:0,trailAngle:null,travelX:0,travelY:0};
     function update(dt,input={}){
       if(!(dt>0))return;
       state.elapsed+=dt;state.frames=input.frame??Math.floor(state.elapsed*config.sourceRenderFps);
@@ -34,8 +34,8 @@
       const top=Math.max(0,Number(input.maxSpeed)||0),start=Math.max(220,top*.8),full=Math.max(420,top,start+100);
       const target=input.reducedMotion?0:smooth((state.flightSpeed-start)/(full-start));
       state.speedEffect+=(target-state.speedEffect)*(1-Math.exp(-dt/(target>state.speedEffect ? .9 : .25)));
-      // Bound camera corrections, then ease velocity rather than rotating the sky
-      // with the nose. Even a full reversal takes time to change star direction.
+      // Bound camera corrections. Flight parallax stays locked to the camera;
+      // cinematic callers retain eased travel. Streak direction is separate below.
       const magnitude=Math.hypot(mx,my),limit=Math.min(1400,state.flightSpeed)/13;
       if(magnitude>limit){mx*=limit/magnitude;my*=limit/magnitude;}
       const tau=state.flightSpeed>0?.55:.18,decay=Math.exp(-dt/tau),gain=(.14+.18*state.speedEffect)*(input.reducedMotion?.18:1);
@@ -57,7 +57,20 @@
           state.nebula[v].y=-75+state.vexTravelY*cameraRate+Math.sin(state.tick*driftRate*.73+v*1.3)*amplitude*.7;
         }
       }
-      const heading=Math.atan2(state.motionY,state.motionX),wrapping=[];
+      // Parallax stays tied to the camera. Streak direction follows actual
+      // flight velocity independently, including frames with no camera delta.
+      const flightVector=Number.isFinite(input.flightVx)&&Number.isFinite(input.flightVy);
+      const directionX=flightVector?-input.flightVx:state.motionX,directionY=flightVector?-input.flightVy:state.motionY;
+      if(Math.hypot(directionX,directionY)>1e-7){
+        const desired=Math.atan2(directionY,directionX);
+        if(state.trailAngle===null||state.speedEffect<=.01)state.trailAngle=desired;
+        else{
+          const delta=Math.atan2(Math.sin(desired-state.trailAngle),Math.cos(desired-state.trailAngle));
+          const turn=Math.min(Math.abs(delta)*(1-Math.exp(-dt/.12)),dt*5);
+          state.trailAngle=Math.abs(delta)<1e-9?desired:state.trailAngle+Math.sign(delta)*turn;
+        }
+      }
+      const heading=state.trailAngle??0,wrapping=[];
       for(let layer=0;layer<3;layer++){
         const plane=planes[layer];plane.x+=mx*config.rates[layer];plane.y+=my*config.rates[layer];
         wrapping[layer]=Math.abs(plane.x)>50||Math.abs(plane.y)>50;

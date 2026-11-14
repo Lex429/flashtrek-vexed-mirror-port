@@ -5,9 +5,11 @@
   'use strict';
   const definition=Object.freeze({id:'mars-earth-shipyard-01',name:'Mars Orbital Shipyard',artworkId:280,system:1,bodyId:5,offsetX:520,offsetY:-120,size:220});
  const textures={lit:null,unlit:null};let requested=false,error=null,workLight=null;
-  const definitions=Object.freeze((window.VexedMirrorWorld?.shipyards||[definition]).map(y=>Object.freeze({...y})));
-  const definitionFor=state=>definitions.find(y=>y.system===Number(state?.system))||null;
+  const registry=window.nativeFactionShipyards;
+  const definitions=registry?.definitions||Object.freeze((window.VexedMirrorWorld?.shipyards||[definition]).map(y=>Object.freeze({...y})));
+  const definitionFor=registry?.definitionFor||(state=>definitions.find(y=>y.system===Number(state?.system))||null);
   function position(state){
+    if(registry)return registry.position(state);
     const yard=definitionFor(state);if(!yard)return null;
     const mars=(window.nativeSystemCatalog?.bodies(yard.system)||window.vexedSolFlight?.bodies)?.find(body=>body.id===yard.bodyId);
     if(!mars)return null;

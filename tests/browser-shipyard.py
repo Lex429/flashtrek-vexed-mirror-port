@@ -38,6 +38,15 @@ try:
         def click_station():
             point=page.evaluate('''()=>{const s=window.__shipyardState,ship=vexedSolFlight.shipPosition(s),canvas=document.querySelector('#space'),rect=canvas.getBoundingClientRect(),v=nativeView.measure(canvas),p=nativeMarsShipyard.visible({state:s,ship,cx:v.w/2,cy:v.h/2,zoom:1,w:v.w,h:v.h});return {x:rect.x+p.x*rect.width/v.w,y:rect.y+p.y*rect.height/v.h};}''')
             page.mouse.click(point['x'],point['y'])
+        def reveal_yard(selector):
+            for _ in range(30):
+                if page.locator(selector).count() and page.locator(selector).first.is_visible(): return
+                next_page=page.locator('#shipyard-services [data-bay-page="next"]')
+                if next_page.count() and next_page.is_enabled(): next_page.click()
+                else:
+                    previous=page.locator('#shipyard-services [data-bay-page="previous"]')
+                    while previous.count() and previous.is_enabled(): previous.click()
+            raise AssertionError('Equipment position unavailable: '+selector)
         click_station()
         page.locator('[data-yard-action="dock"]').wait_for()
         page.screenshot(path=str(OUTPUT/'01-contact.png'))
@@ -56,12 +65,25 @@ try:
         assert pose['error']<.7 and pose['lights'] is False,pose
         assert page.locator('[data-yard-tab]').count()==5
         page.wait_for_function('()=>document.querySelector("#shipyard-services [data-ship-preview]")?.classList.contains("ready")')
+        assert page.locator('.mars-upgrade-choice').count()==9
+        assert page.locator('.yard-workspace').get_attribute('data-layout')=='full'
+        assert page.locator('[data-yard-action="toggle-layout"]').count()==0
+        assert page.locator('#shipyard-services [data-hull-system="thrusters"]').is_visible()
         assert page.evaluate('()=>getComputedStyle(document.querySelector("#shipyard-services .inventory-drone-grid")).gridTemplateColumns.split(" ").length')==6
         page.screenshot(path=str(OUTPUT/'03-upgrades.png'))
+        thrusters=page.evaluate('()=>({latinum:__shipyardState.latinum,price:nativeShipThrusters.quote(__shipyardState).price})')
+        page.locator('[data-yard-action="upgrade-thrusters"]').click()
+        assert page.evaluate('()=>__shipyardState.latinum')==thrusters['latinum']
+        page.locator('[data-yard-action="cancel-preview"]').click()
+        assert page.evaluate('()=>__shipyardState.latinum')==thrusters['latinum']
+        page.locator('[data-yard-action="upgrade-thrusters"]').click()
+        page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').click()
+        assert page.evaluate('()=>__shipyardState.latinum')==thrusters['latinum']-thrusters['price']
+        assert page.evaluate('()=>nativeShipThrusters.level(__shipyardState)')==1
         original=page.evaluate('()=>({latinum:__shipyardState.latinum,dilithium:__shipyardState.dilithium,minerals:{...__shipyardState.minerals},slots:JSON.stringify(__shipyardState.shipEquipment.slots),instances:JSON.stringify(__shipyardState.shipEquipment.instances)})')
         page.locator('[data-yard-action="upgrade"][data-kind="dot"]').click()
         assert page.locator('.outfit-ghost').count()==1
-        assert page.locator('[data-yard-action="confirm-upgrade"]').is_disabled()
+        assert page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').is_enabled()
         assert page.evaluate('()=>nativeShipEquipment.capacities(__shipyardState).repairDrone')==1
         page.locator('[data-yard-action="cancel-preview"]').first.click()
         assert page.locator('.outfit-ghost').count()==0
@@ -72,7 +94,7 @@ try:
         assert page.locator('.outfit-ghost').get_attribute('data-bay-cell')=='5'
         assert page.evaluate('()=>__shipyardState.latinum')==original['latinum']
         page.screenshot(path=str(OUTPUT/'03a-dot-placement-preview.png'))
-        page.locator('[data-yard-action="confirm-upgrade"]').click()
+        page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').click()
         assert page.evaluate('()=>nativeShipEquipment.capacities(__shipyardState).repairDrone')==2
         assert page.locator('[data-bay-key="repairDrone:1"]').get_attribute('data-bay-cell')=='5'
         assert page.locator('[data-bay-key="repairDrone:0"]').get_attribute('data-bay-cell')=='0'
@@ -81,9 +103,10 @@ try:
         assert page.evaluate('()=>__shipyardState.shipEquipment.slots.repairDrone[1]') is None
         before=page.evaluate('()=>({latinum:window.__shipyardState.latinum,dilithium:window.__shipyardState.dilithium})')
         page.locator('[data-yard-action="upgrade"][data-kind="weapon"]').click()
-        assert page.locator('[data-yard-action="confirm-upgrade"]').is_disabled()
+        assert page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').is_enabled()
+        reveal_yard('[data-place-bay="4"][data-bay-zone="weapons"]')
         page.locator('[data-place-bay="4"][data-bay-zone="weapons"]').click()
-        page.locator('[data-yard-action="confirm-upgrade"]').click()
+        page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').click()
         assert page.evaluate('()=>nativeShipEquipment.capacities(window.__shipyardState).weapon')==4
         after=page.evaluate('()=>({latinum:window.__shipyardState.latinum,dilithium:window.__shipyardState.dilithium})')
         assert before['latinum']-after['latinum']==5500 and before['dilithium']-after['dilithium']==14
@@ -96,16 +119,19 @@ try:
         page.screenshot(path=str(OUTPUT/'05-shields.png'))
         page.locator('[data-yard-tab="build"]').click()
         ids=page.evaluate('''()=>{const eq=nativeShipEquipment.ensure(window.__shipyardState);return Object.fromEntries(eq.locker.map(id=>[String(eq.instances[id].modelId),id]));}''')
-        page.locator(f'[data-yard-slot="{ids["1002"]}"]').select_option('3')
-        page.locator(f'[data-yard-action="fit"][data-instance="{ids["1002"]}"]').click()
-        page.locator(f'[data-yard-action="choose-equipment"][data-instance="{ids["fed-regenerative"]}"]').click()
-        page.locator('#shipyard-services [data-equipment-kind="shield"][data-equipment-place="slot"]').click()
+        page.locator(f'#shipyard-services [data-inventory-cell][data-item-key="equipment:{ids["1002"]}"]').click()
+        page.locator('#shipyard-services [data-fit-slot]').select_option('3')
+        page.locator('#shipyard-services [data-equipment-action="equip"]').click()
+        page.locator(f'#shipyard-services [data-inventory-cell][data-item-key="equipment:{ids["fed-regenerative"]}"]').click()
+        page.locator('#shipyard-services [data-fit-slot]').select_option('0')
+        page.locator('#shipyard-services [data-equipment-action="equip"]').click()
         page.screenshot(path=str(OUTPUT/'06-build.png'))
         page.evaluate('()=>resumeNativeGame("normal")')
         page.wait_for_function('()=>nativeShipyardServices.active && nativeShipyardServices.docked')
         assert page.evaluate('()=>nativeShipEquipment.ensure(window.__shipyardState).slots.weapon[3]')==ids['1002']
         assert page.evaluate('()=>nativeShipEquipment.ensure(window.__shipyardState).slots.shield[0]')==ids['fed-regenerative']
         assert page.locator('[data-bay-key="repairDrone:1"]').get_attribute('data-bay-cell')=='5'
+        reveal_yard('[data-bay-key="weapon:3"]')
         assert page.locator('[data-bay-key="weapon:3"]').get_attribute('data-bay-cell')=='4'
         page.locator('[data-yard-tab="materials"]').click()
         for mineral in ['trellium','tritanium','dilithium','gallicite','benamite','deuranium']:
@@ -115,7 +141,7 @@ try:
         page.locator('[data-yard-tab="upgrades"]').click()
         page.locator('[data-yard-action="upgrade"][data-kind="hull"]').click()
         assert '50' in page.locator('[data-upgrade-change="hull"]').inner_text()
-        assert page.locator('[data-yard-action="confirm-upgrade"]').is_disabled()
+        assert page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').is_enabled()
         page.locator('[data-yard-action="cancel-preview"]').first.click()
         lighting_before=page.evaluate('()=>window.nativeFlightLightingEnabled!==false')
         page.locator('[data-yard-action="lighting"]').click()
@@ -135,6 +161,10 @@ try:
         page.locator('#inventoryBtn').click()
         page.locator('#ship-inventory').wait_for(state='visible')
         assert page.locator('#ship-inventory [data-bay-key="repairDrone:1"]').get_attribute('data-bay-cell')=='5'
+        # Responsive inventories may show fewer than five weapon cells per page.
+        for _ in range(6):
+            if page.locator('#ship-inventory [data-bay-key="weapon:3"]').count(): break
+            page.locator('#ship-inventory [data-bay-page="next"]').click()
         assert page.locator('#ship-inventory [data-bay-key="weapon:3"]').get_attribute('data-bay-cell')=='4'
         assert page.evaluate('()=>getComputedStyle(document.querySelector("#ship-inventory .inventory-drone-grid")).gridTemplateColumns.split(" ").length')==6
         for mineral in ['trellium','tritanium','gallicite','benamite','deuranium']:
@@ -160,6 +190,7 @@ try:
         assert page.locator('[data-yard-action="undock"]').is_visible()
         compact_before=page.evaluate('()=>__shipyardState.latinum')
         page.locator('[data-yard-action="upgrade"][data-kind="dot"]').click()
+        reveal_yard('[data-place-bay="7"][data-bay-zone="drones"]')
         page.locator('[data-place-bay="7"][data-bay-zone="drones"]').click()
         assert page.evaluate('''()=>{const p=document.querySelector('.yard-vessel').getBoundingClientRect(),g=document.querySelector('.outfit-ghost').getBoundingClientRect();return g.top>=p.top && g.bottom<=p.bottom;}''')
         page.screenshot(path=str(OUTPUT/'11a-compact-placement.png'))
@@ -168,7 +199,7 @@ try:
         page.locator('[data-yard-action="undock"]').click()
         page.wait_for_function('()=>!nativeShipyardServices.snapshot().dock',timeout=60000)
         assert not errors,errors
-        result={'passed':True,'docking':pose,'physicalApproach':True,'typedFourthWeapon':True,'shieldFitting':True,'chargedLatinumAndDilithium':True,'midApproachReload':True,'savedDockReload':True,'animatedUndock':True,'inventoryEvidence':True,'largeHullExternalCollar':True,'compactMenu':True,'mineralIcons':True,'upgradeStatPreview':True,'noChargeUntilConfirmation':True,'cancelledPreviewIsFree':True,'placedDotAndWeaponMatchInventory':True,'bayPositionsSurviveReload':True,'errors':errors}
+        result={'passed':True,'docking':pose,'physicalApproach':True,'typedFourthWeapon':True,'shieldFitting':True,'chargedLatinumAndDilithium':True,'midApproachReload':True,'savedDockReload':True,'animatedUndock':True,'inventoryEvidence':True,'largeHullExternalCollar':True,'compactMenu':True,'mineralIcons':True,'upgradeStatPreview':True,'noChargeUntilBuy':True,'cancelledPreviewIsFree':True,'placedDotAndWeaponMatchInventory':True,'bayPositionsSurviveReload':True,'simpleMarsChoices':True,'alwaysVisibleInventoryLayout':True,'sharedInventoryFitting':True,'thrusterPurchaseChargedOnce':True,'errors':errors}
         (OUTPUT/'result.json').write_text(json.dumps(result,indent=2))
         print(json.dumps(result))
         browser.close()

@@ -1,0 +1,44 @@
+/* A short GPU-friendly installation burst; controls retain their own geometry. */
+.mars-install-fx{position:absolute;z-index:66;pointer-events:none;overflow:hidden;contain:layout paint style;isolation:isolate;font:12px system-ui,sans-serif;color:#e8f4ee}
+.mars-install-fx *{box-sizing:border-box}
+.mars-install-announcement{position:absolute;top:0;left:0;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:13px;width:calc(100% - var(--actionsWidth));height:var(--headerHeight);padding:5px 20px;background:linear-gradient(100deg,#173e41,#152d36 65%,#14242e00);border-top:3px solid #ffe1a5;animation:mars-installed-banner 2.9s cubic-bezier(.16,1,.3,1) both}
+.mars-install-check{position:relative;display:grid;place-items:center;width:40px;height:40px;border:1px solid #d9eec688;background:#b8ecc71c;transform:rotate(-8deg);animation:mars-installed-seal .7s .14s both}
+.mars-install-check>svg{width:27px;height:27px;color:#f6d095;transform:rotate(8deg)}
+.mars-install-check>b{position:absolute;right:-5px;bottom:-4px;display:grid;place-items:center;background:#bdeac9;color:#103d39;border-radius:50%;width:17px;height:17px;font-size:12px;transform:rotate(8deg)}
+.mars-install-message{display:flex;flex-direction:column;min-width:0;gap:2px}
+.mars-install-message>small{font-size:8px;color:#f9d59b;letter-spacing:2px;font-weight:650}
+.mars-install-message>strong{font-size:22px;line-height:1.2;font-weight:650}
+.mars-install-message>span{font-size:9px;color:#b0c8c7;line-height:1.2}.mars-install-message i{font-style:normal;color:#bdeac9;letter-spacing:1px;margin-left:6px;font-size:7px}
+.mars-install-gain{text-align:right;min-width:0;font-variant-numeric:tabular-nums}
+.mars-install-gain>span{display:block;white-space:nowrap;font-size:18px;color:#94b4ba}
+.mars-install-gain i{font-style:normal;color:#c4dbd0;margin:0 3px}
+.mars-install-gain b{display:inline-block;font-size:28px;color:#d6f8ca;font-weight:600;animation:mars-installed-number .65s .24s both}
+.mars-install-gain>small{display:block;margin-top:2px;font-size:9px;color:#b7d5c4}
+.mars-install-halo{position:absolute;left:var(--sx);top:var(--sy);width:calc(var(--ringSize) * 1.65);height:calc(var(--ringSize) * 1.65);margin-left:calc(var(--ringSize) * -.825);margin-top:calc(var(--ringSize) * -.825);border-radius:50%;background:radial-gradient(circle,#d3ffe243,#71e2dc24 28%,#eabd7220 45%,transparent 70%);animation:mars-installed-halo 2.4s .12s both}
+.mars-install-ray{position:absolute;left:var(--rayX);top:var(--rayY);width:var(--rayLength);height:3px;transform:rotate(var(--rayAngle));transform-origin:left center}
+.mars-install-ray>i{position:absolute;inset:0;background:linear-gradient(90deg,transparent,#eab46c 25%,#eaffd4 70%,#b5f3ef);transform-origin:left center;box-shadow:0 0 9px #9df7e288;animation:mars-installed-ray .55s both}
+.mars-install-rings,.mars-install-sparks{position:absolute;left:var(--sx);top:var(--sy);width:0;height:0}
+.mars-install-rings>i{position:absolute;width:var(--ringSize);height:var(--ringSize);margin-left:calc(var(--ringSize) * -.5);margin-top:calc(var(--ringSize) * -.5);border:2px solid #b2eddf;border-radius:50%;box-shadow:0 0 15px #70dedc35,inset 0 0 12px #70dedc25;animation:mars-installed-ring 1.5s .16s both}
+.mars-install-rings>i:nth-child(2){border:1px solid #f9d395;animation-delay:.35s;animation-duration:1.7s}
+.mars-install-rings>i:nth-child(3){border:1px dashed #b6d9d2;animation-delay:.55s;animation-duration:1.85s}
+.mars-install-sparks>i{position:absolute;width:3px;height:13px;background:#dcffdf;box-shadow:0 0 6px #b0f6d2;animation:mars-installed-spark .9s var(--sparkDelay) both}
+.mars-install-scan{position:absolute;left:var(--shipLeft);top:var(--shipTop);width:var(--shipWidth);height:var(--shipHeight);overflow:hidden}
+.mars-install-scan>i{position:absolute;inset:0;background:linear-gradient(transparent 32%,#b5f3dd18 44%,#d5ffe182 49%,#c3f4e01f 51%,transparent 64%);animation:mars-installed-scan 1.4s .28s both}
+.mars-install-card-frame{position:absolute;left:var(--cardLeft);top:var(--cardTop);width:var(--cardWidth);height:var(--cardHeight);border:2px solid #ffe0a5;border-radius:3px;box-shadow:0 0 18px #edc08755,inset 0 0 20px #b9f8de20;animation:mars-installed-card 2.5s both}
+.mars-install-perimeter{position:absolute;inset:1px;border:1px solid #d7efb6;box-shadow:inset 0 0 40px #9bdccb18;animation:mars-installed-perimeter 1.2s both}
+#shipyard-services[data-upgrade-installing] [data-installed-upgrade]{color:#d9edbc;border-color:#f4d49b}
+#shipyard-services[data-upgrade-installing]>header>div:first-child{opacity:0}
+#shipyard-services[data-upgrade-installing] .yard-build-stats [data-installed-upgrade] strong{color:#d9f3c6}
+@keyframes mars-installed-banner{0%{opacity:0;transform:translateY(-28px)}12%,86%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-15px)}}
+@keyframes mars-installed-seal{0%{opacity:0;transform:rotate(-40deg) scale(.55)}70%{opacity:1;transform:rotate(-5deg) scale(1.08)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+@keyframes mars-installed-number{0%{opacity:0;transform:translateY(12px) scale(.8)}70%{opacity:1;transform:translateY(-2px) scale(1.08)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes mars-installed-halo{0%{opacity:0;transform:scale(.3)}20%{opacity:1;transform:scale(.85)}100%{opacity:0;transform:scale(1.2)}}
+@keyframes mars-installed-ray{0%{opacity:0;transform:scaleX(0)}38%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1)}}
+@keyframes mars-installed-ring{0%{opacity:0;transform:scale(.18)}15%{opacity:.95}100%{opacity:0;transform:scale(1.6)}}
+@keyframes mars-installed-spark{0%{opacity:0;transform:translate(0,0) scale(.3)}20%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.1)}}
+@keyframes mars-installed-scan{0%{opacity:0;transform:translateY(-70%)}20%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translateY(70%)}}
+@keyframes mars-installed-card{0%{opacity:0;transform:scale(.97)}10%,27%{opacity:1;transform:scale(1.02)}55%{opacity:.5;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes mars-installed-perimeter{0%{opacity:0}15%{opacity:.9}100%{opacity:0}}
+@media(max-width:1050px){.mars-install-announcement{grid-template-columns:28px minmax(0,1fr) auto;gap:9px;padding:4px 12px}.mars-install-check{width:27px;height:27px}.mars-install-check>svg{width:20px;height:20px}.mars-install-message>strong{font-size:17px}.mars-install-gain>span{font-size:12px}.mars-install-gain b{font-size:22px}.mars-install-message>small{font-size:7px;letter-spacing:1px}.mars-install-gain>small{font-size:8px}}
+@media(max-width:680px){.mars-install-announcement{grid-template-columns:minmax(0,1fr) auto;gap:6px;padding:4px 10px}.mars-install-check{display:none}.mars-install-message>strong{font-size:13px}.mars-install-message>span{font-size:8px}.mars-install-message i{display:none}.mars-install-gain b{font-size:18px}.mars-install-gain>span{font-size:10px}.mars-install-gain>small{font-size:7px;max-width:95px}.mars-install-message>small{font-size:6px;letter-spacing:.8px}}
+@media(prefers-reduced-motion:reduce){.mars-install-fx *{animation:none!important}.mars-install-halo,.mars-install-ray,.mars-install-rings,.mars-install-sparks,.mars-install-scan,.mars-install-perimeter{display:none}.mars-install-card-frame{opacity:.75}.mars-install-announcement,.mars-install-check,.mars-install-gain b{opacity:1;transform:none}}

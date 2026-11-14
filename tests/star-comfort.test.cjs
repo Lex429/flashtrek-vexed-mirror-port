@@ -56,3 +56,45 @@ test('course-locked flight sky follows actual travel immediately instead of lagg
   const before=model.state.travelX;model.update(1/60,input(0,{courseLocked:true}));
   assert.equal(model.state.motionX,0);assert.equal(model.state.motionY,0);assert.equal(model.state.travelX,before);
 });
+
+const angleDifference=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));
+test('fast flight retains streak direction and intensity across empty camera frames at different refresh rates',()=>{
+  for(const hz of [30,60,120,144]){
+    const model=sky(),command=input(450,{locx:0,locy:450/13,flightVx:0,flightVy:-450,courseLocked:true});
+    fly(model,4,command,hz);let previous=model.state.speedEffect;
+    for(let frame=0;frame<hz;frame++){
+      model.update(1/hz,{...command,locy:frame%2?450/13:0});
+      assert.ok(angleDifference(model.state.trailAngle,Math.PI/2)<1e-10,'northbound streak cannot flash horizontal');
+      assert.ok(model.state.speedEffect>=previous,'an empty camera frame is not physical braking');previous=model.state.speedEffect;
+      assert.ok(model.state.stars.filter(s=>s.trailVisible).every(s=>angleDifference(s.trailAngle,Math.PI/2)<1e-10));
+    }
+  }
+});
+
+test('streaks ease turns and reversals while camera parallax keeps its immediate course',()=>{
+  for(const hz of [30,60,120,144]){
+    const model=sky(),command=input(450,{courseLocked:true,flightVx:450,flightVy:0});fly(model,4,command,hz);
+    let previous=model.state.trailAngle;
+    const turned={...command,locx:0,locy:450/13,flightVx:0,flightVy:-450};
+    model.update(1/hz,turned);
+    assert.equal(model.state.motionX,0);assert.ok(model.state.motionY>0,'camera course is not delayed');
+    assert.ok(angleDifference(model.state.trailAngle,previous)<=5/hz+1e-9,'only the streak axis eases');
+    fly(model,2,turned,hz);assert.ok(angleDifference(model.state.trailAngle,Math.PI/2)<1e-5);
+    const reverse={...turned,locy:-450/13,flightVy:450};
+    for(let frame=0;frame<hz*3;frame++){
+      previous=model.state.trailAngle;model.update(1/hz,reverse);
+      assert.ok(angleDifference(model.state.trailAngle,previous)<=5/hz+1e-9,'a full reversal cannot flip in one frame');
+    }
+    assert.ok(angleDifference(model.state.trailAngle,-Math.PI/2)<1e-5);
+  }
+});
+
+test('camera corrections and nose-only turns cannot steer streaks away from physical drift; braking retains the last axis',()=>{
+  const model=sky(),command=input(450,{courseLocked:true,locx:0,locy:450/13,flightVx:0,flightVy:-450});fly(model,4,command);
+  model.update(1/60,{...command,locx:1e9,locy:-1e9,heading:2});assert.ok(angleDifference(model.state.trailAngle,Math.PI/2)<1e-10);
+  const effect=model.state.speedEffect;model.update(1/60,input(0,{flightVx:0,flightVy:0,courseLocked:true}));
+  assert.ok(model.state.speedEffect<effect&&model.state.speedEffect>0);assert.ok(angleDifference(model.state.trailAngle,Math.PI/2)<1e-10);
+  // Legacy callers without physical velocity still retain a valid direction.
+  const legacy=sky();fly(legacy,4,input(450,{courseLocked:true,locx:0,locy:450/13}));
+  legacy.update(1/120,input(0,{courseLocked:true}));assert.ok(angleDifference(legacy.state.trailAngle,Math.PI/2)<1e-10);
+});

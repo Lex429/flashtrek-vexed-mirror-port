@@ -403,7 +403,7 @@ try:
             mining=page.evaluate("""()=>{
               __controls.fixture();const s=__controls.state,rock=nativeSolAsteroids.forSystem(1)[0],p=vexedSolFlight.shipPosition(s);
               s.x+=rock.x-320-p.x;s.y+=rock.y-p.y;nativeShipMotion.stop(s);s.miningTool=true;
-              const ship=vexedSolFlight.shipPosition(s),friend={...s.civilianTraffic.ships[0],id:98777};Object.assign(friend,{x:ship.x+270,y:ship.y+25,shipType:7});
+              const ship=vexedSolFlight.shipPosition(s),friend={...s.civilianTraffic.ships[0],id:98777};Object.assign(friend,{x:ship.x+270,y:ship.y+70,shipType:7});
               s.civilianTraffic.ships=[friend];nativeNpcLives.invalidateMembership(s);
               s.minedAsteroids=nativeSolAsteroids.nearby(1,ship,5000).filter(r=>r.slotId!==rock.slotId).map(r=>r.slotId);
               nativeShipSystems.invalidate(s);nativeTargetingActions.clear();__controls.rebind();__controls.frames(.15);return rock.slotId;
@@ -411,6 +411,39 @@ try:
             page.keyboard.press('Shift');assert page.evaluate('nativeAsteroidCombat.target?.slotId')==mining,page.evaluate('nativeTargetingActions.snapshot()')
             page.screenshot(path=str(OUTPUT/'nose-mining-choice.png'))
             result['noseTargeting']={'noCursorDependency':True,'previewBeforeLock':preview['preview'],'sidewaysDrift':True,'turnReacquires':True,'lockDoesNotJump':True,'rearAttacker':True,'miningContext':True,'controllerPressEdges':True,'controllerHoldRetainsLock':True,'controllerInventoryGate':True}
+            # Similar scores must not flicker or change what the visible preview
+            # promises. A deliberate cycle followed by firing confirms a correction.
+            page.evaluate("""()=>{
+              const {origin}=__controls.fixture({two:true}),s=__controls.state;
+              s.civilianTraffic.ships=s.civilianTraffic.ships.map((t,i)=>({...t,id:99101+i,shipType:7,x:origin.x+260,y:origin.y+(i?45:-45)}));
+              for(const t of s.civilianTraffic.ships){delete t.retaliationTargetId;delete t.retaliationUntil;}
+              s.miningTool=false;nativeNpcLives.invalidateMembership(s);nativeShipSystems.invalidate(s);nativeTargetingActions.clear();__controls.rebind();__controls.frames(.15);
+            }""")
+            assert page.evaluate('nativeTargetingActions.snapshot().preview.key')=='civilian:99101'
+            page.evaluate("""()=>{const s=__controls.state,p=vexedSolFlight.shipPosition(s),b=s.civilianTraffic.ships[1];b.x=p.x+250;b.y=p.y+45*250/260;nativeShipSystems.refreshShip(s,b,'civilian');__controls.frames(.15);}""")
+            tie=page.evaluate('nativeTargetingActions.snapshot()')
+            assert tie['candidates'][0]['key']=='civilian:99102' and tie['preview']['key']=='civilian:99101',tie
+            assert tie['published']=='civilian:99101',tie
+            page.keyboard.press('Shift');assert page.evaluate('nativeCivilianTraffic.target(__controls.state)?.id')==99101
+            page.keyboard.press('Shift');assert page.evaluate('nativeCivilianTraffic.target(__controls.state)?.id')==99102
+            assert page.evaluate('nativeTargetingActions.snapshot().correction') is None
+            page.keyboard.press('Space');page.evaluate('__controls.frames(.03)')
+            correction=page.evaluate('nativeTargetingActions.snapshot().correction')
+            assert correction['chosen']=='civilian:99102' and 'civilian:99101' in correction['skipped'],correction
+            page.screenshot(path=str(OUTPUT/'preview-promise-and-confirmed-correction.png'))
+            page.evaluate("()=>{if(!nativeSaveStorage.write(__controls.state).ok)throw Error('Intent reload save failed');resumeNativeGame('normal');__controls.rebind();__controls.step();}")
+            assert page.evaluate('nativeTargetingActions.snapshot().correction') is None
+            # A genuinely new attack can override the visible peaceful choice.
+            page.evaluate("""()=>{
+              const {origin}=__controls.fixture({two:true}),s=__controls.state;
+              s.civilianTraffic.ships=s.civilianTraffic.ships.map((t,i)=>({...t,id:99201+i,shipType:7,x:origin.x+(i?-250:280),y:origin.y}));
+              for(const t of s.civilianTraffic.ships){delete t.retaliationTargetId;delete t.retaliationUntil;}
+              nativeNpcLives.invalidateMembership(s);nativeShipSystems.invalidate(s);nativeTargetingActions.clear();__controls.rebind();__controls.frames(.15);
+            }""")
+            assert page.evaluate('nativeTargetingActions.snapshot().published')=='civilian:99201'
+            page.evaluate("()=>{const s=__controls.state,t=s.civilianTraffic.ships[1];t.retaliationTargetId='player';t.retaliationUntil=nativeSimulation.seconds(s)+60;nativeShipSystems.refreshShip(s,t,'civilian');}")
+            page.keyboard.press('Shift');assert page.evaluate('nativeCivilianTraffic.target(__controls.state)?.id')==99202
+            result['refinedIntent']={'stableNearTies':True,'visiblePreviewHonoured':True,'cyclingAloneDoesNotTeach':True,'confirmedCorrection':correction,'correctionNotSaved':True,'newAttackOverridesPreview':True}
             assert not errors, errors
             (OUTPUT / 'results.json').write_text(json.dumps(result, indent=2))
             print(json.dumps(result, indent=2))

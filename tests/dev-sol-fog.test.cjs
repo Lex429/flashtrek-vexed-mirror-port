@@ -4,13 +4,19 @@ function fixture(){
   const math=Object.create(Math);math.random=()=>{throw Error('Fog used gameplay randomness');};
   const scope=vm.createContext({window,Math:math});
   for(const file of ['nebula-gas.js','nebula-flow.js','dev-sol-fog.js'])vm.runInContext(fs.readFileSync('html-games/broken-mirror-port/'+file,'utf8'),scope);
-  return {api:window.nativeDevFog,gas:window.nativeNebulaGas,flow:window.nativeNebulaFlow};
+  return {api:window.nativeDevFog,gas:window.nativeNebulaGas,flow:window.nativeNebulaFlow,window};
 }
 const state=()=>({devMode:true,system:1,x:0,y:0,angle:0,speed:0,hull:100,shields:100,cargo:{ore:3}});
 const view={w:1000,h:700,cameraX:0,cameraY:0,zoom:1,dimensions:{width:12,height:20}};
 
+test('the Sol preview requires physical Sol membership, including a save using Sol as its coordinate frame',()=>{
+  const {api,window:w}=fixture(),s=state(),model=api.createModel({enabled:true});
+  w.nativeManualFlight={currentRegion:()=>({kind:'interstellar',system:null})};model.update(s,.1,view);assert.equal(model.snapshot().active,false);
+  w.nativeManualFlight.currentRegion=()=>({kind:'system',system:1});model.update(s,.1,view);assert.equal(model.snapshot().active,true);
+});
+
 test('Sol color previews preserve the cloud, wake, clock and game state',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state();model.update(s,.1,view);
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state();model.setPreset('vex',s);model.setColour('four');model.update(s,.1,view);
   for(let i=1;i<12;i++)move(model,s,i*20,0);
   const before=model.snapshot(),saved=JSON.stringify(s);assert.equal(before.colour,'four');
   for(const colour of ['purple','red','blue','yellow','original','four']){
@@ -37,7 +43,8 @@ test('frame monitoring retains misses and stalls, excludes inactive time and res
 function move(model,s,x,y,dt=.1){s.x=x;s.y=y;const before=JSON.stringify(s);model.update(s,dt,view);assert.equal(JSON.stringify(s),before,'Visual fog rewrote game state');}
 
 test('the test bank is enabled only for Dev Sol and is placed ahead of the actual world pose',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state();s.originX=400;s.originY=-250;
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state();s.originX=400;s.originY=-250;
+  model.setPreset('vex',s);
   model.update(s,.1,view);const first=model.snapshot();assert.equal(first.active,true);assert.equal(first.patch.x,1400);assert.equal(first.patch.y,-250);
   move(model,s,200,0);assert.equal(model.snapshot().patch.x,1400,'The cloud followed the ship');
   model.update({...s,devMode:false},1,view);assert.equal(model.snapshot().active,false);assert.equal(model.inputs(view),null);
@@ -45,7 +52,7 @@ test('the test bank is enabled only for Dev Sol and is placed ahead of the actua
 });
 
 test('turns leave a bounded trail along the actual path which fills after the ship stops',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state();s.speed=200;model.update(s,.1,view);
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state();s.speed=200;model.update(s,.1,view);
   for(let i=1;i<=15;i++)move(model,s,i*20,0);
   s.angle=Math.PI/2;for(let i=1;i<=15;i++)move(model,s,300,i*20);
   const moving=model.snapshot();assert.ok(moving.wakeCount>5&&moving.wakeCount<=23);
@@ -57,7 +64,7 @@ test('turns leave a bounded trail along the actual path which fills after the sh
 
 test('speed strengthens displaced gas while clearance stays tight to each actual hull size',()=>{
   const {api}=fixture();
-  function sample(speed,dimensions){const model=api.createModel(),s=state();s.speed=speed;model.update(s,.1,{...view,dimensions});for(let i=1;i<=8;i++){s.x=i*speed*.1;model.update(s,.1,{...view,dimensions});}return model.inputs(view).options.records;}
+  function sample(speed,dimensions){const model=api.createModel({enabled:true}),s=state();s.speed=speed;model.update(s,.1,{...view,dimensions});for(let i=1;i<=8;i++){s.x=i*speed*.1;model.update(s,.1,{...view,dimensions});}return model.inputs(view).options.records;}
   const slow=sample(50,{width:12,height:20}),fast=sample(350,{width:12,height:20}),large=sample(350,{width:100,height:130});
   const hull=list=>list.find(r=>r.kind==='hull'),wake=list=>list.find(r=>r.kind==='wake');
   assert.ok(wake(fast).radius>wake(slow).radius);assert.ok(wake(fast).strength>wake(slow).strength);
@@ -66,7 +73,7 @@ test('speed strengthens displaced gas while clearance stays tight to each actual
 });
 
 test('pause and hidden tools freeze the visual clock; reduced motion calms curl without changing physics',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state();s.speed=100;model.update(s,.1,view);for(let i=1;i<8;i++)move(model,s,i*10,0);
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state();s.speed=100;model.update(s,.1,view);for(let i=1;i<8;i++)move(model,s,i*10,0);
   const first=model.snapshot(),saved=JSON.stringify(s);model.update(s,1,{...view,suspended:true});assert.equal(model.snapshot().clock,first.clock);
   model.update(s,1,{...view,hidden:true});assert.equal(model.snapshot().clock,first.clock);
   model.update(s,0,view);const reduced=model.inputs({...view,reducedMotion:true});assert.equal(reduced.time,0);assert.ok(reduced.options.records.every(w=>w.phase===0&&(!w.age||w.age===0)));
@@ -74,18 +81,26 @@ test('pause and hidden tools freeze the visual clock; reduced motion calms curl 
 });
 
 test('body coordinate rebases keep the wake continuous while teleports reset it',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state();s.speed=100;model.update(s,.1,view);for(let i=1;i<8;i++)move(model,s,i*10,0);
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state();model.setPreset('vex',s);s.speed=100;model.update(s,.1,view);for(let i=1;i<8;i++)move(model,s,i*10,0);
   const before=model.snapshot();s.originX=1000;s.x-=1000;model.update(s,.1,view);
   assert.deepEqual(model.snapshot().patch,before.patch);assert.ok(model.snapshot().wakeCount>=before.wakeCount);
   move(model,s,9000,0);assert.equal(model.snapshot().wakeCount,0);assert.equal(model.snapshot().patch.x,11000);
 });
 
 test('presets, disabling and explicit resets affect only transient fog state',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state(),saved=JSON.stringify(s);model.update(s,.5,view);
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state(),saved=JSON.stringify(s);model.update(s,.5,view);
   model.setPreset('harman',s);assert.equal(model.snapshot().preset,'harman');assert.equal(model.snapshot().clock,0);assert.equal(model.inputs(view).style,0);
   model.setEnabled(false,s);assert.equal(model.inputs(view),null);
   model.setEnabled(true,s);model.update(s,.1,view);assert.equal(model.inputs(view).style,0);
   model.setPreset('vex',s);assert.equal(model.inputs(view).style,2);assert.equal(JSON.stringify(s),saved);
+});
+
+test('Dev Sol starts without a test cloud; the Badlands preview requires explicit enable',()=>{
+  const {api}=fixture(),model=api.createModel(),s=state(),saved=JSON.stringify(s);model.update(s,.1,view);
+  assert.equal(model.snapshot().enabled,false);assert.equal(model.snapshot().active,false);assert.equal(model.inputs(view),null);assert.equal(api.snapshot().enabled,false);
+  model.setEnabled(true,s);model.update(s,.1,view);const snap=model.snapshot();assert.equal(snap.preset,'badlands');assert.equal(snap.enabled,true);
+  assert.equal(snap.patch.width,2100);assert.equal(snap.patch.height,1600);assert.equal(snap.patch.x,110);assert.equal(snap.patch.y,0);
+  assert.equal(snap.colour,'original');assert.equal(model.inputs(view).style,3);assert.equal(JSON.stringify(s),saved);
 });
 
 test('bow and wake deformation clears the center, pushes gas to the sides and remains bounded under overlap',()=>{
@@ -97,7 +112,7 @@ test('bow and wake deformation clears the center, pushes gas to the sides and re
 });
 
 test('the nose pushes forward and the two hull shoulders receive the displaced gas without a wide halo',()=>{
-  const {api,flow}=fixture(),model=api.createModel(),s=state();s.speed=300;
+  const {api,flow}=fixture(),model=api.createModel({enabled:true}),s=state();s.speed=300;
   for(let i=0;i<10;i++)model.update(s,.1,view);
   const hull=model.inputs(view).options.records.find(r=>r.kind==='hull'),x=hull.x,y=hull.y;
   const center=flow.sampleAt(x,y,[hull]);assert.ok(center.clearing>.9);
@@ -109,7 +124,7 @@ test('the nose pushes forward and the two hull shoulders receive the displaced g
 });
 
 test('every visible ship gets its own outline and bow; NPC trails stay in world space and visual work is bounded',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state();
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state();
   const fleet=Array.from({length:80},(_,i)=>({id:'civilian:'+i,x:100+i*2,y:50,heading:Math.PI/2,speed:80,dimensions:{width:8+i%3,height:15},shape:{front:.45,rear:-.4,profile:Array(16).fill(.8)}}));
   const before=JSON.stringify(fleet);model.update(s,.1,{...view,ships:fleet});
   const records=model.inputs(view).options.records,hulls=records.filter(r=>r.kind==='hull');assert.equal(hulls.length,81);
@@ -125,7 +140,7 @@ test('the tile index retains overlapping hulls and wakes, including a segment mi
 });
 
 test('fast flight keeps a live channel connected to the stern between retained wake samples',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state();s.speed=400;model.update(s,.1,view);
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state();s.speed=400;model.update(s,.1,view);
   move(model,s,200,0,.5);move(model,s,220,0,.02);
   const records=model.inputs(view).options.records,hull=records.find(r=>r.kind==='hull'),sternX=hull.x-hull.length;
   const latest=records.filter(r=>r.kind==='wake'&&r.age===0).find(r=>Math.abs(r.bx-sternX)<.01);
@@ -133,7 +148,7 @@ test('fast flight keeps a live channel connected to the stern between retained w
 });
 
 test('tight clearance follows the same interpolated heading and position as the displayed hull',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state(),display={...view,ship:{x:24,y:30,heading:Math.PI/2}};
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state(),display={...view,ship:{x:24,y:30,heading:Math.PI/2}};
   model.update(s,.1,display);const hull=model.inputs(display).options.records.find(r=>r.kind==='hull');
   assert.ok(Math.abs(hull.cos)<.001&&hull.sin>.99);assert.equal(hull.x,view.w/2+24);assert.equal(hull.y,view.h/2+30);
 });
@@ -150,7 +165,7 @@ test('the blade throws two banks diagonally outward; faster motion widens the bo
 });
 
 test('displaced wake banks keep moving out after braking while their narrow channel heals in place',()=>{
-  const {api}=fixture(),model=api.createModel(),s=state();s.speed=350;model.update(s,.1,view);
+  const {api}=fixture(),model=api.createModel({enabled:true}),s=state();model.setPreset('vex',s);s.speed=350;model.update(s,.1,view);
   for(let i=1;i<=25;i++)move(model,s,i*35,0,.1);
   const before=model.inputs({...view,cameraX:s.x}).options.records.filter(r=>r.kind==='wake'),wake=before.at(-2);
   s.speed=0;model.update(s,.9,view);

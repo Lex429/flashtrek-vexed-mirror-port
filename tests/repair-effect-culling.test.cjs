@@ -18,6 +18,36 @@ function context(){
 }
 const pose=(x=0,y=0)=>({tier:'basic',role:'repair',position:{x,y},heading:0,scale:1,time:0,before:0,after:1});
 const visible=w=>(x,y,r)=>w.nativeEffectVisibility.circle(x,y,r,{w:100,h:100});
+
+test('repair artwork stays unavailable to drawing and fog until its complete bundle is ready',async()=>{
+  let frame,finish;const ready=new Promise(resolve=>finish=resolve),window={};
+  const document={createElement(){return frame={contentWindow:{droneSprites:{ready},dotBasicDamage:{},droneShowcase:{}}};},body:{append(){}}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/repair-visuals.js'),'utf8'),{window,document,console});
+  const api=window.nativeRepairVisuals,pending=api.ensure(),loaded=frame.onload();
+  assert.equal(api.ready(),false);assert.equal(api.fogArtwork({entity:{hull:40}}),null);
+  finish([true]);await loaded;await pending;assert.equal(api.ready(),true);
+});
+
+test('a failed repair artwork load cannot publish a partial bundle that crashes fog drawing',async()=>{
+  let frame;const window={},document={createElement(){return frame={contentWindow:{}};},body:{append(){}}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/repair-visuals.js'),'utf8'),{window,document,console:{warn(){}}});
+  const api=window.nativeRepairVisuals,pending=api.ensure();await frame.onload();await assert.rejects(pending);
+  assert.equal(api.ready(),false);assert.equal(api.fogArtwork({entity:{hull:40}}),null);
+});
+
+test('the live DOT body is drawable after base load while optional lamp and damage preparation is pending',async()=>{
+  let frame,finishBase,finishOptional,draws=0,optionalComplete=false;
+  const baseReady=new Promise(resolve=>finishBase=resolve),ready=new Promise(resolve=>finishOptional=resolve);
+  ready.then(()=>{optionalComplete=true;});
+  const window={nativeSimulation:{now:()=>1000},nativeRepairWork:{drawThrusters(){}}};
+  const document={createElement(){return frame={contentWindow:{droneSprites:{baseReady,ready,draw(){draws++;return true;}},dotBasicDamage:{},droneShowcase:{}}};},body:{append(){}}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../html-games/broken-mirror-port/repair-visuals.js'),'utf8'),{window,document,console});
+  const api=window.nativeRepairVisuals,pending=api.ensure(),loaded=frame.onload();let ensureComplete=false;pending.then(()=>{ensureComplete=true;});assert.equal(api.ready(),false);
+  finishBase([true]);await new Promise(resolve=>setImmediate(resolve));assert.equal(api.ready(),true);assert.equal(optionalComplete,false);assert.equal(ensureComplete,false);
+  const ctx={save(){},restore(){},translate(){},scale(){},rotate(){}};
+  assert.equal(api.drawDrone(ctx,{state:{},x:0,y:0,heading:0,entity:{hull:40,phase:'repairing'},definition:{artwork:{scale:1}}},{cx:0,cy:0,ship:{x:0,y:0}}),true);
+  assert.equal(draws,1);finishOptional([true]);await ready;await loaded;await pending;assert.equal(ensureComplete,true);
+});
 test('damage fragments, flash gradients, smoke and spark strokes do no offscreen painting and drawing stays read-only',()=>{
   const w=fixture(),effects=w.dotBasicDamage.createEffects();effects.emit(pose(10000,10000));const before=JSON.stringify(effects.snapshot());
   const legacy=context();effects.draw(legacy.ctx,100);assert.ok(legacy.work.images>0);assert.ok(legacy.work.gradients>0);assert.ok(legacy.work.paints>0);

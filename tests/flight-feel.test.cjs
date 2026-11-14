@@ -116,11 +116,12 @@ test('quick repeated Shift taps cycle deliberately, isolated presses pick neares
   assert.equal(api.rankTargets(targets.slice(),{threats:new Set(['civilian:enemy']),miningKey:'asteroid:b',distance:t=>t.d})[0].key,'civilian:enemy');
 });
 
-test('extended weapons aim independently of the nose and permit a shot into an obstructed line',()=>{
+test('beams and turrets retain rear fire while forward projectile mounts require their firing cone',()=>{
   const r=setup().nativeWeaponRules,source={id:'player',heading:0,x:0,y:0},target={id:'enemy',x:-800,y:0,vx:0,vy:0};
-  for(const kind of ['beam','torpedo','disruptor']){
-    const spec=r.weaponSpec({damage:10},kind);assert.ok(spec.range>=900);
-    assert.equal(r.firingStatus(source,target,spec,kind,{rocks:[{x:-100,y:0,size:40}],bystanders:[]}).ok,true);
+  for(const [kind,id] of [['beam',1],['torpedo',15],['disruptor',6],['disruptor',12]]){
+    const spec=r.weaponSpec({id,damage:10},kind);assert.ok(spec.range>=900);
+    assert.equal(r.firingStatus(source,target,spec,kind,{rocks:[{x:-100,y:0,size:40}],bystanders:[]}).ok,kind==='beam'||id===12);
+    assert.equal(r.firingStatus(source,{...target,x:800},spec,kind,{querySwept(){throw Error('Trigger eligibility must not scan obstacles');}}).ok,true);
     assert.equal(r.firingStatus(source,{...target,x:-spec.range-20},spec,kind,{rocks:[],bystanders:[]}).ok,false);
   }
 });

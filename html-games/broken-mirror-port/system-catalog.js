@@ -54,6 +54,7 @@
     state.orbitalLayoutVersion=revision;
   }
   function initialize(state) {
+    window.nativeBadlands?.reconcile(state);
     reconcileOrbitLayout(state);
     const previous=state.localBodySystem;
     const sameFrame=previous===state.system || previous===undefined&&state.system===1;
@@ -103,6 +104,7 @@
   // This reads catalog geometry only: no artwork, NPCs or asteroid activation.
   function boundary(id) {
     id=physicalId(id);
+    if(id===73&&window.nativeBadlands)return window.nativeBadlands.boundary;
     if(boundaries.has(id))return boundaries.get(id);
     const visible=bodies(id).filter(b=>!b.occludedBy);
     if(!visible.length)return null;

@@ -2,6 +2,12 @@
 
 The live port loads `ship-repairs.js` after the existing civilian life owner. All utility equipment, supplies, calls and missions are saved in the ordinary game save. Existing civilian IDs, Sol freight slots, cargo and treasuries are retained.
 
+Deployed foreign DOTs are selectable through the ordinary player click/target
+cycle and weapon owner. Destruction stops only that DOT's repair work and keeps
+its saved equipment record destroyed. The others continue. Stowed surviving
+DOTs can be taken from a nearby disabled ship through the live looting panel;
+launched or destroyed DOTs cannot. See `ship-looting.md` for controls and ownership.
+
 A disabled hull is alive with its engines offline. Shared damage disables player, civilian and tug hulls at 25% health; zero hull remains destruction. Every hull receives one basic Dot bay slot below 100 t cargo capacity, otherwise two. Three Olympic Class medical crews join the existing `civilianTraffic.ships` population once, with six Dot slots each. The player-owned Olympic also has six; capacities
 and declared starting equipment now come from the shared definition. Hull
 changes resize capacity and retain owned Dots without granting replacements. Their initial 15,000 credits apiece are recorded explicitly as medical capital. Reloading never creates another crew or revives a destroyed ship or Dot.

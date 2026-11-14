@@ -15,6 +15,19 @@ sizes, aligned damage artwork, shared lighting and charge/recharge combat remain
 
 ## Saved equipment and fitting
 
+Disabled-ship looting uses `nativeShipEquipment.transfer` to move an existing
+instance into another holder's locker. Damage, upgrades and recharge deadlines
+survive; only a colliding local ID is renamed. Both fitting projections and shared
+descriptors update in the same clock. A failed verified save reverses the transfer.
+See `ship-looting.md` for live cargo transfers and DOT eligibility.
+
+New Saber and Danube Runabout commissions include their Type X Phaser and one
+Photon Torpedo in the first two weapon bays. Runabout-derived Class 9 and Delta
+Flyer defaults inherit that same fitting. `federation-ships.js` registers the
+shared starting data for players, NPCs and startup/travel workers. The default
+Runabout seed reads `startingEquipment`. Existing saved fittings, unequipped bays
+and equipment transferred during a hull purchase are preserved without reissue.
+
 The finished Federation collection contains 45 animated entries. Forty-three normal
 classes are offered through the existing Mars planet shop, alongside its previous
 stock. The two Constitution variants retain their original Dev-only
@@ -302,6 +315,14 @@ and known policies; full-fleet validation runs in the real browser. Reduced Node
 physics fixtures may omit artwork metadata, but still validate capacities and
 equipment. Four-frame presentation comparisons cover every native ship.
 
+Startup and travel workers receive dimension-only artwork profiles. Ship
+registration must fill missing frame paths and emitter metadata from the shared
+typed artwork data, while retaining complete foreground profiles. Prometheus
+and its three sections follow this rule without importing drawing modules into
+the worker. A truthy profile alone does not guarantee four damage frames exist.
+`prometheus.test.cjs` covers worker/foreground parity; `browser-warp-departure.py`
+requires a successful startup worker and a complete arrival with the full fleet.
+
 ## Save slots and verification
 
 `save-storage.js` stores normal and Dev saves under separate keys ending
@@ -349,7 +370,7 @@ Three upgrades take Mk 1 to Mk 4. Each level adds 20% of the base emergency spee
 thrust and braking, and 10% of base turning and powered handling. A healthy main
 engine's top speed stays unchanged. Upgrade prices are 1,000 / 3,000 / 6,000
 latinum, multiplied by two for hull mass at least 8, or three for mass at least
-32. Thrusters use no equipment slot, ore or refit points. Buy them in the port
+32. Thrusters use no equipment slot or ore. Buy them in the port
 Shop's Services tab or a docked shipyard's Ship Upgrades tab. Inventory's ship
 panel has a fixed Thrusters tile beside the equipment bays, displaying the
 installed Mk and emergency speed across bay pages and other item selections.

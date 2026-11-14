@@ -23,6 +23,7 @@
     return {system:state.system,minX:player.x-r,minY:player.y-r,maxX:player.x+r,maxY:player.y+r};
   }
   function contains(state,location,system=location?.system??state.system,padding=0){
+    if(window.nativeDevTraffic?.excludes(state,location))return false;
     const active=region(state);if(!active)return true;
     return system===active.system&&point(location)&&location.x+padding>=active.minX&&location.y+padding>=active.minY&&location.x-padding<=active.maxX&&location.y-padding<=active.maxY;
   }
@@ -36,6 +37,7 @@
   }
   function isDetailed(state,target,options={}){
     const entity=target?.entity||target,category=options.category||target?.category;
+    if(window.nativeDevTraffic?.excludes(state,target,category))return false;
     // Critical player hull keeps its physical presence, controls and enemy lock.
     // Disabled NPCs retain their existing inactive job/combat policy.
     if(!state||!entity||state.landed||entity.hull<=0||entity.journey||['warp','arriving','destroyed'].includes(entity.phase)||entity.phase==='disabled'&&entity!==state&&category!=='player')return false;

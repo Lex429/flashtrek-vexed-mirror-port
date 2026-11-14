@@ -4,6 +4,9 @@
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const wrap=angle=>Math.atan2(Math.sin(angle),Math.cos(angle));
   const velocity=ship=>({x:Number.isFinite(ship.vx)?ship.vx:Math.cos(ship.heading||0)*(Number(ship.speed)||0),y:Number.isFinite(ship.vy)?ship.vy:Math.sin(ship.heading||0)*(Number(ship.speed)||0)});
+  // Motor speeds are relative to inherited launch velocity, shared by every shooter.
+  const torpedoes=Object.freeze({13:{speed:900,turn:3.2},15:{speed:1350,turn:2.4},16:{speed:1650,turn:2.8},
+    17:{speed:1100,turn:2},18:{speed:1500,turn:2.4},19:{speed:1500,turn:2.8},27:{speed:1350,turn:2.4}});
   function intercept(from,target,speed){
     // Aim in the launcher's translating frame; launch adds that velocity back.
     const targetVelocity=velocity(target),sourceVelocity=velocity(from);
@@ -17,11 +20,13 @@
   }
   // All shooters resolve the same model data. Arc is a half-angle in radians.
   function weaponSpec(weapon,kind,{damageMultiplier=1}={}){
+    const turret=kind==='disruptor'&&([11,12].includes(Number(weapon.id))||/turret|turrent/i.test(weapon.name||''));
+    const motor=kind==='torpedo'?(torpedoes[Number(weapon.id)]||torpedoes[15]):{speed:1800,turn:0};
     return {kind,damage:Math.max(0,Number(weapon.damage)||0)*damageMultiplier,
       range:Math.max(1,Number(weapon.range)||(kind==='beam'?1100:kind==='torpedo'?1500:900)),
-      arc:Math.PI,
+      arc:kind==='beam'||turret?Math.PI:kind==='torpedo'?Math.PI/3:Math.PI/4,mount:kind==='beam'?'beam':turret?'turret':'forward',
       spread:Math.max(0,Number.isFinite(weapon.aimSpread)?weapon.aimSpread:(kind==='beam'?.04:kind==='torpedo'?.055:.045)),
-      speed:kind==='torpedo'?225:340,turn:kind==='torpedo'?.85:0,
+      speed:motor.speed,turn:motor.turn,
       radius:kind==='torpedo'?3:1.4,recharge:Math.max(0,Number(weapon.recharge)||0)/13};
   }
   function circleSweep(from,to,center,radius){
@@ -53,7 +58,9 @@
   }
   function fireEligibility(ship,target,spec,aim,rocks=[],bystanders=[]){
     const dx=aim.x-ship.x,dy=aim.y-ship.y;
-    const distance=Math.max(Math.hypot(dx,dy),Math.hypot(target.x-ship.x,target.y-ship.y));
+    // The rating and HUD describe current world separation. A lead solution in
+    // the launcher's translating frame is a direction, not a second range test.
+    const distance=Math.hypot(target.x-ship.x,target.y-ship.y);
     const inRange=distance<=spec.range,inArc=Math.abs(wrap(Math.atan2(dy,dx)-(ship.heading||0)))<=spec.arc;
     if(!inRange)return {ok:false,reason:'range',distance,inRange,inArc};
     if(!inArc)return {ok:false,reason:'arc',distance,inRange,inArc};
@@ -61,13 +68,15 @@
     // swept contact owner decides what the actual shot reaches first.
     return {ok:true,reason:'ready',distance,inRange,inArc};
   }
-  function launch(ship,target,spec,kind,clock,aimError=0){
-    const aim=intercept(ship,target,spec.speed);
-    const angle=Math.atan2(aim.y-ship.y,aim.x-ship.x)+aimError,inherited=velocity(ship);
-    return {x:ship.x+Math.cos(ship.heading)*spec.muzzle,y:ship.y+Math.sin(ship.heading)*spec.muzzle,
+  function launch(ship,target,spec,kind,clock,aimError=0,origin=null){
+    const inherited=velocity(ship),muzzle=Number(spec.muzzle)||0;
+    origin||={x:ship.x+Math.cos(ship.heading||0)*muzzle,y:ship.y+Math.sin(ship.heading||0)*muzzle};
+    const aim=target?intercept({...origin,vx:inherited.x,vy:inherited.y},target,spec.speed):null;
+    const angle=aim?Math.atan2(aim.y-origin.y,aim.x-origin.x)+aimError:ship.heading||0;
+    return {x:origin.x,y:origin.y,
       vx:inherited.x+Math.cos(angle)*spec.speed,vy:inherited.y+Math.sin(angle)*spec.speed,
       inheritedVx:inherited.x,inheritedVy:inherited.y,age:0,ttl:spec.range/spec.speed+.25,
-      projectile:true,alive:true,turn:spec.turn,radius:spec.radius,speed:spec.speed,launchedAt:clock,kind};
+      projectile:true,alive:true,turn:target?spec.turn:0,radius:spec.radius,speed:spec.speed,launchedAt:clock,kind};
   }
   // Resolve the first physical contact, including objects that were clear at launch.
   function firstContact(from,to,source,target,scene,radii,dimensions,padding=0,{instant=false}={}){
@@ -151,25 +160,19 @@
       return event.age>=event.ttl?{kind:'miss'}:null;
     }
     const terrain=obstacleHit(from,to,rocks,event.radius);
-    const contact=targetSweep(from,to,target,dimensions,radii);
+    const contact=target&&target.targetable!==false?targetSweep(from,to,target,dimensions,radii):null;
     if(terrain&&(contact==null||terrain.t<=contact))return {kind:'blocked',point:{x:from.x+(to.x-from.x)*terrain.t,y:from.y+(to.y-from.y)*terrain.t}};
     if(contact!=null)return {kind:'hit',point:{x:from.x+(to.x-from.x)*contact,y:from.y+(to.y-from.y)*contact}};
     return event.age>=event.ttl?{kind:'miss'}:null;
-  }
-  function blockers(scene,source,target){
-    return [...(scene.rocks||[]).filter(rock=>target.rockId==null||rock.slotId!==target.rockId),
-      ...(scene.bystanders||[]).filter(ship=>ship.id!==source.id&&ship.id!==target.id)
-        .map(ship=>({...ship,size:Math.max(10,ship.radius||15)/.43}))];
   }
   function firingSolution(source,target,spec,kind,scene){
     return firingStatus(source,target,spec,kind,scene).ok;
   }
   function firingStatus(source,target,spec,kind,scene){
     const aim=kind==='beam'?target:intercept(source,target,spec.speed);
-    // Launch clearance historically gives even a tiny hull a 10-unit margin.
-    // The physical index can be smaller, so include that margin in this query.
-    if(kind!=='beam')scene=scene.querySwept?.(source,aim,10,{instant:true})||scene;
-    return fireEligibility(source,target,spec,aim,kind==='beam'?[]:blockers(scene,source,target));
+    // Obstructions do not reject a trigger request. The actual flying shot (or
+    // resolving beam) queries the physical scene and hits its first surface.
+    return fireEligibility(source,target,spec,aim);
   }
   // A short linear forecast is awareness, not a second projectile simulator.
   // The actual shot still flies/homes and applies damage only in stepShot.
@@ -183,12 +186,14 @@
     const contact=firstContact(from,to,{id:event.sourceId},future,predicted,future.radii,future.dimensions,event.radius||0);
     return contact&&String(contact.target.id)===String(target.id)?{timeToImpact:contact.t*remaining,point:contact.point}:null;
   }
-  function startShot(weapon,kind,source,target,clock,muzzle,spec=weaponSpec(weapon,kind)){
-    const event={kind,damage:spec.damage,spec,muzzle,sourceId:source.id,targetId:target.id,launchedAt:clock,alive:true};
+  function startShot(weapon,kind,source,target,clock,muzzle,spec=weaponSpec(weapon,kind),attachment=null){
+    const event={kind,damage:spec.damage,spec,muzzle,sourceId:source.id,targetId:target?.id??null,launchedAt:clock,alive:true};
+    if(!target)event.unguided=true;
+    if(attachment)event.emitter={...attachment};
     // Saved, deterministic aim error changes the physical path. Point-blank
     // shots stay precise; distant shots can actually pass beside a small hull.
-    let seed=2166136261;for(const c of `${source.id}:${target.id}:${(Number(clock)||0).toFixed(6)}`)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;
-    const distance=Math.hypot(target.x-source.x,target.y-source.y),falloff=clamp((distance/spec.range-.3)/.7,0,1);
+    let seed=2166136261;for(const c of `${source.id}:${target?.id??'forward'}:${(Number(clock)||0).toFixed(6)}`)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;
+    const distance=target?Math.hypot(target.x-source.x,target.y-source.y):0,falloff=clamp((distance/spec.range-.3)/.7,0,1);
     event.aimError=((seed/4294967296)*2-1)*(spec.spread||0)*falloff*falloff;
     if(kind==='beam'){
       event.dueAt=clock+.07;
@@ -196,7 +201,7 @@
       const angle=Math.atan2(target.y-event.from.y,target.x-event.from.x);
       event.beamEnd={x:event.from.x+Math.cos(angle)*spec.range,y:event.from.y+Math.sin(angle)*spec.range};
     }
-    else Object.assign(event,launch(source,target,{...spec,muzzle},kind,clock,event.aimError));
+    else Object.assign(event,launch(source,target,{...spec,muzzle},kind,clock,event.aimError,emitter(source,event)));
     return event;
   }
   function stepShot(event,source,target,scene,clock,dt,radii,dimensions){
