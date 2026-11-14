@@ -48,8 +48,11 @@ try:
   # Drain the admitted active tail; renderer diagnostic counters can still grow
   # when the same frozen weather is repainted behind the pause panel.
   page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+  # Finish gas-worker jobs admitted before Pause before taking the frozen
+  # snapshot; their asynchronous publication is not a new weather step.
+  page.evaluate('()=>nativeDevFog.material().field.flush()')
   pause_read='''()=>{const f=nativeDevFog.snapshot().fire,s=nativeDevFog.snapshot().storm;return JSON.stringify({fireClock:f.clock,fronts:f.fronts,stormClock:s.clock,flashes:s.flashes,field:nativeDevFog.material().field.revision});}'''
-  paused=page.evaluate(pause_read);page.wait_for_timeout(150);assert page.evaluate(pause_read)==paused
+  paused=page.evaluate(pause_read);page.wait_for_timeout(150);after=page.evaluate(pause_read);assert after==paused,{'before':json.loads(paused),'after':json.loads(after)}
   page.evaluate('''()=>{const raf=requestAnimationFrame.bind(window);window.requestAnimationFrame=fn=>fn.name==='draw'?0:raf(fn);}''')
   page.wait_for_timeout(100)
   report['pixels']=page.evaluate('''()=>{

@@ -27,16 +27,37 @@ for clip in manifest['sounds']:
     assert hashlib.sha256(data).hexdigest()==clip['sha256']
     assert clip['seekSamples']==1661 and clip['sampleRate']==11025
 
+AUDIO_WORKLET=r"""
+    registerProcessor('menu-pcm-peak',class extends AudioWorkletProcessor{
+      constructor(){super();this.peak=0;}
+      process(inputs,outputs){
+        const input=inputs[0]||[],output=outputs[0]||[];let peak=this.peak;
+        for(const channel of input)for(const value of channel)peak=Math.max(peak,Math.abs(value));
+        for(let i=0;i<output.length;i++){const source=input[i]||input[0];if(source)output[i].set(source);else output[i].fill(0);}
+        if(peak>this.peak){this.peak=peak;this.port.postMessage(peak);}return true;
+      }
+    });"""
 AUDIO_PROBE=r"""(() => {
   const proto=AudioContext.prototype,create=proto.createGain;
-  window.menuAudioProbes=[];
+  window.menuAudioProbes=[];window.menuAudioReady=[];
+  // Capture real PCM on the audio thread: a busy composited menu frame can
+  // prevent main-thread timers from sampling an entire short hover clip.
+  const module=URL.createObjectURL(new Blob([__PCM_WORKLET__],{type:'application/javascript'}));
+  const Context=window.AudioContext;
+  window.AudioContext=function(...args){const context=new Context(...args);
+    menuAudioReady.push(context.audioWorklet.addModule(module).then(()=>{context.__menuPeakReady=true;}));return context;};
+  window.AudioContext.prototype=proto;
   proto.createGain=function(...args){
     const gain=create.apply(this,args),connect=gain.connect.bind(gain),context=this;
     gain.connect=(target,...rest)=>{
       if(target!==context.destination)return connect(target,...rest);
       const analyser=context.createAnalyser();analyser.fftSize=1024;
       const probe={gain,analyser,peak:0};menuAudioProbes.push(probe);
-      connect(analyser);return analyser.connect(target);
+      connect(analyser);
+      if(context.__menuPeakReady){const meter=new AudioWorkletNode(context,'menu-pcm-peak');
+        meter.port.onmessage=event=>{probe.peak=Math.max(probe.peak,event.data);};
+        analyser.connect(meter);return meter.connect(target);}
+      return analyser.connect(target);
     };
     return gain;
   };
@@ -47,14 +68,16 @@ AUDIO_PROBE=r"""(() => {
     }
     return menuAudioProbes.map(p=>({gain:p.gain.gain.value,peak:p.peak}));
   };
-})();"""
+})();""".replace('__PCM_WORKLET__',json.dumps(AUDIO_WORKLET))
 
 errors=[];failed=[];report={}
 try:
     with sync_playwright() as p:
         channel=os.environ.get('BROWSER_CHANNEL','msedge')
         browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
-        page=browser.new_page(viewport={'width':1440,'height':1000})
+        # The PCM observer is a test-only blob worklet. The later uninstrumented
+        # reduced-motion/touch pages retain the application's normal CSP.
+        page=browser.new_page(viewport={'width':1440,'height':1000},bypass_csp=True)
         page.add_init_script(AUDIO_PROBE)
         page.on('pageerror',lambda e:errors.append(str(e)))
         page.on('response',lambda r:failed.append(f'{r.status} {r.url}') if r.status>=400 else None)
@@ -68,6 +91,7 @@ try:
         assert not page.evaluate('nativeMenuTransition.snapshot().active')
         page.locator('#menu-sound-toggle').click();page.locator('#menu-sound-toggle').click()
         page.wait_for_function('()=>nativeMenuSounds.snapshot().decoded.length===3&&nativeMenuSounds.snapshot().state==="running"')
+        page.evaluate('()=>Promise.all(menuAudioReady)')
         # Retain PCM peaks while Playwright waits for the hover action's
         # composited frames; a short sound can finish before hover() returns.
         page.evaluate('()=>{window.__menuPeakTimer=setInterval(scanMenuAudio,5);}')
