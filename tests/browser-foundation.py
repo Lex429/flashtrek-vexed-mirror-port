@@ -251,9 +251,9 @@ def main():
             channel=os.environ.get('BROWSER_CHANNEL','msedge');browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
             page=browser.new_page(viewport={'width':1280,'height':850});page.on('pageerror',lambda error:errors.append(str(error)))
             page.add_init_script("{const raf=requestAnimationFrame.bind(window);window.requestAnimationFrame=callback=>callback.name==='draw'&&(!window.__nativeFrame||window.__nativeFrame===callback)?(window.__nativeFrame=callback,0):raf(callback);}")
-            page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+            page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
             page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
-            page.evaluate('startNativeDevGame()');page.wait_for_function('()=>nativeSolAsteroids.placements.length && nativeCivilianTraffic.effectsReady()',timeout=120000)
+            page.evaluate('startNativeDevGame()');page.wait_for_function('()=>nativeSolAsteroids.placements.length && window.__testPlayerArtReady()',timeout=120000)
             gates=page.evaluate(GATE_SCENARIO)
             service=page.evaluate(SERVICE_SCENARIO)
             result=page.evaluate(SCENARIO);result['backgroundService']=service;result['activeTimeGates']=gates;assert not errors,errors

@@ -32,9 +32,10 @@ try:
         channel=os.environ.get('BROWSER_CHANNEL','msedge')
         browser = p.chromium.launch(headless=True, **({'channel':channel} if channel else {}))
         page = browser.new_page(viewport={'width': 1280, 'height': 850})
+        page.set_default_timeout(120000)
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('response', lambda response: failed.append(response.url) if response.status >= 400 else None)
-        page.goto(base + '/html-games/broken-mirror-port/index.html')
+        page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(base + '/html-games/broken-mirror-port/index.html')
         page.wait_for_function('() => window.nativeCombatShots?.isReady() && document.querySelector("#startup").hidden', timeout=90000)
         page.evaluate("""() => {
           const advance=nativeCivilianTraffic.advance;
@@ -46,7 +47,7 @@ try:
           mark(vexedSpace,'planetLight','planet');mark(nativeSolEconomy,'paint','freighter');mark(nativeCivilianTraffic,'paint','civilian');
           startNativeDevGame();
         }""")
-        page.wait_for_function('() => window.__flightState && window.__layers.includes("civilian") && nativeCivilianTraffic.effectsReady() && nativeSolAsteroids.placements.length', timeout=120000)
+        page.wait_for_function('() => window.__flightState && window.__layers.includes("civilian") && window.__testPlayerArtReady() && nativeSolAsteroids.placements.length', timeout=120000)
         layers = page.evaluate('window.__layers')
         assert max(i for i, layer in enumerate(layers) if layer == 'planet') < layers.index('freighter'), layers
         assert layers.index('freighter') < layers.index('civilian'), layers
@@ -158,6 +159,7 @@ try:
         assert shielded['nearbyShip']['hull'] == 100 and shielded['nearbyShip']['shields'] == 100
         page.screenshot(path=str(OUTPUT / 'showcase-shield-impact.png'))
         page.locator('#repair').click()
+        page.wait_for_function('()=>window.showcaseState().ready&&!document.querySelector("#destroy").disabled',timeout=120000)
         page.locator('[data-workspace-page="impacts"]:visible').click()
         page.locator('#debris-target-shields').uncheck()
         page.locator('[data-workspace-page="hull"]:visible').click()

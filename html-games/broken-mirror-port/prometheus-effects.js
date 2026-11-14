@@ -72,7 +72,7 @@
   const z=view.zoom||1,d=pose(lead),ships=[lead,...escorts],coupling=g.mode==='separating'||g.mode==='recalling';
   ctx.save();ctx.translate(view.cx-view.ship.x*z,view.cy-view.ship.y*z);ctx.scale(z,z);ctx.globalCompositeOperation='screen';
   for(const ship of ships){
-    if(!joined)plume(ctx,ship,at,docking,histories.get(state)?.get(ship.id),layer);
+    if(!joined||g.assembly)plume(ctx,ship,at,docking,histories.get(state)?.get(ship.id),layer);
   }
   if(layer!=='under'){
    if(g.mode==='separating'){
@@ -83,7 +83,7 @@
     const strength=docking?.3+.7*clamp((at-g.dockingAt)/1.65):.22+.12*Math.sin(at*5);
     locks(ctx,lead,at,strength,true);
    }
-   if(joined&&g.joinedAt!=null){
+   if(joined&&!g.assembly&&g.joinedAt!=null){
     const p=(at-g.joinedAt)/.85;if(p>=0&&p<1)locks(ctx,lead,at,(1-p)*.9,true);
    }
   }

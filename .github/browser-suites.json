@@ -4,32 +4,112 @@
     "run": "python tests/browser-smoke.py"
   },
   {
-    "name": "Optional opening film, current shared effects and complete playback",
-    "run": "python tests/browser-opening-frame-pacing.py\npython tests/browser-opening-cinematic.py\npython tests/browser-opening-campaign.py --continuous\n"
+    "name": "Optional opening film, current shared effects and complete playback / tests/browser-opening-frame-pacing.py",
+    "run": "python tests/browser-opening-frame-pacing.py"
   },
   {
-    "name": "Physical faction shipyards, saved docking and shared outfitting",
-    "run": "python tests/browser-faction-shipyards.py\npython tests/browser-shipyard.py\npython tests/browser-mars-inline-upgrades.py\npython tests/browser-mars-material-clarity.py\npython tests/browser-mars-material-layout.py\npython tests/browser-mars-upgrade-effects.py\npython tests/browser-shipyard-equipment.py\n"
+    "name": "Optional opening film, current shared effects and complete playback / tests/browser-opening-cinematic.py",
+    "run": "python tests/browser-opening-cinematic.py"
   },
   {
-    "name": "Beam attachments and shield/hull alignment in a real browser",
-    "run": "python tests/browser-ship-contract.py\npython tests/browser-player-destruction.py\npython tests/browser-reincarnation.py\n"
+    "name": "Optional opening film, current shared effects and complete playback / tests/browser-opening-campaign.py --continuous",
+    "run": "python tests/browser-opening-campaign.py --continuous"
+  },
+  {
+    "name": "Physical faction shipyards, saved docking and shared outfitting / tests/browser-faction-shipyards.py",
+    "run": "python tests/browser-faction-shipyards.py"
+  },
+  {
+    "name": "Physical faction shipyards, saved docking and shared outfitting / tests/browser-shipyard.py",
+    "run": "python tests/browser-shipyard.py"
+  },
+  {
+    "name": "Physical faction shipyards, saved docking and shared outfitting / tests/browser-mars-inline-upgrades.py",
+    "run": "python tests/browser-mars-inline-upgrades.py"
+  },
+  {
+    "name": "Physical faction shipyards, saved docking and shared outfitting / tests/browser-mars-material-clarity.py",
+    "run": "python tests/browser-mars-material-clarity.py"
+  },
+  {
+    "name": "Physical faction shipyards, saved docking and shared outfitting / tests/browser-mars-material-layout.py",
+    "run": "python tests/browser-mars-material-layout.py"
+  },
+  {
+    "name": "Physical faction shipyards, saved docking and shared outfitting / tests/browser-mars-upgrade-effects.py",
+    "run": "python tests/browser-mars-upgrade-effects.py"
+  },
+  {
+    "name": "Physical faction shipyards, saved docking and shared outfitting / tests/browser-shipyard-equipment.py",
+    "run": "python tests/browser-shipyard-equipment.py"
+  },
+  {
+    "name": "Beam attachments and shield/hull alignment in a real browser / tests/browser-ship-contract.py",
+    "run": "python tests/browser-ship-contract.py"
+  },
+  {
+    "name": "Beam attachments and shield/hull alignment in a real browser / tests/browser-player-destruction.py",
+    "run": "python tests/browser-player-destruction.py"
+  },
+  {
+    "name": "Beam attachments and shield/hull alignment in a real browser / tests/browser-reincarnation.py",
+    "run": "python tests/browser-reincarnation.py"
   },
   {
     "name": "Rearward beam targeting, physical interception and rotating shield contacts",
     "run": "python tests/browser-beam-targeting.py"
   },
   {
+    "name": "Full-roster weapon mounts, aligned damage frames and visible launches",
+    "run": "python tests/browser-weapon-mounts.py"
+  },
+  {
     "name": "Retained GPU shield pixels, default gameplay, pause and context recovery",
     "run": "python tests/browser-shield-gpu-visuals.py --output test-results/shield-gpu-design\npython tests/browser-shield-gpu-live.py\ngit fetch --no-tags --depth=1 origin ab5bb2504957c1de4cf239bfee882b810e1128e2\nmkdir -p test-results/shield-cinematic-baseline\ngit show ab5bb2504957c1de4cf239bfee882b810e1128e2:html-games/flashtrek-broken-mirror/shield-gpu.js > test-results/shield-cinematic-baseline/shield-gpu.js\npython tests/browser-shield-cinematic.py --baseline test-results/shield-cinematic-baseline --output test-results/shield-cinematic\n"
   },
   {
-    "name": "Civilian live-shot awareness, survival policies and preserved jobs",
-    "run": "python tests/browser-civilian-tactics.py\npython tests/browser-faction-defence.py\n"
+    "name": "Civilian live-shot awareness, survival policies and preserved jobs / tests/browser-civilian-tactics.py",
+    "run": "python tests/browser-civilian-tactics.py"
   },
   {
-    "name": "Held fire, steering-preserving selection and fitted weapon feedback",
-    "run": "python tests/browser-combat-controls.py\npython tests/browser-gamepad-controls.py\npython tests/browser-controller-map.py\npython tests/browser-controller-haptics.py\npython tests/browser-dualsense-hid.py\npython tests/browser-projectile-flight.py\npython tests/browser-shield-maintenance.py\npython tests/browser-engine-failure.py\npython tests/browser-thrusters.py\n"
+    "name": "Civilian live-shot awareness, survival policies and preserved jobs / tests/browser-faction-defence.py",
+    "run": "python tests/browser-faction-defence.py"
+  },
+  {
+    "name": "Held fire, steering-preserving selection and fitted weapon feedback / tests/browser-combat-controls.py",
+    "run": "python tests/browser-combat-controls.py"
+  },
+  {
+    "name": "Held fire, steering-preserving selection and fitted weapon feedback / tests/browser-gamepad-controls.py",
+    "run": "python tests/browser-gamepad-controls.py"
+  },
+  {
+    "name": "Held fire, steering-preserving selection and fitted weapon feedback / tests/browser-controller-map.py",
+    "run": "python tests/browser-controller-map.py"
+  },
+  {
+    "name": "Held fire, steering-preserving selection and fitted weapon feedback / tests/browser-controller-haptics.py",
+    "run": "python tests/browser-controller-haptics.py"
+  },
+  {
+    "name": "Held fire, steering-preserving selection and fitted weapon feedback / tests/browser-dualsense-hid.py",
+    "run": "python tests/browser-dualsense-hid.py"
+  },
+  {
+    "name": "Held fire, steering-preserving selection and fitted weapon feedback / tests/browser-projectile-flight.py",
+    "run": "python tests/browser-projectile-flight.py"
+  },
+  {
+    "name": "Held fire, steering-preserving selection and fitted weapon feedback / tests/browser-shield-maintenance.py",
+    "run": "python tests/browser-shield-maintenance.py"
+  },
+  {
+    "name": "Held fire, steering-preserving selection and fitted weapon feedback / tests/browser-engine-failure.py",
+    "run": "python tests/browser-engine-failure.py"
+  },
+  {
+    "name": "Held fire, steering-preserving selection and fitted weapon feedback / tests/browser-thrusters.py",
+    "run": "python tests/browser-thrusters.py"
   },
   {
     "name": "Reverse, exact stop, turnaround and contextual long-range targeting",
@@ -136,12 +216,32 @@
     "run": "python tests/browser-ship-padding.py"
   },
   {
-    "name": "Setup showcase lighting, animation lifecycle and screen fit",
-    "run": "python tests/browser-setup-preview.py\npython tests/browser-setup-animations.py\npython tests/browser-setup-showcase.py\npython tests/browser-menu-transition.py\npython tests/browser-menu-emblem.py\n"
+    "name": "Setup showcase lighting, animation lifecycle and screen fit / tests/browser-setup-preview.py",
+    "run": "python tests/browser-setup-preview.py"
   },
   {
-    "name": "Typed equipment, real hull purchases, six drone bays and mode-separated saves",
-    "run": "python tests/browser-unified-equipment.py\npython tests/browser-starter-torpedoes.py\n"
+    "name": "Setup showcase lighting, animation lifecycle and screen fit / tests/browser-setup-animations.py",
+    "run": "python tests/browser-setup-animations.py"
+  },
+  {
+    "name": "Setup showcase lighting, animation lifecycle and screen fit / tests/browser-setup-showcase.py",
+    "run": "python tests/browser-setup-showcase.py"
+  },
+  {
+    "name": "Setup showcase lighting, animation lifecycle and screen fit / tests/browser-menu-transition.py",
+    "run": "python tests/browser-menu-transition.py"
+  },
+  {
+    "name": "Setup showcase lighting, animation lifecycle and screen fit / tests/browser-menu-emblem.py",
+    "run": "python tests/browser-menu-emblem.py"
+  },
+  {
+    "name": "Typed equipment, real hull purchases, six drone bays and mode-separated saves / tests/browser-unified-equipment.py",
+    "run": "python tests/browser-unified-equipment.py"
+  },
+  {
+    "name": "Typed equipment, real hull purchases, six drone bays and mode-separated saves / tests/browser-starter-torpedoes.py",
+    "run": "python tests/browser-starter-torpedoes.py"
   },
   {
     "name": "Destructible DOTs, live cargo theft, controller looting and saved belongings",
@@ -156,16 +256,44 @@
     "run": "python tests/browser-constitution-ships.py"
   },
   {
-    "name": "Finished animated Federation roster, purchases, NPCs and saved hulls",
-    "run": "python tests/browser-federation-ships.py\npython tests/browser-federation-npcs.py\npython tests/browser-faction-fleets.py\npython tests/browser-ferengi-response.py\npython tests/browser-orion-faction.py\n"
+    "name": "Finished animated Federation roster, purchases, NPCs and saved hulls / tests/browser-federation-ships.py",
+    "run": "python tests/browser-federation-ships.py"
   },
   {
-    "name": "Animated GPU lamps preserve original hull and damage pixels",
-    "run": "python tests/browser-ship-lamps.py\nVEXED_LIGHTING_WORKER_FAILURE=1 python tests/browser-ship-lamps.py\n"
+    "name": "Finished animated Federation roster, purchases, NPCs and saved hulls / tests/browser-federation-npcs.py",
+    "run": "python tests/browser-federation-npcs.py"
   },
   {
-    "name": "Inventory mouse and touch dragging",
-    "run": "python tests/browser-inventory-upgrade.py\npython tests/browser-inventory-fit.py\npython tests/browser-inventory-drag.py\n"
+    "name": "Finished animated Federation roster, purchases, NPCs and saved hulls / tests/browser-faction-fleets.py",
+    "run": "python tests/browser-faction-fleets.py"
+  },
+  {
+    "name": "Finished animated Federation roster, purchases, NPCs and saved hulls / tests/browser-ferengi-response.py",
+    "run": "python tests/browser-ferengi-response.py"
+  },
+  {
+    "name": "Finished animated Federation roster, purchases, NPCs and saved hulls / tests/browser-orion-faction.py",
+    "run": "python tests/browser-orion-faction.py"
+  },
+  {
+    "name": "Animated GPU lamps preserve original hull and damage pixels / tests/browser-ship-lamps.py",
+    "run": "python tests/browser-ship-lamps.py"
+  },
+  {
+    "name": "Animated GPU lamps preserve original hull and damage pixels / tests/browser-ship-lamps.py",
+    "run": "VEXED_LIGHTING_WORKER_FAILURE=1 python tests/browser-ship-lamps.py"
+  },
+  {
+    "name": "Inventory mouse and touch dragging / tests/browser-inventory-upgrade.py",
+    "run": "python tests/browser-inventory-upgrade.py"
+  },
+  {
+    "name": "Inventory mouse and touch dragging / tests/browser-inventory-fit.py",
+    "run": "python tests/browser-inventory-fit.py"
+  },
+  {
+    "name": "Inventory mouse and touch dragging / tests/browser-inventory-drag.py",
+    "run": "python tests/browser-inventory-drag.py"
   },
   {
     "name": "Earth bonus items, transporter reveal and saved collection",
@@ -212,8 +340,12 @@
     "run": "python tests/browser-startup-recovery.py --seconds 1 --label ci"
   },
   {
-    "name": "Live Dot repair nozzles, saved simulation, hull restoration and destruction",
-    "run": "python tests/browser-ship-repairs.py\npython tests/browser-fleet-repairs.py\n"
+    "name": "Live Dot repair nozzles, saved simulation, hull restoration and destruction / tests/browser-ship-repairs.py",
+    "run": "python tests/browser-ship-repairs.py"
+  },
+  {
+    "name": "Live Dot repair nozzles, saved simulation, hull restoration and destruction / tests/browser-fleet-repairs.py",
+    "run": "python tests/browser-fleet-repairs.py"
   },
   {
     "name": "Audited Earth traffic jam in local flight and Dev inspector",
@@ -248,8 +380,92 @@
     "run": "python tests/browser-render-paths.py --visual-only --label ci"
   },
   {
-    "name": "Planet limbs, smooth eclipses and stable system illumination",
-    "run": "python tests/browser-star-comfort.py\npython tests/browser-planet-lighting.py --label ci\npython tests/browser-background-suns.py\npython tests/browser-regional-starfield.py\npython tests/browser-parallax-nebulae.py\npython tests/browser-badlands.py\npython tests/browser-badlands-approach.py\npython tests/browser-badlands-blending.py\npython tests/browser-nebula-presentation.py\npython tests/browser-nebula-texture.py\npython tests/browser-nebula-flow-debt.py\npython tests/browser-fleet-fog.py --catalog-stages 0,1,2,3\npython tests/browser-intrepid-fog.py\npython tests/browser-sol-fog-colors.py\npython tests/browser-dev-nebula-storm.py\npython tests/browser-lightning-composite.py\npython tests/browser-nebula-fire-storm.py --serve\npython tools/build-nebula-asteroids.py --check\npython tests/browser-nebula-asteroids.py --serve\npython tests/browser-badlands-currents.py --serve\npython tests/browser-badlands-weather.py --serve\npython tests/browser-plasma-vortices.py\n"
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-star-comfort.py",
+    "run": "python tests/browser-star-comfort.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-planet-lighting.py --label ci",
+    "run": "python tests/browser-planet-lighting.py --label ci"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-background-suns.py",
+    "run": "python tests/browser-background-suns.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-regional-starfield.py",
+    "run": "python tests/browser-regional-starfield.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-parallax-nebulae.py",
+    "run": "python tests/browser-parallax-nebulae.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-badlands.py",
+    "run": "python tests/browser-badlands.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-badlands-approach.py",
+    "run": "python tests/browser-badlands-approach.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-badlands-blending.py",
+    "run": "python tests/browser-badlands-blending.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-nebula-presentation.py",
+    "run": "python tests/browser-nebula-presentation.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-nebula-texture.py",
+    "run": "python tests/browser-nebula-texture.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-nebula-flow-debt.py",
+    "run": "python tests/browser-nebula-flow-debt.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-fleet-fog.py --catalog-stages 0,1,2,3",
+    "run": "python tests/browser-fleet-fog.py --catalog-stages 0,1,2,3"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-intrepid-fog.py",
+    "run": "python tests/browser-intrepid-fog.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-sol-fog-colors.py",
+    "run": "python tests/browser-sol-fog-colors.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-dev-nebula-storm.py",
+    "run": "python tests/browser-dev-nebula-storm.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-lightning-composite.py",
+    "run": "python tests/browser-lightning-composite.py"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-nebula-fire-storm.py --serve",
+    "run": "python tests/browser-nebula-fire-storm.py --serve"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tools/build-nebula-asteroids.py --check",
+    "run": "python tools/build-nebula-asteroids.py --check"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-nebula-asteroids.py --serve",
+    "run": "python tests/browser-nebula-asteroids.py --serve"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-badlands-currents.py --serve",
+    "run": "python tests/browser-badlands-currents.py --serve"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-badlands-weather.py --serve",
+    "run": "python tests/browser-badlands-weather.py --serve"
+  },
+  {
+    "name": "Planet limbs, smooth eclipses and stable system illumination / tests/browser-plasma-vortices.py",
+    "run": "python tests/browser-plasma-vortices.py"
   },
   {
     "name": "Retained canvas layout follows real viewport and footer changes",
@@ -258,5 +474,25 @@
   {
     "name": "Cold damage artwork, pause and map preparation boundaries",
     "run": "python tests/browser-stability.py --label ci"
+  },
+  {
+    "name": "Prometheus section survival, original hardware and reconstruction / tests/browser-prometheus.py",
+    "run": "python tests/browser-prometheus.py"
+  },
+  {
+    "name": "Prometheus section survival, original hardware and reconstruction / tests/browser-prometheus-survival.py",
+    "run": "python tests/browser-prometheus-survival.py"
+  },
+  {
+    "name": "Prometheus moving separation and docking",
+    "run": "python tests/browser-prometheus-moving.py"
+  },
+  {
+    "name": "Prometheus independent escort manoeuvres",
+    "run": "python tests/browser-prometheus-escorts.py"
+  },
+  {
+    "name": "Prometheus separation animation",
+    "run": "python tests/browser-prometheus-animation.py"
   }
 ]

@@ -118,10 +118,11 @@ def main():
                 first_frame_ms=page.evaluate('async()=>{await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));return performance.now()-__startupAt;}') if args.executable else None
                 page.evaluate('()=>{window.__startupKeyDownAt=performance.now();window.__startupModelResponseAt=0;}')
                 page.keyboard.down('w')
-                page.wait_for_timeout(200)
-                page.keyboard.up('w')
+                try:
+                    page.wait_for_function('()=>__npcPerfState.speed>0',timeout=15000)
+                finally:
+                    page.keyboard.up('w')
                 released_before_response=page.evaluate('__npcPerfState.speed===0')
-                page.wait_for_function('()=>__npcPerfState.speed>0',timeout=5000)
                 input_response_ms=page.evaluate('(__startupModelResponseAt||performance.now())-__startupKeyDownAt')
                 input_result=page.evaluate('({latencies:__startupInput,speed:__npcPerfState.speed})')
                 assert input_result['speed']>0,{**input_result,'javascriptErrors':errors,'failedResponses':failed,'focus':page.evaluate('({hidden:document.hidden,visibility:document.visibilityState,focused:document.hasFocus(),active:document.activeElement?.id,blocked:nativeSimulation.blocked(),frames:__npcPerf.frames.length,clock:nativeSimulation.seconds(__npcPerfState)})')}

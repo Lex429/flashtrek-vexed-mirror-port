@@ -300,8 +300,9 @@ rebuild a delivery tug or start a conversation.
 
 Active beams transform the selected emitter-local offset with the shooter's current
 world pose. Beam weapons have a full 360-degree arc for every controller. Native
-hulls expose forward `emitters.beam` and rear `emitters.beamAft` banks; firing selects
-the configured bank nearest the lock. Custom hulls may supply a single beam bank.
+hulls expose forward `emitters.beam` and rear `emitters.beamAft` banks. The explicit
+`beamBanks` list also supports lateral arrays; firing selects the configured bank
+nearest the lock. Custom hulls may still supply a single beam bank.
 `weapon-rules.beamTrace` aims from that bank at the target's current world position,
 limited by weapon range, and finds the first current physical shield, hull or rock.
 The 70 ms resolution delay and owned recharge deadlines remain unchanged. Beams
@@ -336,6 +337,26 @@ hull centre when unspecified. Current world separation controls range feedback;
 the translated lead point controls aim, not an additional range rejection.
 Damage, recharge, first-surface sweeps and existing saved projectile profiles
 remain authoritative. Old flying shots keep their saved speeds and guidance.
+
+`ship-weapon-mounts.js` supplies artwork-relative hardware for all 89 native hulls,
+including named variants and the three Prometheus sections. Its source pixel
+coordinates refer to the aligned intact frame, not the raw image or an effect
+glow. The render-free table loads before definitions in the game, worker,
+scale viewer and effect lab. Definitions remain the source consumed by firing.
+`cannonBanks`, `torpedoBanks` and `turretBanks` distinguish wing guns, tubes and
+deck weapons; the existing saved event sequence selects multiple cannon outlets.
+The selected local point is attached before lead calculation and stays in the
+saved shot. Partial Prometheus reconstruction rebases both single mounts and
+bank arrays into the surviving assembly frame. Damage plates share that frame.
+
+Legacy Thaleron (26) and Magnetorp (27) select the existing green beam and photon
+visuals respectively, retaining their own damage and recharge. These mappings
+repair missing effects without adding a separate weapon renderer. Run
+`node --test tests/weapon-mounts.test.cjs` and
+`python tests/browser-weapon-mounts.py`, alongside the existing beam, projectile,
+equipment, Prometheus and warp suites. The browser regression checks solid
+intact-hull outlets, all four aligned plates, real owned launches and actual
+Canvas pixels for player and NPC roles, and writes a complete firing gallery.
 
 Unlocked manual fire explicitly calls `combat-shots.fire` / `fireFor` with
 `forward:true` and no target. The shared equipment owner admits ready disruptors

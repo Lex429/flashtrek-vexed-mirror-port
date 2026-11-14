@@ -29,11 +29,11 @@ try:
           window.requestAnimationFrame=callback=>{if(callback.name==='draw')window.__shieldFrame=callback;return raf(callback);};
         })();""")
         url = f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html'
-        page.goto(url)
+        page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(url)
         page.wait_for_function('() => window.vexedShieldGPU?.available && nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
         assert page.locator('#gpu-shield-overlay').count() == 1
         page.evaluate('startNativeDevGame()')
-        page.wait_for_function('() => nativeNpcDev.getState() && nativeCivilianTraffic.effectsReady()', timeout=120000)
+        page.wait_for_function('() => nativeNpcDev.getState() && window.__testPlayerArtReady()', timeout=120000)
         page.evaluate('window.requestAnimationFrame=()=>0')
         page.wait_for_timeout(100)
         initial = page.evaluate("""() => {

@@ -18,7 +18,6 @@ try:
   page.wait_for_function('()=>nativeShipyardServices.docked&&nativeShipyardServices.active')
   def buy(kind):
    control=page.locator(f'[data-yard-action="buy-upgrade"][data-kind="{kind}"]')
-   if not control.count():page.locator(f'.mars-overview-card[data-upgrade-card="{kind}"]').click()
    return control
   def reset():
    page.evaluate('''()=>{nativeShipyardServices.close();const s=__gearState;s.minerals={};s.solFreightHold={};s.deuranium=0;const result=nativeShipEquipment.changeHull(s,7);if(!result.ok)throw Error(result.error);Object.assign(s,{latinum:1000000,dilithium:1000,minerals:{tritanium:1000,deuranium:1000,trellium:1000,gallicite:1000,benamite:1000},phase:'docked',landed:true});nativeShipyardServices.select();}''')
@@ -33,6 +32,10 @@ try:
    assert 'UPGRADE INSTALLED' in fx.inner_text()
    assert page.locator('.mars-upgrade-choice').count()==9
    assert fx.evaluate('n=>n.querySelectorAll("*").length')<=65
+   assert page.locator(f'[data-upgrade-card="{kind}"] .mars-tier-bar[data-installed-upgrade="tier"]').count()==1
+   assert page.locator('.mars-install-ray>b').count()==3 and page.locator('.mars-install-lock>i').count()==4
+   assert fx.locator('.mars-install-tier-bar').count()==actual['max']
+   assert fx.locator('.mars-install-tier-bar.installed').count()==actual['level']
    return actual
   # Failed settlement never displays success or changes the tier/resources.
   original=page.evaluate('()=>({latinum:__gearState.latinum,refits:__gearState.shipRefit||null})')
@@ -50,6 +53,8 @@ try:
    page.evaluate('()=>{window.__effectNode=document.querySelector(".mars-install-fx");nativeShipyardServices.render();}')
    assert page.evaluate('()=>document.querySelector(".mars-install-fx")===__effectNode')
    if kind=='hull':
+    assert page.locator('[data-ship-stat="hull"] .mars-installed-old').inner_text()==str(before['value'])
+    assert page.locator('[data-ship-stat="hull"] strong>b').inner_text()==str(actual['value'])
     page.locator('.mars-install-fx').evaluate('n=>n.getAnimations({subtree:true}).forEach(a=>{a.pause();a.currentTime=550;})')
     page.screenshot(path=str(OUT/'01-installation-burst.png'))
     page.locator('.mars-install-fx').evaluate('n=>n.getAnimations({subtree:true}).forEach(a=>a.play())')
@@ -76,6 +81,7 @@ try:
      const control=root.querySelector('[data-yard-action="close"]'),cb=control.getBoundingClientRect(),hit=document.elementFromPoint(cb.x+cb.width/2,cb.y+cb.height/2);
      return {fails:fail,aligned:Math.abs(b.left-r.left)<1&&Math.abs(b.top-r.top)<1&&Math.abs(b.width-r.width)<1&&Math.abs(b.height-r.height)<1,clear:hb.right<=actions.left+1,closeAccessible:control===hit||control.contains(hit)};}''')
    assert not layout['fails'] and layout['aligned'] and layout['clear'] and layout['closeAccessible'],(w,h,mode,layout)
+   assert page.locator('.mars-install-card-clip').evaluate("""clip=>{const a=clip.getBoundingClientRect(),b=document.querySelector('.yard-catalog').getBoundingClientRect();return Math.abs(a.left-b.left)<1&&Math.abs(a.top-b.top)<1&&Math.abs(a.width-b.width)<1&&Math.abs(a.height-b.height)<1&&getComputedStyle(clip).overflow==='hidden';}""")
    page.locator('.mars-install-fx').evaluate('n=>n.getAnimations({subtree:true}).forEach(a=>{a.pause();a.currentTime=550;})')
    page.screenshot(path=str(OUT/f'install-{w}x{h}-{mode}.png'))
    layouts.append({'width':w,'height':h,'mode':mode})
@@ -85,12 +91,13 @@ try:
   reset();buy('cargo').click();page.locator('[data-yard-tab="materials"]').click();assert page.locator('.mars-install-fx').count()==0
   page.locator('[data-yard-tab="upgrades"]').click()
   reset();buy('hull').click();page.locator('.mars-install-fx').wait_for(state='detached',timeout=6000)
-  assert page.locator('[data-installed-upgrade]').count()==0
+  assert page.locator('[data-installed-upgrade],.mars-installed-old').count()==0
   # Reduced motion retains a clear static success receipt without moving effects.
   page.emulate_media(reduced_motion='reduce');reset();buy('hull').click()
   assert page.locator('.mars-install-announcement').is_visible()
   assert page.locator('.mars-install-fx').evaluate('n=>n.getAnimations({subtree:true}).length')==0
   assert page.locator('.mars-install-rings').evaluate('n=>getComputedStyle(n).display')=='none'
+  assert page.locator('.mars-tier-bar[data-installed-upgrade]').evaluate('n=>n.getAnimations().length')==0
   page.screenshot(path=str(OUT/'reduced-motion.png'))
   page.locator('[data-yard-action="close"]').click();assert page.locator('.mars-install-fx').count()==0
   assert not report['errors'];report.update(passed=True,receipts=receipts,failedPurchaseHasNoSuccess=True,rerenderPreservesEffects=True,rapidPurchases=True,controlsRemainUsable=True,automaticCleanup=True,reducedMotion=True,layouts=layouts);browser.close()

@@ -18,10 +18,10 @@ HELPERS=r'''()=>{
   window.__accessTest={check,original:JSON.stringify(nativeNpcDev.getState())};const t=__accessTest;
   t.state=()=>nativeNpcDev.getState();
   t.reload=value=>{nativeSaveStorage.write(typeof value==='string'?JSON.parse(value):value);resumeNativeGame();const s=t.state();nativeNpcLives.initialize(s);return s;};
-  t.tick=()=>{const s=t.state(),dt=.25;nativeSimulation.advance(s,dt);nativeSolEconomy.advance(s,dt);nativeCivilianTraffic.advance(s,dt);nativeCombatShots.advance(s,dt);nativeEnvironmentalImpacts.advance(s,dt);nativeShipEffects.advance(s,dt);nativeAsteroidCombat.advance(s,dt);};
-  t.until=(predicate)=>{let n=0;while(!predicate()){t.tick();check(++n<6000,'Civilian access scenario stalled');}};
+  t.tick=()=>{const s=t.state(),dt=.25,runtime=nativeSimulation;window.nativeSimulation={...runtime,blocked:()=>false};try{nativeSimulationFrame.begin(s);nativeSimulation.advance(s,dt);nativeSimulationFrame.step(s);nativeSolEconomy.advance(s,dt);nativeCivilianTraffic.advance(s,dt);nativeCombatShots.advance(s,dt);nativeEnvironmentalImpacts.advance(s,dt);nativeShipEffects.advance(s,dt);nativeAsteroidCombat.advance(s,dt);}finally{nativeSimulationFrame.end(s);window.nativeSimulation=runtime;nativeSimulationHost.checkpoint();}};
+  t.until=(predicate)=>{let n=0;while(!predicate()){t.tick();const e=window.__accessDebug;check(++n<6000,'Civilian access scenario stalled '+JSON.stringify({clock:nativeSimulation.seconds(t.state()),id:e?.id,role:e?.role,phase:e?.phase,task:e?.task,miningTrips:e?.miningTrips}));}};
   t.assert=()=>{const s=t.state(),a=nativeCivilianAccess;
-    for(const ship of s.civilianTraffic.ships){check(!a.blocked(ship.system),'Civilian at prohibited system '+ship.system);check(a.inhabited(s,ship.operatingBase),'Empty civilian operating base');
+    for(const ship of s.civilianTraffic.ships){if(nativeFactionFleets.militaryResidence(s,ship))continue;check(!a.blocked(ship.system),'Civilian at prohibited system '+ship.system);check(a.inhabited(s,ship.operatingBase),'Empty civilian operating base');
       if(!a.inhabited(s,ship.system)){check(ship.task?.kind==='mining','Non-mining visit to an empty world');check(!nativePortDocking.inspect(s,ship,false),'Civilian dock at an empty world');}
       if(ship.journey)check(!a.blocked(ship.journey.destination),'Civilian route to prohibited system');
     }
@@ -50,7 +50,8 @@ def main():
             # The ordinary galaxy UI must show no civilian residents in excluded sectors.
             page.locator('#devToolsBtn').click();page.locator('#galaxy-map-button').click()
             snapshot=page.evaluate('nativeGalaxyOverview.snapshot()')
-            assert not [s for s in snapshot['ships'] if s['category']=='civilian' and s['system'] in [32,33,34,51,52]]
+            allowed_military=page.evaluate('()=>nativeNpcDev.getState().civilianTraffic.ships.filter(s=>nativeFactionFleets.militaryResidence(nativeNpcDev.getState(),s)).map(s=>String(s.id))')
+            assert not [s for s in snapshot['ships'] if s['category']=='civilian' and s['system'] in [32,33,34,51,52] and str(s['id']) not in allowed_military]
             page.screenshot(path=str(OUTPUT/'galaxy-exclusions.png'))
             report['migration']=page.evaluate(r'''()=>{
               const t=__accessTest,s=JSON.parse(t.original),ids=[32,33,34,51,52],expected=[];
@@ -67,9 +68,10 @@ def main():
             report['expedition']=page.evaluate(r'''()=>{
               const t=__accessTest,s=t.reload(t.original);s.civilianTraffic.life.config.economyEnabled=false;
               // Select a remote-expedition turn; the alternating corridor turn is covered separately.
-              const ship=s.civilianTraffic.ships.find(ship=>ship.role==='mining'&&(ship.id+(3-ship.id%3)%3)%2!==0&&!ship.cargo&&!ship.journey&&!ship.dockingMove&&!ship.needsDockRecovery&&!ship.scriptedDemo);
-              t.check(ship,'No available existing miner');nativeNpcLives.interrupt(s,ship,'browser mining fixture');
-              const point=nativePortDocking.center(1,3);Object.assign(ship,{system:1,stationSystem:1,operatingBase:1,port:3,x:point.x+220,y:point.y,miningTrips:(3-ship.id%3)%3});
+              const ship=s.civilianTraffic.ships.find(ship=>ship.role==='mining'&&nativeFactionFleets.forShip(s,ship)?.duty(ship.shipType)==='mining'&&!ship.cargo&&!ship.journey&&!ship.dockingMove&&!ship.needsDockRecovery&&!ship.scriptedDemo);
+              t.check(ship,'No available existing miner');window.__accessDebug=ship;nativeNpcLives.interrupt(s,ship,'browser mining fixture');
+              let trips=(3-ship.id%3)%3;if((ship.id+trips)%2===0)trips+=3;
+              const point=nativePortDocking.center(1,3);Object.assign(ship,{system:1,stationSystem:1,operatingBase:1,port:3,x:point.x+220,y:point.y,miningTrips:trips});
               nativeNpcLives.refreshLocation(s,ship);nativeNpcLives.resumeWork(s,ship);
               t.until(()=>ship.task?.phase==='mining-transit');t.assert();
               const mineSystem=ship.journey.destination,rockId=ship.task.requirements.rockId,id=ship.id,deliveries=ship.deliveries||0;

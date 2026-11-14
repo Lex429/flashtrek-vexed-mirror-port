@@ -109,13 +109,14 @@ try:
    assert page.locator('[data-yard-tab]').count()==5
    page.locator('[data-yard-tab="upgrades"]').click()
    before=page.evaluate('()=>({latinum:__yardState.latinum,price:nativeShipThrusters.quote(__yardState).price})')
-   page.locator('[data-yard-action="upgrade-thrusters"]').click()
    if yard['id']=='mars-earth-shipyard-01':
+    page.locator('.mars-shop-card[data-upgrade-card="thrusters"] h2').click()
     assert page.evaluate('()=>__yardState.latinum')==before['latinum']
     page.locator('[data-yard-action="buy-upgrade"][data-kind="thrusters"]').click()
+   else:page.locator('[data-yard-action="upgrade-thrusters"]').click()
    assert page.evaluate('()=>nativeShipDefinitions.forEntity(__yardState).thrusters.level')==1
    assert page.evaluate('()=>__yardState.latinum')==before['latinum']-before['price']
-   page.locator('[data-yard-action="upgrade"][data-kind="hull"]').click()
+   page.locator('.mars-shop-card[data-upgrade-card="hull"] h2' if yard['id']=='mars-earth-shipyard-01' else '[data-yard-action="upgrade"][data-kind="hull"]').click()
    page.locator('[data-yard-action="buy-upgrade"][data-kind="hull"]' if yard['id']=='mars-earth-shipyard-01' else '[data-yard-action="confirm-upgrade"]').click()
    assert page.evaluate('()=>nativeShipyardRefits.level(__yardState,"hull")')==1
    if yard['system'] in [2,30]:

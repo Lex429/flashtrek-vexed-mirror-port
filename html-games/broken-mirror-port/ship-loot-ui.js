@@ -182,7 +182,7 @@
   panel.addEventListener('wheel',event=>event.preventDefault(),{passive:false});
   launch.onclick=open;panel.querySelector('.loot-close').onclick=()=>close();
   addEventListener('keydown',event=>{
-    const editing=event.target.closest('input,textarea,select,[contenteditable="true"]');
+    const editing=event.target?.closest?.('input,textarea,select,[contenteditable="true"]');
     if(active()){
       event.stopImmediatePropagation();if(event.key==='Escape'||event.code==='KeyL'&&!editing){event.preventDefault();close();return;}
       const directions={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};if(!editing&&directions[event.key]){event.preventDefault();nav.move(panel,directions[event.key]);}return;

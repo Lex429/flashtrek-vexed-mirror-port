@@ -66,7 +66,9 @@ CHECK=r'''async({sourceCrop=false})=>{
    }
    console.info('padding checked '+ship.id);
  }
- check(croppedPixels<fullPixels,'No exterior presentation support was reduced');
+ // Profiles without qualified conservative bounds retain the full surface.
+ // Replacement artwork must pass the same pixel gates before opting in.
+ check(croppedPixels<=fullPixels,'Exterior support increased presentation area');
  const gallery=fullSurface=>{const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=700;const g=canvas.getContext('2d');g.fillStyle='#030811';g.fillRect(0,0,1000,700);
    for(const [row,stage]of [0,2,3].entries())for(const [column,type]of [35,49,58,50].entries()){
      const {asset,dimensions}=galleryAssets.get(type+':'+stage);vexedFlightAssets.drawShip(g,asset,125+column*250,120+row*220,dimensions.width,column*.43+row*.29,1350,

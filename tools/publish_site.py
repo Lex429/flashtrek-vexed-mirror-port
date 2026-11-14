@@ -133,12 +133,21 @@ class Publisher:
                 self.last_report = now
 
     def initial_match(self, name):
-        try:
-            matched = remote_digest(self.base, name, self.receipt['commit']) == self.receipt['files'][name]['sha256']
-        except HTTPError as error:
-            if error.code != 404:
-                raise
-            matched = False
+        for attempt in range(4):
+            try:
+                matched = remote_digest(self.base, name, self.receipt['commit']) == self.receipt['files'][name]['sha256']
+                break
+            except HTTPError as error:
+                if error.code == 404:
+                    matched = False
+                    break
+                if attempt == 3:
+                    raise
+                time.sleep(attempt + 1)
+            except OSError:
+                if attempt == 3:
+                    raise
+                time.sleep(attempt + 1)
         self.report('compare_existing_site', len(self.receipt['files']))
         return name, matched
 

@@ -37,6 +37,15 @@ try:
               window.__reviewTick=n=>{for(let i=0;i<n;i++){__reviewStamp+=1000/60;__reviewDraw(__reviewStamp);}};
             }''')
 
+        def stored_item(instance_id):
+            page.locator('[data-inventory-filter="equipment"]').click()
+            item = page.locator(f'[data-item-key="equipment:{instance_id}"]')
+            while not item.count():
+                next_page = page.locator('[data-inventory-page="next"]')
+                assert next_page.is_enabled(), f'Owned equipment missing from inventory: {instance_id}'
+                next_page.click()
+            return item
+
         freeze()
         fixture = page.evaluate(r'''()=>{
           const s=JSON.parse(JSON.stringify(nativeNpcDev.getState())),e=s.civilianTraffic.ships.find(e=>e.shipType===58);
@@ -113,7 +122,10 @@ try:
         page.locator('#inventoryBtn').click()
         page.wait_for_selector('#ship-inventory canvas.ready', timeout=30000)
         assert page.locator('[data-equipment-kind="repairDrone"][data-equipment-place="slot"]').count() == 1
-        assert page.locator('[data-equipment-place="locker"][aria-label="Stored Basic Dot"]').count() == 5
+        overflow = page.evaluate('(ids)=>ids.filter(id=>nativeNpcDev.getState().shipEquipment.locker.includes(id))', capacity['ids'])
+        assert overflow == capacity['ids'][1:]
+        for instance_id in overflow:
+            assert stored_item(instance_id).get_attribute('aria-label') == 'Stored Basic Dot'
         page.screenshot(path=str(OUT/'small-hull-owned-drone-overflow.png'))
         page.locator('.inventory-close').click()
         page.reload()
@@ -126,7 +138,7 @@ try:
         page.wait_for_selector('#ship-inventory canvas.ready', timeout=30000)
         assert page.locator('[data-equipment-kind="repairDrone"][data-equipment-place="slot"]').count() == 6
         for index in range(1, 6):
-            page.locator('[data-equipment-place="locker"][aria-label="Stored Basic Dot"]').first.click()
+            stored_item(capacity['ids'][index]).click()
             page.locator(f'[data-equipment-kind="repairDrone"][data-equipment-place="slot"][data-equipment-index="{index}"]').click()
         final = page.evaluate('''()=>{const s=nativeNpcDev.getState(),eq=s.shipEquipment;return {capacity:s.repairBay.capacity,ids:eq.slots.repairDrone,count:Object.keys(eq.instances).length,damaged:Object.values(eq.instances).find(d=>d.category==='repairDrone'&&d.hull===17)};}''')
         assert final['capacity'] == 6 and set(final['ids']) == set(capacity['ids']) and final['count'] == capacity['count']

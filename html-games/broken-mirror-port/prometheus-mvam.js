@@ -98,7 +98,7 @@
     const asset=value.assets[0],empty=document.createElement('canvas');empty.width=asset.width;empty.height=asset.height;
     const analyzed=window.nativeRepairWork.analyze(empty,asset.art),cells=window.nativeRepairWork.ordered(analyzed.regions),points=[];
     for(const p of cells)points.push(Math.round(p.y)*analyzed.w+Math.round(p.x),Math.round(Math.atan2(p.ny,p.nx)*1000));
-    rebuildAssets.set(parts()[i].type,{asset,empty,sites:{w:analyzed.w,h:analyzed.h,tile:analyzed.tile,points}});
+    rebuildAssets.set(parts()[i].type,{asset,empty,cells,layouts:new Map(),sites:{w:analyzed.w,h:analyzed.h,tile:analyzed.tile,points}});
    }
    return true;
   }).catch(error=>{warming.delete(state);throw error;});warming.set(state,promise);return promise;
@@ -195,32 +195,42 @@
    for(const jet of definition.propulsion.jets)jets.push({...jet,id:part.key+':'+jet.id,x:jet.x+x,y:jet.y+y,force:jet.force*base.propulsion.referenceAcceleration/definition.propulsion.referenceAcceleration*factor});
   }
   const anchor=parts().find(p=>p.type===a.anchor),bay={x:anchor.offset.x,y:anchor.offset.y+anchor.dimensions.height*.28/d.height},mounts=window.nativeShipDefinitions.get(anchor.type).emitters;
-  const emitters=Object.fromEntries(Object.entries(mounts).map(([key,p])=>[key,{x:anchor.offset.x+p.x*anchor.dimensions.width/d.width,y:anchor.offset.y+p.y*anchor.dimensions.height/d.height}]));
+  const mount=p=>({x:anchor.offset.x+p.x*anchor.dimensions.width/d.width,y:anchor.offset.y+p.y*anchor.dimensions.height/d.height});
+  const emitters=Object.fromEntries(Object.entries(mounts).map(([key,p])=>[key,Array.isArray(p)?p.map(mount):mount(p)]));
   const value={...base,mass,inertia,physical:{mass,inertia},shields:base.shields*weight,ratedShields:(base.ratedShields??base.shields)*weight,
    geometry:{...base.geometry,hull:{rx:Math.max(2,rx),ry:Math.max(2,ry)}},propulsion:{...base.propulsion,mass,inertia,jets},
    emitters,repairBayGeometry:{hatch:bay,outward:{x:1,y:0},clearance:30}};
   value.movement=window.nativeShipMotion.profiles.manual(value);assemblyDefinitions.set(entity,{assembly:a,revision:a.revision,base,value});return value;
  }
+ function constructionSites(type,anchorType){
+  const ready=rebuildAssets.get(type);if(!ready)return null;if(ready.layouts.has(anchorType))return ready.layouts.get(anchorType);
+  const part=parts().find(p=>p.type===type),anchor=parts().find(p=>p.type===anchorType),d=window.nativeShipDefinitions.get(PARENT).dimensions,data=ready.sites;
+  const score=p=>{const x=(part.offset.x-anchor.offset.x)*d.width+(p.x/data.w-.5)*part.dimensions.width,y=(part.offset.y-anchor.offset.y)*d.height+(p.y/data.h-.5)*part.dimensions.height;return x*x+y*y;};
+  const cells=ready.cells.slice().sort((a,b)=>score(a)-score(b)),points=[];for(const p of cells)points.push(Math.round(p.y)*data.w+Math.round(p.x),Math.round(Math.atan2(p.ny,p.nx)*1000));
+  const result={...data,points};ready.layouts.set(anchorType,result);return result;
+ }
  function repairContact(descriptor,drone,progress){
   const a=descriptor.entity===descriptor.state?group(descriptor.state)?.assembly:null;if(!a)return null;
-  const available=a.parts.filter(p=>p.build>0),record=available[(drone.workSlot||0)%available.length],part=parts().find(p=>p.type===record.type),data=rebuildAssets.get(part.type)?.sites;
+  const available=a.parts.filter(p=>p.build>0),record=available[(drone.workSlot||0)%available.length],part=parts().find(p=>p.type===record.type),data=record.wasMissing?constructionSites(part.type,a.anchor):rebuildAssets.get(part.type)?.sites;
   let x=0,y=0,nx=1,ny=0;
   if(data?.points.length){const count=data.points.length/2,index=Math.max(0,Math.min(count-1,Math.floor((record.wasMissing?record.build:progress)*count)-1)),packed=data.points[index*2],angle=data.points[index*2+1]/1000;x=(packed%data.w)/data.w-.5;y=Math.floor(packed/data.w)/data.h-.5;nx=Math.cos(angle);ny=Math.sin(angle);}
   return {x:part.offset.x*descriptor.dimensions.width+x*part.dimensions.width,y:part.offset.y*descriptor.dimensions.height+y*part.dimensions.height,nx,ny};
  }
- function paintAssembly(ctx,state,view){
-  const a=group(state).assembly,parent=window.nativeShipDefinitions.get(PARENT).dimensions;
+ function paintAssembly(ctx,state,view,lead){
+  const a=group(state).assembly,parent=window.nativeShipDefinitions.get(PARENT).dimensions,pose=window.nativeSimulationFrame?.renderPose?.(state,lead)||lead;
+  window.nativePrometheusEffects?.paint(ctx,state,lead,[],view,'under');
   for(const key of ['bottom','middle','top']){
    const part=parts().find(p=>p.key===key),record=a.parts.find(p=>p.type===part.type);if(record.build<=0)continue;
-   const p=worldPoint(state,{x:part.offset.x*parent.width,y:part.offset.y*parent.height}),entity={shipType:part.type,system:state.system,...p,heading:state.angle,hull:record.hull,shields:0,phase:record.hull<window.nativeShipDefinitions.get(part.type).hull*.25?'disabled':'flight'};
+   const offset=rotate({x:part.offset.x*parent.width,y:part.offset.y*parent.height},pose.heading),p={x:pose.x+offset.x,y:pose.y+offset.y},entity={shipType:part.type,system:state.system,...p,heading:pose.heading,hull:record.hull,shields:0,phase:record.hull<window.nativeShipDefinitions.get(part.type).hull*.25?'disabled':'flight'};
    const descriptor=window.nativeShipDefinitions.describe(state,entity,{category:CATEGORY});let asset;
    if(record.wasMissing&&record.build<1){
     const ready=rebuildAssets.get(part.type);if(!ready)continue;if(ready){const bucket=Math.floor(record.build*100),old=rebuildPlates.get(record);
-     if(old?.bucket===bucket)asset=old.asset;else{const canvas=old?.canvas||document.createElement('canvas');canvas.width=ready.asset.width;canvas.height=ready.asset.height;window.nativeRepairWork.paintHull(canvas.getContext('2d'),ready.empty,ready.asset.art,ready.sites,record.build,1);asset={...ready.asset,art:canvas,repairSurface:true};rebuildPlates.set(record,{bucket,canvas,asset});}
+     if(old?.bucket===bucket)asset=old.asset;else{const canvas=old?.canvas||document.createElement('canvas');canvas.width=ready.asset.width;canvas.height=ready.asset.height;window.nativeRepairWork.paintHull(canvas.getContext('2d'),ready.empty,ready.asset.art,constructionSites(part.type,a.anchor),record.build,1);asset={...ready.asset,art:canvas,repairSurface:true};rebuildPlates.set(record,{bucket,canvas,asset});}
     }
    }
    window.nativeShipEffects.paintShip(ctx,descriptor,{...view,asset,dimensions:undefined,appearance:{...view.appearance,...(record.wasMissing&&record.build<1?{lights:false}:{})}});
   }
+  window.nativePrometheusEffects?.paint(ctx,state,lead,[],view,'over');
  }
  async function toggle(state,options={}){
   if(pending.has(state))return {ok:false,error:'Separation systems are responding.'};
@@ -258,7 +268,7 @@
   if(Number(state?.shipType)!==PARENT||!(dt>0)||window.nativeSimulation.blocked())return;
   const g=group(state),clock=time(state),current=leadPose(state,active(state)?g.lastLead:leadPoses.get(state));
   if(g?.assembly&&state.hull!==g.assembly.lastHull)repairProgress(state,g.assembly.lastHull);
-  leadPoses.set(state,current);if(!active(state))return;
+  leadPoses.set(state,current);if(!active(state)){if(g?.assembly)window.nativePrometheusEffects?.advance(state,[window.nativeShipDefinitions.describe(state)]);return;}
   rebase(state,g,current);
   const from=g.lastLead?.heading!=null?g.lastLead:{...current,x:current.x-current.vx*dt,y:current.y-current.vy*dt};
   const frame={from,to:current},lead=current;
@@ -334,7 +344,7 @@
  }
  function paintPlayer(ctx,state,descriptor,view){
   const g=group(state),joined=!active(state),flash=joined&&g?.joinedAt!=null&&time(state)-g.joinedAt<1;
-  if(joined&&g?.assembly){paintAssembly(ctx,state,view);return true;}
+  if(joined&&g?.assembly){paintAssembly(ctx,state,view,descriptor);return true;}
   if(joined&&!flash)return false;
   if(joined){window.nativePrometheusEffects?.paint(ctx,state,descriptor,[],view,'under');window.nativeShipEffects.paintShip(ctx,descriptor,view);window.nativePrometheusEffects?.paint(ctx,state,descriptor,[],view,'over');return true;}
   const items=sections(state),paint=d=>window.nativeShipEffects.paintShip(ctx,d,{...view,asset:undefined,x:undefined,y:undefined,dimensions:undefined});

@@ -68,6 +68,9 @@ try:
         assert not page.evaluate('nativeMenuTransition.snapshot().active')
         page.locator('#menu-sound-toggle').click();page.locator('#menu-sound-toggle').click()
         page.wait_for_function('()=>nativeMenuSounds.snapshot().decoded.length===3&&nativeMenuSounds.snapshot().state==="running"')
+        # Retain PCM peaks while Playwright waits for the hover action's
+        # composited frames; a short sound can finish before hover() returns.
+        page.evaluate('()=>{window.__menuPeakTimer=setInterval(scanMenuAudio,5);}')
         button=page.locator('[data-menu="new"]');button.hover()
         page.wait_for_function('()=>scanMenuAudio().some(p=>p.peak>.015)',polling=10)
         report['hoverAudio']=page.evaluate('scanMenuAudio()')
@@ -79,25 +82,33 @@ try:
         }""")
         before_save=page.evaluate('JSON.stringify([nativeSaveStorage.read("normal"),nativeSaveStorage.read("dev")])')
         start=page.evaluate("""()=>{
+          window.__menuWitness={holding:null,fadeOut:false,midOpacity:false,fadeIn:false};
+          const sample=()=>{const phase=nativeMenuTransition.snapshot().phase,opacity=+getComputedStyle(document.querySelector('#menu-transition-cover')).opacity,w=__menuWitness;
+            if(phase==='holding'&&!w.holding){const light=nativeMenuEmblem.snapshot();w.holding={phase,active:nativeSetup.active,calls:menuActions.length,opacity,lighting:{ready:light.ready,renderer:light.renderer}};}
+            if(phase==='fade-out')w.fadeOut=true;if(phase==='fade-in')w.fadeIn=true;
+            if(opacity>.05&&opacity<.95&&!nativeSetup.active)w.midOpacity=true;};
+          window.__menuWitnessTimer=setInterval(sample,5);
           window.menuStarted=performance.now();const b=document.querySelector('[data-menu="new"]');b.click();b.click();
+          sample();
           return {calls:menuActions.length,transition:nativeMenuTransition.snapshot(),emblem:document.querySelector('.menu-compass').classList.contains('menu-emblem-cinematic')};
         }""")
         assert start['calls']==0 and start['transition']['phase']=='holding' and start['emblem']
         assert page.locator('#menu-impact-canvas').count()==0,'Blood canvas remains'
         page.wait_for_function('()=>scanMenuAudio().some(p=>p.gain>.9&&p.peak>.015)',polling=10,timeout=3000)
         page.wait_for_timeout(20)
-        held=page.evaluate("""()=>({phase:nativeMenuTransition.snapshot().phase,active:nativeSetup.active,calls:menuActions.length,opacity:+getComputedStyle(document.querySelector('#menu-transition-cover')).opacity,lighting:window.nativeMenuEmblem?.snapshot()})""")
+        held=page.evaluate('window.__menuWitness.holding')
         assert held['phase']=='holding' and not held['active'] and held['calls']==0 and held['opacity']==0,held
         assert held['lighting']['ready'] and held['lighting']['renderer']=='webgl'
-        page.wait_for_function('()=>nativeMenuTransition.snapshot().phase==="fade-out"',polling=10)
-        page.wait_for_function('()=>{scanMenuAudio();const opacity=+getComputedStyle(document.querySelector("#menu-transition-cover")).opacity;return opacity>.05&&opacity<.95&&!nativeSetup.active;}',polling=10)
+        page.wait_for_function('()=>__menuWitness.fadeOut',polling=10)
+        page.wait_for_function('()=>__menuWitness.midOpacity',polling=10)
         page.wait_for_selector('#setup-ui:not([hidden])')
         assert page.evaluate('menuActions.length')==1,'Rapid click ran the menu action twice'
         action=page.evaluate('menuActions[0]');assert action['elapsed']>=400 and action['opacity']==1,action
         report['screenSwitch']=action
-        page.wait_for_function('()=>nativeMenuTransition.snapshot().phase==="fade-in"',polling=10)
+        page.wait_for_function('()=>__menuWitness.fadeIn',polling=10)
         page.wait_for_function('()=>{scanMenuAudio();return !nativeMenuTransition.snapshot().active;}',polling=10)
         assert page.locator('#menu-transition-cover').is_hidden()
+        page.evaluate('clearInterval(__menuWitnessTimer)')
         assert page.evaluate('document.querySelector("#menu-transition-cover").getAnimations().length')==0
         assert page.evaluate('JSON.stringify([nativeSaveStorage.read("normal"),nativeSaveStorage.read("dev")])')==before_save
         assert page.evaluate('nativeMenuSounds.snapshot().played.press===1&&nativeMenuSounds.snapshot().played.confirm===1')

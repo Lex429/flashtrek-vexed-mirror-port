@@ -36,14 +36,14 @@ try:
         page = browser.new_page(viewport={'width': 1280, 'height': 850})
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('response', lambda response: failed.append(response.url) if response.status >= 400 else None)
-        page.goto(base + '/html-games/broken-mirror-port/index.html')
+        page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(base + '/html-games/broken-mirror-port/index.html')
         page.wait_for_function('() => nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
         page.evaluate("""() => {
           const advance=nativeCivilianTraffic.advance;
           nativeCivilianTraffic.advance=(state,dt)=>{window.__contractState=state;return advance(state,dt);};
           startNativeDevGame();
         }""")
-        page.wait_for_function('() => window.__contractState && nativeCivilianTraffic.effectsReady() && nativeSolAsteroids.placements.length', timeout=120000)
+        page.wait_for_function('() => window.__contractState && window.__testPlayerArtReady() && nativeSolAsteroids.placements.length', timeout=120000)
         # Finish the already scheduled frame, then run controlled simulation steps.
         page.evaluate('window.requestAnimationFrame=()=>0')
         page.wait_for_timeout(100)

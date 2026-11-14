@@ -9,7 +9,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
 OUTPUT=ROOT/'test-results/spatial-performance'
-SCENARIO=r"""() => {
+SCENARIO=r"""async () => {
  const check=(value,message)=>{if(!value)throw Error(message)},s=nativeNpcDev.getState(),systems=nativeShipSystems,frames=nativeSimulationFrame;
  const ship=s.civilianTraffic.ships.find(e=>e.system===s.system&&e.hull>0&&!['warp','arriving','destroyed'].includes(e.phase));
  check(ship,'No ordinary local civilian');
@@ -17,7 +17,8 @@ SCENARIO=r"""() => {
  frames.begin(s);frames.step(s);const initial=systems.scene(s),rocks=initial.rocks.slice(),before=frames.snapshot(s).counters;
  const location={x:ship.x,y:ship.y,heading:ship.heading,vx:ship.vx,vy:ship.vy,speed:ship.speed};
  for(let i=0;i<30;i++){
-   ship.x+=1;ship.heading+=.03;systems.refreshShip(s,ship,'civilian');
+   const actor=systems.resolve(s,ship.id);
+   systems.applyContact(s,actor,{x:actor.x+1,y:actor.y,vx:actor.vx||0,vy:actor.vy||0,heading:actor.heading+.03,angularVelocity:actor.angularVelocity||0});
    const current=systems.scene(s);check(current===initial,'One actor reconstructed the scene');
    check(current.rocks.every((rock,index)=>rock===rocks[index]),'A moving actor rebuilt unchanged rock geometry');
    check(systems.resolve(s,ship.id).x===ship.x,'ID resolution kept an old pose');
@@ -43,7 +44,10 @@ SCENARIO=r"""() => {
  const expected=conserved(s);check(nativeSaveStorage.write(s).ok,'Verified save failed');window.resumeNativeGame('dev');
  const restored=nativeNpcDev.getState();check(conserved(restored)===expected,'Reload changed jobs, cargo, equipment, recharge or transactions');
  window.nativeSimulation=runtime;nativeSimulationHost.checkpoint(boundary+1500);
- for(let i=0;i<120&&restored.shipSimulation.schedule.pendingSeconds>=frames.fixedStep;i++)window.__nativeFrame(boundary+1500);
+ for(let i=0;i<120&&restored.shipSimulation.schedule.pendingSeconds>=frames.fixedStep;i++){
+   window.__nativeFrame(boundary+1500);
+   await new Promise(resolve=>setTimeout(resolve,0));
+ }
  check(restored.shipSimulation.schedule.pendingSeconds<frames.fixedStep,'Catch-up failed to recover');
  check(Math.abs(nativeSimulation.seconds(restored)-start+restored.shipSimulation.schedule.pendingSeconds-initialDebt-.735)<1e-8,'Recovery skipped or replayed active time');
  return {sceneCollections:work.sceneCollections,unchangedRocks:rocks.length,actorUpdates:30,elapsedSeconds:elapsed,physicalSubsteps:physical.steps,
@@ -62,10 +66,10 @@ def main():
             page=browser.new_page(viewport={'width':1280,'height':850})
             page.on('pageerror',lambda error:errors.append(str(error)))
             page.add_init_script("{const raf=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=callback=>callback.name==='draw'?(window.__nativeFrame=callback,0):raf(callback);}")
-            page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+            page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
             page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
             page.evaluate('startNativeDevGame()')
-            page.wait_for_function('()=>nativeSolAsteroids.placements.length && nativeCivilianTraffic.effectsReady()',timeout=120000)
+            page.wait_for_function('()=>nativeSolAsteroids.placements.length && window.__testPlayerArtReady()',timeout=120000)
             result=page.evaluate(SCENARIO)
             page.evaluate('()=>window.__nativeFrame(performance.now())')
             page.screenshot(path=str(OUTPUT/'shared-spatial-gameplay.png'));assert not errors,errors

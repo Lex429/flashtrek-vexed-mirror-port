@@ -72,18 +72,16 @@ try:
         assert page.evaluate('()=>getComputedStyle(document.querySelector("#shipyard-services .inventory-drone-grid")).gridTemplateColumns.split(" ").length')==6
         page.screenshot(path=str(OUTPUT/'03-upgrades.png'))
         thrusters=page.evaluate('()=>({latinum:__shipyardState.latinum,price:nativeShipThrusters.quote(__shipyardState).price})')
-        page.locator('[data-yard-action="upgrade-thrusters"]').click()
+        page.locator('.mars-shop-card[data-upgrade-card="thrusters"] h2').click()
         assert page.evaluate('()=>__shipyardState.latinum')==thrusters['latinum']
-        page.locator('[data-yard-action="cancel-preview"]').click()
-        assert page.evaluate('()=>__shipyardState.latinum')==thrusters['latinum']
-        page.locator('[data-yard-action="upgrade-thrusters"]').click()
-        page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').click()
+        assert page.locator('.mars-upgrade-detail').count()==0
+        page.locator('.mars-shop-buy[data-kind="thrusters"]').click()
         assert page.evaluate('()=>__shipyardState.latinum')==thrusters['latinum']-thrusters['price']
         assert page.evaluate('()=>nativeShipThrusters.level(__shipyardState)')==1
         original=page.evaluate('()=>({latinum:__shipyardState.latinum,dilithium:__shipyardState.dilithium,minerals:{...__shipyardState.minerals},slots:JSON.stringify(__shipyardState.shipEquipment.slots),instances:JSON.stringify(__shipyardState.shipEquipment.instances)})')
         page.locator('[data-yard-action="upgrade"][data-kind="dot"]').click()
         assert page.locator('.outfit-ghost').count()==1
-        assert page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').is_enabled()
+        assert page.locator('.mars-shop-buy[data-kind="dot"]').is_enabled()
         assert page.evaluate('()=>nativeShipEquipment.capacities(__shipyardState).repairDrone')==1
         page.locator('[data-yard-action="cancel-preview"]').first.click()
         assert page.locator('.outfit-ghost').count()==0
@@ -94,7 +92,7 @@ try:
         assert page.locator('.outfit-ghost').get_attribute('data-bay-cell')=='5'
         assert page.evaluate('()=>__shipyardState.latinum')==original['latinum']
         page.screenshot(path=str(OUTPUT/'03a-dot-placement-preview.png'))
-        page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').click()
+        page.locator('.mars-shop-buy[data-kind="dot"]').click()
         assert page.evaluate('()=>nativeShipEquipment.capacities(__shipyardState).repairDrone')==2
         assert page.locator('[data-bay-key="repairDrone:1"]').get_attribute('data-bay-cell')=='5'
         assert page.locator('[data-bay-key="repairDrone:0"]').get_attribute('data-bay-cell')=='0'
@@ -103,10 +101,10 @@ try:
         assert page.evaluate('()=>__shipyardState.shipEquipment.slots.repairDrone[1]') is None
         before=page.evaluate('()=>({latinum:window.__shipyardState.latinum,dilithium:window.__shipyardState.dilithium})')
         page.locator('[data-yard-action="upgrade"][data-kind="weapon"]').click()
-        assert page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').is_enabled()
+        assert page.locator('.mars-shop-buy[data-kind="weapon"]').is_enabled()
         reveal_yard('[data-place-bay="4"][data-bay-zone="weapons"]')
         page.locator('[data-place-bay="4"][data-bay-zone="weapons"]').click()
-        page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').click()
+        page.locator('.mars-shop-buy[data-kind="weapon"]').click()
         assert page.evaluate('()=>nativeShipEquipment.capacities(window.__shipyardState).weapon')==4
         after=page.evaluate('()=>({latinum:window.__shipyardState.latinum,dilithium:window.__shipyardState.dilithium})')
         assert before['latinum']-after['latinum']==5500 and before['dilithium']-after['dilithium']==14
@@ -139,10 +137,10 @@ try:
         page.wait_for_function('()=>[...document.querySelectorAll("#shipyard-services .yard-mineral-row img")].every(i=>i.complete && i.naturalWidth>0)')
         page.screenshot(path=str(OUTPUT/'06a-mineral-icons.png'))
         page.locator('[data-yard-tab="upgrades"]').click()
-        page.locator('[data-yard-action="upgrade"][data-kind="hull"]').click()
+        page.locator('.mars-shop-card[data-upgrade-card="hull"] h2').click()
         assert '50' in page.locator('[data-upgrade-change="hull"]').inner_text()
-        assert page.locator('.mars-upgrade-detail [data-yard-action="buy-upgrade"]').is_enabled()
-        page.locator('[data-yard-action="cancel-preview"]').first.click()
+        assert page.locator('.mars-shop-buy[data-kind="hull"]').is_enabled()
+        assert page.locator('.mars-upgrade-detail').count()==0
         lighting_before=page.evaluate('()=>window.nativeFlightLightingEnabled!==false')
         page.locator('[data-yard-action="lighting"]').click()
         assert page.evaluate('()=>window.nativeFlightLightingEnabled') is not lighting_before

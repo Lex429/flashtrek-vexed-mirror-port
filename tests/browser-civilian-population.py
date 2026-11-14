@@ -40,7 +40,7 @@ def main():
               return {civilians:ships.length,medical:ships.filter(e=>e.shipType===58).length,
                 tugs:s.solEconomy.freighters.length,bases:plan.length,worker:nativeWorldBootstrap.diagnostics(),
                 medicalBases:new Set(ships.filter(e=>e.shipType===58).map(e=>e.medicalRegion)).size,
-                excludedResidents:ships.filter(e=>nativeCivilianAccess.blocked(e.system)).length,
+                excludedResidents:ships.filter(e=>nativeCivilianAccess.blocked(e.system)&&!nativeFactionFleets.militaryResidence(s,e)).length,
                 backlog:nativeNpcLives.metrics(s).backlog,phases:ships.reduce((r,e)=>(r[e.phase]=(r[e.phase]||0)+1,r),{})};
             }''')
             assert report['fresh']['medical']==100 and report['fresh']['bases']==69

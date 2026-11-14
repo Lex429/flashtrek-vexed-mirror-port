@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Required public dependencies and JavaScript syntax
+        run: python tools/validate_release.py
       - name: Unit and architecture regression tests
         run: node --test tests/*.test.cjs tests/*.test.js
       - name: Standalone local site, Git synchronization and publication integrity

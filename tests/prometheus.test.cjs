@@ -245,8 +245,21 @@ test('every surviving pair docks with the correct pivots and every single sectio
   assert.deepEqual(plain(s.prometheus.assembly.parts.filter(p=>p.build>0).map(p=>p.type).sort()),survivors);
   const save=plain(s);w.nativePrometheus.initialize(save);assert.deepEqual(plain(save.prometheus),plain(s.prometheus));
   const definition=w.nativeShipDefinitions.forEntity(s),expected=survivors.reduce((n,id)=>n+w.nativeShipDefinitions.get(id).mass,0);assert.ok(Math.abs(definition.mass-expected)<1e-7);
+  w.nativeShipSystems.move(s,s,'player',{throttle:1,turn:1,manualFlight:true},undefined,1/60);
+  assert.ok(s.motionActuation.jets.every(j=>survivors.some(type=>j.id.startsWith(w.nativePrometheusDefinitions.part(type).key+':'))),'A missing section cannot supply a thruster');
   const before=s.hull,max=w.nativeShipDefinitions.get(37).hull;s.hull+=(max-s.hull)*.4;w.nativePrometheus.repairProgress(s,before);
   assert.ok(s.prometheus.assembly.parts.filter(p=>p.wasMissing).every(p=>p.build>0&&p.build<1));assert.equal(w.nativePrometheus.allowed(s).ok,false);
   s.hull=max;w.nativePrometheus.repairProgress(s);assert.equal(s.prometheus.assembly,undefined);assert.equal(s.prometheus.lost,0);
  }
+});
+
+test('losing the piloted section during a moving docking preserves the recall through save and reload',()=>{
+ const {w,s}=fixture(),dt=1/60;vm.runInContext(fs.readFileSync(path.join(root,'broken-mirror-port/player-combat.js'),'utf8'),w);
+ const tick=state=>{w.nativeSimulation.advance(state,dt);w.nativeShipSystems.move(state,state,'player',{throttle:1,turn:.5,manualFlight:true},undefined,dt);w.nativePrometheus.advance(state,dt);};
+ w.nativePrometheus.activate(s);for(let i=0;i<900&&s.prometheus.mode!=='deployed';i++)tick(s);w.nativePrometheus.recall(s);
+ for(let i=0;i<1200&&s.prometheus.dockingAt==null;i++)tick(s);assert.ok(s.prometheus.dockingAt!=null);for(let i=0;i<30;i++)tick(s);
+ assert.ok(w.nativePlayerCombat.hit(s,s.hull+s.shields+1000,{kind:'beam'}).transferred);assert.equal(s.prometheus.mode,'recalling');
+ const restored=plain(s);w.nativePrometheus.initialize(restored);
+ for(let i=0;i<2100&&s.prometheus.mode!=='joined';i++){tick(s);tick(restored);assert.deepEqual(plain(w.nativePrometheus.snapshot(restored)),plain(w.nativePrometheus.snapshot(s)));}
+ assert.equal(s.prometheus.mode,'joined');assert.equal(s.prometheus.lost,1);assert.ok(s.speed>350);assert.deepEqual(plain(restored.prometheus),plain(s.prometheus));
 });

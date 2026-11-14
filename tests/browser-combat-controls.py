@@ -1,4 +1,4 @@
-﻿"""Real active-entry held controls, target ordering and quiet fitted-weapon checks."""
+"""Real active-entry held controls, target ordering and quiet fitted-weapon checks."""
 import functools
 import http.server
 import json
@@ -30,14 +30,14 @@ try:
         page = browser.new_page(viewport={'width': 1280, 'height': 850})
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
-        page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+        page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
         page.wait_for_function('() => nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
         page.evaluate("""() => {
           const advance=nativeCivilianTraffic.advance;
           nativeCivilianTraffic.advance=(state,dt)=>{window.__controlsState=state;return window.__controlFixture?undefined:advance(state,dt);};
           startNativeDevGame();
         }""")
-        page.wait_for_function('() => window.__controlsState && nativeCivilianTraffic.effectsReady() && nativeSolAsteroids.placements.length', timeout=120000)
+        page.wait_for_function('() => window.__controlsState && window.__testPlayerArtReady() && nativeSolAsteroids.placements.length', timeout=120000)
         page.evaluate("() => {window.requestAnimationFrame=callback=>{if(callback.name==='draw'&&(!window.__controlsFrame||window.__controlsFrame===callback))window.__controlsFrame=callback;return 0;};}")
         # A cold paint can take longer than a fixed sleep before it submits the
         # next callback. Use timer polling because this fixture owns RAF now.

@@ -31,11 +31,14 @@
     if(!(sx>0&&sy>0))return false;
     const width=Math.max(1,Math.round(textures.lit.width*sx)),height=Math.max(1,Math.round(textures.lit.height*sy));
     const gain=options.lightGain||1,bloom=options.lightBloom||1,phase=Math.round(Math.max(0,Math.min(1,pulse))*16);
-    const rasterScale=options.rasterScale||1,radius=(2+2*phase/16)*bloom*rasterScale;
+    const rasterScale=options.rasterScale||1,radius=(2+2*phase/16)*bloom*rasterScale,cacheable=Number.isInteger(rasterScale);
     // A working lamp always keeps one reusable maximum-extent surface. Optional
     // copies of recurring phases may use spare space, but can never evict live
     // working surfaces and turn a large mixed fleet into an allocation cycle.
-    const pad=Math.ceil(4*bloom*rasterScale*3),cw=width+pad*2,ch=height+pad*2;
+    // Fractional rasters need the original phase-sized filter extent: Skia's
+    // blur rounding depends on that extent. The ordinary integer raster keeps
+    // its reusable maximum surface and bounded recurring-phase cache.
+    const pad=Math.ceil((cacheable?4*bloom*rasterScale:radius)*3),cw=width+pad*2,ch=height+pad*2;
     const brightArea=width*height,area=brightArea+cw*ch;
     if(area>maxLampPixels)return false;
     if(!lampIds.has(textures))lampIds.set(textures,++nextLampId);
@@ -54,7 +57,7 @@
       const glow=lampSurface(cw,ch,released);
       lamp={brightness,brightnessKey,glow,context:glow.getContext('2d'),radius:-1,pixels:cw*ch,phaseKeys:new Set(),seenPhases:0};brightness.references++;lamps.set(key,lamp);lampPixels+=lamp.pixels;
     }else{counters.lampHits++;lamps.delete(key);lamps.set(key,lamp);}
-    const cacheable=Number.isInteger(rasterScale),seen=cacheable&&Boolean(lamp.seenPhases&(1<<phase)),returning=seen&&lamp.radius!==radius,phaseTime=cacheable?performance.now():0;
+    const seen=cacheable&&Boolean(lamp.seenPhases&(1<<phase)),returning=seen&&lamp.radius!==radius,phaseTime=cacheable?performance.now():0;
     if(cacheable)lamp.seenPhases|=1<<phase;
     const phasePad=Math.ceil(radius*3),phaseKey=key+':'+radius;
     let cached=cacheable?lampPhases.get(phaseKey):null;
@@ -87,12 +90,10 @@
     ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=pulse;
     ctx.drawImage(lamp.brightness.canvas,point.left,point.top,textures.lit.width,textures.lit.height);
     ctx.globalAlpha=Math.min(1,pulse*.65*bloom);
-    // Present only the original phase-sized bounds.
-    // Always present the same live source extent. Cache admission/eviction must
-    // not select another native interpolation path for otherwise equal roles.
-    const px=phasePad*textures.lit.width/width,py=phasePad*textures.lit.height/height;
-    ctx.drawImage(lamp.glow,pad-phasePad,pad-phasePad,width+phasePad*2,height+phasePad*2,
-      point.left-px,point.top-py,textures.lit.width+px*2,textures.lit.height+py*2);
+    // Draw the whole retained surface. A source-subset draw selects another
+    // native interpolation path at fractional scales and shifts lamp colour.
+    const px=pad*textures.lit.width/width,py=pad*textures.lit.height/height;
+    ctx.drawImage(lamp.glow,point.left-px,point.top-py,textures.lit.width+px*2,textures.lit.height+py*2);
     ctx.restore();return true;
   }
   function discard(key,released=[]){const entry=sprites.get(key);window.nativeShipGpuBatch?.release?.(entry);pixels-=entry.pixels;sprites.delete(key);released.push(entry.effects||entry.canvas);counters.evictions++;}

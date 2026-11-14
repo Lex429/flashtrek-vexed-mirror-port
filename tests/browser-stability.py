@@ -319,7 +319,7 @@ def main():
         server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(legacy.SnapshotHandler,directory=str(ROOT)))
         threading.Thread(target=server.serve_forever,daemon=True).start();base=f'http://127.0.0.1:{server.server_port}'
     errors,failed=[],[]
-    report={'label':args.label,'revision':args.revision or 'working tree','viewport':{'width':1280,'height':850},
+    report={'warmupPolicy':'active player base plate; ongoing fleet preparation is retained in diagnostics','label':args.label,'revision':args.revision or 'working tree','viewport':{'width':1280,'height':850},
       'secondsPerWindow':args.seconds,'repetitions':args.repetitions,'platform':platform.platform(),'scenarios':{},
       'measurementScopes':{'synchronousPreparationMs':'Synchronous fragment and wreck preparation only; excludes alignment, unlighting and decode.',
         'cooperativeQueueWorkMs':'All cooperative pixel work, including alignment, unlighting, fragments and wrecks; excludes decode and queued waiting.',
@@ -334,11 +334,11 @@ def main():
                 page=browser.new_page(viewport=report['viewport']);page.add_init_script('('+INSTRUMENT+')()')
                 page.on('pageerror',lambda error:errors.append(str(error)))
                 page.on('response',lambda response:failed.append(response.url) if response.status>=400 else None)
-                page.goto(base+'/html-games/broken-mirror-port/index.html')
+                page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(base+'/html-games/broken-mirror-port/index.html')
                 page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden',timeout=120000)
                 page.evaluate(INSTALL)
                 page.wait_for_function('()=>nativeNpcDev.getState() && nativeSolAsteroids.placements.length',timeout=120000)
-                page.wait_for_function('()=>nativeCivilianTraffic.effectsReady() && !(nativeShipEffects.metrics?.().pending)',timeout=120000)
+                page.wait_for_function('()=>window.__testPlayerArtReady()',timeout=120000)
                 page.wait_for_timeout(200)
                 return page
             page=open_page()

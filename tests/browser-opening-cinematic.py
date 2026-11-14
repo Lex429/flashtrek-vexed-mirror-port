@@ -64,6 +64,12 @@ try:
         assert page.locator('#opening-cinematic').get_attribute('data-scene')=='war'
         assert page.evaluate('nativeOpeningCinematic.snapshot().time')>war_start+4
         page.emulate_media(reduced_motion='no-preference')
+        # Let the currently visible lamp textures finish on software GPUs while
+        # the scene is paused, then measure actual running delivery.
+        page.locator('[data-film-action="pause"]').click()
+        page.wait_for_function('()=>nativeOpeningCinematic.snapshot().renderer.liveEffects?.shipLamps?.preparation.pending===0',timeout=90000)
+        page.locator('[data-film-action="pause"]').click()
+        page.wait_for_function('()=>nativeOpeningCinematic.snapshot().renderer.liveEffects?.shipLamps?.lamps>0',timeout=15000)
         # Measure the running shared effects and both audio clocks, including destruction.
         page.evaluate('''()=>{window.__filmDelivery={samples:[],raf:[],last:performance.now(),running:true};
           const d=__filmDelivery;function frame(t){d.raf.push(t-d.last);d.last=t;if(d.running)requestAnimationFrame(frame);}requestAnimationFrame(frame);

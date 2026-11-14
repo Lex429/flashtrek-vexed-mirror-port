@@ -36,6 +36,14 @@ with sync_playwright() as p:
        const e=s.prometheus.sections.find(e=>e.shipType===type);return nativeShipSystems.applyDamage(s,nativeShipDefinitions.describe(s,e,{category:'prometheus'}),e.hull+e.shields+1000,{kind:'beam',from:{x:e.x-200,y:e.y}});};
       window.__survivalImage=()=>{const s=__survival,c=document.createElement('canvas');c.width=700;c.height=900;const g=c.getContext('2d',{willReadFrequently:true});
        nativePrometheus.paintPlayer(g,s,nativeShipDefinitions.describe(s),{ship:s,cx:350,cy:450,zoom:4,appearance:{lights:false}});return c.toDataURL().split(',')[1];};
+      window.__survivalLayerProof=()=>{const s=__survival,before=JSON.stringify(s),actual=document.createElement('canvas'),expected=document.createElement('canvas');actual.width=expected.width=700;actual.height=expected.height=900;
+       const a=actual.getContext('2d',{willReadFrequently:true}),b=expected.getContext('2d',{willReadFrequently:true}),view={ship:s,cx:350,cy:450,zoom:4,appearance:{lights:false}};
+       nativePrometheus.paintPlayer(a,s,nativeShipDefinitions.describe(s),view);
+       for(const key of ['bottom','middle','top']){const part=nativePrometheusDefinitions.parts.find(p=>p.key===key),record=s.prometheus.assembly.parts.find(p=>p.type===part.type);if(record.build<=0)continue;
+        const d=nativeShipDefinitions.get(37).dimensions,angle=s.angle+Math.PI/2,x=part.offset.x*d.width,y=part.offset.y*d.height,e={shipType:part.type,system:s.system,x:s.x+x*Math.cos(angle)-y*Math.sin(angle),y:s.y+x*Math.sin(angle)+y*Math.cos(angle),heading:s.angle,hull:record.hull,shields:0,phase:'flight'};
+        nativeShipEffects.paintShip(b,nativeShipDefinitions.describe(s,e,{category:'prometheus'}),view);}
+       const x=a.getImageData(0,0,700,900).data,y=b.getImageData(0,0,700,900).data;let max=0,visible=0;for(let i=0;i<x.length;i++){max=Math.max(max,Math.abs(x[i]-y[i]));if(i%4===3&&x[i]>100)visible++;}
+       if(max>1||visible<500||JSON.stringify(s)!==before)throw Error('Incorrect partial layer rendering '+max+'/'+visible);return {maximumChannelError:max,visiblePixels:visible,readOnly:true};};
     }""")
     report={'cases':[]}
     for survivors in [[3701,3702],[3701,3703],[3702,3703],[3701],[3702],[3703]]:
@@ -47,7 +55,7 @@ with sync_playwright() as p:
           if(s.prometheus.mode!=='joined'||!s.prometheus.assembly||Math.abs(s.hull-hp)>1e-6)throw Error('Partial docking failed '+survivors);
           const present=s.prometheus.assembly.parts.filter(p=>p.build>0).map(p=>p.type);if(JSON.stringify(present)!==JSON.stringify(survivors))throw Error('Wrong partial hulls');
           const before=JSON.stringify(s.prometheus);resumeNativeGame('dev',JSON.parse(JSON.stringify(s)));if(JSON.stringify(__survival.prometheus)!==before)throw Error('Partial assembly did not restore');
-          return {survivors,controlled,hull:__survival.hull,playerDeathPending:nativePlayerDestruction.pending};
+          return {survivors,controlled,hull:__survival.hull,playerDeathPending:nativePlayerDestruction.pending,layers:__survivalLayerProof()};
         }""",survivors)
         report['cases'].append(result);(OUT/('survivors-'+'-'.join(map(str,survivors))+'.png')).write_bytes(base64.b64decode(page.evaluate('__survivalImage()')))
     # The last fixture is Gamma alone, with its real, surviving DOT.

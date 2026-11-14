@@ -97,6 +97,9 @@ body.showcase-workspace { height:100dvh; margin:0; padding:10px; display:flex; f
 .showcase-workspace .workspace-info .animation-status-card,.showcase-workspace .workspace-info .fleet-progress { margin:0; }
 .showcase-workspace .workspace-info #cthia-status { font-size:10px; line-height:1.5; color:var(--muted); }
 .showcase-workspace .workspace-info #animation-example { font-size:11px; color:var(--cyan); }
+@media (max-width: 420px) {
+  .showcase-workspace .workspace-info { padding: 12px; gap: 10px; }
+}
 
 .showcase-workspace .workspace-unavailable { margin:14px; padding:16px; color:#9eb6ca; font-size:12px; line-height:1.7; border:1px solid var(--edge); border-radius:6px; }
 .showcase-workspace #repair-workshop { flex:1; min-height:0; display:flex; flex-direction:column; gap:0; }

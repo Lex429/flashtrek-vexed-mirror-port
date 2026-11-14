@@ -55,14 +55,14 @@ def main():
             channel=os.environ.get('BROWSER_CHANNEL','msedge')
             browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
             page=browser.new_page(viewport={'width':1366,'height':768});page.on('pageerror',lambda e:errors.append(str(e)))
-            page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+            page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
             page.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden',timeout=120000)
             page.evaluate('''()=>{const advance=nativeCivilianTraffic.advance;nativeCivilianTraffic.advance=(s,dt)=>{
               window.__projectileState=s;
               if(!window.__projectileFixture)return advance(s,dt);
               const target=s.civilianTraffic.ships[0];if(target?.speed>0)nativeShipSystems.move(s,target,'civilian',{drift:true},{maxSpeed:200,acceleration:0,braking:0,turnRate:0,vectorFlight:true},dt);
             };startNativeDevGame();}''')
-            page.wait_for_function('()=>nativeNpcDev.getState()&&nativeCivilianTraffic.effectsReady()',timeout=120000)
+            page.wait_for_function('()=>nativeNpcDev.getState()&&window.__testPlayerArtReady()',timeout=120000)
             page.evaluate('''()=>{window.__projectileFixture=true;window.requestAnimationFrame=callback=>{if(callback.name==='draw'&&(!window.__projectileFrame||window.__projectileFrame===callback))window.__projectileFrame=callback;return 0;};}''')
             page.wait_for_function('()=>typeof __projectileFrame==="function"',polling=50)
             page.evaluate(SETUP)

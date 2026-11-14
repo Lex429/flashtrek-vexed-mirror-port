@@ -14,6 +14,15 @@ changes resize capacity and retain owned Dots without granting replacements. The
 
 Drones restore hull only, at 1.5 hull per drone per simulation second. Each five hull restored consumes one deuranium; fractional remaining supplies are saved. The player uses the existing deuranium balance. NPC reserves consume hold capacity and are purchased through the existing atomic market exchange, at 55 credits/t, using only unreserved stock and owned funds. Accepted freight purchase funds are protected; ordinary crews spend at most a quarter of their current credits per restock. Sol company tugs transfer up to 12 t from their own port stock. Small civilian hulls target 4 t and larger hulls 12 t. Olympics aim for 200 t, with paid restocking visits when below 60 t. Owned delivery cargo and escrow remain separate from reserve material.
 
+Prometheus command transfers to a surviving separated section before the normal
+player destruction flow retires the command or its DOT bay. Any surviving pair
+can rejoin, and a single survivor can be secured with Recall. The joined recovery
+state saves the actual surviving layers and the paid reconstruction progress.
+DOTs use the same repair rate and deuranium ledger to rebuild missing structure
+outward from the survivor, until all three sections are restored. This creates
+no equipment or crews and cannot revive destroyed DOTs. Losing the last living
+section still triggers normal player destruction.
+
 Inventory's **Deploy Repair Drones** button manually launches the player's fitted,
 operational DOTs when the hull is damaged and repair deuranium is available.
 `nativeShipRepairs.deploymentStatus` owns eligibility and its visible disabled

@@ -29,7 +29,7 @@ try:
   report['locations']=[]
   for name,x,y in [('interior',0,0),('tile-corner',1000,700),('old-gap',2048,1536),('north',0,-46000),('west',-62000,0),('outside-fringe',65000,0)]:
    page.evaluate('''({x,y})=>{const s=nativeNpcDev.getState();nativeGalaxyFog.dispose();nativeShipMotion.stop(s);Object.assign(s,{system:73,x,y,localBody:0,localBodySystem:73,localNavTarget:0,localCruise:null,arrivalApproach:null,landed:false});nativeManualFlight.initializeRegion(s);nativeShipSystems.invalidate(s);}''',{'x':x,'y':y})
-   page.wait_for_function('()=>nativeGalaxyFog.materials().some(m=>m.field.ready)',timeout=120000);page.wait_for_timeout(250)
+   page.wait_for_timeout(250);page.wait_for_function('()=>nativeGalaxyFog.materials().length>0&&nativeGalaxyFog.materials().every(m=>m.field.ready)',timeout=120000)
    row=page.evaluate('''()=>{const s=nativeNpcDev.getState(),p=vexedSolFlight.shipPosition(s),b=nativeSystemCatalog.boundary(73),v={w:1280,h:850,cx:640,cy:425,zoom:1,camera:p,cameraX:p.x,cameraY:p.y,playerX:p.x,playerY:p.y};return {x:s.x,y:s.y,starless:nativeBadlands.starless(s.system,v),stars:nativeRegionalStarfield.sample(s.system,v).density,suns:nativeStellarBackground.project(s.system,v).length,bodies:vexedSolFlight.visibleBodies(s,v).length,rocks:nativeSolAsteroids.queryBounds(73,{minX:p.x-700,minY:p.y-450,maxX:p.x+700,maxY:p.y+450}).length,fog:nativeGalaxyFog.snapshot(),material:nativeGalaxyFog.materials().map(m=>({id:m.id,ready:m.field.ready,w:m.field.w,h:m.field.h,metrics:m.field.metrics(true)})),gas:nativeNebulaGas.metrics()};}''')
    row['name']=name;report['locations'].append(row)
    assert row['bodies']==0 and row['gas']['failures']==0,row

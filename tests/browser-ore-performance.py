@@ -110,10 +110,10 @@ def main():
             for repeat in range(args.repetitions):
                 page=browser.new_page(viewport=report['viewport']);page.add_init_script('('+stability.INSTRUMENT+')()')
                 page.on('pageerror',lambda e:errors.append(str(e)))
-                page.goto(base+'/html-games/broken-mirror-port/index.html')
+                page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(base+'/html-games/broken-mirror-port/index.html')
                 page.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden',timeout=120000)
                 page.evaluate(stability.INSTALL)
-                page.wait_for_function('()=>nativeSolAsteroids.placements.length&&nativeCivilianTraffic.effectsReady()',timeout=120000)
+                page.wait_for_function('()=>nativeSolAsteroids.placements.length&&window.__testPlayerArtReady()',timeout=120000)
                 fixture=args.fixture
                 if not fixture.exists():
                     fixture.parent.mkdir(parents=True,exist_ok=True)

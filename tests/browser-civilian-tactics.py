@@ -29,14 +29,14 @@ try:
         page = browser.new_page(viewport={'width': 1280, 'height': 850})
         page.add_init_script("""(()=>{const raf=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=callback=>{if(callback.name==='draw')window.__tacticsDraw=callback;return raf(timestamp=>{if(callback.name==='draw'){if(window.__freezeTactics)return;window.__tacticsFrameTime=timestamp;}return callback(timestamp);});};})()""")
         page.on('pageerror', lambda error: errors.append(str(error)))
-        page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+        page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
         page.wait_for_function('() => nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
         page.evaluate("""() => {
           const advance=nativeCivilianTraffic.advance;
           nativeCivilianTraffic.advance=(state,dt)=>{window.__tacticsState=state;return advance(state,dt);};
           startNativeDevGame();
         }""")
-        page.wait_for_function('() => window.__tacticsState && nativeCivilianTraffic.effectsReady()', timeout=120000)
+        page.wait_for_function('() => window.__tacticsState && window.__testPlayerArtReady()', timeout=120000)
         page.evaluate('()=>{window.__freezeTactics=true;window.requestAnimationFrame=()=>0;window.__tacticsBase=JSON.parse(JSON.stringify(nativeNpcDev.getState()));}')
         page.wait_for_timeout(100)
         reproduction = page.evaluate("""() => {

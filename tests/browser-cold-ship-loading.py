@@ -134,7 +134,7 @@ try:
         page.wait_for_function('()=>nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
         page.evaluate('()=>{startNativeDevGame();nativeNpcDev.showMap();}')
         page.wait_for_function('()=>nativeNpcDev.getState()?.civilianTraffic?.ships.length')
-        page.wait_for_function('()=>!nativeShipEffects.metrics().pending && !vexedFlightAssets.cacheSnapshot().ships.pending', timeout=120000)
+        page.wait_for_function('()=>nativeShipEffects.stageReady(7,0)', timeout=120000)
         page.evaluate(r"""() => {
           const s=nativeNpcDev.getState(),ship=s.civilianTraffic.ships.find(ship=>ship.id===2),definition=nativeShipDefinitions.get(35,'civilian');
           if(nativeShipEffects.ready(35,'civilian'))throw Error('Cold Galaxy class was already prepared');
@@ -175,8 +175,11 @@ try:
         for route in list(held.values()):
             route.continue_()
         held.clear()
-        page.wait_for_function('()=>!nativeShipEffects.metrics().pending', timeout=120000)
-        page.evaluate("async()=>{await nativeShipEffects.prepare(35,'civilian');}")
+        # Other working crews can continually request artwork. Await this
+        # fixture's hull rather than a galaxy-wide empty preparation queue.
+        page.wait_for_function('()=>nativeShipEffects.stageReady(35,1)', timeout=120000)
+        page.evaluate("()=>{nativeShipEffects.request(35,'civilian',{stage:2,visible:true});}")
+        page.wait_for_function('()=>nativeShipEffects.stageReady(35,2)', timeout=120000)
 
         # Use the real shared damage boundary once plates are warm and confirm
         # the rendered stage follows actual hull health, including fragments.

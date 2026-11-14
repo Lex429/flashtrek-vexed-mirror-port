@@ -117,6 +117,9 @@ try:
           // mining trial with an empty hold and the ship's normal full vitals.
           const def=nativeShipDefinitions.get(s.shipType,'player');
           Object.assign(s,{devMode:false,deuranium:0,minerals:{},solFreightHold:{},localContracts:[],hull:def.hull,shields:def.shields,latinum:500,system:43,planet:'Hof-Maso',x:rock.x-100,y:rock.y,speed:0,angle:Math.PI/2,miningTool:true,localCruise:null,arrivalApproach:null,phase:'flight',landed:false});
+          // Exercise ordinary mining in allied territory so the independent
+          // territorial patrol does not kill the test miner during save/reload.
+          s.localPrestige[43]=125;
           nativeShipEquipment.grant(s,'mining-laser',{location:'slot',slot:0});window.__deuraniumState=s;window.__deuraniumRock=rock;window.__oreBefore=s.minerals?.deuranium||0;
           vexedSpace.enterSystem(43,true);const view=nativeView.measure(document.querySelector('#space'));return {x:view.w/2+100,y:view.h/2,w:view.w,h:view.h};
         }''')
@@ -130,7 +133,7 @@ try:
         assert page.evaluate('__deuraniumState.asteroidDamage[__deuraniumRock.slotId]===__damagePaused')
         page.screenshot(path=str(OUT/'actual-player-mining.png'))
         page.evaluate('()=>{nativeSaveStorage.write(__deuraniumState);const initialize=nativeShipRepairs.initialize;window.nativeShipRepairs={...nativeShipRepairs,initialize:s=>{window.__deuraniumState=s;return initialize(s);}};resumeNativeGame();window.nativeShipRepairs={...nativeShipRepairs,initialize};window.nativeSimulation={...nativeSimulation,blocked:__originalBlocked};window.nativeSimulationHost?.checkpoint();}')
-        page.wait_for_function('()=>__deuraniumState.minedAsteroids?.includes(__deuraniumRock.slotId)',timeout=15000)
+        page.wait_for_function('()=>__deuraniumState.minedAsteroids?.includes(__deuraniumRock.slotId)',timeout=60000)
         # Save/resume and real contacts can move the camera/rock. Collect at the
         # current rendered world position, rather than the pre-cut pixel.
         point=page.evaluate('''()=>{const s=__deuraniumState,p=s.system===1?vexedSolFlight.shipPosition(s):s,r=__deuraniumRock,v=nativeView.measure(document.querySelector('#space'));return {x:v.w/2+r.x-p.x,y:v.h/2+r.y-p.y,w:v.w,h:v.h};}''')

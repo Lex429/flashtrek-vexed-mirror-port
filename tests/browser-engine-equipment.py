@@ -46,7 +46,7 @@ try:
         wallet=page.evaluate('__equipmentState.latinum')
         for model in ['upgraded-engine','advanced-engine']:
             icon=page.locator(f'.encounter-equipment-icon[src$="{model}.png"]')
-            assert icon.count()==1 and icon.evaluate('(im)=>im.complete && im.naturalWidth>0')
+            assert icon.count()==1 and icon.evaluate('async im=>{await im.decode();return im.naturalWidth>0;}')
             page.locator(f'[data-buy-equipment="{model}"]').click()
         assert page.evaluate('__equipmentState.latinum')==wallet-7500
         page.screenshot(path=str(OUTPUT/'engine-shop.png'))
@@ -84,8 +84,10 @@ try:
             speeds[model]=fly(speed)
             assert page.evaluate("()=>{const s=nativeSaveStorage.read('normal');return s.shipEquipment.instances[s.shipEquipment.slots.engineering[0]].modelId;}")==model
         slot('engineering',0).drag_to(page.locator('#ship-inventory .inventory-blank').first)
-        assert 'Flight speed 20' in slot('engineering',0).inner_text()
-        speeds['emptyBay']=fly(90)
+        assert 'Empty bay' in slot('engineering',0).inner_text()
+        assert page.locator('[data-hull-system="thrusters"]').count()==1
+        empty_speed=page.evaluate('nativeShipDefinitions.forEntity(__equipmentState).movement.maxSpeed')
+        speeds['emptyBay']=fly(empty_speed)
         page.screenshot(path=str(OUTPUT/'basic-propulsion-inventory.png'))
         assert page.evaluate("nativeSaveStorage.read('normal').shipEquipment.slots.engineering[0]") is None
         owned=page.evaluate('Object.keys(__equipmentState.shipEquipment.instances).sort()')
@@ -97,7 +99,7 @@ try:
         page.evaluate('window.nativeSimulation={...nativeSimulation,blocked:()=>true}')
         assert page.evaluate('__equipmentState.shipEquipment.slots.engineering[0]') is None
         assert page.evaluate('Object.keys(__equipmentState.shipEquipment.instances).sort()')==owned
-        assert page.evaluate('nativeShipDefinitions.forEntity(__equipmentState).movement.maxSpeed')==90
+        assert page.evaluate('nativeShipDefinitions.forEntity(__equipmentState).movement.maxSpeed')==empty_speed
         open_inventory()
         page.locator('[aria-label="Stored Advanced warp engine"]').drag_to(slot('engineering',0))
         for width,height in [(390,844),(360,740),(1440,1000)]:

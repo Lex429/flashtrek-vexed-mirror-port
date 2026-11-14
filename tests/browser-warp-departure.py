@@ -20,12 +20,12 @@ try:
         page.evaluate('''()=>{
           window.__departureDraws=[];const api=vexedFlightAssets;window.vexedFlightAssets={...api,
            drawShip(ctx,asset,x,y,width,angle,time,appearance){
-            if(ctx.canvas.id==='space'&&appearance?.kind==='departure')__departureDraws.push({type:asset.type,x,y,alpha:appearance.alpha,phaseTime:vexedWarp.snapshot().phaseTime});
+            if(ctx.canvas.id==='space'&&appearance?.kind==='departure'&&vexedWarp.flightEffect?.kind==='departure'&&asset.type===12)__departureDraws.push({type:asset.type,x,y,alpha:appearance.alpha,phaseTime:vexedWarp.snapshot().phaseTime});
             return api.drawShip(ctx,asset,x,y,width,angle,time,appearance);
            },
            drawWarpFlash(ctx,flash){
             api.drawWarpFlash(ctx,flash);
-            if(flash&&!window.__liveFlash){
+            if(flash&&ctx.canvas.id==='space'&&vexedWarp.flightEffect?.kind==='departure'&&vexedWarp.flightEffect.alpha===0&&!window.__liveFlash){
              const m=ctx.getTransform(),x=Math.round(m.a*flash.x+m.c*flash.y+m.e),y=Math.round(m.b*flash.x+m.d*flash.y+m.f);
              window.__liveFlash={flash,effect:vexedWarp.flightEffect,phaseTime:vexedWarp.snapshot().phaseTime,viewport:nativeView.measure(),pixel:Array.from(ctx.getImageData(x,y,1,1).data),auxiliary:api.cacheSnapshot().auxiliary};
              window.__flashImage=ctx.canvas.toDataURL();nativePause.open();
@@ -70,6 +70,10 @@ try:
         (OUT/'report.json').write_text(json.dumps(report,indent=2),encoding='utf8');print(json.dumps(report),flush=True);browser.close()
 except Exception:
     if 'page' in locals():
+        try:
+            diagnostic=page.evaluate('()=>({warp:vexedWarp.snapshot(),effect:vexedWarp.flightEffect,paused:nativeSimulation.blocked(),shipType:nativeNpcDev.getState()?.shipType,gamePhase:nativeNpcDev.getState()?.phase,draws:window.__departureDraws?.length,flash:window.__liveFlash,errors:window.__warpErrors})')
+            (OUT/'failure.json').write_text(json.dumps(diagnostic,indent=2),encoding='utf8')
+        except Exception:pass
         try:page.screenshot(path=str(OUT/'failure.png'))
         except Exception:pass
     raise

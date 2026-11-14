@@ -49,6 +49,7 @@ try:
         channel = os.environ.get('BROWSER_CHANNEL', 'msedge')
         browser = p.chromium.launch(headless=True, **({'channel': channel} if channel else {}))
         page = browser.new_page(viewport={'width': 1440, 'height': 900})
+        page.set_default_timeout(120000)
         page.on('pageerror', lambda e: errors.append(str(e)))
         page.on('response', lambda r: errors.append(f'{r.status} {r.url}') if r.status >= 400 else None)
         page.add_init_script("""(() => {

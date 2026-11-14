@@ -3,3 +3,8 @@ window.VexedMirrorWeapons = [{"id":1,"name":"Type X Phaser","description":"A sta
 
 // Equipment category is explicit metadata; damage does not determine slot type.
 for(const item of window.VexedMirrorWeapons)item.category=({20:'ability',21:'engineering',22:'ability',23:'ability',24:'ability',25:'ability'})[item.id]||'weapon';
+
+// These legacy models have no separate showcase plate. Reuse the existing
+// green energy beam and photon visual; the fitted model still owns its stats.
+window.VexedMirrorWeapons.find(item=>item.id===26).visualId=5;
+window.VexedMirrorWeapons.find(item=>item.id===27).visualId=15;

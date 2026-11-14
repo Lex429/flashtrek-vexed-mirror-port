@@ -16,83 +16,67 @@ The panel fits without scrolling; keyboard focus starts on Request docking.
 `mars-docking-contact.css` applies only while this Mars contact screen is open.
 The existing outfitting pages and other stations keep their own presentation.
 
-Mars opens **Upgrades** with nine simple cards: the system name, its current and
-next value, and an installed-tier meter. Each available tier has one segment:
-empty outlined bars are uninstalled, while installed tiers glow mint green.
-Bars use each family's real one-, two- or three-tier cap, with no visible tier
-wording or fraction. The installed count remains accessible to screen readers.
-The same meter appears in the
-requirements header and updates after verified purchases or tier removal.
-Selecting one animates a requirements view into
-the same right-hand panel. The ship, installed equipment and hull/shield strengths
-stay visible beside it, with exact current-to-upgraded stat arrows.
+Mars opens **Upgrades** as a scrolling shop, matching the Weapons catalog. Each
+of its nine tiles shows the upgrade name, current-to-next value, installed-tier
+boxes, exact NEED/HAVE resource table, and **Buy & install**. Empty boxes are
+uninstalled; purchased boxes glow mint green. They use each family's actual cap,
+without visible tier wording or a fraction; screen readers retain the count.
+Clicking a tile previews its effect on the ship without opening another page.
 
-Hull, Shields, Cargo capacity (tonnes) and Speed (maximum normal flight speed)
-always appear together in one full-width strip below the ship's name on every
-Mars tab. Larger numbers, quiet labels and thin dividers replace the individual
-boxes beside the name. The strip belongs to the title's normal grid flow,
-reserving its actual height before equipment paging, including wrapped arrows. Cargo and
-engine upgrades preview the same current-to-upgraded values as hull and shields.
-Values and bars read the shared definitions/quotes and create no owned hardware.
+Only the right catalog scrolls. The ship, Inventory equipment and the Hull,
+Shields, Cargo capacity (tonnes) and Speed (maximum normal flight speed) strip
+stay visible. The title reserves the strip's natural height, including preview
+arrows. Equipment inspection and drag/repair controls retain their shared owner.
 
-The requirements view shows every material in a fixed grid, without scrolling.
-Each tile puts **HAVE / NEED** together with the stock and exact total price.
-Covered requirements (including exact equality) glow mint green and say **YOU
-HAVE IT**. Uncovered requirements stay dim, with the exact **Need X more** amount
-pulsing in opacity. Reduced motion keeps that shortage text steady. A capped
-progress strip supplements the numbers, never replacing them.
+Every requirement names its material and shows NEED beside HAVE. Covered stock,
+including exact equality, glows mint and says Ready. Missing stock remains dim
+and pulses the exact **Need X more** amount; reduced motion makes it steady.
+Covered stock of a million or more uses compact notation, such as 1B, with the
+exact stock in its title and accessible row description. Required prices and
+shortages remain exact. `mars-upgrade-shop.css` owns the responsive list and cost
+tables; the previous material-review page and its number-fitting observer are
+no longer used.
 
-`mars-materials.css` keeps each material inside a bounded card with an icon/name
-header, separate HAVE and NEED amount panels, and an internal status/progress strip.
-Cards stop growing at 190px; their actual allocated height selects regular,
-compact or tight spacing before numbers are measured. This prevents the header,
-amounts and status from overlapping in short rows, even when the catalog itself
-is tall. All amounts share one measured font size and equal column positions.
-Covered stock of a million or more uses compact notation (1B for a billion);
-its full stock remains in the hover title and accessible description. Required
-prices and shortages remain exact. A bounded ResizeObserver updates fitting on
-layout changes and disconnects on Back, close or tab changes.
+**Buy & install** settles through the same live quote and verified save owner.
+Insufficient resources disable Buy. Purchases update the tile to its next price
+and light exactly the newly installed box, retaining the catalog position.
+Maximum upgrades keep their space in the list and show **Fully upgraded** with
+a disabled Buy button. A quiet Remove action explicitly warns of no refund.
 
-An opening light sweep is staggered across the cards; ready borders breathe
-gently and only shortages pulse. These use CSS transform/opacity animation,
-remain clipped to their own cards, and stop for reduced motion. There is no
-JavaScript animation loop or extra saved UI state.
+Bay upgrades buy an empty bay at the owner's default position. Optional **Choose
+position** highlights mounts on the ship while the same shop remains open;
+**Cancel position** spends nothing. The chosen mount is passed to the existing
+atomic transaction. Equipment is purchased separately.
 
-**Buy & install** uses the shared live quote; **Back** returns to the overview
-without spending and restores the original position. Insufficient resources
-disable Buy. Successful purchases return to the cards and play the installation
-sequence. Maximum tiers remain inspectable, with a disabled Buy button; the
-quiet **Remove tier** control explicitly warns that it provides no refund.
-
-Opening/back animations use short CSS transforms and opacity; layout renders
-retain their elapsed time. On phones, a compact ship panel and two-column
-material grid keep the gear, counts and actions visible together. The clarity
-browser regression checks overflow, clipping ancestors, long stock numbers,
-readiness glow, shortage-only pulses, exact equality and wheel input across
-widescreen, Classic and phone layouts.
-`browser-mars-material-layout.py` also checks short windows, all one/three/four
-resource arrangements, trillion-unit stock, shared baselines, child containment
-and overlapping rows/number columns. It also replays the reported cargo example
-(one billion Latinum and 25 each of tritanium/deuranium), plus normal and reduced
-motion animations, with screenshots of each case.
+`browser-mars-inline-upgrades.py` checks all nine quotes and charges, tier caps,
+unchanged card/scroll positions, failed-save rollback, optional placement,
+removal and Continue. `browser-mars-material-clarity.py` checks equality, shortage
+pulses, exact quantities, large stock and reduced motion. The layout regression
+visits every tile across desktop, Classic and phone sizes, verifies contained
+text and cost columns, and confirms that the ship stays pinned while browsing.
+The common normal-game fixture lives in `tests/mars_shop_support.py`.
 
 There is no shared upgrade-point budget. Every upgrade family can reach its own
 tier cap, even when other upgrades, legacy mineral technology or advanced
 shields are installed. Prices, resource deductions, individual tier limits,
 weapon output limits and atomic save rollback retain their existing owners.
 
-Successful Mars upgrades play a 2.9-second installation sequence: an energy surge
-from the purchased card, expanding rings and sparks around the ship, a scan sweep,
-and an **UPGRADE INSTALLED** header receipt with the actual before/after value and
-installed tier. It uses the existing enabled/disabled confirmation sound. The
-receipt appears only after verified settlement; failure shows no success effect.
-`mars-upgrade-effects.js/css` only read shared hardware and animate transient UI.
-The effect has a fixed number of elements, CSS transform/opacity animations and no
-JavaScript frame loop. One active sequence survives layout renders; another buy
-replaces it. Closing, leaving Upgrades, hiding the document or timeout removes it.
-It never intercepts controls or adds saved state. Reduced motion uses a static
-receipt/card highlight. `browser-mars-upgrade-effects.py` checks every upgrade
-type, failed saves, repeated buying, responsive alignment and cleanup.
+Successful Mars upgrades play a 3.2-second installation sequence: a light sweep
+crosses the purchased tile, three energy packets travel into the ship, docking
+brackets lock around it, and rings/sparks accompany a hull scan. The new tier box
+lights in sequence and the affected stat flips from its old to its new value.
+An **UPGRADE INSTALLED** header receipt shows the exact before/after result while
+keeping Lights and Close accessible. It uses the existing enabled/disabled
+confirmation sound and appears only after verified settlement.
+
+`mars-upgrade-effects.js/css` reads hardware and animates transient UI. It uses a
+fixed element count and CSS transform/opacity animations, with no JavaScript
+frame loop. Card effects clip to the scrolling catalog; resize and active scroll
+events update geometry. Re-renders preserve the sequence's elapsed time. A new
+purchase replaces the sequence; closing, changing tabs, hiding the document or
+timeout cleans up decorations and old-value labels. Controls remain usable.
+Reduced motion keeps a static receipt and the installed box. Its browser test
+checks all nine upgrade types, failures, rapid buys, alignment, clipping and cleanup.
 
 The complete equipment layout stays visible on every services tab. It uses the
 same slots, empty-bay labels, condition badges, built-in thruster tile and bay
@@ -106,8 +90,7 @@ Inventory's existing move bridge. Repairs use its existing repair callback too.
 Choosing an extra bay highlights available positions alongside existing gear.
 **Buy** installs an empty bay at the shared layout's default position, or at the
 highlighted position explicitly chosen by the player. Preview/cancel never spends.
-Removal is available in **Installed upgrade options** in the requirements view,
-with an explicit **Remove one tier (no refund)** control.
+Each upgrade tile offers a quiet Remove control with an explicit no-refund warning.
 
 The other Mars pages are **Weapons**, **Shields**, **Materials** and **Equipment**.
 Purchased items go to the locker; fit them to a compatible bay in Equipment.
@@ -129,8 +112,7 @@ six viewport/view combinations, long names and offline devices.
 The ship schematic uses the same component and preview as Inventory. Every mineral
 has a consistent icon in costs, Materials and Inventory. Upgrade cards show the
 current and next values, level cap and refit cost. Choose **Preview** to inspect
-the change before purchasing at other yards; Mars opens its material review through the simple
-stat cards. Other yards require choosing a highlighted mount before **Buy &
+the change before purchasing at other yards; Mars purchases directly from its scrolling upgrade tiles. Other yards require choosing a highlighted mount before **Buy &
 place bay**; Mars also permits the default position. The chosen typed bay position
 is saved in `shipEquipment.bayLayout`, separate
 from the item fitted there. Both screens use the same positions and a six-column

@@ -38,6 +38,7 @@ try:
         point=page.evaluate('''system=>{
           const s=nativeNpcDev.getState(),rock=nativeSolAsteroids.forSystem(system).find(r=>r.oreType==='dilithium');
           Object.assign(s,{devMode:false,deuranium:0,dilithium:100,system,planet:VexedMirrorWorld.systems.find(w=>w.id===system).name,x:rock.x-100,y:rock.y,speed:0,angle:Math.PI/2,miningTool:true,localCruise:null,arrivalApproach:null});
+          s.localPrestige[system]=125;
           delete s.localBodySystem;nativeSystemCatalog.initialize(s);
           nativeShipEquipment.grant(s,'mining-laser',{location:'slot',slot:0});window.__regionalState=s;window.__regionalRock=rock;window.__regionalBefore=s.dilithium;
           vexedSpace.enterSystem(system,true);
@@ -72,6 +73,9 @@ try:
         result=page.evaluate('({wallet:__regionalState.latinum,treasury:__regionalMarket.credits,ore:__regionalState.minerals.trellium})')
         assert result['ore']==before['ore']-1
         assert result['wallet']+result['treasury']==before['wallet']+before['treasury']
+        page.locator('[data-tab="services"]').click()
+        page.locator('[data-view-tab="shop"]').click()
+        page.locator('[data-shop-category="mining"]').click()
         page.locator('[data-upgrade-mineral="hull"]').click()
         assert page.evaluate('__regionalState.mineralUpgrades[__regionalState.shipType].hull')==1
         assert page.evaluate('nativeShipDefinitions.forEntity(__regionalState).hull')==round(before['hull']*1.1)

@@ -60,14 +60,14 @@ try:
         page.add_init_script(AUDIO_PROBE)
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('response', lambda response: failed.append(response.url) if response.status >= 400 else None)
-        page.goto(url)
+        page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(url)
         page.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden', timeout=120000)
         assert page.evaluate('nativeGameSounds.snapshot().state') == 'locked'
         page.locator('#menu-sound-toggle').click();page.locator('#menu-sound-toggle').click()
         page.wait_for_function('(expected)=>nativeGameSounds.snapshot().decoded.length===expected', arg=EXPECTED_CLIPS, timeout=30000)
         assert not page.evaluate('nativeGameSounds.snapshot().failed')
         page.evaluate('startNativeDevGame()')
-        page.wait_for_function('()=>nativeNpcDev.getState()&&nativeCivilianTraffic.effectsReady()&&nativeSolAsteroids.placements.length', timeout=120000)
+        page.wait_for_function('()=>nativeNpcDev.getState()&&window.__testPlayerArtReady()&&nativeSolAsteroids.placements.length', timeout=120000)
         page.evaluate('window.__soundState=nativeNpcDev.getState()')
 
         def cue(kind, action):

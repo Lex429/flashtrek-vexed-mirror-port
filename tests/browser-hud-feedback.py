@@ -44,7 +44,7 @@ try:
           s.devMode=true;vexedHud.frame(s,{dt:0});const unlimited=vexedHud.snapshot().resources.map(r=>({text:r.text,warning:r.warning}));
           s.devMode=false;[s.deuranium,s.antimatter,s.latinum]=held;vexedHud.frame(s,{dt:0});return {low,unlimited};}''')
         assert all(warnings['low']) and all(r=={'text':'∞','warning':False} for r in warnings['unlimited']),warnings
-        enemy=page.evaluate('''()=>{const s=__hudState,e=s.civilianTraffic.ships[0];Object.assign(s,{system:2,localBody:0,x:4e6,y:4e6});Object.assign(e,{system:2,shipType:7,x:s.x+180,y:s.y,heading:Math.PI,speed:0,vx:0,vy:0,hull:50,shields:50,phase:'cruise'});
+        enemy=page.evaluate('''()=>{const s=__hudState,e=s.civilianTraffic.ships[0];nativeWeaponLoadout.refit(s,[1,null,null]);Object.assign(s,{system:2,localBody:0,x:4e6,y:4e6});Object.assign(e,{system:2,shipType:7,x:s.x+180,y:s.y,heading:Math.PI,speed:0,vx:0,vy:0,hull:50,shields:50,phase:'cruise'});
           for(const k of ['journey','localLeg','motionSpin','motionKick'])delete e[k];nativeNpcLives.invalidateMembership(s);nativeShipSystems.invalidate(s);vexedHud.frame(s,{dt:0});return e.id;}''')
         def fire():
             return page.evaluate('''id=>{const s=__hudState,e=s.civilianTraffic.ships.find(e=>e.id===id),api=nativeSimulation;window.nativeSimulation={...api,blocked:()=>false};

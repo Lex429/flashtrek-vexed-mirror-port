@@ -35,14 +35,14 @@ try:
         })();""")
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('response', lambda response: failed.append(response.url) if response.status >= 400 else None)
-        page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
+        page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
         page.wait_for_function('() => nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
         page.evaluate("""() => {
           const advance=nativeCivilianTraffic.advance;
           nativeCivilianTraffic.advance=(state,dt)=>{window.__beamState=state;return advance(state,dt);};
           startNativeDevGame();
         }""")
-        page.wait_for_function('() => window.__beamState && nativeCivilianTraffic.effectsReady() && nativeSolAsteroids.placements.length', timeout=120000)
+        page.wait_for_function('() => window.__beamState && window.__testPlayerArtReady() && nativeSolAsteroids.placements.length', timeout=120000)
         page.evaluate('window.requestAnimationFrame=()=>0')
         page.wait_for_timeout(100)
         page.evaluate("""() => {
