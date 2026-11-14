@@ -99,7 +99,7 @@ try:
             let steps=0;while(m.restoredHull<max*.2){tick();check(steps++<maximumSteps,'No work on hull '+entry.id);}
             const workers=nativeShipRepairs.drones(s,47).filter(d=>d.entity.phase==='repairing');
             check(workers.length>0&&s.shipRepairs.weldSparks.length>0,'Missing welding on '+entry.id);
-            check(new Set(workers.map(d=>d.entity.workSite)).size===workers.length,'Duplicated work cell');
+            check(new Set(workers.map(d=>m.attachmentVersion?d.entity.workSlot:d.entity.workSite)).size===workers.length,'Duplicated work station');
             const sites=workers.map(d=>d.entity.workSite);
             const pose=nativeShipDefinitions.describe(s);
             for(const d of workers){const point=nativeShipRepairs.workPoint(pose,d.entity),heading=Math.atan2(point.y-d.y,point.x-d.x);
@@ -115,7 +115,11 @@ try:
               check(Math.hypot(beam.to.x-expected.x,beam.to.y-expected.y)<1e-8,'Beam detached from hull');}
             check(JSON.stringify(s)===before,'Painting mutated game state');
             while(m.restoredHull<max*.4){tick();check(steps++<maximumSteps,'Tools stopped working');}
-            check(workers.some((d,i)=>d.entity.workSite!==sites[i]),'Tools never moved between damage sites');
+            if(m.attachmentVersion){
+              // Current self-repair tools retain measured stations on moving
+              // armor; legacy missions advance through raster damage cells.
+              check(workers.every(d=>d.entity.workLocal&&d.entity.workStation&&Number.isFinite(d.entity.workLocal.x)&&Number.isFinite(d.entity.workLocal.y)),'Tools lost their measured hull attachment '+entry.id);
+            }else check(workers.some((d,i)=>d.entity.workSite!==sites[i]),'Tools never moved between damage sites '+entry.id);
             while(m.status==='active'){tick();check(steps++<maximumSteps,'Repair did not finish '+entry.id);}
             check(m.status==='completed'&&Math.abs(s.hull-max)<1e-6,'Incomplete hull '+entry.id);
             check(s.repairBay.slots.every(d=>d.phase==='stowed'),'Drones failed to return');
@@ -124,7 +128,7 @@ try:
           }
           return result;
         }""")
-        assert len(native) == 66
+        assert len(native) == game.evaluate('VexedMirrorWorld.ships.length')
         if errors: raise AssertionError(errors)
         (OUTPUT / 'report.json').write_text(json.dumps({'showcase': showcase, 'native': native}, indent=2), encoding='utf-8')
         print(json.dumps({'ok': True, 'showcaseShips': len(showcase), 'liveHulls': len(native)}))

@@ -57,7 +57,8 @@ try:
     assert page.locator('[data-ship-stat="hull"] strong>b').inner_text()==str(actual['value'])
     page.locator('.mars-install-fx').evaluate('n=>n.getAnimations({subtree:true}).forEach(a=>{a.pause();a.currentTime=550;})')
     page.screenshot(path=str(OUT/'01-installation-burst.png'))
-    page.locator('.mars-install-fx').evaluate('n=>n.getAnimations({subtree:true}).forEach(a=>a.play())')
+    # Screenshot encoding can outlast the independent cleanup timer. The next
+    # purchase resets the effect, so there is no need to resume this old node.
    receipts.append({'kind':kind,'before':before['value'],'after':actual['value']})
   # Effects do not intercept a second purchase or accumulate overlay/timer sets.
   reset();first=page.evaluate('nativeMarsUpgradeEffects.capture(__gearState,"hull")');buy('hull').click();check_receipt('hull',first)

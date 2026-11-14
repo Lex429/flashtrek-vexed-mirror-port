@@ -5,13 +5,14 @@ const path=require('node:path');
 const vm=require('node:vm');
 function fixture(){
   const window={},context=vm.createContext({window,Math,Object});
-  for(const file of ['html-games/flashtrek-broken-mirror/repair-hull-work.js','html-games/broken-mirror-port/ship-repair-sites.js'])
+  for(const file of ['html-games/flashtrek-broken-mirror/repair-hull-work.js','html-games/broken-mirror-port/ship-repair-sites.js','html-games/broken-mirror-port/ship-debris-geometry.js','html-games/broken-mirror-port/prometheus-artwork.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),context,{filename:file});
-  return {work:window.nativeRepairWork,ships:window.VexedRepairSites.ships};
+  const sections=new Set(window.prometheusArtwork.parts.map(p=>String(p.type)));
+  return {work:window.nativeRepairWork,ships:window.VexedRepairSites.ships,hulls:Object.keys(window.VexedMirrorDebrisGeometry.ships).filter(id=>!sections.has(id))};
 }
 
-test('all 66 hulls have bounded work cells from their actual existing damage artwork',()=>{
-  const {work,ships}=fixture();assert.equal(Object.keys(ships).length,66);
+test('all playable hulls have bounded work cells from their actual existing damage artwork',()=>{
+  const {work,ships,hulls}=fixture();assert.deepEqual(Object.keys(ships).sort(),hulls.sort());
   for(const [id,data] of Object.entries(ships)){
     assert.ok(data.changed>100&&data.points.length>0,`Missing damage for ${id}`);
     for(let i=0;i<data.points.length;i+=2)assert.ok(data.points[i]>=0&&data.points[i]<data.w*data.h);

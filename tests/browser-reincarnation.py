@@ -76,11 +76,12 @@ try:
         page.wait_for_function('()=>!nativePlayerDestruction.pending&&__current.hull>0')
         rewound=page.evaluate('''()=>{
           const s=__activated,b=__safe;
+          const reservations=value=>Object.keys(value).sort().map(key=>[key,value[key]]);
           return {latinum:s.latinum,day:s.day,standing:s.localPrestige[1],oldEnemy:s.localPrestige[55],
             alerts:JSON.stringify(s.factionDefence||null)===JSON.stringify(b.factionDefence||null),
             clock:s.shipSimulation.seconds===b.shipSimulation.seconds,crew:s.civilianTraffic.ships.length,
             crewCredits:s.civilianTraffic.ships[0].credits===b.civilianTraffic.ships[0].credits,
-            jobs:JSON.stringify(s.civilianTraffic.life.reservations)===JSON.stringify(b.civilianTraffic.life.reservations),
+            jobs:JSON.stringify(reservations(s.civilianTraffic.life.reservations))===JSON.stringify(reservations(b.civilianTraffic.life.reservations)),
             location:s.system===b.system&&s.x===b.x&&s.y===b.y,
             otherMode:localStorage.getItem(nativeSaveStorage.keys.dev)===__devSave};
         }''')

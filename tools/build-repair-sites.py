@@ -14,7 +14,7 @@ server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,d
 threading.Thread(target=server.serve_forever,daemon=True).start()
 try:
     with sync_playwright() as p:
-        channel=os.environ.get('BROWSER_CHANNEL','msedge')
+        channel=os.environ.get('BROWSER_CHANNEL','')
         browser=p.chromium.launch(headless=True,**({'channel':channel} if channel else {}))
         page=browser.new_page()
         page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
