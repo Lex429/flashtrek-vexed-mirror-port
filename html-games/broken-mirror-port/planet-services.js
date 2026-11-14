@@ -14,6 +14,7 @@
   function stopPreview() { previewGeneration++; if (previewFrame) cancelAnimationFrame(previewFrame); previewFrame = 0; }
   function reset() { stopPreview(); category = 'ships'; page = 0; quantity = 1; selectedShipId = null; }
   function offeredShips(state, place) {
+    if(state.system===1&&window.nativeShipConstruction)return window.nativeShipConstruction.catalog(state);
     const original = state.system === 1 ? shipOffers[place.id] || [] : window.VexedMirrorWorld.systems.find(s => s.id === state.system)?.planetShopItemIds || [];
     const ids = window.nativeFederationShips?.offers(state,place.id,original)||original;
     return ids.map(id => window.nativeShipDefinitions.get(id)).filter(Boolean);
@@ -55,6 +56,7 @@
   }
 
   function shipDetails(ship, state, usable) {
+    if(state.system===1)return `<section class="encounter-ship-details"><h3>Earth Heavy Shipyard</h3><p>All Sol ship purchases are commissioned at Earth Heavy Shipyard. Each vessel is constructed, launched and added to your fleet.</p><button data-open-heavy-yard>Open Fleet &amp; Shipyard</button></section>`;
     const prestige = Number(state.localPrestige?.[state.system] || 0), required = ship.massClass * 15;
     const canBuy = usable && ship.id !== state.shipType && (state.devMode || state.latinum >= ship.price && prestige >= required);
     const standard = ship.defaultWeapons.filter(id => Number(id) > 0).map(id => {
@@ -101,6 +103,7 @@
     return `<div class="encounter-service-controls"><div class="encounter-service-heading"><span>INTERPLANETARY EXCHANGE</span><h2>Trade at ${safe(place.name)}</h2><p>Buy here, travel, then sell where prices are higher.</p></div><div class="encounter-trade-top"><span><strong>${state.devMode ? '∞' : fmt(state.latinum)}</strong> latinum</span><div class="encounter-trade-quantity"><span>Units</span>${[1,5,10].map(n => `<button data-trade-quantity="${n}" aria-pressed="${quantity === n}">${n}</button>`).join('')}</div></div><div class="encounter-trade-list">${goods.map(good => {const buy = bridge.price(good, place.id), sell = Math.max(1, buy - 4), held = Number(state[good.toLowerCase()] || 0); return `<article class="encounter-trade-item"><div><strong>${good}</strong><small>Aboard ${state.devMode ? '∞' : fmt(held)}</small></div><div class="encounter-trade-prices"><span>Buy <b>${buy} L</b></span><span>Sell <b>${sell} L</b></span></div><div class="encounter-trade-buttons"><button data-trade-buy="${good}" ${usable && (state.devMode || state.latinum >= buy * quantity && Number(state.stocks?.[good]) >= quantity) ? '' : 'disabled'}>Buy</button><button data-trade-sell="${good}" ${usable && (state.devMode || held >= quantity) ? '' : 'disabled'}>Sell</button></div></article>`;}).join('')}</div><p class="encounter-service-notice" role="status">${safe(notice || 'Prices vary by port. Transactions save immediately.')}</p></div>`;
   }
   function bind(root, bridge, place, update) {
+    root.querySelector("[data-open-heavy-yard]")?.addEventListener("click",()=>window.nativeShipConstructionUI.open());
     const state = bridge.getState(); startPreview(root, state, place);
     const act = result => update(result?.message || result?.error || '');
     root.querySelectorAll('[data-shop-category]').forEach(button => button.onclick = () => {category = button.dataset.shopCategory; page = 0; update('');});

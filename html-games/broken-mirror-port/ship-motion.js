@@ -365,24 +365,36 @@
       heading:Number.isFinite(target.heading)?target.heading-finite(target.omega)*dt:undefined,angularVelocity:finite(target.omega),navigationGoal:{x:target.x,y:target.y}};
   }
   function avoidVectorShips(ship,neighbors,command,profile){
+    const service=profile.serviceApproach&&ship.entity?.approachTarget,goal=command.navigationGoal;
+    if(service&&goal)neighbors=neighbors.filter(other=>{
+      const assigned=service.category===other.category&&String(service.id)===String(other.id)||ship.entity?.missionId&&ship.entity.missionId===other.entity?.missionId;
+      if(!assigned)return true;
+      const still={...other,previousX:other.x,previousY:other.y},from={...ship,previousX:ship.x,previousY:ship.y},to={...from,x:goal.x,y:goal.y};
+      if(!shipPairContact(to,still,1))return false;
+      // Leave an inner clearance area along an outward physical route. Actual
+      // overlap/contact response still belongs to the collision owner.
+      const outward=(goal.x-ship.x)*(ship.x-other.x)+(goal.y-ship.y)*(ship.y-other.y)>0;
+      return !(outward&&!shipPairContact({...to,previousX:to.x,previousY:to.y},still,1));
+    });
     const speed=Math.hypot(command.velocity.x,command.velocity.y),heading=speed>.01?Math.atan2(command.velocity.y,command.velocity.x):ship.heading;
     const intended={...ship,vx:command.velocity.x,vy:command.velocity.y,heading};
     const predicted=trafficAdvice(intended,neighbors,profile),actual=trafficAdvice(ship,neighbors,profile);
     const threat=actual&&(!predicted||actual.t<predicted.t)?actual:predicted;
     let route=ship.entity?.actuatedAvoidance,other=route&&neighbors.find(e=>e.id===route.id&&e.category===route.category);
-    if(!other||Math.hypot(ship.x-other.x-route.x,ship.y-other.y-route.y)<6){route=null;if(ship.entity)delete ship.entity.actuatedAvoidance;}
+    if(!other||!threat||threat.other.id!==other.id||threat.other.category!==other.category||Math.hypot(ship.x-other.x-route.x,ship.y-other.y-route.y)<6){route=null;if(ship.entity)delete ship.entity.actuatedAvoidance;}
     if(!route&&threat){
       other=threat.other;
       const goal=command.navigationGoal||{x:ship.x+command.velocity.x*2,y:ship.y+command.velocity.y*2};
       const points=obstaclePoints(ship,goal,[{x:other.x,y:other.y,radius:shipRadius(other)+3}],shipRadius(ship)+7);
       if(points&&points.length===0)return command;
-      if(points?.length){route={id:other.id,category:other.category,x:points[0].x-other.x,y:points[0].y-other.y};if(ship.entity)ship.entity.actuatedAvoidance=route;}
+      if(points?.length){route={id:other.id,category:other.category,x:points[0].x-other.x,y:points[0].y-other.y,heading:other.heading||0};if(ship.entity)ship.entity.actuatedAvoidance=route;}
       else return {...command,velocity:{x:other.vx||0,y:other.vy||0},acceleration:undefined};
     }
     if(route){
-      const point={x:other.x+route.x,y:other.y+route.y},distance=Math.hypot(point.x-ship.x,point.y-ship.y);
+      const turn=wrap((other.heading||0)-(route.heading??other.heading??0)),c=Math.cos(turn),s=Math.sin(turn),rx=route.x*c-route.y*s,ry=route.x*s+route.y*c;
+      const point={x:other.x+rx,y:other.y+ry},distance=Math.hypot(point.x-ship.x,point.y-ship.y),omega=finite(other.entity?.motionAngularVelocity);
       const closing=Math.min(Math.max(35,speed),distance*1.6,Math.sqrt(2*Math.max(1,profile.braking)*distance)*.7),ratio=distance?closing/distance:0;
-      return {...command,velocity:{x:(other.vx||0)+(point.x-ship.x)*ratio,y:(other.vy||0)+(point.y-ship.y)*ratio},acceleration:undefined};
+      return {...command,velocity:{x:(other.vx||0)-omega*ry+(point.x-ship.x)*ratio,y:(other.vy||0)+omega*rx+(point.y-ship.y)*ratio},acceleration:undefined};
     }
     return command;
   }

@@ -58,7 +58,8 @@ the definition-owned shield radii and authoritative shared contacts. See
 | Saved simulation time and pause gate | `simulation-clock.js` | Use shared seconds/deadlines and report actual gate changes |
 | Live wall-time admission, fixed physics scheduling, bounded catch-up debt and pure render interpolation | `simulation-frame.js`; `native-game.js` holds `nativeSimulationHost` | Checkpoint RAF/gate edges, then drain admitted 1/60-second steps through the common integrator |
 | Tactical detail eligibility | `ship-detail.js` | Ask the common predicate before steering, firing or collecting combat scenes |
-| Owned weapon identities, fitting, locker transfers, recharge deadlines and legacy equipment migration | `weapon-loadout.js` | Request an equipment operation |
+| Owned weapon identities, per-copy grades, fitting, locker transfers, recharge deadlines and legacy equipment migration | `weapon-loadout.js` | Request an equipment operation; use `forInstance` for the effective model |
+| Weapon family names and I/V/X recharge factors; paid per-copy progression | `weapon-catalog.js` metadata and `shipyard-refits.js` atomic transactions | Read a quote or request an upgrade of an owned instance |
 | Model/upgrade weapon specifications, eligibility, ballistic simulation, interception and swept collisions | `weapon-rules.js` | Choose a weapon/target, or request fire |
 | Firing lifecycle, emitter attachment, pending attacks, resolution, visual shot instances and cleanup | `combat-shots.js` | Call `fire` for player input or `fireFor` for NPC intent |
 | Live projectile awareness and fitted-weapon eligibility reports | `combat-shots.js`, querying `weapon-rules.js` geometry/eligibility | Choose a response or present the report; never simulate a private projectile |
@@ -348,6 +349,16 @@ deck weapons; the existing saved event sequence selects multiple cannon outlets.
 The selected local point is attached before lead calculation and stays in the
 saved shot. Partial Prometheus reconstruction rebases both single mounts and
 bank arrays into the surviving assembly frame. Damage plates share that frame.
+
+Real projectile draw packets include a visual `trailLength` limit. It grows
+with motor travel in the original translating launch frame and follows the
+interpolated nose. It reads existing velocity, inherited velocity and age;
+painting never advances the shot or changes its saved state. The shared weapon
+wrapper converts this length to CSS pixels alongside the heading. GPU and Canvas
+clip newborn tails, glow and lens streaks at that plane. Fully developed weapons
+retain their existing appearance. `browser-projectile-tail.py` checks actual
+pixels on small hulls while moving, turning and interpolating; the shared firing
+tests cover pause and JSON restoration.
 
 Legacy Thaleron (26) and Magnetorp (27) select the existing green beam and photon
 visuals respectively, retaining their own damage and recharge. These mappings

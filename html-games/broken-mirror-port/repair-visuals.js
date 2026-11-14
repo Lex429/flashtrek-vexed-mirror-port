@@ -2,7 +2,7 @@
    lamps, nozzle and destruction helpers; observes the saved simulation only. */
 (() => {
   'use strict';
-  let loading=null,art=null;
+  let loading=null,baseLoading=null,art=null;
   const fogAssets=new Map();
   function fogArtwork(d){
     if(!art)return null;const stage=art.sprites.stage(d.entity.hull,40);if(fogAssets.has(stage))return fogAssets.get(stage);
@@ -15,6 +15,9 @@
   const time=s=>window.nativeSimulation.now(s);
   function ensure(){
     if(loading)return loading;
+    let publishBase,rejectBase;
+    baseLoading=new Promise((resolve,reject)=>{publishBase=resolve;rejectBase=reject;});
+    baseLoading.catch(()=>{});
     loading=new Promise((resolve,reject)=>{
       const frame=document.createElement('iframe');frame.hidden=true;frame.title='Repair artwork cache';
       frame.onload=async()=>{try{
@@ -25,11 +28,12 @@
         // The complete API bundle can draw the original body immediately.
         // Optional lamps and damage materials keep their full ready contract.
         art=prepared;
+        publishBase(art);
         const complete=await prepared.sprites.ready;
         if(!complete.every(Boolean))throw Error('Optional DOT effects unavailable; retaining its body artwork.');
         resolve(art);
-      }catch(error){reject(error);}};
-      frame.onerror=()=>reject(Error('Could not load repair artwork'));
+      }catch(error){rejectBase(error);reject(error);}};
+      frame.onerror=()=>{const error=Error('Could not load repair artwork');rejectBase(error);reject(error);};
       frame.src='../flashtrek-broken-mirror/live-repair-assets.html?v=fleet-culling-1-dot-loot-1';document.body.append(frame);
     });
     loading.catch(error=>{console.warn(error);});return loading;
@@ -109,6 +113,6 @@
     // and zoom. No completion, health or resource mutation occurs here.
     const r=states.get(s);if(r){const visible=(x,y,radius)=>!visibility?.worldCircle||visibility.worldCircle(x,y,radius,view);ctx.save();ctx.translate(view.cx,view.cy);ctx.scale(z,z);ctx.translate(-view.ship.x,-view.ship.y);r.damage?.draw(ctx,time(s),{visible});r.destruction?.draw(ctx,time(s),{visible});ctx.restore();}
   }
-  window.nativeRepairVisuals=Object.freeze({ensure,drawDrone,fogArtwork,hit,advance,requiredStages,surface,paint,beam,ready:()=>!!art,
+  window.nativeRepairVisuals=Object.freeze({ensure,ensureBase(){ensure();return baseLoading;},drawDrone,fogArtwork,hit,advance,requiredStages,surface,paint,beam,ready:()=>!!art,
     snapshot:s=>({ready:!!art,surfaces:surfaces.size,destruction:states.get(s)?.destruction?.snapshot()||null})});
 })();

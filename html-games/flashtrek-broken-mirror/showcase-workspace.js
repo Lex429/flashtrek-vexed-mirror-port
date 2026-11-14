@@ -142,10 +142,14 @@
   controls.replaceChildren();
   const entries=[['weapons',weapons,'Weapons'],['damage',damage,'Damage'],['repair',repair,'Repair'],['info',info,'Info']];
   const lab=window.showcaseEffectLab?.create({tabs,section});if(lab)entries.push(['lab',lab,'Stress']);
+  const construction=window.showcaseShipConstruction?.create();if(construction)entries.push(['construction',construction,'Construction']);
   entries.push(['preview',section(),'Preview']);
   const mainSelect=tabs(controls,entries,'main');
   const compact=matchMedia('(max-width:700px) and (max-height:800px)');
   compact.addEventListener('change',()=>{if(!compact.matches&&workbench.dataset.workspaceFocus==='preview')mainSelect('weapons');});
   document.body.classList.add('showcase-workspace');
-  if(compact.matches)mainSelect('preview');
+  function requestedView(){const id=new URLSearchParams(location.search).get('view')||location.hash.slice(1);return entries.some(([key])=>key===id)?id:null;}
+  const initialView=requestedView();
+  if(initialView)mainSelect(initialView);else if(compact.matches)mainSelect('preview');
+  addEventListener('hashchange',()=>{const id=requestedView();if(id)mainSelect(id);});
 })();

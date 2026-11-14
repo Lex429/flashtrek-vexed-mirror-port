@@ -119,6 +119,10 @@ try:
    page.locator('.mars-shop-card[data-upgrade-card="hull"] h2' if yard['id']=='mars-earth-shipyard-01' else '[data-yard-action="upgrade"][data-kind="hull"]').click()
    page.locator('[data-yard-action="buy-upgrade"][data-kind="hull"]' if yard['id']=='mars-earth-shipyard-01' else '[data-yard-action="confirm-upgrade"]').click()
    assert page.evaluate('()=>nativeShipyardRefits.level(__yardState,"hull")')==1
+   owned=page.evaluate('()=>nativeShipEquipment.ownedWeapons(__yardState).map(entry=>entry.instance.id)')
+   assert page.locator('.mars-owned-weapon').count()==len(owned) and owned
+   page.locator(f'.mars-owned-weapon[data-weapon-instance="{owned[0]}"] [data-yard-action="upgrade-owned-weapon"]').click()
+   assert page.evaluate('id=>nativeShipyardRefits.weaponQuote(__yardState,id).level',owned[0])==2
    if yard['system'] in [2,30]:
     page.screenshot(path=str(OUT/f'{yard["system"]}-docked.png'))
     page.evaluate('()=>{if(!nativeSaveStorage.write(__yardState).ok)throw Error("Docked save failed");}')

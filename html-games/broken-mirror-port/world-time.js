@@ -14,6 +14,7 @@
     // Scheduling owners retain any bounded catch-up debt in the save.
     window.nativeSolEconomy?.advance(state,elapsed);
     window.nativeCivilianTraffic?.advance(state,elapsed);
+    window.nativeShipConstruction?.advance(state,elapsed);
     return elapsed;
   }
   // Warp has already advanced the saved clock. Drain only overdue scheduled

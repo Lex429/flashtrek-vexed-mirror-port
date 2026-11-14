@@ -17,7 +17,7 @@ The panel fits without scrolling; keyboard focus starts on Request docking.
 The existing outfitting pages and other stations keep their own presentation.
 
 Mars opens **Upgrades** as a scrolling shop, matching the Weapons catalog. Each
-of its nine tiles shows the upgrade name, current-to-next value, installed-tier
+of its nine ship tiles shows the upgrade name, current-to-next value, installed-tier
 boxes, exact NEED/HAVE resource table, and **Buy & install**. Empty boxes are
 uninstalled; purchased boxes glow mint green. They use each family's actual cap,
 without visible tier wording or a fraction; screen readers retain the count.
@@ -140,9 +140,29 @@ save migration. Refits belong to the current hull; trading that hull replaces
 them. Removal returns no money or materials. Cargo cannot be downsized below its
 load. Removed bay equipment returns to the locker; deployed Dots must be recovered.
 
-The nine Federation weapons use the shared firing, recharge, collision and
-existing effect artwork. Their damage, range, reload, power and material costs
-are shown before buying. Heavy batteries compete for the hull's weapon power.
+The Weapons catalog keeps its existing layout and sells the first stage, I, of
+each weapon family. Light Phaser Array, Phaser Array and Heavy Phaser Array have
+different hit strengths; each family has the same I → V → X recharge path. The
+original damage, range, power and effect artwork remain attached to its model.
+I uses the original recharge, V uses 75%, and X uses 50%. Heavy batteries still
+compete for the hull's existing weapon power.
+
+**Your weapons** follows the ship upgrades, with a direct jump control at the top.
+Every equipped or stored weapon copy has its own tile: current name, bay/Inventory
+location, next grade, recharge before/after, damage/range/power, three stage boxes,
+full NEED/HAVE quote and **Upgrade weapon**. An owned I lights one box; V lights
+two; X lights all three and disables the button. Only the selected copy changes.
+The same owned section and atomic transaction are available at territorial yards.
+
+Upgrades retain item identity, fitting, Inventory position and the current recharge
+deadline. New recharge applies to future shots through the shared firing owner.
+The installation receipt names the weapon and reports seconds faster, and its
+newly installed box lights in sequence. Fitted gear is highlighted when visible.
+Stored weapons stay stored. Empty collections show an explanation instead of
+advertising unowned models. `browser-weapon-progression.py` covers actual buying,
+independent copies, fitting/Inventory inspection, failed saves, Continue,
+responsive long names, reduced motion and the owned-only list. The unit regression
+also fires a graded and ungraded copy and checks transfers and legacy saves.
 
 Standard, regenerative, high-capacity and adaptive deflectors fit through the same
 shield bay owner without a shared points requirement. Recharge and damage

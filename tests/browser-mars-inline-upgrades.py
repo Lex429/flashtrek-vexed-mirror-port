@@ -1,7 +1,7 @@
 """Inline shop quotes, atomic purchases, tier caps, placement, previews and scroll retention."""
 from mars_shop_support import *
 with shop('mars-inline-upgrades') as (page,report,out):
- assert page.locator('.mars-shop-buy').count()==9;stats(page)
+ assert page.locator('.mars-upgrade-choice .mars-shop-buy').count()==9;stats(page)
  page.screenshot(path=str(out/'01-scrolling-shop.png'))
  for kind in KINDS:
   q=quote(page,kind);tile=card(page,kind);tile.scroll_into_view_if_needed();tiers(page,kind)
@@ -41,7 +41,7 @@ with shop('mars-inline-upgrades') as (page,report,out):
  page.evaluate('()=>window.nativeSaveStorage={...nativeSaveStorage,write:__realWrite}')
  # Optional bay positioning stays in the same scrolling shop and cancellation is free.
  tile=card(page,'dot');before=snapshot(page);tile.locator('.mars-shop-position').click()
- assert page.locator('.outfit-ghost').count()==1 and page.locator('.mars-shop-card').count()==9
+ assert page.locator('.outfit-ghost').count()==1 and page.locator('.mars-upgrade-choice').count()==9
  tile.locator('.mars-shop-position').click();assert snapshot(page)==before and page.locator('.outfit-ghost').count()==0
  tile.locator('.mars-shop-position').click();page.locator('[data-place-bay="5"][data-bay-zone="drones"]').click();buy(page,'dot').click()
  assert page.evaluate('()=>nativeShipEquipment.bayLayout(__gearState).bays.find(b=>b.category==="repairDrone"&&b.index===2).cell')==5

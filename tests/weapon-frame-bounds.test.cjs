@@ -39,3 +39,15 @@ test('live weapons reuse an already fitted display without observing or measurin
   window.paintShowcaseWeaponShot(ctx,{kind:'beam',style:{color:0xffffff,thickness:2},spin:0,spinSpeed:1},{screenPixels:true,x1:10,y1:20,x2:40,y2:50},0);
   assert.equal(packet.x1,10);assert.equal(packet.y2,50);
 });
+
+test('newborn wake limits follow Canvas rotation and pixel density independently of decorative weapon scale',()=>{
+ let packet;
+ const canvas={width:800,getBoundingClientRect:()=>({width:400})},matrix={a:0,b:4,c:-4,d:0,e:300,f:80};
+ const ctx={canvas,getTransform:()=>matrix};
+ const window={nativeEffectProfiles:{weapon:()=>({scale:1.5}),queueWeapon:(_,p)=>{packet=p;return true;}}};
+ vm.runInNewContext(fs.readFileSync('html-games/flashtrek-broken-mirror/weapon-effects.js','utf8'),{window});
+ const geometry={screenPixels:true,x:10,y:20,angle:.3,trailLength:12},before=JSON.stringify(geometry);
+ window.paintShowcaseWeaponShot(ctx,{kind:'disruptor',style:{color:0xffa000,thickness:2},spin:0,spinSpeed:1},geometry,2);
+ assert.ok(Math.abs(packet.trailLength-24)<1e-8);assert.ok(Math.abs(packet.angle-(.3+Math.PI/2))<1e-8);
+ assert.equal(packet.zoom,1.5);assert.equal(JSON.stringify(geometry),before);
+});

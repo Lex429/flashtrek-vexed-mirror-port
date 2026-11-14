@@ -17,6 +17,13 @@ const pose = (category, extra = {}) => ({ x: 0, y: 0, speed: 0, [category === 'p
 const plain = value => JSON.parse(JSON.stringify(value));
 const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-8, `${message}: ${actual} vs ${expected}`);
 
+test('a changed clear course releases a saved detour instead of chasing an obsolete moving waypoint',()=>{
+ const {motion,definitions}=fixture(),state={system:2},entity={shipType:7,system:2,x:0,y:0,heading:-Math.PI/2,vx:0,vy:-80,hull:100,phase:'flight',actuatedAvoidance:{id:'blocker',category:'civilian',x:0,y:90,heading:0}};
+ const ship={...definitions.describe(state,entity,{category:'civilian'}),id:'observer'},blocker={...definitions.describe(state,{shipType:7,system:2,x:150,y:0,heading:0,vx:0,vy:0,hull:100,phase:'flight'},{category:'civilian'}),id:'blocker'};
+ const command={velocity:{x:0,y:-100},navigationGoal:{x:0,y:-300}},actual=motion.avoidVectorShips(ship,[blocker],command,{maxSpeed:150,acceleration:100,braking:120});
+ assert.equal(actual,command);assert.equal(entity.actuatedAvoidance,undefined);
+});
+
 test('equivalent player, tug and civilian commands execute the same shared integration', () => {
   const { motion, definitions } = fixture();
   const profile = { maxSpeed: 140, acceleration: 80, braking: 100, turnRate: 1.2 };

@@ -51,6 +51,29 @@ async function fixture({armTugs=true}={}){
   return {window,document,state,draws,hits,roles,put,descriptor,step,shots:window.nativeCombatShots,loadouts:window.nativeWeaponLoadout};
 }
 
+test('new projectile wakes grow from the muzzle in the inherited launch frame and survive turning, pause and reload',async()=>{
+ for(const role of (await fixture()).roles)for(const model of [2,3])for(const velocity of [{x:0,y:0},{x:427.5,y:0},{x:-400,y:250}]){
+  const f=await fixture(),id=f.put(role,0,0,model),holder=f.descriptor(id).entity;
+  Object.assign(holder,{vx:velocity.x,vy:velocity.y,speed:Math.hypot(velocity.x,velocity.y)});
+  const fired=f.shots.fireFor({state:f.state,shooter:f.descriptor(id),forward:true});assert.equal(fired.ok,true);
+  const paint=()=>{const before=JSON.stringify(f.state);f.shots.paint({},fired.shot,{state:f.state,ship:{x:10,y:-7},cx:200,cy:150,zoom:2});assert.equal(JSON.stringify(f.state),before);return f.draws.at(-1).geometry;};
+  close(paint().trailLength,0,'a newly launched wake has zero length');
+  f.step(.002);const e=fired.event,speed=Math.hypot(e.vx,e.vy),relative=((e.vx-e.inheritedVx)*e.vx+(e.vy-e.inheritedVy)*e.vy)/speed;
+  close(paint().trailLength,relative*.002*2,'wake follows relative motor travel rather than ship drift');
+  Object.assign(holder,{heading:2,angle:2,vx:-500,vy:-500});const first=paint();f.document.hidden=true;f.step(1);assert.deepEqual(paint(),first,'pause cannot grow the wake');
+  const restored=plain(f.state);f.shots.advance(restored,0);f.shots.paintAll({},{state:restored,ship:{x:10,y:-7},cx:200,cy:150,zoom:2});close(f.draws.at(-1).geometry.trailLength,first.trailLength,'restored wake keeps its launch age');
+ }
+});
+
+test('projectile wake growth follows the interpolated head instead of the newest physical step',async()=>{
+ const f=await fixture(),id=f.put('player',0,0,2),fired=f.shots.fire({state:f.state,forward:true});f.step(.01);
+ for(const alpha of [0,.5,1]){
+  f.window.nativeSimulationFrame={alpha:()=>alpha};
+  f.shots.paint({},fired.shot,{state:f.state,ship:{x:0,y:0},cx:200,cy:150,zoom:1.5});
+  close(f.draws.at(-1).geometry.trailLength,fired.event.spec.speed*.01*alpha*1.5,'interpolated wake growth');
+ }
+});
+
 test('registered controllers share weapon eligibility, charge-only pace and exact model mechanics',async()=>{
   const discovery=await fixture();
   for(const role of discovery.roles)for(const modelId of [1,2,3]){

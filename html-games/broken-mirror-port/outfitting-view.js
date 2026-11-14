@@ -14,6 +14,13 @@
  const icon=kind=>`<svg class="outfit-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[upgrades[kind]||kind]||paths.utility}"></path></svg>`;
  const mineralIcon=key=>`<img class="outfit-mineral-icon" data-mineral-icon="${safe(key)}" src="${minerals[key]?.icon||'assets/ui/mineral.svg'}" alt="" aria-hidden="true">`;
  const art=data=>data?.icon?`<img src="${safe(data.icon)}" alt="">`:data?.id==='basic-dot'?'<img src="../flashtrek-broken-mirror/showcase-assets/dot-basic.png" alt="">':typeof data?.id==='number'?`<img src="../flashtrek-broken-mirror/showcase-assets/weapon-icon-remastered-${data.visualId??data.id}.png" alt="">`:icon(data?.category||'ability');
+ function inventoryCell(tile,{index=0,key=tile?.key||'',selected=false,attributes='',draggable=true,classes='',hint='Drag to move'}={}){
+  return `<button type="button" class="inventory-item ${tile?(tile.kind==='equipment'?'inventory-weapon-tile':'inventory-cargo-tile'):'inventory-blank'}${selected?' selected':''}${classes?' '+classes:''}" data-inventory-cell="${index}" data-item-key="${safe(key)}" data-focus-key="cell-${index}" ${attributes} ${tile?`${draggable?'draggable="true" ':''}data-kind="${tile.category||tile.kind}" aria-pressed="${selected}" title="${safe(tile.name)}${hint?' · '+safe(hint):''}" aria-label="${tile.kind==='equipment'?'Stored ':''}${safe(tile.name)}"`:`aria-label="Empty inventory tile ${index+1}"`}>${tile?tile.html:'<span class="inventory-empty-mark">+</span>'}</button>`;
+ }
+ function inventoryCount(amount){const value=Math.max(0,Number(amount)||0);return value>=10000?new Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1}).format(value):value.toLocaleString(undefined,{maximumFractionDigits:3});}
+ function inventoryStack(name,amount,{art='',unit=''}={}){
+  return `<span class="inventory-item-icon">${art}</span><span class="inventory-item-name">${safe(name)}</span><strong class="inventory-item-count">${inventoryCount(amount)}${unit}</strong>`;
+ }
  function material(key,amount,{held,owned=false}={}){
   const name=minerals[key]?.name||key,short=held!==undefined&&held<amount;
   return `<span class="outfit-material${short?' short':''}" title="${safe(name)}${held!==undefined?`: ${held} available / ${amount} required`:''}">${mineralIcon(key)}<span><strong>${Math.floor(Number(amount)||0).toLocaleString()}</strong> ${safe(name)}${held!==undefined?`<small>${held.toLocaleString()} available${short?' · need more':''}</small>`:owned?'<small>AVAILABLE</small>':''}</span></span>`;
@@ -25,7 +32,7 @@
   return `<span class="outfit-device-condition${value<100?' worn':''}${value===0?' offline':''}" aria-label="Device condition: ${value.toFixed(1)} percent${value===0?', offline':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m14 6 4 4 4-4a6 6 0 0 1-8 8L6 22l-4-4 8-8a6 6 0 0 1 8-8Z"/></svg>${text}</span>`;
  }
  function slot(s,ship,eq,kind,id,index,{selected=false,compatible=false}={}){
-  const instance=eq.instances[id],data=window.nativeShipEquipment.model(instance?.modelId),label=`${kind==='weapon'?'Weapon slot':labels[kind]} ${index+1}: ${data?.name||'Empty bay'}${kind==='repairDrone'&&instance?` · ${Math.floor(Number(instance.hull)||0)} / 40 hull · ${instance.phase}`:''}`;
+  const instance=eq.instances[id],data=window.nativeShipEquipment.forInstance(instance),label=`${kind==='weapon'?'Weapon slot':labels[kind]} ${index+1}: ${data?.name||'Empty bay'}${kind==='repairDrone'&&instance?` · ${Math.floor(Number(instance.hull)||0)} / 40 hull · ${instance.phase}`:''}`;
   const attrs=`data-focus-key="slot-${kind}-${index}" data-equipment-kind="${kind}" data-equipment-place="slot" data-equipment-index="${index}" data-item-key="${id?'equipment:'+safe(id):''}" aria-pressed="${selected}" aria-label="${safe(label)}" title="${safe(label)}"`;
   const classes=`${instance?'filled':'empty'}${selected?' selected':compatible?' compatible':''}`;
   if(kind==='repairDrone')return `<button type="button" class="inventory-slot inventory-system inventory-dot-slot ${classes}" ${attrs}><span class="inventory-dot-number">${String(index+1).padStart(2,'0')}</span><span class="inventory-dot-icon">${instance?art(data):'<span aria-hidden="true">+</span>'}</span><span class="inventory-dot-caption">${instance?'DOT':'Empty'}</span>${instance?`<span class="inventory-dot-health" aria-hidden="true"><i style="width:${Math.max(0,Math.min(100,(Number(instance.hull)||0)/40*100))}%"></i></span>`:''}</button>`;
@@ -53,8 +60,8 @@
  }
  const previews=new WeakMap();
  function stopPreview(root){const p=previews.get(root);if(p){p.cancelled=true;cancelAnimationFrame(p.frame);}previews.delete(root);}
- function preview(root,s,ship){
-  const previous=previews.get(root),clock=previous?.state===s?previous.clock:{base:window.nativeSimulation.now(s),start:performance.now()};
+ function preview(root,s,ship,{state=s,category='player'}={}){
+  const previous=previews.get(root),clock=previous?.state===s?previous.clock:{base:window.nativeSimulation.now(state),start:performance.now()};
   stopPreview(root);const canvas=root.querySelector('[data-ship-preview]');if(!canvas)return;
   const rings=canvas.parentElement.querySelector('.inventory-ship-rings'),reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
   const p={frame:0,cancelled:false,scannerSize:null,state:s,clock};previews.set(root,p);
@@ -64,7 +71,7 @@
     if(p.cancelled||!canvas.isConnected||root.hidden)return;
     const bounds=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,1.5),w=Math.max(1,Math.round(bounds.width*dpr)),h=Math.max(1,Math.round(bounds.height*dpr));
     if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}ctx.clearRect(0,0,w,h);
-    const dimensions=window.nativeShipDefinitions.dimensions(s,'player'),scale=Math.min(w*.84/dimensions.width,h*.86/dimensions.height);
+    const dimensions=window.nativeShipDefinitions.dimensions(s,category),scale=Math.min(w*.84/dimensions.width,h*.86/dimensions.height);
     // Use the same centered hull footprint as the canvas, in CSS pixels. Keep
     // the outer orbit inside the preview even for long hulls and narrow screens.
     const scannerSize=Math.max(0,Math.min(Math.hypot(dimensions.width,dimensions.height)*scale/dpr,Math.min(bounds.width,bounds.height)*.86));
@@ -77,5 +84,5 @@
    };p.frame=requestAnimationFrame(paint);
   }).catch(()=>{if(!p.cancelled)canvas.setAttribute('aria-label','Ship preview unavailable');});
  }
- window.nativeOutfittingView=Object.freeze({minerals,labels,icon,mineralIcon,material,cost,art,deviceCondition,slot,rig,preview,stopPreview});
+ window.nativeOutfittingView=Object.freeze({minerals,labels,icon,mineralIcon,material,cost,art,deviceCondition,slot,rig,inventoryCell,inventoryStack,inventoryCount,preview,stopPreview});
 })();

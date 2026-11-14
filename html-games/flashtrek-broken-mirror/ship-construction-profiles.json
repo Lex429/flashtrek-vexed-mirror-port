@@ -1,0 +1,1349 @@
+{
+  "version": 1,
+  "ships": [
+    {
+      "id": 1,
+      "name": "Steamrunner Class",
+      "massClass": 4,
+      "price": 18000,
+      "frames": [
+        "ship-1-0.png",
+        "ship-1-1.png",
+        "ship-1-2.png",
+        "ship-1-3.png"
+      ],
+      "dimensions": {
+        "width": 51.05468749999999,
+        "height": 65.35
+      }
+    },
+    {
+      "id": 2,
+      "name": "Excelsior Class",
+      "massClass": 4,
+      "price": 12000,
+      "frames": [
+        "ship-2-0.png",
+        "ship-2-1.png",
+        "ship-2-2.png",
+        "ship-2-3.png"
+      ],
+      "dimensions": {
+        "width": 40.1894923033378,
+        "height": 103.40211085079876
+      }
+    },
+    {
+      "id": 3,
+      "name": "Miranda Class",
+      "massClass": 3,
+      "price": 10000,
+      "frames": [
+        "ship-3-0.png",
+        "ship-3-1.png",
+        "ship-3-2.png",
+        "ship-3-3.png"
+      ],
+      "dimensions": {
+        "width": 37.808984374999994,
+        "height": 64.1
+      }
+    },
+    {
+      "id": 4,
+      "name": "Nebula Class",
+      "massClass": 5,
+      "price": 17000,
+      "frames": [
+        "replacement-ships/nebula/intact.png",
+        "replacement-ships/nebula/light.png",
+        "replacement-ships/nebula/heavy.png",
+        "replacement-ships/nebula/severe.png"
+      ],
+      "dimensions": {
+        "width": 100.50630776148621,
+        "height": 96.18767734985984
+      }
+    },
+    {
+      "id": 5,
+      "name": "Nova Class",
+      "massClass": 2,
+      "price": 10050,
+      "frames": [
+        "ship-5-0.png",
+        "ship-5-1.png",
+        "ship-5-2.png",
+        "ship-5-3.png"
+      ],
+      "dimensions": {
+        "width": 18.7,
+        "height": 37.4
+      }
+    },
+    {
+      "id": 6,
+      "name": "Saber Class",
+      "massClass": 1,
+      "price": 2000,
+      "frames": [
+        "replacement-ships/saber/intact.png",
+        "replacement-ships/saber/light.png",
+        "replacement-ships/saber/heavy.png",
+        "replacement-ships/saber/severe.png"
+      ],
+      "dimensions": {
+        "width": 26.84373046875,
+        "height": 29.3675
+      }
+    },
+    {
+      "id": 7,
+      "name": "Danube Runabout",
+      "massClass": 1,
+      "price": 3100,
+      "frames": [
+        "ship-7-0.png",
+        "ship-7-1.png",
+        "ship-7-2.png",
+        "ship-7-3.png"
+      ],
+      "dimensions": {
+        "width": 7.1982421875,
+        "height": 11.7
+      }
+    },
+    {
+      "id": 8,
+      "name": "Deforest Class",
+      "massClass": 2,
+      "price": 18050,
+      "frames": [
+        "ship-8-0.png",
+        "ship-8-1.png",
+        "ship-8-2.png",
+        "ship-8-3.png"
+      ],
+      "dimensions": {
+        "width": 53.3203125,
+        "height": 84
+      }
+    },
+    {
+      "id": 9,
+      "name": "Kingston Class",
+      "massClass": 3,
+      "price": 19200,
+      "frames": [
+        "ship-9-0.png",
+        "ship-9-1.png",
+        "ship-9-2.png",
+        "ship-9-3.png"
+      ],
+      "dimensions": {
+        "width": 59.078906249999996,
+        "height": 96.94999999999999
+      }
+    },
+    {
+      "id": 10,
+      "name": "Tug Class II",
+      "massClass": 3,
+      "price": 14800,
+      "frames": [
+        "replacement-ships/tug/intact.png",
+        "replacement-ships/tug/light.png",
+        "replacement-ships/tug/heavy.png",
+        "replacement-ships/tug/severe.png"
+      ],
+      "dimensions": {
+        "width": 74.35060956700028,
+        "height": 100.44198442824312
+      }
+    },
+    {
+      "id": 11,
+      "name": "Vega Class",
+      "massClass": 4,
+      "price": 21500,
+      "frames": [
+        "ship-11-0.png",
+        "ship-11-1.png",
+        "ship-11-2.png",
+        "ship-11-3.png"
+      ],
+      "dimensions": {
+        "width": 38.1099609375,
+        "height": 50.55
+      }
+    },
+    {
+      "id": 12,
+      "name": "Aries Class",
+      "massClass": 3,
+      "price": 17000,
+      "frames": [
+        "ship-12-0.png",
+        "ship-12-1.png",
+        "ship-12-2.png",
+        "ship-12-3.png"
+      ],
+      "dimensions": {
+        "width": 36.91386705095691,
+        "height": 102.16162124372939
+      }
+    },
+    {
+      "id": 13,
+      "name": "Mozart Class",
+      "massClass": 3,
+      "price": 15400,
+      "frames": [
+        "replacement-ships/mozart/intact.png",
+        "replacement-ships/mozart/light.png",
+        "replacement-ships/mozart/heavy.png",
+        "replacement-ships/mozart/severe.png"
+      ],
+      "dimensions": {
+        "width": 61.03125,
+        "height": 93
+      }
+    },
+    {
+      "id": 14,
+      "name": "Centaur Class",
+      "massClass": 3,
+      "price": 21000,
+      "frames": [
+        "ship-14-0.png",
+        "ship-14-1.png",
+        "ship-14-2.png",
+        "ship-14-3.png"
+      ],
+      "dimensions": {
+        "width": 69.15734154358634,
+        "height": 100.87908510061598
+      }
+    },
+    {
+      "id": 15,
+      "name": "Ambassador Class",
+      "massClass": 4,
+      "price": 24000,
+      "frames": [
+        "ship-15-0.png",
+        "ship-15-1.png",
+        "ship-15-2.png",
+        "ship-15-3.png"
+      ],
+      "dimensions": {
+        "width": 73.3984457018871,
+        "height": 111.51336557675428
+      }
+    },
+    {
+      "id": 16,
+      "name": "Hideki Class",
+      "massClass": 1,
+      "price": 1500,
+      "frames": [
+        "ship-16-0.png",
+        "ship-16-1.png",
+        "ship-16-2.png",
+        "ship-16-3.png"
+      ],
+      "dimensions": {
+        "width": 24.93375,
+        "height": 29.28
+      }
+    },
+    {
+      "id": 17,
+      "name": "Ferengi Marauder",
+      "massClass": 5,
+      "price": 49300,
+      "frames": [
+        "ship-17-0.png",
+        "ship-17-1.png",
+        "ship-17-2.png",
+        "ship-17-3.png"
+      ],
+      "dimensions": {
+        "width": 70.94921875,
+        "height": 82
+      }
+    },
+    {
+      "id": 18,
+      "name": "Ferengi Shuttle",
+      "massClass": 1,
+      "price": 1600,
+      "frames": [
+        "ship-18-0.png",
+        "ship-18-1.png",
+        "ship-18-2.png",
+        "ship-18-3.png"
+      ],
+      "dimensions": {
+        "width": 8.180859374999999,
+        "height": 11.7
+      }
+    },
+    {
+      "id": 19,
+      "name": "Ferengi Vagabond",
+      "massClass": 3,
+      "price": 31050,
+      "frames": [
+        "ship-19-0.png",
+        "ship-19-1.png",
+        "ship-19-2.png",
+        "ship-19-3.png"
+      ],
+      "dimensions": {
+        "width": 63.56659142212189,
+        "height": 55
+      }
+    },
+    {
+      "id": 20,
+      "name": "Tholian Isaac Class",
+      "massClass": 4,
+      "price": 60000,
+      "frames": [
+        "ship-20-0.png",
+        "ship-20-1.png",
+        "ship-20-2.png",
+        "ship-20-3.png"
+      ],
+      "dimensions": {
+        "width": 14.330078125,
+        "height": 31.9
+      }
+    },
+    {
+      "id": 21,
+      "name": "Delpin Cruiser",
+      "massClass": 4,
+      "price": 62400,
+      "frames": [
+        "ship-21-0.png",
+        "ship-21-1.png",
+        "ship-21-2.png",
+        "ship-21-3.png"
+      ],
+      "dimensions": {
+        "width": 41.015625,
+        "height": 75
+      }
+    },
+    {
+      "id": 22,
+      "name": "Delpin Warship",
+      "massClass": 1,
+      "price": 71300,
+      "frames": [
+        "ship-22-0.png",
+        "ship-22-1.png",
+        "ship-22-2.png",
+        "ship-22-3.png"
+      ],
+      "dimensions": {
+        "width": 106.73158097733493,
+        "height": 62.12111549071447
+      }
+    },
+    {
+      "id": 23,
+      "name": "Bajoran Sailing Ship",
+      "massClass": 1,
+      "price": 34900,
+      "frames": [
+        "ship-23-0.png",
+        "ship-23-1.png",
+        "ship-23-2.png",
+        "ship-23-3.png"
+      ],
+      "dimensions": {
+        "width": 21.26953125,
+        "height": 22.5
+      }
+    },
+    {
+      "id": 24,
+      "name": "Lysian Fighter",
+      "massClass": 1,
+      "price": 500,
+      "frames": [
+        "ship-24-0.png",
+        "ship-24-1.png",
+        "ship-24-2.png",
+        "ship-24-3.png"
+      ],
+      "dimensions": {
+        "width": 20.37041015625,
+        "height": 26.95
+      }
+    },
+    {
+      "id": 25,
+      "name": "Vulcan Warpship",
+      "massClass": 1,
+      "price": 3000,
+      "frames": [
+        "ship-25-0.png",
+        "ship-25-1.png",
+        "ship-25-2.png",
+        "ship-25-3.png"
+      ],
+      "dimensions": {
+        "width": 18.17,
+        "height": 25.28
+      }
+    },
+    {
+      "id": 26,
+      "name": "Vulcan Explorer",
+      "massClass": 5,
+      "price": 70200,
+      "frames": [
+        "ship-26-0.png",
+        "ship-26-1.png",
+        "ship-26-2.png",
+        "ship-26-3.png"
+      ],
+      "dimensions": {
+        "width": 59.964920556845385,
+        "height": 122.80815730041935
+      }
+    },
+    {
+      "id": 27,
+      "name": "Romulan Der'idex",
+      "massClass": 5,
+      "price": 98000,
+      "frames": [
+        "ship-27-0.png",
+        "ship-27-1.png",
+        "ship-27-2.png",
+        "ship-27-3.png"
+      ],
+      "dimensions": {
+        "width": 104.27060961317369,
+        "height": 124.44417744043108
+      }
+    },
+    {
+      "id": 28,
+      "name": "Romulan Norexan",
+      "massClass": 4,
+      "price": 43000,
+      "frames": [
+        "ship-28-0.png",
+        "ship-28-1.png",
+        "ship-28-2.png",
+        "ship-28-3.png"
+      ],
+      "dimensions": {
+        "width": 112.28309138821693,
+        "height": 78.5104428066048
+      }
+    },
+    {
+      "id": 29,
+      "name": "Romulan Scout",
+      "massClass": 1,
+      "price": 5000,
+      "frames": [
+        "ship-29-0.png",
+        "ship-29-1.png",
+        "ship-29-2.png",
+        "ship-29-3.png"
+      ],
+      "dimensions": {
+        "width": 12.17607421875,
+        "height": 14.95
+      }
+    },
+    {
+      "id": 30,
+      "name": "Jem'Hadar Fighter",
+      "massClass": 3,
+      "price": 26090,
+      "frames": [
+        "ship-30-0.png",
+        "ship-30-1.png",
+        "ship-30-2.png",
+        "ship-30-3.png"
+      ],
+      "dimensions": {
+        "width": 32.182857142857145,
+        "height": 26.4
+      }
+    },
+    {
+      "id": 31,
+      "name": "Galor Class",
+      "massClass": 4,
+      "price": 95080,
+      "frames": [
+        "ship-31-0.png",
+        "ship-31-1.png",
+        "ship-31-2.png",
+        "ship-31-3.png"
+      ],
+      "dimensions": {
+        "width": 57.76671020020094,
+        "height": 112.88761687978199
+      }
+    },
+    {
+      "id": 32,
+      "name": "Keldon Class",
+      "massClass": 5,
+      "price": 130000,
+      "frames": [
+        "ship-32-0.png",
+        "ship-32-1.png",
+        "ship-32-2.png",
+        "ship-32-3.png"
+      ],
+      "dimensions": {
+        "width": 59.692818999388464,
+        "height": 115.33103142523356
+      }
+    },
+    {
+      "id": 33,
+      "name": "Akira Class",
+      "massClass": 4,
+      "price": 94000,
+      "frames": [
+        "ship-33-0.png",
+        "ship-33-1.png",
+        "ship-33-2.png",
+        "ship-33-3.png"
+      ],
+      "dimensions": {
+        "width": 58.962890625,
+        "height": 87
+      }
+    },
+    {
+      "id": 34,
+      "name": "Defiant Class",
+      "massClass": 3,
+      "price": 62500,
+      "frames": [
+        "ship-34-0.png",
+        "ship-34-1.png",
+        "ship-34-2.png",
+        "ship-34-3.png"
+      ],
+      "dimensions": {
+        "width": 19.489736328125,
+        "height": 22.992500000000003
+      }
+    },
+    {
+      "id": 35,
+      "name": "Galaxy Class",
+      "massClass": 5,
+      "price": 94500,
+      "frames": [
+        "ship-35-0.png",
+        "ship-35-1.png",
+        "ship-35-2.png",
+        "ship-35-3.png"
+      ],
+      "dimensions": {
+        "width": 89.19251445789186,
+        "height": 119.23385744762567
+      }
+    },
+    {
+      "id": 36,
+      "name": "Intrepid Class",
+      "massClass": 2,
+      "price": 75090,
+      "frames": [
+        "replacement-ships/intrepid/intact.png",
+        "replacement-ships/intrepid/light.png",
+        "replacement-ships/intrepid/heavy.png",
+        "replacement-ships/intrepid/severe.png"
+      ],
+      "dimensions": {
+        "width": 36.150390625,
+        "height": 83
+      }
+    },
+    {
+      "id": 37,
+      "name": "Prometheus Class",
+      "massClass": 3,
+      "price": 68000,
+      "frames": [
+        "prometheus-mvam-v2/joined/intact.png",
+        "prometheus-mvam-v2/joined/light.png",
+        "prometheus-mvam-v2/joined/heavy.png",
+        "prometheus-mvam-v2/joined/severe.png"
+      ],
+      "dimensions": {
+        "width": 43.975,
+        "height": 87.95
+      }
+    },
+    {
+      "id": 38,
+      "name": "Sovereign Class",
+      "massClass": 5,
+      "price": 105000,
+      "frames": [
+        "replacement-ships/sovereign/intact.png",
+        "replacement-ships/sovereign/light.png",
+        "replacement-ships/sovereign/heavy.png",
+        "replacement-ships/sovereign/severe.png"
+      ],
+      "dimensions": {
+        "width": 49.443951327901885,
+        "height": 124.0946229406165
+      }
+    },
+    {
+      "id": 39,
+      "name": "B'rel Type",
+      "massClass": 1,
+      "price": 4000,
+      "frames": [
+        "ship-39-0.png",
+        "ship-39-1.png",
+        "ship-39-2.png",
+        "ship-39-3.png"
+      ],
+      "dimensions": {
+        "width": 19.98048780487805,
+        "height": 17.6
+      }
+    },
+    {
+      "id": 40,
+      "name": "K'Tinga Cruiser",
+      "massClass": 3,
+      "price": 21500,
+      "frames": [
+        "ship-40-0.png",
+        "ship-40-1.png",
+        "ship-40-2.png",
+        "ship-40-3.png"
+      ],
+      "dimensions": {
+        "width": 59.96484375,
+        "height": 86
+      }
+    },
+    {
+      "id": 41,
+      "name": "K'Vort Type",
+      "massClass": 3,
+      "price": 15000,
+      "frames": [
+        "ship-41-0.png",
+        "ship-41-1.png",
+        "ship-41-2.png",
+        "ship-41-3.png"
+      ],
+      "dimensions": {
+        "width": 55.981776765375855,
+        "height": 48
+      }
+    },
+    {
+      "id": 42,
+      "name": "Neg'Var Warship",
+      "massClass": 5,
+      "price": 130000,
+      "frames": [
+        "ship-42-0.png",
+        "ship-42-1.png",
+        "ship-42-2.png",
+        "ship-42-3.png"
+      ],
+      "dimensions": {
+        "width": 83.94977449537348,
+        "height": 127.54387104341609
+      }
+    },
+    {
+      "id": 43,
+      "name": "Vorcha Cruiser",
+      "massClass": 4,
+      "price": 61000,
+      "frames": [
+        "ship-43-0.png",
+        "ship-43-1.png",
+        "ship-43-2.png",
+        "ship-43-3.png"
+      ],
+      "dimensions": {
+        "width": 76.01673870189738,
+        "height": 105.7624190635094
+      }
+    },
+    {
+      "id": 44,
+      "name": "Borg Cube",
+      "massClass": 6,
+      "price": 999999,
+      "frames": [
+        "ship-44-0.png",
+        "ship-44-1.png",
+        "ship-44-2.png",
+        "ship-44-3.png"
+      ],
+      "dimensions": {
+        "width": 133.2504623138453,
+        "height": 130.90816903098477
+      }
+    },
+    {
+      "id": 45,
+      "name": "Akuzi Class",
+      "massClass": 2,
+      "price": 13050,
+      "frames": [
+        "ship-45-0.png",
+        "ship-45-1.png",
+        "ship-45-2.png",
+        "ship-45-3.png"
+      ],
+      "dimensions": {
+        "width": 69.99609375,
+        "height": 99
+      }
+    },
+    {
+      "id": 46,
+      "name": "New Orleans Class",
+      "massClass": 3,
+      "price": 17000,
+      "frames": [
+        "ship-46-0.png",
+        "ship-46-1.png",
+        "ship-46-2.png",
+        "ship-46-3.png"
+      ],
+      "dimensions": {
+        "width": 83.34734883231094,
+        "height": 109.70139486412134
+      }
+    },
+    {
+      "id": 47,
+      "name": "Oberth Tug",
+      "massClass": 2,
+      "price": 6500,
+      "frames": [
+        "ship-47-0.png",
+        "ship-47-1.png",
+        "ship-47-2.png",
+        "ship-47-3.png"
+      ],
+      "dimensions": {
+        "width": 37.546875,
+        "height": 72
+      }
+    },
+    {
+      "id": 48,
+      "name": "Jem'Hadar Battlecruiser",
+      "massClass": 5,
+      "price": 214000,
+      "frames": [
+        "ship-48-0.png",
+        "ship-48-1.png",
+        "ship-48-2.png",
+        "ship-48-3.png"
+      ],
+      "dimensions": {
+        "width": 93.93092507998848,
+        "height": 124.27037116525608
+      }
+    },
+    {
+      "id": 49,
+      "name": "Galaxy Dreadnaught",
+      "massClass": 5,
+      "price": 280500,
+      "frames": [
+        "replacement-ships/galaxy-dreadnaught/intact.png",
+        "replacement-ships/galaxy-dreadnaught/light.png",
+        "replacement-ships/galaxy-dreadnaught/heavy.png",
+        "replacement-ships/galaxy-dreadnaught/severe.png"
+      ],
+      "dimensions": {
+        "width": 106.58405080967157,
+        "height": 121.00007542029233
+      }
+    },
+    {
+      "id": 50,
+      "name": "Sentient Lifeform",
+      "massClass": 6,
+      "price": 58140,
+      "frames": [
+        "lifeform-50-0-v2.png",
+        "lifeform-50-1-v2.png",
+        "lifeform-50-2-v2.png",
+        "lifeform-50-3-v2.png"
+      ],
+      "dimensions": {
+        "width": 47.650000000000006,
+        "height": 82.85
+      }
+    },
+    {
+      "id": 51,
+      "name": "Delpin Luxury Liner",
+      "massClass": 5,
+      "price": 68500,
+      "frames": [
+        "ship-51-0.png",
+        "ship-51-1.png",
+        "ship-51-2.png",
+        "ship-51-3.png"
+      ],
+      "dimensions": {
+        "width": 93.46510662069035,
+        "height": 127.95223152351193
+      }
+    },
+    {
+      "id": 52,
+      "name": "Tarellian Cruiser",
+      "massClass": 3,
+      "price": 54500,
+      "frames": [
+        "ship-52-0.png",
+        "ship-52-1.png",
+        "ship-52-2.png",
+        "ship-52-3.png"
+      ],
+      "dimensions": {
+        "width": 38.49609375,
+        "height": 90
+      }
+    },
+    {
+      "id": 53,
+      "name": "Reman Warbird",
+      "massClass": 5,
+      "price": 185000,
+      "frames": [
+        "ship-53-0.png",
+        "ship-53-1.png",
+        "ship-53-2.png",
+        "ship-53-3.png"
+      ],
+      "dimensions": {
+        "width": 125.55830642888637,
+        "height": 75.53116871112695
+      }
+    },
+    {
+      "id": 54,
+      "name": "Tamarian Cruiser",
+      "massClass": 3,
+      "price": 17000,
+      "frames": [
+        "ship-54-0.png",
+        "ship-54-1.png",
+        "ship-54-2.png",
+        "ship-54-3.png"
+      ],
+      "dimensions": {
+        "width": 65.0390625,
+        "height": 100
+      }
+    },
+    {
+      "id": 55,
+      "name": "Alien Bioship",
+      "massClass": 10,
+      "price": 195050,
+      "frames": [
+        "bioship-55-0-v2.png",
+        "bioship-55-1-v2.png",
+        "bioship-55-2-v2.png",
+        "bioship-55-3-v2.png"
+      ],
+      "dimensions": {
+        "width": 61.86877952609004,
+        "height": 101.31135598071977
+      }
+    },
+    {
+      "id": 56,
+      "name": "Constitution Tug",
+      "massClass": 3,
+      "price": 8000,
+      "frames": [
+        "ship-56-0.png",
+        "ship-56-1.png",
+        "ship-56-2.png",
+        "ship-56-3.png"
+      ],
+      "dimensions": {
+        "width": 50.24051503722654,
+        "height": 101.26834470774949
+      }
+    },
+    {
+      "id": 57,
+      "name": "Constellation Tug",
+      "massClass": 3,
+      "price": 7800,
+      "frames": [
+        "ship-57-0.png",
+        "ship-57-1.png",
+        "ship-57-2.png",
+        "ship-57-3.png"
+      ],
+      "dimensions": {
+        "width": 46.8,
+        "height": 86.15
+      }
+    },
+    {
+      "id": 58,
+      "name": "Olympic Class",
+      "massClass": 3,
+      "price": 24500,
+      "frames": [
+        "replacement-ships/olympic/intact.png",
+        "replacement-ships/olympic/light.png",
+        "replacement-ships/olympic/heavy.png",
+        "replacement-ships/olympic/severe.png"
+      ],
+      "dimensions": {
+        "width": 31.34765625,
+        "height": 75
+      }
+    },
+    {
+      "id": 59,
+      "name": "Vulcan C'Thia",
+      "massClass": 3,
+      "price": 21000,
+      "frames": [
+        "ship-59-0.png",
+        "ship-59-1.png",
+        "ship-59-2.png",
+        "ship-59-3.png"
+      ],
+      "dimensions": {
+        "width": 78.10739314325438,
+        "height": 109.70139486412134
+      }
+    },
+    {
+      "id": 60,
+      "name": "Dreadnaught Class",
+      "massClass": 6,
+      "price": 980000,
+      "frames": [
+        "replacement-ships/dreadnaught/intact.png",
+        "replacement-ships/dreadnaught/light.png",
+        "replacement-ships/dreadnaught/heavy.png",
+        "replacement-ships/dreadnaught/severe.png"
+      ],
+      "dimensions": {
+        "width": 68.66826393422244,
+        "height": 134.70555990161643
+      }
+    },
+    {
+      "id": 61,
+      "name": "Klingon Qonos",
+      "massClass": 6,
+      "price": 980000,
+      "frames": [
+        "ship-61-0.png",
+        "ship-61-1.png",
+        "ship-61-2.png",
+        "ship-61-3.png"
+      ],
+      "dimensions": {
+        "width": 120.06111915194478,
+        "height": 135.10174286988072
+      }
+    },
+    {
+      "id": 62,
+      "name": "Cardassian Behemoth",
+      "massClass": 6,
+      "price": 980000,
+      "frames": [
+        "ship-62-0.png",
+        "ship-62-1.png",
+        "ship-62-2.png",
+        "ship-62-3.png"
+      ],
+      "dimensions": {
+        "width": 68.86527197395084,
+        "height": 133.05290283268994
+      }
+    },
+    {
+      "id": 63,
+      "name": "Vulcan Lifeform",
+      "massClass": 6,
+      "price": 980000,
+      "frames": [
+        "ship-63-0.png",
+        "ship-63-1.png",
+        "ship-63-2.png",
+        "ship-63-3.png"
+      ],
+      "dimensions": {
+        "width": 47.574023437499996,
+        "height": 82.85
+      }
+    },
+    {
+      "id": 64,
+      "name": "Romulan Warhawk",
+      "massClass": 6,
+      "price": 980000,
+      "frames": [
+        "ship-64-0.png",
+        "ship-64-1.png",
+        "ship-64-2.png",
+        "ship-64-3.png"
+      ],
+      "dimensions": {
+        "width": 109.48647308781473,
+        "height": 130.6691706782311
+      }
+    },
+    {
+      "id": 65,
+      "name": "Dominion Battleship",
+      "massClass": 6,
+      "price": 980000,
+      "frames": [
+        "ship-65-0.png",
+        "ship-65-1.png",
+        "ship-65-2.png",
+        "ship-65-3.png"
+      ],
+      "dimensions": {
+        "width": 121.3087964087562,
+        "height": 136.20636789755082
+      }
+    },
+    {
+      "id": 66,
+      "name": "Tholian Conquest",
+      "massClass": 6,
+      "price": 980000,
+      "frames": [
+        "ship-66-0.png",
+        "ship-66-1.png",
+        "ship-66-2.png",
+        "ship-66-3.png"
+      ],
+      "dimensions": {
+        "width": 105.99259744576871,
+        "height": 133.0103183633176
+      }
+    },
+    {
+      "id": 446,
+      "name": "Orion Dart Scout",
+      "massClass": 1,
+      "price": 6500,
+      "frames": [
+        "orion/orion-scout-intact.png",
+        "orion/orion-scout-light.png",
+        "orion/orion-scout-heavy.png",
+        "orion/orion-scout-severe.png"
+      ],
+      "dimensions": {
+        "width": 22,
+        "height": 22
+      }
+    },
+    {
+      "id": 447,
+      "name": "Orion Corsair Raider",
+      "massClass": 3,
+      "price": 28500,
+      "frames": [
+        "orion/orion-raider-intact.png",
+        "orion/orion-raider-light.png",
+        "orion/orion-raider-heavy.png",
+        "orion/orion-raider-severe.png"
+      ],
+      "dimensions": {
+        "width": 54,
+        "height": 54
+      }
+    },
+    {
+      "id": 448,
+      "name": "Orion Ravager Cruiser",
+      "massClass": 4,
+      "price": 69000,
+      "frames": [
+        "orion/orion-cruiser-intact.png",
+        "orion/orion-cruiser-light.png",
+        "orion/orion-cruiser-heavy.png",
+        "orion/orion-cruiser-severe.png"
+      ],
+      "dimensions": {
+        "width": 92,
+        "height": 92
+      }
+    },
+    {
+      "id": 449,
+      "name": "Orion Caravan Freighter",
+      "massClass": 3,
+      "price": 22000,
+      "frames": [
+        "orion/orion-freighter-intact.png",
+        "orion/orion-freighter-light.png",
+        "orion/orion-freighter-heavy.png",
+        "orion/orion-freighter-severe.png"
+      ],
+      "dimensions": {
+        "width": 66,
+        "height": 66
+      }
+    },
+    {
+      "id": 416,
+      "name": "Tug Class II-A · Armored Freight",
+      "massClass": 3,
+      "price": 21000,
+      "frames": [
+        "tug-class-ii/tug-class-ii-a.png",
+        "tug-class-ii/tug-class-ii-a-light.png",
+        "tug-class-ii/tug-class-ii-a-heavy.png",
+        "tug-class-ii/tug-class-ii-a-severe.png"
+      ],
+      "dimensions": {
+        "width": 36.27071659908779,
+        "height": 100.44198442824312
+      }
+    },
+    {
+      "id": 433,
+      "name": "U.S.S. Stargazer NCC-82893",
+      "massClass": 5,
+      "price": 105000,
+      "frames": [
+        "new-ship-art/ship-433.png",
+        "new-ship-art/ship-433-light.png",
+        "new-ship-art/ship-433-heavy.png",
+        "new-ship-art/ship-433-severe.png"
+      ],
+      "dimensions": {
+        "width": 66.65238536849519,
+        "height": 124.0946229406165
+      }
+    },
+    {
+      "id": 434,
+      "name": "NX Class",
+      "massClass": 3,
+      "price": 10000,
+      "frames": [
+        "new-ship-art/ship-434.png",
+        "new-ship-art/ship-434-light.png",
+        "new-ship-art/ship-434-heavy.png",
+        "new-ship-art/ship-434-severe.png"
+      ],
+      "dimensions": {
+        "width": 85.2701147,
+        "height": 64.1
+      }
+    },
+    {
+      "id": 435,
+      "name": "Archer's Ship - Enterprise NX-01",
+      "massClass": 3,
+      "price": 10000,
+      "frames": [
+        "new-ship-art/ship-435.png",
+        "new-ship-art/ship-435-light.png",
+        "new-ship-art/ship-435-heavy.png",
+        "new-ship-art/ship-435-severe.png"
+      ],
+      "dimensions": {
+        "width": 85.32908669999999,
+        "height": 64.1
+      }
+    },
+    {
+      "id": 436,
+      "name": "Class 9 Shuttle",
+      "massClass": 1,
+      "price": 3100,
+      "frames": [
+        "new-ship-art/ship-436.png",
+        "new-ship-art/ship-436-light.png",
+        "new-ship-art/ship-436-heavy.png",
+        "new-ship-art/ship-436-severe.png"
+      ],
+      "dimensions": {
+        "width": 7.800003899999999,
+        "height": 11.7
+      }
+    },
+    {
+      "id": 437,
+      "name": "Delta Flyer",
+      "massClass": 1,
+      "price": 3100,
+      "frames": [
+        "new-ship-art/ship-437.png",
+        "new-ship-art/ship-437-light.png",
+        "new-ship-art/ship-437-heavy.png",
+        "new-ship-art/ship-437-severe.png"
+      ],
+      "dimensions": {
+        "width": 8.1611595,
+        "height": 11.7
+      }
+    },
+    {
+      "id": 438,
+      "name": "Intrepid Class",
+      "massClass": 2,
+      "price": 75090,
+      "frames": [
+        "new-ship-art/ship-438.png",
+        "new-ship-art/ship-438-light.png",
+        "new-ship-art/ship-438-heavy.png",
+        "new-ship-art/ship-438-severe.png"
+      ],
+      "dimensions": {
+        "width": 36.150390625,
+        "height": 83
+      }
+    },
+    {
+      "id": 439,
+      "name": "U.S.S. Voyager NCC-74656",
+      "massClass": 2,
+      "price": 75090,
+      "frames": [
+        "new-ship-art/ship-439.png",
+        "new-ship-art/ship-439-light.png",
+        "new-ship-art/ship-439-heavy.png",
+        "new-ship-art/ship-439-severe.png"
+      ],
+      "dimensions": {
+        "width": 51.914258999999994,
+        "height": 83
+      }
+    },
+    {
+      "id": 440,
+      "name": "Picard's Ship - U.S.S. Enterprise NCC-1701-D",
+      "massClass": 5,
+      "price": 94500,
+      "frames": [
+        "new-ship-art/ship-440.png",
+        "new-ship-art/ship-440-light.png",
+        "new-ship-art/ship-440-heavy.png",
+        "new-ship-art/ship-440-severe.png"
+      ],
+      "dimensions": {
+        "width": 105.26113977798204,
+        "height": 119.23385744762567
+      }
+    },
+    {
+      "id": 441,
+      "name": "Sulu's Ship - U.S.S. Excelsior NCC-2000",
+      "massClass": 4,
+      "price": 12000,
+      "frames": [
+        "new-ship-art/ship-441.png",
+        "new-ship-art/ship-441-light.png",
+        "new-ship-art/ship-441-heavy.png",
+        "new-ship-art/ship-441-severe.png"
+      ],
+      "dimensions": {
+        "width": 43.0753547403366,
+        "height": 103.40211085079876
+      }
+    },
+    {
+      "id": 442,
+      "name": "U.S.S. São Paulo NCC-75633",
+      "massClass": 3,
+      "price": 62500,
+      "frames": [
+        "new-ship-art/ship-442.png",
+        "new-ship-art/ship-442-light.png",
+        "new-ship-art/ship-442-heavy.png",
+        "new-ship-art/ship-442-severe.png"
+      ],
+      "dimensions": {
+        "width": 21.214375012500003,
+        "height": 22.992500000000003
+      }
+    },
+    {
+      "id": 443,
+      "name": "Defiant Class",
+      "massClass": 3,
+      "price": 62500,
+      "frames": [
+        "new-ship-art/ship-443.png",
+        "new-ship-art/ship-443-light.png",
+        "new-ship-art/ship-443-heavy.png",
+        "new-ship-art/ship-443-severe.png"
+      ],
+      "dimensions": {
+        "width": 21.214375012500003,
+        "height": 22.992500000000003
+      }
+    },
+    {
+      "id": 444,
+      "name": "U.S.S. Defiant NX-74205",
+      "massClass": 3,
+      "price": 62500,
+      "frames": [
+        "new-ship-art/ship-444.png",
+        "new-ship-art/ship-444-light.png",
+        "new-ship-art/ship-444-heavy.png",
+        "new-ship-art/ship-444-severe.png"
+      ],
+      "dimensions": {
+        "width": 21.230630710000003,
+        "height": 22.992500000000003
+      }
+    },
+    {
+      "id": 445,
+      "name": "Sagan Class",
+      "massClass": 5,
+      "price": 105000,
+      "frames": [
+        "new-ship-art/ship-445.png",
+        "new-ship-art/ship-445-light.png",
+        "new-ship-art/ship-445-heavy.png",
+        "new-ship-art/ship-445-severe.png"
+      ],
+      "dimensions": {
+        "width": 82.72978999195199,
+        "height": 124.0946229406165
+      }
+    }
+  ]
+}

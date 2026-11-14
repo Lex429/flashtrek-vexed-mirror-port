@@ -1,0 +1,56 @@
+#ship-construction{position:absolute;z-index:90;inset:4% 4%;overflow:auto;background:#0a1520;color:#dce8ed;border:1px solid #36505c;border-radius:16px;padding:24px;box-shadow:0 24px 100px #000c;font:14px system-ui}#ship-construction[hidden]{display:none}#ship-construction header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}#ship-construction h1{font-size:28px;margin:4px 0}#ship-construction h2{font-size:18px;margin:20px 0 12px}.build-eyebrow{color:#d9b77b;font-size:10px;letter-spacing:2px;margin:0 0 8px}#ship-construction button,.construction-preview button{background:#182b39;color:#dce8ed;border:1px solid #416070;border-radius:6px;padding:9px 12px;cursor:pointer}#ship-construction button:disabled{opacity:.42;cursor:default}#ship-construction button:focus-visible,#ship-construction select:focus-visible,#ship-construction input:focus-visible{outline:2px solid #f0cc86;outline-offset:3px}#ship-construction [data-build-close]{font-size:24px;padding:2px 12px}.build-workspace{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:24px}.build-visual{position:relative;align-self:start;overflow:hidden;border:1px solid #243e50;border-radius:10px;background:#050c14}.build-visual canvas{display:block;width:100%;height:auto}.build-view-mode{position:absolute;top:16px;left:16px;color:#e7c990;font-size:10px;letter-spacing:1.5px}.build-overlay{position:absolute;bottom:42px;left:24px;right:24px;display:grid;gap:7px}.build-overlay strong{font-size:14px}.build-overlay small{color:#96b1bf}.build-overlay progress,.construction-preview progress{appearance:none;width:100%;height:4px;border:0;background:#233743}.build-overlay progress::-webkit-progress-bar,.construction-preview progress::-webkit-progress-bar{background:#233743}.build-overlay progress::-webkit-progress-value,.construction-preview progress::-webkit-progress-value{background:#d5b779}.build-order label,#ship-construction .build-fleet-heading label{display:grid;gap:7px;margin-bottom:14px;font-size:12px;color:#9db5c2}#ship-construction select,#ship-construction input,.construction-preview select{width:100%;background:#101f2d;border:1px solid #36505c;border-radius:6px;color:#ecf2f4;padding:10px;box-sizing:border-box}.build-specs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}.build-specs span{font-size:10px;color:#8ba9b9;letter-spacing:1px;display:grid;gap:4px}.build-specs strong{font-size:16px;color:#e6edf0;letter-spacing:0}#ship-construction .build-primary{background:#d7bc85;color:#09141e;font-weight:700;width:100%;padding:13px}.build-order p{line-height:1.6;color:#a4b8c4;font-size:12px}.build-queue-item{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid #213542}.build-queue-item small{color:#a5b6c0;font-size:11px}.build-queue-item button:first-child{padding:0!important;border:0!important;background:none!important;text-align:left;color:#e5c78f!important}.build-fleet{border-top:1px solid #2a4150;margin-top:24px;padding-top:20px}.build-fleet-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}.build-fleet-heading h2{margin:0!important}.build-fleet-heading label{max-width:260px}.build-fleet-row{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #243a48}.build-fleet-row strong,.build-fleet-row small{display:block}.build-fleet-row small{color:#98afbd;margin-top:5px}.build-fleet-row>div:last-child{display:flex;gap:6px}.build-empty{color:#94a9b7;font-size:13px}#fleet-shipyard-button{position:static;z-index:12;border:1px solid #987f50;background:#0a1824df;color:#ecd09a;border-radius:6px;padding:8px 12px;font:12px system-ui;cursor:pointer}#fleet-shipyard-button[hidden]{display:none}.construction-preview{padding:18px;border:1px solid #304958;border-radius:10px;background:#0a1520;color:#dce8ed}.construction-preview label{display:grid;gap:7px;margin-bottom:12px}.construction-preview canvas{width:100%;display:block;background:#050c14;border-radius:8px}.construction-preview .construction-actions{display:flex;gap:8px;margin:14px 0}.construction-preview input[type=range]{width:100%}.construction-preview .construction-status{color:#e4c893;line-height:1.6}.construction-preview small{color:#a1b4c2}.construction-preview [hidden]{display:none!important}@media(max-width:800px){#ship-construction{inset:2%;padding:16px}.build-workspace{grid-template-columns:1fr}.build-fleet-row{align-items:start;flex-direction:column}.build-fleet-heading{align-items:start;flex-direction:column}#fleet-shipyard-button{top:48px;right:12px}.build-order{min-width:0}}
+
+/* Construction uses the complete workspace and a canvas sized to its own stage. */
+body.showcase-workspace.construction-mode .viewer,
+body.showcase-workspace.construction-mode .workspace-toolbar,
+body.showcase-workspace.construction-mode .workspace-status { display:none; }
+body.showcase-workspace.construction-mode .workbench {
+  grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr);
+  grid-template-areas:"controls"; min-height:0; overflow:hidden;
+}
+body.showcase-workspace.construction-mode .control-panel {
+  grid-area:controls; width:100%; height:100%; min-height:0; max-height:none;
+  border:0; overflow:hidden; container-type:normal;
+}
+body.showcase-workspace.construction-mode .workspace-main-tabs { order:0; flex:none; min-height:34px; }
+body.showcase-workspace.construction-mode .control-panel>.workspace-tab-body {
+  order:1; flex:1; min-height:0; overflow:hidden; visibility:visible;
+}
+body.showcase-workspace.construction-mode .construction-preview {
+  display:grid; grid-template-columns:minmax(0,1fr) 260px;
+  grid-template-rows:auto minmax(0,1fr); grid-template-areas:"heading heading" "scene controls";
+  gap:12px; width:100%; height:100%; min-height:0; padding:12px; overflow:hidden;
+}
+.construction-heading { grid-area:heading; }
+.construction-heading h3 { font-size:18px; margin:0; }
+.construction-heading p { font-size:12px; color:#a1b4c2; margin:4px 0 0; }
+.construction-stage {
+  grid-area:scene; position:relative; width:100%; height:100%; min-width:0; min-height:0;
+  border:1px solid #243e50; border-radius:8px; background:#050c14; overflow:hidden;
+}
+body.showcase-workspace.construction-mode .construction-stage canvas {
+  position:absolute; inset:0; display:block; width:100%; height:100%; max-width:none;
+  max-height:none; margin:0; border-radius:0; object-fit:contain;
+}
+.construction-sidebar { grid-area:controls; display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0; overflow:auto; }
+.construction-preview .construction-sidebar label { margin:0; font-size:12px; }
+.construction-preview .construction-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0; }
+.construction-preview .construction-status { font-size:13px; margin:0; line-height:1.5; }
+.construction-preview [data-construction-detail] { display:block; font-size:11px; line-height:1.6; }
+.construction-fit-note { color:#8ba5b5; font-size:11px; line-height:1.5; margin:0; }
+@media(max-width:760px),(max-height:650px) {
+  html:has(body.construction-mode) { height:auto; overflow:auto; }
+  body.showcase-workspace.construction-mode { height:auto; min-height:100dvh; overflow:visible; }
+  body.showcase-workspace.construction-mode main { flex:none; min-height:0; }
+  body.showcase-workspace.construction-mode .workbench,
+  body.showcase-workspace.construction-mode .control-panel { height:auto; overflow:visible; }
+  body.showcase-workspace.construction-mode .control-panel>.workspace-tab-body { flex:none; overflow:visible; }
+  body.showcase-workspace.construction-mode .construction-preview {
+    height:auto; overflow:visible; grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto auto; grid-template-areas:"heading" "controls" "scene";
+  }
+  body.showcase-workspace.construction-mode .construction-stage { height:min(680px,max(220px,64dvh)); }
+  .construction-sidebar { display:grid; grid-template-columns:minmax(0,1fr) minmax(100px,.45fr); overflow:visible; gap:8px; }
+  .construction-ship-field,.construction-status,.construction-progress-field,
+  .construction-sidebar [data-construction-detail],.construction-fit-note { grid-column:1/-1; }
+}

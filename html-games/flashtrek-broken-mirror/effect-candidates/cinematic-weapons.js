@@ -9,7 +9,8 @@
   layout(location=2) in vec4 colour;layout(location=3) in vec4 style;layout(location=4) in vec4 event;
   uniform vec2 viewport;out vec2 local;flat out vec4 tint;flat out vec4 material;flat out vec4 life;flat out float span;
   void main(){
-    vec2 delta=path.zw-path.xy;span=length(delta);vec2 direction=span>.0001?delta/span:vec2(1.,0.);
+    vec2 delta=path.zw-path.xy;span=length(delta);
+    vec2 direction=span>.0001?delta/span:(style.y>.5&&style.y<2.5?vec2(cos(event.w),sin(event.w)):vec2(1.,0.));
     float pad=style.x*4.;local=vec2((corner.x+.5)*(span+2.*pad)-pad,corner.y*pad*2.);
     vec2 screen=path.xy+direction*local.x+vec2(-direction.y,direction.x)*local.y;
     gl_Position=vec4(screen/viewport*vec2(2.,-2.)+vec2(-1.,1.),0.,1.);
@@ -22,6 +23,10 @@
   void main(){
     float radius=material.x,kind=material.y,t=material.z*.001,seed=material.w;
     float x=local.x,y=local.y/radius,age=clamp(material.z/max(1.,life.x),0.,1.);
+    if(life.z>=0.){
+      if(kind>.5&&kind<2.5&&x<span-life.z)discard;
+      if(kind>3.5&&kind<4.5&&dot(local,vec2(cos(life.w),sin(life.w))) < -life.z)discard;
+    }
     vec3 hot=mix(tint.rgb,vec3(1.,.97,.90),.94),light=vec3(0.);
     if(kind>4.5){
       // A hot leading fleck and tapered cooling trail, never a round firework.
@@ -104,7 +109,7 @@
     const viewport=gl.getUniformLocation(program,'viewport'),noise=gl.getUniformLocation(program,'turbulence');
     let count=0,impactCount=0,open=false,enabled=true,disposed=false;
     const counters={gpuWeaponPaints:0,beamPaints:0,torpedoPaints:0,boltPaints:0,weaponDrawCalls:0,weaponPeak:0,primitiveRejected:0};
-    function add(m,x,y,ex,ey,r,kind,s,brightness=1){
+    function add(m,x,y,ex,ey,r,kind,s,brightness=1,trailLimit=-1,heading=0){
       const sx=m.a*x+m.c*y+m.e,sy=m.b*x+m.d*y+m.f,tx=m.a*ex+m.c*ey+m.e,ty=m.b*ex+m.d*ey+m.f;
       const radius=Math.max(kind===5?.75:0,r*Math.max(Math.hypot(m.a,m.b),Math.hypot(m.c,m.d)));
       if(!(radius>0)||!Number.isFinite(sx)||!Number.isFinite(sy)||!Number.isFinite(tx)||!Number.isFinite(ty)||!Number.isFinite(radius))return;
@@ -114,7 +119,7 @@
       data[o]=sx;data[o+1]=sy;data[o+2]=tx;data[o+3]=ty;
       data[o+4]=(colour>>16&255)/255;data[o+5]=(colour>>8&255)/255;data[o+6]=(colour&255)/255;data[o+7]=brightness;
       data[o+8]=Math.max(.35,radius);data[o+9]=kind;data[o+10]=Math.max(0,s.age||0);data[o+11]=s.seed||0;
-      data[o+12]=s.duration||180;data[o+13]=((colour>>>8)%11)*.13;data[o+14]=data[o+15]=0;
+      data[o+12]=s.duration||180;data[o+13]=((colour>>>8)%11)*.13;data[o+14]=trailLimit;data[o+15]=heading;
     }
     function weapon(ctx,s,matrix){
       if(!open||!enabled||disposed||!['beam','torpedo','disruptor'].includes(s.kind))return false;
@@ -126,13 +131,16 @@
         if(age>=70)add(m,s.x2,s.y2,s.x2,s.y2,Math.max(1.5,r*2.),3,s,fade*.46);
         counters.beamPaints++;
       }else{
-        const torpedo=s.kind==='torpedo',r=(torpedo?4.2:2.)*unit,length=(torpedo?20:25)*unit,a=s.angle||0;
-        add(m,s.x-Math.cos(a)*length,s.y-Math.sin(a)*length,s.x,s.y,r,torpedo?1:2,s);
+        const torpedo=s.kind==='torpedo',r=(torpedo?4.2:2.)*unit,a=s.angle||0,c=Math.cos(a),sn=Math.sin(a),
+          limit=Number.isFinite(s.trailLength)?Math.max(0,s.trailLength):Infinity,length=Math.min((torpedo?20:25)*unit,limit),
+          along=Math.hypot(m.a*c+m.c*sn,m.b*c+m.d*sn),heading=Math.atan2(m.b*c+m.d*sn,m.a*c+m.c*sn),
+          clipped=limit<64*unit?limit*along:-1;
+        add(m,s.x-c*length,s.y-sn*length,s.x,s.y,r,torpedo?1:2,s,1,clipped,heading);
         if(options.battle){
           // Identity transform keeps lens streaks aligned with the camera.
           const x=m.a*s.x+m.c*s.y+m.e,y=m.b*s.x+m.d*s.y+m.f;
           const scale=Math.max(Math.hypot(m.a,m.b),Math.hypot(m.c,m.d));
-          add({a:1,b:0,c:0,d:1,e:0,f:0},x,y,x,y,(torpedo?12:7)*unit*scale,4,s,torpedo?.48:.30);
+          add({a:1,b:0,c:0,d:1,e:0,f:0},x,y,x,y,(torpedo?12:7)*unit*scale,4,s,torpedo?.48:.30,clipped,heading);
         }
         counters[torpedo?'torpedoPaints':'boltPaints']++;
       }
@@ -198,7 +206,7 @@
         line(s.x1+(s.x2-s.x1)*t,s.y1+(s.y2-s.y1)*t,s.x1+(s.x2-s.x1)*end,s.y1+(s.y2-s.y1)*end,w*2,hex,v*fade);}
       const r=Math.max(3,w*5);ctx.globalAlpha=Math.exp(-age/38);ctx.drawImage(glow(colour),s.x1-r,s.y1-r,r*2,r*2);
     }else{
-      const torpedo=s.kind==='torpedo',r=(torpedo?4.2:2)*unit,l=(torpedo?20:25)*unit,a=s.angle||0;
+      const torpedo=s.kind==='torpedo',r=(torpedo?4.2:2)*unit,l=Math.min((torpedo?20:25)*unit,Number.isFinite(s.trailLength)?Math.max(0,s.trailLength):Infinity),a=s.angle||0;
       ctx.translate(s.x,s.y);ctx.rotate(a);const gradient=ctx.createLinearGradient(-l,0,0,0);gradient.addColorStop(0,hex+'00');gradient.addColorStop(1,hex);
       ctx.fillStyle=gradient;ctx.globalAlpha=.65;ctx.beginPath();ctx.moveTo(-l,0);ctx.quadraticCurveTo(-l*.3,-r*.7,0,-r*.45);ctx.lineTo(0,r*.45);ctx.quadraticCurveTo(-l*.3,r*.7,-l,0);ctx.fill();
       ctx.globalAlpha=.8;ctx.drawImage(glow(colour),-r*2,-r*2,r*4,r*4);ctx.globalAlpha=1;ctx.fillStyle='#fff9ed';ctx.beginPath();ctx.ellipse(0,0,r*.6,r*(torpedo?.45:.25),0,0,Math.PI*2);ctx.fill();

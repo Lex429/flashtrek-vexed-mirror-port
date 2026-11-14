@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {fixture}=require('./npc-economy-fixture.cjs');
 async function setup(saved){
  const f=await fixture({saved,repairs:true,full:false,economic:false,traffic:true});
- for(const name of ['ship-scale-settings','prometheus-artwork','prometheus-definitions','prometheus-effects','prometheus-mvam','player-combat'])vm.runInContext(fs.readFileSync(`${__dirname}/../html-games/broken-mirror-port/${name}.js`,'utf8'),f.context,{filename:name+'.js'});
+ for(const name of ['ship-scale-settings','prometheus-artwork','prometheus-definitions','prometheus-loadouts','prometheus-tactics','prometheus-effects','prometheus-mvam','player-combat'])vm.runInContext(fs.readFileSync(`${__dirname}/../html-games/broken-mirror-port/${name}.js`,'utf8'),f.context,{filename:name+'.js'});
  f.window.nativePrometheus.initialize(f.state);
  f.tick=()=>{f.window.nativeSimulation.advance(f.state,.25);f.window.nativeShipRepairs.advance(f.state,.25);f.window.nativePrometheus.advance(f.state,.25);};return f;
 }

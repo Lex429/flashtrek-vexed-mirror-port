@@ -70,3 +70,8 @@
 @keyframes mars-installed-stat-in{0%,20%{opacity:0;transform:translateY(9px)}75%{opacity:1;transform:translateY(-2px)}100%{opacity:1;transform:translateY(0)}}
 @keyframes mars-installed-stat-out{0%,20%{opacity:1;transform:translateY(0)}75%,100%{opacity:0;transform:translateY(-10px)}}
 @media(prefers-reduced-motion:reduce){.mars-install-ray>b,.mars-install-lock,#shipyard-services .mars-shop-card[data-installed-upgrade]::after,#shipyard-services .mars-installed-old{display:none}#shipyard-services [data-installed-upgrade],#shipyard-services [data-installed-upgrade] strong>b{animation:none!important}}
+@media(max-width:680px){
+ .mars-install-fx[data-weapon-upgrade] .mars-install-message>strong{font-size:11px;line-height:1.15}
+ .mars-install-fx[data-weapon-upgrade] .mars-install-message>small{line-height:1.1}
+ .mars-install-fx[data-weapon-upgrade] .mars-install-message>span{height:5px;line-height:0}
+}

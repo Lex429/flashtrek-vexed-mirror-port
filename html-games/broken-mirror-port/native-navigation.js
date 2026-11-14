@@ -113,8 +113,8 @@
         prestige: known(system.id) ? Number(game.localPrestige[system.id]) : null,
         standing: standing(system.id), status: status(system.id)})),
       routes: [],
-      fleet: (Array.isArray(game.fleet) ? game.fleet : []).filter(ship => systems.get(Number(ship.system))?.charted)
-        .map(ship => ({system: Number(ship.system), name: String(ship.name || 'Fleet ship'), type: Number(ship.type || 7)})),
+      fleet: [...(Array.isArray(game.fleet) ? game.fleet : []),...(window.nativeShipConstruction?.fleet(game)||[]).filter(ship=>ship.hull>0)].filter(ship => systems.get(Number(ship.system))?.charted)
+        .map(ship => ({system: Number(ship.system), name: String(ship.name || 'Fleet ship'), type: Number(ship.shipType || ship.type || 7)})),
       discovered: charted.filter(system => physical(system.id)===system.id&&known(system.id)).length,
       total: charted.filter(system=>physical(system.id)===system.id).length,
       fuel: Number(game.antimatter),

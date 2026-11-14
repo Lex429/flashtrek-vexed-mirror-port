@@ -1,6 +1,17 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {fixture}=require('./npc-economy-fixture.cjs');
 const plain=v=>JSON.parse(JSON.stringify(v));
+
+test('inventory pages share a pure reconciliation of actual saved positions and locker order',async()=>{
+ const {window:w,state:s}=await fixture({full:false}),api=w.nativeShipEquipment,eq=api.ensure(s);
+ const a=api.grant(s,1).instance,b=api.grant(s,2).instance;
+ const keys=api.inventoryKeys(s),saved=[null,'equipment:'+b.id,'gone','equipment:'+b.id,null,'equipment:'+a.id],before=JSON.stringify(saved);
+ const view=api.inventoryCells(keys,saved);
+ assert.equal(JSON.stringify(saved),before);assert.equal(view[1],'equipment:'+b.id);assert.equal(view[5],'equipment:'+a.id);
+ assert.equal(new Set(view.filter(Boolean)).size,keys.length);assert.deepEqual([...view.filter(Boolean)].sort(),[...keys].sort());
+ s.inventoryLayout={version:1,cells:saved};assert.deepEqual(plain(api.inventoryLayout(s).cells),plain(view));
+ assert.ok(eq.instances[a.id]&&eq.instances[b.id]);
+});
 test('every hull has identical typed capacities, effective upgrades and movement for every controller',async()=>{
  const f=await fixture({full:false,regional:true,repairs:true}),w=f.window;
  for(const {id} of w.VexedMirrorWorld.ships){

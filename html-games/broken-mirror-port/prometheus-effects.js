@@ -72,7 +72,7 @@
   const z=view.zoom||1,d=pose(lead),ships=[lead,...escorts],coupling=g.mode==='separating'||g.mode==='recalling';
   ctx.save();ctx.translate(view.cx-view.ship.x*z,view.cy-view.ship.y*z);ctx.scale(z,z);ctx.globalCompositeOperation='screen';
   for(const ship of ships){
-    if(!joined||g.assembly)plume(ctx,ship,at,docking,histories.get(state)?.get(ship.id),layer);
+    if(coupling)plume(ctx,ship,at,docking,histories.get(state)?.get(ship.id),layer);
   }
   if(layer!=='under'){
    if(g.mode==='separating'){

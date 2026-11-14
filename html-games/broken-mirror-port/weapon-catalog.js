@@ -8,3 +8,16 @@ for(const item of window.VexedMirrorWeapons)item.category=({20:'ability',21:'eng
 // green energy beam and photon visual; the fitted model still owns its stats.
 window.VexedMirrorWeapons.find(item=>item.id===26).visualId=5;
 window.VexedMirrorWeapons.find(item=>item.id===27).visualId=15;
+
+// Family owns the original hit/range/power ratings; grade changes recharge only.
+(() => {
+ const names=Object.freeze(['I','V','X']),factors=Object.freeze([1,.75,.5]);
+ const families={1:'Phaser Bank',2:'Particle Beam Array',3:'Polaron Phaser Bank',4:'Plasma Phaser Bank',5:'Cutting Beam',6:'Disruptor Cannon',7:'Light Disruptor Cannon',8:'Quantum Pulse Cannon',9:'Pulse Phaser Bank',10:'Light Phaser Cannon',11:'Pulse Phaser Turret',12:'Disruptor Turret',13:'Gravimetric Torpedo Launcher',14:'Light Phaser Bank',15:'Light Photon Torpedo Launcher',16:'Light Quantum Torpedo Launcher',17:'Plasma Torpedo Launcher',18:'Heavy Transphasic Torpedo Launcher',19:'Polaron Torpedo Launcher',26:'Thalaron Generator',27:'Light Rapid Photon Launcher',1001:'Light Phaser Array',1002:'Phaser Array',1003:'Heavy Phaser Array',1004:'Pulse Phaser Cannon',1005:'Phaser Turret',1006:'Photon Torpedo Launcher',1007:'Quantum Torpedo Launcher',1008:'Rapid Photon Launcher',1009:'Transphasic Torpedo Launcher'};
+ const clamp=n=>Math.max(0,Math.min(2,Math.floor(Number(n)||0)));
+ function model(base,level=0){
+  if(!base||base.category!=='weapon')return base;
+  const grade=clamp(level),family=families[base.id]||base.name;
+  return {...base,name:family+' '+names[grade],weaponFamily:family,weaponGrade:grade,recharge:base.recharge*factors[grade]};
+ }
+ window.nativeWeaponGrades=Object.freeze({names,factors,model});
+})();

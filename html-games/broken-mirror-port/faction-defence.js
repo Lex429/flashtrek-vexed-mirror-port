@@ -32,7 +32,7 @@
     return impact.source==='player'||impact.source==null&&!impact.physicalContact?'player':null;
   }
   function friendly(state,ship,impact){
-    const id=sourceId(impact);if(id==null||id==='player')return false;
+    const id=sourceId(impact);if(id==='player')return !!ship?.playerOwned;if(id==null)return false;
     const owner=allegiance(ship),other=Number(impact.sourceGovernmentId)||allegiance(resolve(state,id)?.entity);
     return owner!=null&&other!=null&&owner===other;
   }
@@ -84,6 +84,7 @@
     return system!=null&&owner&&government(state,system)===owner?threat(state,system,owner):null;
   }
   function hostileToPlayer(state,ship){
+    if(ship?.playerOwned)return false;
     if(!isFaction(ship))return false;
     const system=jurisdiction(state,ship),owner=allegiance(ship),alert=state.factionDefence?.systems?.[system];
     return system!=null&&government(state,system)===owner&&(window.nativeFactionStanding.relationship(state,system).status==='Hostile'||alert?.government===owner&&alert.aggressors.some(entry=>entry.id==='player'&&(entry.until>seconds(state)||committed(state,system,'player'))));

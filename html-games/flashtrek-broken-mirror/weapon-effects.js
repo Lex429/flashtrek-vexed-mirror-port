@@ -19,7 +19,9 @@
    const point=(x,y)=>({x:(matrix.a*x+matrix.c*y+matrix.e)/pixelRatio,y:(matrix.b*x+matrix.d*y+matrix.f)/pixelRatio});
    geometry={...geometry,zoom:1};
    for(const [x,y] of [['x','y'],['x1','y1'],['x2','y2']])if(Number.isFinite(geometry[x])&&Number.isFinite(geometry[y])){const mapped=point(geometry[x],geometry[y]);geometry[x]=mapped.x;geometry[y]=mapped.y;}
-   if(Number.isFinite(geometry.angle)){const x=Math.cos(geometry.angle),y=Math.sin(geometry.angle);geometry.angle=Math.atan2(matrix.b*x+matrix.d*y,matrix.a*x+matrix.c*y);}
+   if(Number.isFinite(geometry.angle)){const x=Math.cos(geometry.angle),y=Math.sin(geometry.angle);
+    if(Number.isFinite(geometry.trailLength))geometry.trailLength*=Math.hypot(matrix.a*x+matrix.c*y,matrix.b*x+matrix.d*y)/pixelRatio;
+    geometry.angle=Math.atan2(matrix.b*x+matrix.d*y,matrix.a*x+matrix.c*y);}
    spin+=Math.atan2(matrix.b,matrix.a);
   }
   const parameters={...geometry,kind:shot.kind,color:shot.style.color,thickness:shot.style.thickness,age,duration:shot.duration||appearance.durationMs(shot.kind),seed:shot.spin,
@@ -30,6 +32,15 @@
   if(window.nativeEffectProfiles?.queueWeapon?.(ctx,parameters,gpuMatrix))return;
   ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.shadowBlur=0;ctx.shadowColor='transparent';ctx.filter='none';ctx.lineCap='butt';ctx.lineJoin='miter';
   if(pixelRatio!==null)ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+  // Clip the newborn wake and its glow at the launch plane. Fully developed
+  // weapons retain their established appearance and avoid a Canvas clip.
+  if(shot.kind!=='beam'&&Number.isFinite(parameters.trailLength)&&parameters.trailLength<64*parameters.units*parameters.zoom){
+   const a=parameters.angle||0,c=Math.cos(a),s=Math.sin(a),limit=Math.max(0,parameters.trailLength),
+     extent=(ctx.canvas.width+ctx.canvas.height)/(pixelRatio||1)+Math.abs(parameters.x)+Math.abs(parameters.y)+64,
+     x=parameters.x-c*limit,y=parameters.y-s*limit;
+   ctx.beginPath();ctx.moveTo(x-s*extent,y+c*extent);ctx.lineTo(x+s*extent,y-c*extent);
+   ctx.lineTo(x+s*extent+c*extent*2,y-c*extent+s*extent*2);ctx.lineTo(x-s*extent+c*extent*2,y+c*extent+s*extent*2);ctx.closePath();ctx.clip();
+  }
   if(window.nativeEffectProfiles)window.nativeEffectProfiles.drawWeapon(window.drawShowcaseWeapon,ctx,parameters);
   else window.drawShowcaseWeapon(ctx,parameters);
   ctx.restore();

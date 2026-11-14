@@ -15,6 +15,27 @@
  const cache=new WeakMap(),clock=s=>(window.nativeSimulation?.seconds(s)??Number(s?.weaponCombat?.clock))||0;
  function model(id){if(catalog[id])return catalog[id];const yard=window.nativeShipyardRefits?.model(id);if(yard)return yard;const w=window.VexedMirrorWeapons?.find(w=>w.id===Number(id));return w?{...w,category:w.category||'weapon'}:null;}
  function models(){return [...new Map([...Object.values(catalog),...(window.VexedMirrorWeapons||[]).map(w=>model(w.id)),...(window.nativeShipyardRefits?.weapons||[]),...(window.nativeShipyardRefits?.shields||[])].filter(Boolean).map(m=>[String(m.id),m])).values()];}
+ const gradedModels=new WeakMap();
+ const weaponGrade=item=>item?.weaponGrade?.version===1?Math.max(0,Math.min(2,Math.floor(Number(item.weaponGrade.level)||0))):0;
+ function forInstance(item,level){
+  if(!item)return null;
+  const grade=level===undefined?weaponGrade(item):Math.max(0,Math.min(2,Math.floor(Number(level)||0))),cached=gradedModels.get(item);
+  if(cached?.id===item.modelId&&cached.grade===grade)return cached.model;
+  const base=model(item.modelId),data=base?.category==='weapon'?window.nativeWeaponGrades?.model(base,grade)||base:base;
+  if(data)gradedModels.set(item,{id:item.modelId,grade,model:data});return data;
+ }
+ function ownedWeapons(state,holder=state){
+  const eq=ensure(state,holder),ids=new Set([...eq.slots.weapon,...eq.locker]);
+  return [...ids].filter(id=>eq.instances[id]?.category==='weapon').map(id=>({instance:eq.instances[id],weapon:forInstance(eq.instances[id]),slot:eq.slots.weapon.indexOf(id)}));
+ }
+ function advanceWeaponGrade(state,id){
+  const owned=ownedWeapons(state).find(entry=>entry.instance.id===id);
+  if(!owned)return {ok:false,error:'Choose a weapon you own.'};
+  const level=weaponGrade(owned.instance);if(level>=2)return {ok:false,error:'This weapon is fully upgraded.'};
+  owned.instance.weaponGrade={version:1,level:level+1};
+  project(state,state.shipEquipment);fittingChanged(state,state);
+  return {ok:true,instance:owned.instance};
+ }
  function prepareDevCargo(state){
   if(!state?.devMode||state.devInventoryKitVersion!==2||state.devCargoKit?.version===1)return;
   const allowance=(values,maximum)=>Object.fromEntries(Object.entries(values||{}).map(([key,value])=>[key,Math.min(maximum,Math.max(0,Number(value)||0))]));
@@ -73,6 +94,7 @@
  function create(eq,id){
   let key;do{key=(model(id).category==='repairDrone'?'dot:'+eq.owner+':':model(id).category==='weapon'?'weapon:':'equipment:')+eq.nextId++;}while(eq.instances[key]);
   const item=eq.instances[key]={id:key,modelId:id,category:model(id).category,readyAt:0,upgrades:{}};
+  if(item.category==='weapon')item.weaponGrade={version:1,level:0};
   if(repairable(item))item.condition=100;
   if(item.category==='repairDrone')Object.assign(item,{shipType:9001,hull:40,shields:0,phase:'stowed',heading:0,speed:0});return item;
  }
@@ -155,7 +177,7 @@
    source.slots=before.slots;source.locker=before.locker;from.shields=before.shields;project(from,source);project(to,dest);fittingChanged(state,from);fittingChanged(state,to);
   }};
  }
- function equipped(state,holder=state,defaults){const eq=ensure(state,holder,defaults);return eq.slots.weapon.map((id,slot)=>({slot,instance:eq.instances[id],weapon:model(eq.instances[id]?.modelId)})).filter(i=>i.instance&&i.weapon);}
+ function equipped(state,holder=state,defaults){const eq=ensure(state,holder,defaults);return eq.slots.weapon.map((id,slot)=>({slot,instance:eq.instances[id],weapon:forInstance(eq.instances[id])})).filter(i=>i.instance&&i.weapon);}
  // Saved presentation positions reference owned items; quantities and fitting remain authoritative.
  function inventoryKeys(state){
   const eq=ensure(state),positive=value=>Number(value)>0;
@@ -164,16 +186,19 @@
    ...Object.entries(state.solFreightHold||{}).filter(([,n])=>positive(n)).map(([key])=>'freight:'+key),
    ...(state.localContracts||[]).map(job=>'contract:'+job.id)];
  }
- function inventoryLayout(state){
-  const keys=inventoryKeys(state),available=new Set(keys),seen=new Set();
-  const previous=state.inventoryLayout?.version===1&&Array.isArray(state.inventoryLayout.cells)?state.inventoryLayout.cells:[];
+ function inventoryCells(keys,previous=[]){
+  const available=new Set(keys),seen=new Set();
   const cells=previous.slice(0,100000).map(key=>{if(typeof key!=='string'||!available.has(key)||seen.has(key))return null;seen.add(key);return key;});
   let free=0;for(const key of keys)if(!seen.has(key)){while(cells[free])free++;cells[free]=key;seen.add(key);}
   while(cells.length&&!cells[cells.length-1])cells.pop();
-  state.inventoryLayout={version:1,cells};return state.inventoryLayout;
+  return cells;
  }
- function moveInventory(state,{from,to}={}){
-  const eq=ensure(state),layout=inventoryLayout(state),cells=layout.cells;
+ function inventoryLayout(state){
+  const previous=state.inventoryLayout?.version===1&&Array.isArray(state.inventoryLayout.cells)?state.inventoryLayout.cells:[];
+  state.inventoryLayout={version:1,cells:inventoryCells(inventoryKeys(state),previous)};return state.inventoryLayout;
+ }
+ function moveInventory(state,{from,to,layout:providedLayout}={}){
+  const eq=ensure(state),layout=providedLayout||inventoryLayout(state),cells=layout.cells;
   const cell=at=>at?.type==='cell'&&Number.isInteger(at.index)&&at.index>=0&&at.index<100000;
   const bay=at=>at?.type==='slot'&&kinds.includes(at.category)&&Number.isInteger(at.index)&&at.index>=0&&at.index<eq.slots[at.category].length;
   if(!(cell(from)||bay(from))||!(cell(to)||bay(to)))return {ok:false,error:'Choose an inventory tile or a valid equipment bay.'};
@@ -207,6 +232,6 @@
  function refit(state,ids,{holder=state}={}){const eq=ensure(state,holder);for(const kind of ['weapon','ability']){eq.locker.push(...eq.slots[kind].filter(Boolean));eq.slots[kind].fill(null);}for(const id of ids||[]){const kind=model(id)?.category;if(!kind)continue;const slot=eq.slots[kind].findIndex(id=>!id);grant(state,id,{holder,location:slot<0?'locker':'slot',slot});}eq.nextSlot=0;project(holder,eq);return holder.weaponLoadout;}
  function purchase(state,id,{holder=state}={}){const item=model(id);if(!item)return {ok:false,error:'Unknown equipment.'};if(item.shipyardOnly)return {ok:false,error:'Purchase Federation equipment at Mars Orbital Shipyard.'};if((holder===state?state.latinum:holder.credits)<item.price)return {ok:false,error:'Not enough credits for this equipment.'};const result=grant(state,id,{holder});if(result.ok){if(holder===state)state.latinum-=item.price;else holder.credits-=item.price;}return result;}
  const ready=(item,now)=>(Number(item?.readyAt)||0)<=now,consume=(item,spec,now)=>{item.readyAt=now+spec.recharge;};
- window.nativeShipEquipment=Object.freeze({condition,damageDevices,ensure,capacities,model,models,restockDev,prepareDevCargo,compatible,grant,move,transfer,inventoryKeys,inventoryLayout,moveInventory,bayLayout,placeBay,equipped,cargoUsed,canChangeHull,changeHull,purchase,kinds,project,has:(s,e,id)=>{const eq=ensure(s,e);return eq.slots[model(id)?.category]?.some(key=>eq.instances[key]?.modelId===id)||false;}});
- window.nativeWeaponLoadout=Object.freeze({ensure:(s,h=s,d)=>{ensure(s,h,d);return h.weaponLoadout;},equipped,grant,move,refit,ready,consume,project:(h)=>project(h,h.shipEquipment)});
+ window.nativeShipEquipment=Object.freeze({condition,damageDevices,ensure,capacities,model,models,forInstance,weaponGrade,ownedWeapons,advanceWeaponGrade,restockDev,prepareDevCargo,compatible,grant,move,transfer,inventoryKeys,inventoryCells,inventoryLayout,moveInventory,bayLayout,placeBay,equipped,cargoUsed,canChangeHull,changeHull,purchase,kinds,project,has:(s,e,id)=>{const eq=ensure(s,e);return eq.slots[model(id)?.category]?.some(key=>eq.instances[key]?.modelId===id)||false;}});
+ window.nativeWeaponLoadout=Object.freeze({ensure:(s,h=s,d)=>{ensure(s,h,d);return window.nativePrometheusLoadouts?.loadoutFor(s,h)||h.weaponLoadout;},equipped:(s,h=s,d)=>window.nativePrometheusLoadouts?.fitted(s,h)||equipped(s,h,d),grant,move,refit,ready,consume,project:(h)=>project(h,h.shipEquipment)});
 })();

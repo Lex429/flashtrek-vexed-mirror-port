@@ -44,7 +44,7 @@
     if(pending)return pending;
     if(typeof Worker!=='function'||!window.nativeSystemHub?.sol)return Promise.resolve(null);
     pending=new Promise(resolve=>{
-      let worker;try{worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-territorial-yards-1-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1');}catch(error){lastError=String(error);resolve(null);return;}
+      let worker;try{worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-territorial-yards-1-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1-projectile-tail-1-loot-inventory-pages-2');}catch(error){lastError=String(error);resolve(null);return;}
       const timer=setTimeout(()=>{lastError='World preparation exceeded 30 seconds';worker.terminate();resolve(null);},30000);
       worker.onmessage=event=>{
         clearTimeout(timer);worker.terminate();
@@ -87,7 +87,7 @@
       const abort=()=>finish(new Error('Travel preparation cancelled.'));
       if(signal?.aborted){abort();return;}
       try{
-        worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-warp-preparation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-territorial-yards-1-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1');signal?.addEventListener('abort',abort,{once:true});
+        worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-warp-preparation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-territorial-yards-1-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1-projectile-tail-1-loot-inventory-pages-2');signal?.addEventListener('abort',abort,{once:true});
         progress();
         worker.onerror=event=>finish(new Error(event.message||'Travel preparation failed.'));
         worker.onmessage=event=>{

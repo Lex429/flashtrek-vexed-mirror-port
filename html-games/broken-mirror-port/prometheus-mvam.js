@@ -22,22 +22,27 @@
  function localPoint(part,kind,state){
   const d=window.nativeShipDefinitions.get(PARENT).dimensions,lead=parts().find(p=>p.type===controlled(state)),side=wingSide(part,state);
   if(kind==='socket')return {x:(part.offset.x-lead.offset.x)*d.width,y:(part.offset.y-lead.offset.y)*d.height};
-  if(kind==='staging'){const relative=part.offset.y-lead.offset.y,rank=parts().filter(p=>p.type!==lead.type&&Math.sign(p.offset.y-lead.offset.y)===Math.sign(relative)).findIndex(p=>p.type===part.type);return {x:0,y:d.height*Math.sign(relative)*(.94+Math.max(0,rank)*.65)};}
+  if(kind==='staging'){
+   const relative=part.offset.y-lead.offset.y;
+   // Opposite approach lanes keep two sections on the same side of an Alpha
+   // or Gamma pilot from overlapping and blocking each other's rendezvous.
+   return {x:side*(Math.max(d.width,part.dimensions.width)*.85+24),y:d.height*relative};
+  }
   const dock=localPoint(part,'socket',state);
   return {x:dock.x+side*(Math.max(d.width,part.dimensions.width)*1.1+38),y:dock.y+(side<0?-7:7)};
  }
  function worldPoint(state,local){const p=point(state),o=rotate(local,state.angle||0);return {x:p.x+o.x,y:p.y+o.y};}
  const socket=(state,part)=>worldPoint(state,localPoint(part,'socket',state));
  const formation=(state,part)=>worldPoint(state,localPoint(part,'formation',state));
- function pathPoint(part,age,state){
-  const start=localPoint(part,'socket',state),end=localPoint(part,'formation',state),side=wingSide(part,state);
+ function pathPoint(part,age,state,launch){
+  const start=launch?.start||localPoint(part,'socket',state),end=localPoint(part,'formation',state),side=wingSide(part,state);
   const t=Math.max(0,Math.min(1,(age-(side<0?.3:.55))/2.7)),p=ease(t),q=1-p,rate=30*t*t*(1-t)*(1-t)/2.7;
   const a={x:start.x+side*8,y:start.y+(side<0?-28:34)},b={x:end.x+side*24,y:end.y+(side<0?-35:32)};
   return {x:q*q*q*start.x+3*q*q*p*a.x+3*q*p*p*b.x+p*p*p*end.x,
    y:q*q*q*start.y+3*q*q*p*a.y+3*q*p*p*b.y+p*p*p*end.y,
    vx:3*(q*q*(a.x-start.x)+2*q*p*(b.x-a.x)+p*p*(end.x-b.x))*rate,
    vy:3*(q*q*(a.y-start.y)+2*q*p*(b.y-a.y)+p*p*(end.y-b.y))*rate,
-   heading:-Math.PI/2+side*.23*Math.sin(Math.PI*p)};
+   heading:-Math.PI/2+angle(start.heading??-Math.PI/2,-Math.PI/2)*(1-p)+side*.23*Math.sin(Math.PI*p)};
  }
  function leadPose(state,previous){
   const p=point(state),at=time(state),heading=state.angle||0,elapsed=at-(previous?.at??at);
@@ -70,8 +75,13 @@
  function updateMembership(state){window.nativeShipSystems?.invalidateShips(state);window.nativeShipSystems?.refreshShip(state,state,'player');}
  function initialize(state){
   if(Number(state.shipType)!==PARENT){if(state.prometheus)delete state.prometheus;return;}
+  window.nativePrometheusLoadouts?.initialize(state);
   const g=group(state);if(!g)return;
   if(!['joined','separating','deployed','recalling'].includes(g.mode)||!Array.isArray(g.sections)){delete state.prometheus;return;}
+  if(g.mode==='recalling'&&g.dockingVersion!==2){
+   if(g.dockingAt!=null)for(const e of g.sections){e.prometheusReturn='capture';e.prometheusCaptureAt=g.dockingAt;}
+   g.dockingVersion=2;
+  }
   for(const e of g.sections){e.system=Number(e.system??state.system);e.previousX=Number.isFinite(e.previousX)?e.previousX:e.x;e.previousY=Number.isFinite(e.previousY)?e.previousY:e.y;
    e.carrier={category:'player',id:'player'};e.missionId='prometheus:'+g.sequence;
    if(!Number.isFinite(e.motionAngularVelocity))e.motionAngularVelocity=g.lastLead?.omega||0;}
@@ -106,6 +116,7 @@
  function activate(state,{target}={}){
   const check=allowed(state);if(!check.ok)return check;
   if(active(state))return recall(state);
+  window.nativePrometheusLoadouts?.initialize(state);
   const clock=time(state),maximum=window.nativeShipDefinitions.forEntity(state,state),hp=state.hull,sp=state.shields||0,p=point(state),old=group(state);
   const g={version:1,mode:'separating',startedAt:clock,sections:[],leadType:LEAD,system:state.system,
    cooldownUntil:0,attackTargetId:target?.rockId==null&&target?.id!=='player'?target?.id:null,
@@ -136,12 +147,40 @@
   const g=group(state);if(!active(state))return {ok:false,error:'The ship is already joined.'};
   if(!living(state)&&!takeCommand(state))return {ok:false,error:'No surviving section remains.'};
   if(g.mode==='recalling')return {ok:true,message:'Sections are returning to their docking locks.'};
-  g.mode='recalling';g.startedAt=time(state);g.attackTargetId=null;delete g.dockingAt;
-  for(const entity of g.sections)delete entity.prometheusReturn;updateMembership(state);
+  g.mode='recalling';g.startedAt=time(state);g.attackTargetId=null;g.dockingVersion=2;delete g.dockingAt;
+  for(const entity of g.sections){delete entity.prometheusReturn;delete entity.prometheusCaptureAt;}updateMembership(state);
   if(!sections(state).length)finishJoin(state);
   return {ok:true,message:'Recalling sections. The docking locks will track your flight.'};
  }
  function canTakeCommand(state){return active(state)&&state.hull<=0&&(group(state).sections||[]).some(living);}
+ function reanchor(state,g){
+  g.startedAt=time(state);delete g.dockingAt;
+  const lead=leadPose(state),frame={from:lead,to:lead};
+  for(const e of g.sections){
+   delete e.prometheusPilot;delete e.prometheusCombat;delete e.prometheusReturn;delete e.prometheusCaptureAt;delete e.actuatedAvoidance;
+   if(g.mode==='separating'&&living(e))e.prometheusLaunch={version:2,progress:0,start:window.nativeShipMotion.framePose(e,frame)};
+  }
+  for(const m of state.shipRepairs?.missions||[])if(['carrier','target'].some(k=>m[k]?.category==='player')){delete m.carrierMotion;delete m.targetMotion;}
+  g.lastLead=lead;leadPoses.delete(state);window.nativePrometheusEffects?.reset(state);updateMembership(state);
+ }
+ function pilotSection(state,type){
+  if(!active(state))return {ok:false,error:'Separate the ship before changing pilot.'};
+  if(controlled(state)===Number(type))return {ok:true};
+  const g=group(state),next=g.sections.find(e=>e.shipType===Number(type)&&living(e));if(!next)return {ok:false,error:'That section is unavailable. Reconstruct it before piloting.'};
+  const oldPart=parts().find(p=>p.type===controlled(state)),old={id:'prometheus:'+oldPart.key,shipType:oldPart.type,prometheusSection:oldPart.key,name:oldPart.name,
+   system:state.system,heading:state.angle,ownerGovernmentId:next.ownerGovernmentId,carrier:{category:'player',id:'player'},missionId:'prometheus:'+g.sequence,shots:0};
+  for(const name of ['x','y','vx','vy','speed','phase','hull','shields','motionAngularVelocity','motionReverse','motionDrift','motionKick','motionSpin','motionFlow','motionActuation'])old[name]=state[name];
+  if(state.shipRefit)old.shipRefit={...plain(state.shipRefit),hullType:old.shipType};if(state.shipThrusters)old.shipThrusters={...plain(state.shipThrusters),hullType:old.shipType};
+  if(state.mineralUpgrades?.[PARENT])old.mineralUpgrades={[old.shipType]:plain(state.mineralUpgrades[PARENT])};
+  window.nativeShipEquipment.ensure(state,old,[]);
+  for(const kind of ['engineering','shield']){const source=hardware(state,kind),item=hardware(old,kind);if(item&&source){item.modelId=source.modelId;item.condition=source.condition;item.upgrades=plain(source.upgrades||{});}else if(item){delete old.shipEquipment.instances[item.id];old.shipEquipment.slots[kind][0]=null;}}
+  window.nativeWeaponLoadout.project(old);g.sections=g.sections.filter(e=>e!==next);g.sections.push(old);g.leadType=next.shipType;
+  for(const name of ['x','y','vx','vy','speed','phase','hull','shields','motionAngularVelocity','motionReverse','motionDrift','motionKick','motionSpin','motionFlow','motionActuation'])state[name]=next[name];
+  state.angle=next.heading;state.localCruise=null;state.arrivalApproach=null;
+  for(const kind of ['engineering','shield']){const item=hardware(state,kind),source=hardware(next,kind);if(item&&source)item.condition=source.condition??100;}
+  reanchor(state,g);bridge?.switched?.();bridge?.changed?.();
+  return {ok:true,message:'Now piloting '+next.name.replace('Prometheus ','')+'.'};
+ }
  function takeCommand(state){
   if(!canTakeCommand(state))return false;
   const g=group(state),next=g.sections.find(living),old=parts().find(p=>p.type===controlled(state));
@@ -150,10 +189,7 @@
   for(const name of ['x','y','vx','vy','speed','phase','hull','shields','motionAngularVelocity','motionReverse','motionDrift','motionKick','motionSpin','motionFlow','motionActuation'])state[name]=next[name];
   state.angle=next.heading;state.localCruise=null;state.arrivalApproach=null;
   for(const kind of ['engineering','shield']){const item=hardware(state,kind),source=hardware(next,kind);if(item&&source)item.condition=source.condition??100;}
-  g.mode=g.mode==='recalling'?'recalling':'deployed';g.startedAt=time(state);delete g.dockingAt;
-  for(const e of g.sections){delete e.prometheusPilot;delete e.prometheusReturn;delete e.actuatedAvoidance;}
-  for(const m of state.shipRepairs?.missions||[])if(['carrier','target'].some(k=>m[k]?.category==='player')){delete m.carrierMotion;delete m.targetMotion;}
-  g.lastLead=leadPose(state);leadPoses.delete(state);window.nativePrometheusEffects?.reset(state);updateMembership(state);
+  reanchor(state,g);
   const message=old.name.replace('Prometheus ','')+' destroyed. Command transferred to '+next.name.replace('Prometheus ','')+'.';
   bridge?.changed?.();bridge?.notice?.(message);bridge?.save?.();return {ok:true,type:next.shipType,message};
  }
@@ -171,6 +207,7 @@
   state.x-=offset.x;state.y-=offset.y;state.vx+=spin*offset.y;state.vy-=spin*offset.x;state.speed=Math.hypot(state.vx,state.vy);delete state.motionActuation;
   state.prometheus={version:1,mode:'joined',leadType:anchor,sections:[],joinedAt:time(state),cooldownUntil:time(state)+COOLDOWN,lost,sequence:g.sequence,
    ...(lost?{assembly:{version:1,revision:0,anchor,parts:records,lastHull:hull}}:{})};
+  window.nativePrometheusLoadouts?.joined(state);
   const d=window.nativeShipDefinitions.forEntity(state,state);state.hull=Math.min(d.hull,hull);state.shields=Math.min(d.shields,shields);
   if(state.hull>0&&state.phase==='disabled'&&state.hull>d.hull*.25)state.phase='flight';
   updateMembership(state);bridge?.changed?.();bridge?.notice?.(lost?'Surviving sections secured. DOT reconstruction available.':'Prometheus sections rejoined.');
@@ -244,18 +281,17 @@
  function ignoreContact(state,a,b){
   if(!active(state)||!(group(state).mode==='separating'||group(state).mode==='recalling'&&group(state).dockingAt!=null))return false;
   const own=d=>d?.entity===state||!!d?.entity?.prometheusSection;
-  return own(a)&&own(b);
+  const captured=d=>d?.entity===state||d?.entity?.prometheusReturn==='capture';
+  return own(a)&&own(b)&&(group(state).mode==='separating'||captured(a)&&captured(b));
  }
- function validTarget(state,target){return target&&target.id!=='player'&&target.category!==CATEGORY&&target.category!=='asteroid'&&target.rockId==null&&target.system===state.system&&living(target.entity||target);}
+ function validTarget(state,target){return target&&target.id!=='player'&&target.category!==CATEGORY&&target.category!=='repair-drone'&&target.category!=='asteroid'&&target.rockId==null&&target.system===state.system&&living(target.entity||target);}
  function chooseTarget(state,g,lead){
   const selected=bridge?.getTarget?.();
-  if(validTarget(state,selected)&&g.attackTargetId!=null)g.attackTargetId=selected.id;
-  const current=g.attackTargetId!=null?window.nativeShipSystems.resolve(state,g.attackTargetId,state.system):null;
-  if(validTarget(state,current)&&Math.hypot(current.x-lead.x,current.y-lead.y)<1700)return current;
+  // A live player lock is authoritative, including an explicit cleared lock.
+  const current=bridge?.getTarget?selected:g.attackTargetId!=null?window.nativeShipSystems.resolve(state,g.attackTargetId,state.system):null;
+  if(validTarget(state,current)&&Math.hypot(current.x-lead.x,current.y-lead.y)<2300){g.attackTargetId=current.id;return current;}
   g.attackTargetId=null;
-  const scene=window.nativeShipSystems.query(state,{system:state.system,minX:lead.x-1100,minY:lead.y-1100,maxX:lead.x+1100,maxY:lead.y+1100});
-  const enemy=scene.bystanders.filter(t=>validTarget(state,t)&&window.nativeFactionDefence?.hostileToPlayer?.(state,t.entity)).sort((a,b)=>Math.hypot(a.x-lead.x,a.y-lead.y)-Math.hypot(b.x-lead.x,b.y-lead.y))[0];
-  if(enemy)g.attackTargetId=enemy.id;return enemy||null;
+  return null;
  }
  function rebase(state,g,lead){
   if(g.system!==state.system){const dx=lead.x-(g.lastLead?.x??lead.x),dy=lead.y-(g.lastLead?.y??lead.y);
@@ -274,65 +310,66 @@
   const frame={from,to:current},lead=current;
   if(!(state.hull>0)){if(takeCommand(state))return;for(const e of g.sections)window.nativeShipMotion.stop(e);return;}
   const target=g.mode==='deployed'?chooseTarget(state,g,lead):null;
-  let docked=true,staged=true,released=true;
+  let docked=true,released=true;
   const ordered=g.sections.slice(),turn=(g.fireTurn||0)%Math.max(1,ordered.length);
   ordered.push(...ordered.splice(0,turn));
   for(const entity of ordered){
    if(!living(entity))continue;
    const part=parts().find(p=>p.type===entity.shipType),actor=descriptor(state,entity);
+   const capturing=g.mode==='recalling'&&entity.prometheusReturn==='capture';
    let movement={...actor.definition.movement,serviceApproach:true};
    let goal,command;
    if(!target){
     let desired=localPoint(part,g.mode==='recalling'?'staging':'formation',state);
     if(g.mode==='separating'){
-     let launch=entity.prometheusLaunch;if(launch?.version!==1)launch=entity.prometheusLaunch={version:1,progress:Math.max(0,Math.min(3.65,clock-g.startedAt))};
-     const point=pathPoint(part,launch.progress,state),pose=window.nativeShipMotion.framePose(entity,frame,false);
+     let launch=entity.prometheusLaunch;if(![1,2].includes(launch?.version))launch=entity.prometheusLaunch={version:1,progress:Math.max(0,Math.min(3.65,clock-g.startedAt))};
+     const point=pathPoint(part,launch.progress,state,launch),pose=window.nativeShipMotion.framePose(entity,frame,false);
      const following=clock-g.startedAt>.3&&Math.hypot(pose.x-point.x,pose.y-point.y)<14;
      if(following)launch.progress=Math.min(3.65,launch.progress+dt);
-     desired=pathPoint(part,launch.progress,state);if(!following)desired.vx=desired.vy=0;
+     desired=pathPoint(part,launch.progress,state,launch);if(!following)desired.vx=desired.vy=0;
      if(launch.progress<3.65)released=false;
     }
     if(g.mode==='recalling'){
      const staging=localPoint(part,'staging',state);
-     if(g.dockingAt!=null)desired=localPoint(part,'socket',state);
+     if(capturing)desired=localPoint(part,'socket',state);
      else {desired=staging;entity.prometheusReturn='staging';}
     }
-    const targetPoint=g.mode==='deployed'?escortPoint(part,entity,frame,clock,dt,state):movingTarget(lead,desired);
-    command=window.nativeShipMotion.rendezvousCommand(entity,targetPoint,movement,{gain:g.dockingAt!=null?.95:1.7,maxClosing:g.dockingAt!=null?20:160});
+    let targetPoint=g.mode==='deployed'?escortPoint(part,entity,frame,clock,dt,state):movingTarget(lead,desired);
+    if(g.mode!=='separating'&&!capturing){
+     const obstacles=[window.nativeShipDefinitions.describe(state),...g.sections.filter(e=>e!==entity&&living(e)&&e.prometheusReturn==='capture').map(e=>descriptor(state,e))];
+     let safe=targetPoint;for(let pass=0;pass<2;pass++)for(const obstacle of obstacles)safe=window.nativeShipMotion.attachmentGoal(actor,obstacle,safe);
+     if(safe!==targetPoint){const local=rotate({x:safe.x-lead.x,y:safe.y-lead.y},-lead.heading-Math.PI);targetPoint=movingTarget(lead,{...local,heading:-Math.PI/2});}
+    }
+    const reserve=Math.max(20,movement.acceleration-Math.hypot(targetPoint.ax||0,targetPoint.ay||0));
+    command=window.nativeShipMotion.rendezvousCommand(entity,targetPoint,{...movement,acceleration:reserve},{dt,gain:capturing?.95:g.mode==='recalling'?.65:1.7,maxClosing:capturing?20:160});
     actor.followGoal=targetPoint;
     entity.approachTarget={x:targetPoint.x,y:targetPoint.y,category:'player',id:'player'};
     window.nativeShipSystems.move(state,entity,CATEGORY,command,movement,dt,{actor});
     const relative=window.nativeShipMotion.framePose(entity,frame),relativeSpeed=Math.hypot(relative.vx,relative.vy),aligned=Math.abs(angle(-Math.PI/2,relative.heading));
     if(g.mode==='recalling'){
-     const lock=localPoint(part,g.dockingAt==null?'staging':'socket',state),distance=Math.hypot(relative.x-lock.x,relative.y-lock.y);
+     const lock=localPoint(part,capturing?'socket':'staging',state),distance=Math.hypot(relative.x-lock.x,relative.y-lock.y);
      const spin=Math.abs((entity.motionAngularVelocity||0)-lead.omega);
-     if(distance>1.2||relativeSpeed>3||aligned>.035||spin>.045)staged=false;
-     if(g.dockingAt==null||clock-g.dockingAt<COUPLE||distance>.1||relativeSpeed>.5||aligned>.006||spin>.015)docked=false;
+     if(!capturing){
+      if(distance<=1.2&&relativeSpeed<=3&&aligned<=.035&&spin<=.045){entity.prometheusReturn='capture';entity.prometheusCaptureAt=clock;g.dockingAt??=clock;}
+      docked=false;
+     }else if(clock-(entity.prometheusCaptureAt??g.dockingAt??clock)<COUPLE||distance>.1||relativeSpeed>.5||aligned>.006||spin>.015)docked=false;
     }
    }else{
-    if(entity.prometheusPilot)entity.prometheusPilot.mode='combat';
-    const ranges=window.nativeCivilianCombatAI.combatRange(state,state),radius=Math.max(110,Math.min(350,ranges.preferred||220)),side=part.key==='top'?-1:1;
-    const bearing=Math.atan2(lead.y-target.y,lead.x-target.x)-side*.75;
-    goal={x:target.x+Math.cos(bearing)*radius,y:target.y+Math.sin(bearing)*radius};
-    goal=window.nativeShipMotion.attachmentGoal(actor,window.nativeShipDefinitions.describe(state,state,{category:'player'}),goal);actor.followGoal=goal;
+    goal=window.nativePrometheusTactics.plan(state,entity,target,lead,dt);actor.followGoal=goal;
     entity.approachTarget={...goal,category:'player',id:'player'};
-    const distance=Math.hypot(goal.x-entity.x,goal.y-entity.y);
-    command=window.nativeShipMotion.rendezvousCommand(entity,{...goal,vx:target.vx||0,vy:target.vy||0,heading:Math.atan2(target.y-entity.y,target.x-entity.x)},movement,{gain:1.4,maxClosing:190});
+    command=window.nativeShipMotion.rendezvousCommand(entity,goal,movement,{dt,gain:1.5,maxClosing:210});
     window.nativeShipSystems.move(state,entity,CATEGORY,command,{...movement,softSpeedLimit:true},dt,{actor});
    }
    if(target&&g.mode==='deployed'){
-    const shooter=descriptor(state,entity),fitted=window.nativeWeaponLoadout.equipped(state,state);
-    // Keep the pilot's first fitted bank available for manual fire. Escorts
-    // share the remaining owned banks and their actual recharge state.
-    const selection=fitted.length>1?fitted.slice(1):fitted;
-    const status=window.nativeCombatShots.firingStatus(state,shooter,target,{holder:state,selection});
-    if(status.ok&&status.clear!==false){const result=window.nativeCombatShots.fireFor({state,shooter,target,holder:state,selection,owner:CATEGORY});if(result.ok){entity.shots++;g.shots++;g.fireTurn=(g.sections.indexOf(entity)+1)%g.sections.length;}}
+    const shooter=descriptor(state,entity),holder=window.nativePrometheusLoadouts?entity:state,fitted=window.nativeWeaponLoadout.equipped(state,holder);
+    const selection=window.nativePrometheusLoadouts?fitted:fitted.length>1?fitted.slice(1):fitted;
+    const status=window.nativeCombatShots.firingStatus(state,shooter,target,{holder,selection});
+    if(status.ok&&status.clear!==false){const result=window.nativeCombatShots.fireFor({state,shooter,target,holder,selection,owner:CATEGORY});if(result.ok){entity.shots++;g.shots++;g.fireTurn=(g.sections.indexOf(entity)+1)%g.sections.length;}}
    }
   }
   g.lastLead=current;
   window.nativePrometheusEffects?.advance(state,[window.nativeShipDefinitions.describe(state),...sections(state).map(e=>descriptor(state,e))]);
   if(g.mode==='separating'&&clock-g.startedAt>=SEP&&released){g.mode='deployed';g.startedAt=clock;}
-  if(g.mode==='recalling'&&g.dockingAt==null&&staged)g.dockingAt=clock;
   if(g.mode==='recalling'&&docked)finishJoin(state);
   updateUi(state);
  }
@@ -381,7 +418,7 @@
   resolve:(state,id,system)=>{const e=sections(state,system).find(e=>String(e.id)===String(id));return e?descriptor(state,e):null;},
   hit,visualImpact:(state,target,event)=>window.nativeShipEffects.visualImpact(state,target,event),
   inspect:state=>sections(state).map(e=>({...descriptor(state,e),name:e.name,role:'Prometheus section'}))});
- window.nativePrometheus=Object.freeze({attach,initialize,allowed,active,typeFor,canTakeCommand,takeCommand,definitionFor,repairProgress,repairContact,preload,activate,toggle,recall,advance,playerCommand,ignoreContact,paintPlayer,updateUi,
+ window.nativePrometheus=Object.freeze({attach,initialize,allowed,active,typeFor,canTakeCommand,takeCommand,pilotSection,definitionFor,repairProgress,repairContact,preload,activate,toggle,recall,advance,playerCommand,ignoreContact,paintPlayer,updateUi,
   descriptors:state=>sections(state).map(e=>descriptor(state,e)),
   isSource:id=>String(id).startsWith('prometheus:'),weaponFired(state,shooter,target){if(active(state)&&shooter.id==='player'&&validTarget(state,target))group(state).attackTargetId=target.id;},
   blockedTravel:state=>active(state)?{ok:false,error:'Recall the Prometheus sections before docking or warping.'}:null,

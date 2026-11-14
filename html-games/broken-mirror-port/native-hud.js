@@ -63,7 +63,7 @@
       if(text!==cell.text){dirty=true;if(!fresh&&cell.text!==null&&events)react(cell,amount>cell.value?'gain':'spent');}
       cell.value=amount;cell.text=text;cell.warning=!devView&&amount<lowReserves[cell.key];data(cell.node,'warning',cell.warning);
     }
-    const eq=value.shipEquipment,slots=eq?.slots?.weapon,legacy=value.weapons||[1,null,null],count=Math.max(3,Math.min(8,slots?.length??legacy.length));
+    const section=window.nativePrometheusLoadouts?.loadoutFor(value,value),eq=value.shipEquipment,slots=section?.slots??eq?.slots?.weapon,legacy=value.weapons||[1,null,null],count=Math.max(3,Math.min(8,slots?.length??legacy.length));
     if(count!==weaponCells.length){
       clearHover();for(const cell of weaponCells)cell.node.remove();
       for(const [key,animation] of animations)if(key.startsWith('weapon-')){animation.cancel();animations.delete(key);pausedAnimations.delete(animation);}
@@ -71,7 +71,7 @@
     }
     const now=window.nativeSimulation?.seconds(value)||0,disabled=value.hull<=0||value.phase==='disabled'||value.phase==='destroyed';
     for(const cell of weaponCells){
-      const instance=eq?.instances?.[slots?.[cell.index]],modelId=slots?instance?.modelId??null:legacy[cell.index]??null,model=window.nativeShipEquipment?.model(modelId)||window.VexedMirrorWeapons?.find(w=>w.id===Number(modelId));
+      const instance=eq?.instances?.[slots?.[cell.index]],modelId=slots?instance?.modelId??null:legacy[cell.index]??null,model=(instance?window.nativeShipEquipment?.forInstance(instance):window.nativeShipEquipment?.model(modelId))||window.VexedMirrorWeapons?.find(w=>w.id===Number(modelId));
       const identity=instance?.id??modelId,changed=fresh||cell.instanceId!==identity||cell.modelId!==modelId||cell.modelRecharge!==model?.recharge;
       const deadline=Number(instance?.readyAt)||0,remaining=Math.max(0,deadline-now);
       if(changed){

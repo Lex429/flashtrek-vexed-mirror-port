@@ -38,7 +38,7 @@ with sync_playwright() as p:
     report=page.evaluate("""async()=>{
       const s=__mvamState,check=(v,m)=>{if(!v)throw Error(m)};
       check(nativeShipEquipment.changeHull(s,37).ok,'Could not equip Prometheus');
-      nativeWeaponLoadout.refit(s,[1,10]);
+      nativeWeaponLoadout.refit(s,[1,10,10]);
       s.devMode=false;
       s.landed=false;s.phase='flight';s.localCruise=null;s.arrivalApproach=null;s.pendingTransit=null;s.shipyardDock=null;
       s.x=3000;s.y=-3000;s.angle=-Math.PI/2;s.vx=s.vy=s.speed=0;
@@ -74,7 +74,8 @@ with sync_playwright() as p:
         for(const key of ['bottom','middle','top']){const part=prometheusArtwork.parts.find(p=>p.key===key),r=prometheusArtwork.layout[key];bg.drawImage(images[part.type][stage],r.x,r.y);}
         const x=ag.getImageData(0,0,512,1024).data,y=bg.getImageData(0,0,512,1024).data;let max=0;
         for(let i=0;i<x.length;i+=4){max=Math.max(max,Math.abs(x[i+3]-y[i+3]));for(let k=0;k<3;k++)max=Math.max(max,Math.abs(x[i+k]*x[i+3]-y[i+k]*y[i+3])/255);}
-        check(max<=2,'Joined state does not match section stack '+stage+' '+max);assembly.push({stage,maxPremultipliedPixelError:max});
+        // Three source-over layers can each round one 8-bit channel step.
+        check(max<=3,'Joined state does not match section stack '+stage+' '+max);assembly.push({stage,maxPremultipliedPixelError:max});
       }
       return {art,assembly,population:__mvamInitial.population,joined:nativeShipDefinitions.describe(s).dimensions};
     }""")
@@ -86,7 +87,7 @@ with sync_playwright() as p:
       const sum=field=>s[field]+s.prometheus.sections.reduce((n,e)=>n+e[field],0);
       if(Math.abs(sum('hull')-__mvamInitial.hull)>1e-6||Math.abs(sum('shields')-__mvamInitial.shields)>1e-6)throw Error('Separation changed vitals');
       if(nativeShipDefinitions.describe(s).shipType!==3702)throw Error('Player did not become Beta');
-      if(s.prometheus.sections.some(e=>nativeWeaponLoadout.equipped(s,e).length))throw Error('Duplicated equipped weapons');
+      const activeFitted=[...nativeWeaponLoadout.equipped(s),...s.prometheus.sections.flatMap(e=>nativeWeaponLoadout.equipped(s,e))];if(new Set(activeFitted.map(v=>v.instance.id)).size!==activeFitted.length)throw Error('Duplicated equipped weapons');
       return nativePrometheus.snapshot(s);
     }""")
     page.evaluate('__mvamStep(.8)');page.screenshot(path=str(OUT/'separating.png'))
@@ -95,7 +96,8 @@ with sync_playwright() as p:
     report['combat']=page.evaluate("""()=>{
       const s=__mvamState,enemy={id:'mvam-enemy',shipType:35,system:s.system,x:s.x,y:s.y-350,heading:Math.PI/2,hull:10000,shields:0,phase:'flight'};
       nativeShipSystems.register('mvam-test',{collect:(state,system)=>system===enemy.system?[nativeShipDefinitions.describe(state,enemy,{category:'mvam-test'})]:[],hit:(state,target,damage,impact)=>nativeShipDamage.apply(target,damage,impact)});
-      nativeShipSystems.invalidateShips(s);s.prometheus.attackTargetId=enemy.id;
+      nativeShipSystems.invalidateShips(s);
+      const traffic=nativeCivilianTraffic;window.nativeCivilianTraffic={...traffic,target:()=>enemy};
       const emissions=[],fire=nativeCombatShots.fireFor;
       window.nativeCombatShots={...nativeCombatShots,fireFor(options){const result=fire(options);if(result.ok)emissions.push({source:options.shooter.id,instance:result.event.weaponInstanceId});return result;}};
       for(let i=0;i<60*45;i++){__mvamStep(1/60);nativeCombatShots.advance(s,1/60);}
@@ -108,7 +110,7 @@ with sync_playwright() as p:
       if(emissions.some(e=>e.instance===first.instance.id))throw Error('Escorts consumed the reserved player weapon');
       const manual=nativeCombatShots.fireFor({state:s,shooter:nativeShipDefinitions.describe(s),target:nativeShipDefinitions.describe(s,enemy,{category:'mvam-test'}),selection:[first]});
       if(!manual.ok)throw Error('Player could not fire their reserved bank: '+manual.error);result.playerFire=true;
-      s.prometheus.attackTargetId=null;enemy.phase='destroyed';enemy.hull=0;return result;
+      window.nativeCivilianTraffic=traffic;s.prometheus.attackTargetId=null;enemy.phase='destroyed';enemy.hull=0;return result;
     }""")
     page.screenshot(path=str(OUT/'attack.png'))
     report['reload']=page.evaluate("""()=>{
@@ -118,12 +120,19 @@ with sync_playwright() as p:
       return {restored:true,mode:after.mode,sections:after.sections.length};
     }""")
     report['recall']=page.evaluate("""()=>{nativePrometheus.recall(__mvamState);__mvamStep(40);return nativePrometheus.snapshot(__mvamState)}""")
+    if report['recall']['mode']!='joined':
+      print(page.evaluate("""()=>{const s=__mvamState,lead={x:s.x,y:s.y,heading:s.angle,vx:s.vx,vy:s.vy,omega:s.motionAngularVelocity||0};return {mode:s.prometheus.mode,dockingAt:s.prometheus.dockingAt,sections:s.prometheus.sections.map(e=>({type:e.shipType,relative:nativeShipMotion.framePose(e,{from:lead,to:lead}),goal:e.approachTarget,phase:e.phase,hull:e.hull,heading:e.heading,omega:e.motionAngularVelocity,avoid:e.actuatedAvoidance}))};}"""),flush=True)
+      raise AssertionError('Manual combat recall failed')
     page.screenshot(path=str(OUT/'rejoined.png'))
     report['final']=page.evaluate("""()=>{const s=__mvamState;return {hull:s.hull,shields:s.shields,type:nativeShipDefinitions.describe(s).shipType,equipment:Object.keys(s.shipEquipment.instances).sort(),initial:__mvamInitial}}""")
     # Release the real host scheduler and exercise the controls the player uses.
-    page.evaluate('()=>{window.__manualMvam=false;__mvamState.devMode=true;nativePrometheus.updateUi(__mvamState,true)}')
+    page.evaluate('()=>{__mvamStep(Math.max(0,(__mvamState.prometheus.cooldownUntil||0)-nativeSimulation.seconds(__mvamState))+.05);window.__manualMvam=false;__mvamState.devMode=true;nativePrometheus.updateUi(__mvamState,true)}')
     page.keyboard.press('v')
-    page.wait_for_function('()=>nativePrometheus.snapshot(__mvamState).mode==="deployed"',timeout=30000)
+    try:
+      page.wait_for_function('()=>nativePrometheus.snapshot(__mvamState).mode==="deployed"',timeout=30000)
+    except Exception:
+      print(page.evaluate("()=>({mode:__mvamState.prometheus.mode,at:nativeSimulation.seconds(__mvamState),hull:__mvamState.hull,phase:__mvamState.phase,blocked:nativeSimulation.blocked(),allowed:nativePrometheus.allowed(__mvamState),button:document.querySelector('#multiVectorBtn').outerHTML,body:document.body.className,sections:__mvamState.prometheus.sections.map(e=>({type:e.shipType,x:e.x,y:e.y,stage:e.prometheusReturn,goal:e.approachTarget}))})"),flush=True)
+      raise
     page.screenshot(path=str(OUT/'live-formation.png'))
     samples=[]
     for _ in range(12):

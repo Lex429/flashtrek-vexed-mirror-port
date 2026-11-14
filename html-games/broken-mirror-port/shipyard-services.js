@@ -131,6 +131,7 @@
  root.addEventListener('click',event=>{
   const button=event.target.closest('button')||(root.dataset.screen==='mars-services'?event.target.closest('[data-upgrade-card]')?.querySelector('.mars-card-select'):null);if(!button||button.disabled)return;
   const s=state(),r=refits();
+  if(button.dataset.yardJump){const catalog=root.querySelector('.yard-catalog'),target=root.querySelector(`[data-upgrade-section="${button.dataset.yardJump}"]`);if(catalog){if(button.dataset.yardJump==='ship')catalog.scrollTop=0;else if(target)catalog.scrollTop+=target.getBoundingClientRect().top-catalog.getBoundingClientRect().top-12;}return;}
   if(button.dataset.yardTab){tab=button.dataset.yardTab;selection=placement=selectedItem=selectedBay=null;if(root.dataset.screen==='mars-services'){equipmentUi.clear();highlight=null;}note='';render();root.querySelector(`[data-yard-tab="${tab}"]`)?.focus();return;}
   if(button.hasAttribute('data-place-bay')&&selection){
    const pending=window.nativeShipyardOutfitting.draft(s,r.preview(s,selection),placement);
@@ -152,6 +153,12 @@
   else if(action==='undock')result=depart();
   else if(action==='upgrade-thrusters'&&root.dataset.screen==='mars-services'){previewUpgrade('thrusters');return;}
   else if(action==='upgrade-thrusters')result=r.upgradeThrusters(s,save);
+  else if(action==='upgrade-owned-weapon'){
+   window.nativeMarsUpgradeEffects?.stop(root);
+   const receipt=window.nativeMarsUpgradeEffects?.capture(s,'equipment:'+button.dataset.instance);
+   result=r.upgradeWeapon(s,button.dataset.instance,save);
+   if(result.ok){installation=receipt;selection=placement=null;equipmentUi.clear();}
+  }
   else if(action==='buy-upgrade'&&root.dataset.screen==='mars-services'){
    window.nativeMarsUpgradeEffects?.stop(root);
    const kind=button.dataset.kind,pending=kind==='thrusters'?null:r.preview(s,kind),mount=window.nativeShipyardOutfitting.draft(s,pending,selection===kind?placement:null);
@@ -173,7 +180,7 @@
   else if(action==='choose-equipment'){selectedItem=button.dataset.instance;selectedBay=null;note='Choose a compatible bay highlighted on your ship.';render();return;}
   else if(action==='fit'){const id=button.dataset.instance,select=[...root.querySelectorAll('[data-yard-slot]')].find(n=>n.dataset.yardSlot===id);result=r.fit(s,id,Number(select?.value),save);if(result.ok)selectedItem=null;}
   else if(action==='unfit'){result=r.unfit(s,button.dataset.kind,Number(button.dataset.slot),save);if(result.ok)selectedBay=null;}
-  if(result){note=result.message||result.error||'Build updated.';bridge.refresh();if(!root.hidden){render();const focus=action==='buy-upgrade'?root.querySelector(`[data-upgrade-card="${button.dataset.kind}"] .mars-shop-buy`):root.querySelector(`[data-yard-tab="${tab}"]`);(focus?.disabled?focus.closest('[data-upgrade-card]'):focus)?.focus({preventScroll:true});if(installation)window.nativeMarsUpgradeEffects?.celebrate(root,s,installation);}}
+  if(result){note=result.message||result.error||'Build updated.';bridge.refresh();if(!root.hidden){render();const focus=action==='buy-upgrade'?root.querySelector(`[data-upgrade-card="${button.dataset.kind}"] .mars-shop-buy`):action==='upgrade-owned-weapon'?[...root.querySelectorAll('[data-weapon-instance]')].find(n=>n.dataset.weaponInstance===button.dataset.instance)?.querySelector('.mars-shop-buy'):root.querySelector(`[data-yard-tab="${tab}"]`);(focus?.disabled?focus.closest('[data-upgrade-card]'):focus)?.focus({preventScroll:true});if(installation)window.nativeMarsUpgradeEffects?.celebrate(root,s,installation);}}
  });
  ribbon.addEventListener('click',event=>{if(event.target.closest('[data-yard-cancel]'))abort();});
  root.addEventListener('keydown',event=>{

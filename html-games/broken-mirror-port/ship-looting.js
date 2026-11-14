@@ -38,7 +38,7 @@
     const equipmentOrder=new Set([...equipment.kinds.flatMap(kind=>bank.slots[kind]),...bank.locker,...Object.keys(bank.instances)]);
     for(const id of equipmentOrder){
       const item=bank.instances[id];if(!item)continue;
-      const data=equipment.model(item.modelId);if(!data)continue;
+      const data=equipment.forInstance(item);if(!data)continue;
       if(item.category==='repairDrone'&&(item.hull<=0||item.phase!=='stowed'||item.missionId))continue;
       const fitted=equipment.kinds.some(kind=>bank.slots[kind].includes(id));
       add('equipment:'+id,data.name,1,{equipment:true,cargo:false,fitted,condition:equipment.condition(item)});

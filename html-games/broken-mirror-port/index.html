@@ -43,7 +43,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <link rel="stylesheet" href="planet-cargo.css?v=freight-distance-3-freight-permits-1">
 <link rel="stylesheet" href="population-display.css?v=1">
 <link rel="stylesheet" href="regional-mining.css?v=regional-belts-1">
-<link rel="stylesheet" href="ship-inventory.css?v=shield-maintenance-3-device-condition-1-thruster-tile-1-medical-distress-1-collectables-1-earth-bonus-items-1-collection-grid-1-archive-clues-1-sequential-clues-1-publish-regressions-1">
+<link rel="stylesheet" href="ship-inventory.css?v=shield-maintenance-3-device-condition-1-thruster-tile-1-medical-distress-1-collectables-1-earth-bonus-items-1-collection-grid-1-archive-clues-1-sequential-clues-1-publish-regressions-1-section-inventories-1">
 <link rel="stylesheet" href="collectables.css?v=earth-bonus-items-1-plain-space-items-1-relic-scale-glow-1-expanded-bonus-1-transporter-materialize-1-hover-1-drift-1-galactic-relics-1-archive-clues-1-layered-leads-1-sequential-clues-1">
 <link rel="stylesheet" href="dev-ship-preview.css?v=dev-fleet-2">
 <link rel="stylesheet" href="dev-sol-fog.css?v=sol-colours-1-dev-storm-1">
@@ -53,12 +53,13 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <link rel="stylesheet" href="shipyard-services.css?v=mars-outfitting-1">
 <link rel="stylesheet" href="mars-docking-contact.css?v=mars-contact-motion-4">
 <link rel="stylesheet" href="mars-upgrades.css?v=simple-mars-3-equipment-visible-4-inline-tiers-3-materials-review-2-resource-clarity-1-tier-bars-stats-3-open-stats-1">
-<link rel="stylesheet" href="mars-upgrade-shop.css?v=scrolling-shop-2">
-<link rel="stylesheet" href="mars-upgrade-effects.css?v=installation-2-scrolling-shop-2">
-<link rel="stylesheet" href="ship-loot-ui.css?v=dot-loot-1-inventory-loot-4">
+<link rel="stylesheet" href="mars-upgrade-shop.css?v=scrolling-shop-2-weapon-grades-1">
+<link rel="stylesheet" href="mars-upgrade-effects.css?v=installation-2-scrolling-shop-2-weapon-grades-1">
+<link rel="stylesheet" href="ship-loot-ui.css?v=dot-loot-1-inventory-loot-4-loot-inventory-pages-3-loot-compact-1">
 <link rel="stylesheet" href="opening-cinematic.css?v=campaign-20261025-1-film-refresh-1">
 <link rel="stylesheet" href="gamepad-controls.css?v=dualsense-7">
 <link rel="stylesheet" href="map-controller.css?v=cinematic-map-1-black-pc-1">
+<link rel="stylesheet" href="../flashtrek-broken-mirror/ship-construction.css?v=1">
 </head>
 <body>
 <svg class="hud-filter" aria-hidden="true"><defs><filter id="vexed-hud-shadow-lift" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent="0.86" offset="0"/><feFuncG type="gamma" amplitude="1" exponent="0.86" offset="0"/><feFuncB type="gamma" amplitude="1" exponent="0.86" offset="0"/></feComponentTransfer></filter></defs></svg>
@@ -110,7 +111,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="civilian-population.js?v=regional-fleet-1"></script>
 <script src="simulation-clock.js?v=opening-film-20261025-3-earth-bonus-items-1-player-destruction-1"></script>
 <script src="simulation-frame.js?v=stability-1"></script>
-<script src="weapon-catalog.js?v=unified-equipment-1-weapon-mounts-2"></script>
+<script src="weapon-catalog.js?v=unified-equipment-1-weapon-mounts-2-weapon-grades-1"></script>
 <script src="manual-flight.js?v=system-entry-1-safe-timeline-2"></script>
 <script src="flight-telemetry.js?v=system-entry-1-standing-reactions-2-coordinates-1-galactic-coordinates-1"></script>
 <script src="ship-vitals.js?v=blue-energy-bars-5-response-3"></script>
@@ -147,7 +148,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="ship-sprite-cache.js?v=opening-cache-20261026-1-warp-render-2-warp-charge-1-publish-regressions-1"></script>
 <script src="hull-batch.js?v=lamp-gpu-1"></script>
 <script src="flight-assets.js?v=mirror-expansion-1-warp-render-2-warp-charge-1-warp-flash-1"></script>
-<script src="ship-motion.js?v=asteroid-identity-1-device-condition-1-stutter-2-engine-slowdown-1-hull-thrusters-1-route-priority-1-plasma-flow-1-lag-removal-1-mvam-moving-1-physical-mvam-1"></script>
+<script src="ship-motion.js?v=asteroid-identity-1-device-condition-1-stutter-2-engine-slowdown-1-hull-thrusters-1-route-priority-1-plasma-flow-1-lag-removal-1-mvam-moving-1-physical-mvam-1-coupling-navigation-2"></script>
 <script src="ship-debris-geometry.js?v=replacement-ships-20261112-mvam-1-prometheus-v2-physical-mvam-1-mvam-survival-1-chromium-geometry-1"></script>
 <script src="ship-scale-settings.js?v=atlas-scale-1-compact-scale-1-size-175-mvam-compact-1-prometheus-v2"></script>
 <script src="ship-weapon-mounts.js?v=weapon-mounts-2"></script>
@@ -161,16 +162,17 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="faction-fleets.js?v=territorial-rosters-1-ferengi-response-2-orion-fleet-2"></script>
 <script src="ship-detail.js?v=stability-1-system-defence-2-quiet-local-dev-1"></script>
 <script src="ship-damage.js?v=shared-ships-1-device-condition-1-impact-console-1-game-sounds-1-damage-rumble-1"></script>
-<script src="weapon-loadout.js?v=engine-upgrades-1-device-condition-1-hull-thrusters-1-dot-loot-1-dev-loot-1-mvam-1"></script>
+<script src="weapon-loadout.js?v=engine-upgrades-1-device-condition-1-hull-thrusters-1-dot-loot-1-dev-loot-1-mvam-1-section-inventories-1-weapon-grades-1-loot-inventory-pages-2"></script>
+<script src="prometheus-loadouts.js?v=section-inventories-1-weapon-grades-1"></script>
 <script src="travel-events.js?v=regional-belts-1-distance-navigation-1-badlands-1"></script>
 <script src="rebirth-warp.js?v=civilian-warp-1-seamless-warp-1-warp-charge-1-warp-flash-1-npc-warp-1-flash-hold-1"></script>
 <script src="warp-starfield.js?v=widescreen-2-seamless-warp-1"></script>
 <script src="warp-transition.js?v=civilian-warp-1-seamless-warp-1-distance-navigation-1-warp-pacing-1-warp-render-2-warp-charge-1-warp-flash-1-npc-warp-1"></script>
 <script src="pause-menu.js?v=opening-film-20261025-3-game-sounds-1-earth-bonus-items-1-dualsense-7-player-destruction-1-dot-loot-1"></script>
-<script src="native-hud.js?v=regional-belts-1-console-polish-3"></script>
+<script src="native-hud.js?v=regional-belts-1-console-polish-3-section-inventories-1-weapon-grades-1"></script>
 <script src="dev-ship-preview.js?v=constitution-flight-1"></script>
 <script src="../flashtrek-broken-mirror/effect-profiles.js?v=lab-1"></script>
-<script src="../flashtrek-broken-mirror/weapon-effects.js?v=fog-catchup-7"></script>
+<script src="../flashtrek-broken-mirror/weapon-effects.js?v=fog-catchup-7-projectile-tail-1"></script>
 <script src="../flashtrek-broken-mirror/showcase-hull-burst.js?v=visual-random-1"></script>
 <script src="../flashtrek-broken-mirror/ship-art-readback.js?v=visual-random-1-federation-expansion-1"></script>
 <script src="../flashtrek-broken-mirror/showcase-stage-fragments.js?v=fleet-foundation-1-warp-pacing-1-federation-expansion-1"></script>
@@ -178,7 +180,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="effect-visibility.js?v=fleet-foundation-1"></script>
 <script src="ore-sprite-cache.js?v=ore-culling-1"></script>
 <script src="weapon-rules.js?v=launch-velocity-3-projectile-flight-1-manual-fire-1"></script>
-<script src="combat-shots.js?v=opening-isolation-20261026-1-game-sounds-1-system-defence-2-projectile-flight-1-manual-fire-1-quiet-local-dev-1-mvam-1-weapon-mounts-2"></script>
+<script src="combat-shots.js?v=opening-isolation-20261026-1-game-sounds-1-system-defence-2-projectile-flight-1-manual-fire-1-quiet-local-dev-1-mvam-1-weapon-mounts-2-projectile-tail-1"></script>
 <script src="../flashtrek-broken-mirror/shield-flash.js?v=pooled-surfaces-1"></script>
 <script src="../flashtrek-broken-mirror/cthia-destruction.js?v=campaign-20261025-1"></script>
 <script src="ship-effects.js?v=system-entry-1-seamless-warp-1-warp-pacing-1-federation-expansion-1-player-destruction-1-film-refresh-1-mvam-survival-1"></script>
@@ -196,13 +198,13 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="../flashtrek-broken-mirror/repair-hull-work.js?v=fleet-repairs-2"></script>
 <script src="ship-repair-sites.js?v=fleet-repairs-2-expanded-hulls-1"></script>
 <script src="ship-repairs.js?v=shield-maintenance-1-device-condition-1-activity-1-warp-charge-1-hull-recovery-1-medical-distress-1-critical-manual-flight-1-quiet-local-dev-1-dot-loot-1-mvam-survival-1"></script>
-<script src="repair-visuals.js?v=dot-bay-flight-9-fog-hull-2-dot-loot-1"></script>
+<script src="repair-visuals.js?v=materials-2"></script>
 <script src="world-time.js?v=asteroid-physics-1-seamless-warp-1"></script>
 <script src="simulation-metrics.js?v=stability-1"></script>
-<script src="world-bootstrap.js?v=territorial-yards-1-free-flight-activity-2-seamless-warp-1-distance-navigation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1"></script>
-<script src="outfitting-view.js?v=live-preview-lighting-1-device-condition-1-thruster-tile-1"></script>
-<script src="equipment-panel.js?v=shared-equipment-3"></script>
-<script src="ship-inventory.js?v=shield-maintenance-1-device-condition-1-hull-thrusters-1-thruster-tile-1-medical-distress-1-collectables-1-earth-bonus-items-1-collection-grid-1-interstellar-1-archive-clues-1-layered-leads-1-sequential-clues-1-shared-equipment-2"></script>
+<script src="world-bootstrap.js?v=territorial-yards-1-free-flight-activity-2-seamless-warp-1-distance-navigation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1-projectile-tail-1-loot-inventory-pages-2"></script>
+<script src="outfitting-view.js?v=live-preview-lighting-1-device-condition-1-thruster-tile-1-weapon-grades-1-loot-inventory-pages-2"></script>
+<script src="equipment-panel.js?v=shared-equipment-3-weapon-grades-1-loot-inventory-pages-2"></script>
+<script src="ship-inventory.js?v=shield-maintenance-1-device-condition-1-hull-thrusters-1-thruster-tile-1-medical-distress-1-collectables-1-earth-bonus-items-1-collection-grid-1-interstellar-1-archive-clues-1-layered-leads-1-sequential-clues-1-shared-equipment-2-section-inventories-1-weapon-grades-1-loot-inventory-pages-2"></script>
 <script src="collectable-sites.js?v=galactic-relics-1-archive-clues-1-layered-leads-1-sequential-clues-1"></script>
 <script src="collectables.js?v=galactic-relics-1-layered-leads-1-sequential-clues-1"></script>
 <script src="collectable-motion.js?v=physical-drift-2-settling-1-galactic-relics-1"></script>
@@ -216,11 +218,11 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="save-storage.js?v=unified-equipment-1-seamless-warp-1-stutter-3-warp-latency-1-player-destruction-1-safe-timeline-2-save-progress-1"></script>
 <script src="dev-repair-demo.js?v=travel-corridors-1-quiet-local-dev-1"></script>
 <script src="dev-loot-demo.js?v=dev-loot-1-inventory-loot-4"></script>
-<script src="shipyard-refits.js?v=mirror-expansion-1-hull-thrusters-1-territorial-yards-1-materials-review-2"></script>
-<script src="shipyard-outfitting.js?v=visual-refits-1-hull-thrusters-1-simple-mars-3-equipment-visible-3-inline-tiers-3-materials-review-2-tier-bars-stats-3"></script>
-<script src="mars-upgrades.js?v=simple-mars-3-equipment-visible-3-inline-tiers-3-materials-review-2-resource-clarity-1-tile-fit-2-tier-bars-stats-3-open-stats-1-scrolling-shop-2"></script>
-<script src="mars-upgrade-effects.js?v=installation-2-scrolling-shop-2"></script>
-<script src="shipyard-services.js?v=opening-film-20261025-3-hull-thrusters-1-mars-contact-motion-4-simple-mars-3-equipment-visible-3-inline-tiers-3-installation-2-materials-review-2-mvam-1-tile-fit-1-scrolling-shop-2"></script>
+<script src="shipyard-refits.js?v=mirror-expansion-1-hull-thrusters-1-territorial-yards-1-materials-review-2-weapon-grades-1"></script>
+<script src="shipyard-outfitting.js?v=visual-refits-1-hull-thrusters-1-simple-mars-3-equipment-visible-3-inline-tiers-3-materials-review-2-tier-bars-stats-3-weapon-grades-1"></script>
+<script src="mars-upgrades.js?v=simple-mars-3-equipment-visible-3-inline-tiers-3-materials-review-2-resource-clarity-1-tile-fit-2-tier-bars-stats-3-open-stats-1-scrolling-shop-2-weapon-grades-1"></script>
+<script src="mars-upgrade-effects.js?v=installation-2-scrolling-shop-2-weapon-grades-1"></script>
+<script src="shipyard-services.js?v=opening-film-20261025-3-hull-thrusters-1-mars-contact-motion-4-simple-mars-3-equipment-visible-3-inline-tiers-3-installation-2-materials-review-2-mvam-1-tile-fit-1-scrolling-shop-2-weapon-grades-1"></script>
 <script src="gamepad-controls.js?v=dualsense-7"></script>
 <script src="dualsense-hid.js?v=direct-input-2"></script>
 <script src="controller-haptics.js?v=damage-rumble-3"></script>
@@ -229,12 +231,17 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="system-streaming.js?v=system-entry-1-seamless-warp-1-stutter-2-warp-pacing-1-warp-render-2-warp-charge-1-warp-latency-1-badlands-1-arrival-foreground-1"></script>
 <script src="reincarnation.js?v=safe-timeline-2"></script>
 <script src="player-destruction.js?v=player-destruction-faction-4-safe-timeline-2"></script>
-<script src="ship-looting.js?v=dot-loot-1-inventory-loot-4"></script>
-<script src="ship-loot-ui.js?v=dot-loot-1-inventory-loot-4-publish-regressions-1"></script>
+<script src="ship-looting.js?v=dot-loot-1-inventory-loot-4-weapon-grades-1"></script>
+<script src="ship-loot-ui.js?v=dot-loot-1-inventory-loot-4-publish-regressions-1-weapon-grades-1-loot-inventory-pages-3-loot-compact-1"></script>
 <link rel="stylesheet" href="prometheus-mvam.css?v=mvam-1">
-<script src="prometheus-effects.js?v=mvam-blue-flames-1-physical-mvam-1-mvam-survival-1"></script>
-<script src="prometheus-mvam.js?v=mvam-escort-flight-1-physical-mvam-1-mvam-survival-1-weapon-mounts-2"></script>
-<script src="native-game.js?v=system-entry-1-shield-maintenance-3-device-condition-1-dev-neighborhood-1-seamless-warp-1-distance-navigation-1-stutter-2-warp-pacing-1-hull-thrusters-1-warp-render-2-impact-console-1-quiet-flight-1-warp-charge-1-game-sounds-1-console-feedback-2-warp-flash-1-quiet-flight-2-hull-recovery-1-medical-distress-1-critical-manual-flight-1-earth-bonus-items-1-background-suns-1-physical-collectables-1-animated-federation-1-interstellar-1-freight-permits-1-system-defence-2-dev-sol-fog-1-interstellar-targets-1-nose-intent-1-badlands-1-manual-fire-1-stable-speed-trails-1-dualsense-7-player-destruction-1-black-pc-1-starter-torpedo-1-safe-timeline-2-dot-loot-1-dev-loot-1-mvam-1-mvam-moving-1-mvam-survival-1-warp-debt-1"></script>
+<script src="prometheus-tactics.js?v=squadron-2"></script>
+<script src="prometheus-effects.js?v=mvam-blue-flames-1-physical-mvam-1-mvam-survival-1-coupling-jets-2"></script>
+<script src="prometheus-mvam.js?v=mvam-escort-flight-1-physical-mvam-1-mvam-survival-1-weapon-mounts-2-section-inventories-1-squadron-transitions-3"></script>
+<script src="../flashtrek-broken-mirror/ship-construction.js?v=materials-2"></script>
+<script src="../flashtrek-broken-mirror/ship-construction-view.js?v=fit-scene-3"></script>
+<script src="ship-construction.js?v=materials-2"></script>
+<script src="ship-construction-ui.js?v=materials-2"></script>
+<script src="native-game.js?v=system-entry-1-shield-maintenance-3-device-condition-1-dev-neighborhood-1-seamless-warp-1-distance-navigation-1-stutter-2-warp-pacing-1-hull-thrusters-1-warp-render-2-impact-console-1-quiet-flight-1-warp-charge-1-game-sounds-1-console-feedback-2-warp-flash-1-quiet-flight-2-hull-recovery-1-medical-distress-1-critical-manual-flight-1-earth-bonus-items-1-background-suns-1-physical-collectables-1-animated-federation-1-interstellar-1-freight-permits-1-system-defence-2-dev-sol-fog-1-interstellar-targets-1-nose-intent-1-badlands-1-manual-fire-1-stable-speed-trails-1-dualsense-7-player-destruction-1-black-pc-1-starter-torpedo-1-safe-timeline-2-dot-loot-1-dev-loot-1-mvam-1-mvam-moving-1-mvam-survival-1-warp-debt-1-section-inventories-1-loot-inventory-pages-2"></script>
 <script src="setup-ship-preview.js?v=showcase-exact-2"></script>
 <script src="native-setup.js?v=opening-film-20261025-3-film-refresh-1"></script>
 <script src="map-controls.js?v=cinematic-map-1"></script>

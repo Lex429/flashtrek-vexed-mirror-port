@@ -15,11 +15,22 @@ that optional queue and still requires real body pixels and ongoing repairs.
 
 Select an intact disabled civilian or Sol freighter with shields down and approach
 within 350 world units. **Open inventories [L]** always shows the player's inventory
-on the left and their inventory on the right. Each side has page buttons, search
-and an equipment/cargo filter; the grids have no scrolling or mouse-wheel action.
-The same equipment and mineral artwork
-used by ordinary Inventory appears here, with fitted/stored labels, quantities
-and item condition. Hover or focus to inspect an item. A single click on their
+on the left and their inventory on the right. Both pages use ordinary Inventory's
+ship preview, typed fitted bays, DOT bays, stored-item cards and item inspector.
+Fitted items stay in their actual bays; the grid contains stored equipment, cargo
+and materials. The player's saved cell positions and holes match Inventory.
+Equipment-bay and storage pages have independent buttons, plus search and an
+equipment/cargo filter; there is no scrolling or mouse-wheel action. Conditions,
+upgrades, quantities and hull damage come from the actual holders. Deployed and
+destroyed DOTs remain visible in their real bays, with taking disabled.
+Both sheets reserve space for their page controls and a usable stored-item row,
+including short laptop viewports. Stored-item cards are at most 96 pixels tall,
+with 44-pixel icons and up to six columns; the compact fitted-hull area leaves
+more space for the belongings. Shared section headings replace repeated tile
+labels. Item details have a fixed height, so hovering
+does not resize the inventory under the pointer. Live fitting updates retain
+unchanged buttons and the running hull previews instead of rebuilding the rig.
+Hover or focus to inspect an item. A single click on their fitted bay or stored
 tile immediately takes that item/available stack. **Take all** takes eligible
 belongings across every page, including items hidden by a search/filter, up to
 the normal cargo limit. Dragging into the player's grid is also supported.
@@ -48,7 +59,12 @@ excluded. Credits, buyer escrow and planetary inventories are not loot stacks.
 
 `ship-looting.js` owns validation and transaction orchestration.
 `weapon-loadout.js` owns the reversible `transfer` operation, fitting projections
-and same-clock publication. `npc-lives.seizeCargo` releases the stolen shipment's
+and same-clock publication. Its pure `inventoryCells` reconciliation supplies
+the same saved arrangement to normal Inventory and looting without changing
+ownership. `outfitting-view.js` supplies both screens' rig, cell and stack markup;
+`equipment-panel.inspect` supplies read-only details while looting. The foreign
+preview uses the real game's clock, never a second clock saved on that ship.
+`npc-lives.seizeCargo` releases the stolen shipment's
 old source/destination reservation and cancels its agreement, so its former
 buyer cannot pay for the transferred goods. Remaining cargo stays with the
 casualty for its ordinary recovery policy. This does not cancel its repair mission.

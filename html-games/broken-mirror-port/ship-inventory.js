@@ -7,6 +7,8 @@
   let equipmentSelection=null,equipmentNote='',fitIndex=0,inventoryPageFloor=1,bayPage=0,bayRows=4,gridColumns=6,gridRows=4,deliveryPage=0,collectablePage=0,collectableColumns=3,collectableRows=2,layoutFrame=0;
   let touchDrag=null,suppressClickUntil=0,mouseDragging=false;
   let bridge=null,previousFocus=null,inventoryPage=0,view='loadout',rightPage='inventory',deliveryNote='',filter='all';
+  let prometheusTab='combined';
+  const sectionContext=state=>window.nativePrometheusLoadouts?.supported(state)?window.nativePrometheusLoadouts.context(state,prometheusTab):null;
   const safe=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const qty=value=>Math.max(0,Number(value)||0);
   const fmt=value=>qty(value).toLocaleString(undefined,{maximumFractionDigits:3});
@@ -51,7 +53,7 @@
   const keyKind=key=>key?.startsWith('equipment:')?'equipment':key?.startsWith('freight:')||key?.startsWith('contract:')?'freight':'supplies';
   const item=(name,value,unit='',kind='supply',customIcon)=>{
     const resource=String(name).toLowerCase(),icon=customIcon||(kind==='mineral'?window.nativeOutfittingView.minerals[resource]?.icon:null)||itemIcons[resource]||`assets/ui/${kind==='mineral'?'mineral':'freight'}.svg`;
-    return `<span class="inventory-item-icon"><img src="${icon}" alt=""></span><span class="inventory-item-name">${safe(kind==='mineral'?window.nativeOutfittingView.minerals[resource]?.name||name:name)}</span><strong class="inventory-item-count">${compact(value)}${unit}</strong>`;
+    return window.nativeOutfittingView.inventoryStack(kind==='mineral'?window.nativeOutfittingView.minerals[resource]?.name||name:name,value,{art:`<img src="${icon}" alt="">`,unit});
   };
   const locationFor=node=>window.nativeEquipmentPanel.location(node);
   function findLocation(at){return at?.type==='cell'?root.querySelector(`[data-inventory-cell="${at.index}"]`):root.querySelector(`[data-equipment-place="slot"][data-equipment-kind="${at?.category}"][data-equipment-index="${at?.index}"]`);}
@@ -69,14 +71,14 @@
   function transfer(from,to){
     const source=findLocation(from),bounds=source?.getBoundingClientRect(),icon=source?.querySelector('.inventory-item-icon,.inventory-system-icon,.inventory-dot-icon');
     const origin=bounds?{x:bounds.x+bounds.width/2,y:bounds.y+bounds.height/2,html:icon?.innerHTML||''}:null;
-    const result=bridge.moveInventory({from,to});
+    const context=sectionContext(bridge.getState()),result=bridge.moveInventory({from,to,...(context?{prometheusKey:context.key}:{})});
     equipmentNote=result?.ok?(result.saved===false?'Item moved, but saving failed. Use Save to try again.':to.type==='slot'?'Equipment installed.':from.type==='slot'?'Equipment removed and stored.':'Item moved.'):(result?.error||'Unable to move that item.');
     if(result?.ok){
       equipmentSelection=null;
       if(matchMedia('(max-width:760px)').matches)view=to.type==='slot'?'loadout':'cargo';
       if(to.type==='slot'){const bay=window.nativeShipEquipment.bayLayout(bridge.getState()).bays.find(b=>b.category===to.category&&b.index===to.index);if(bay)bayPage=Math.floor(bay.cell/(bay.zone==='drones'?6:bayRows));}
       if(to.type==='cell'){
-        const cells=window.nativeShipEquipment.inventoryLayout(bridge.getState()).cells;
+        const cells=(context?window.nativePrometheusLoadouts.layoutFor(bridge.getState(),context.key):window.nativeShipEquipment.inventoryLayout(bridge.getState())).cells;
         if(filter!=='all'&&keyKind(cells[to.index])!==filter)filter='all';
         const order=filter==='all'?null:cells.map((key,index)=>key&&keyKind(key)===filter?index:null).filter(index=>index!==null);
         inventoryPage=Math.floor((order?order.indexOf(to.index):to.index)/pageSize());
@@ -99,7 +101,7 @@
   function render(){
     if(root.hidden||!bridge)return;
     const focused=document.activeElement,focusKey=focused&&root.contains(focused)?focused.dataset.focusKey:null;
-    const state=bridge.getState(),equipment=window.nativeShipEquipment,eq=equipment.ensure(state),ship=shipFor(state);
+    const state=bridge.getState(),equipment=window.nativeShipEquipment,context=sectionContext(state),eq=context?.eq||equipment.ensure(state),subject=context?.subject||state,ship=context?.ship||shipFor(state);
     if(eq.slots.repairDrone.some(id=>eq.instances[id]?.hull>0))window.nativeRepairVisuals?.ensure().catch(()=>{});
     const freightGoods=Object.entries(state.solFreightHold||{}).map(([id,amount])=>({id:Number(id),name:window.nativeSolEconomy.goods[Number(id)]||`Good ${id}`,amount:Number(amount)})).filter(entry=>entry.amount>0);
     const jobs=Array.isArray(state.localContracts)?state.localContracts:[];
@@ -130,13 +132,13 @@
     const standingDisplay=standing>0?`+${standing}`:String(standing),standingStatus=standing>=100?'Allied':standing<0?'Hostile':'Neutral';
     const positiveFill=Math.min(100,Math.max(0,standing))/2,negativeFill=Math.min(100,Math.max(0,-standing))/2;
     const canPlotDelivery=!state.localCruise&&!state.arrivalApproach;
-    const inventoryTiles=[...eq.locker.map((id,index)=>{const instance=eq.instances[id],data=equipment.model(instance.modelId);return {key:'equipment:'+id,kind:'equipment',category:instance.category,name:data?.name||instance.modelId,html:window.nativeEquipmentPanel.equipmentContents(instance,data),locker:index};}),
+    const inventoryTiles=[...eq.locker.map((id,index)=>{const instance=eq.instances[id],data=equipment.forInstance(instance),assigned=context&&['top','middle','bottom'].find(key=>state.prometheusLoadouts.plans[key].weapon.includes(id)),label=assigned?window.nativePrometheusLoadouts.names[assigned]:'';return {key:'equipment:'+id,kind:'equipment',category:instance.category,name:(data?.name||instance.modelId)+(label?' · Assigned to '+label:''),html:window.nativeEquipmentPanel.equipmentContents(instance,data)+(label?`<span class="inventory-item-tag">${safe(label)} FITTED</span>`:''),locker:index};}),
       ...[['Antimatter',state.antimatter],['Dilithium',state.dilithium],['Deuranium',state.deuranium],['Food',state.food]].filter(([,amount])=>Number(amount)>0).map(([name,amount])=>({key:'supply:'+name.toLowerCase(),kind:'supplies',name,html:item(name,amount)})),
       ...minerals.map(([name,amount])=>({key:'mineral:'+name,kind:'supplies',name,html:item(name.charAt(0).toUpperCase()+name.slice(1),amount,'','mineral')})),
       ...freightGoods.map(entry=>({key:'freight:'+entry.id,kind:'freight',name:entry.name,html:item(entry.name,entry.amount,' t','freight',goodIcons[entry.id])})),
       ...jobs.map(job=>({key:'contract:'+job.id,kind:'freight',name:window.nativeSolEconomy.goods[job.good]||'Cargo',html:`<span class="inventory-item-icon"><img src="${goodIcons[job.good]||'assets/ui/freight.svg'}" alt=""></span><span class="inventory-item-name">${safe(window.nativeSolEconomy.goods[job.good]||'Cargo')}</span><strong class="inventory-item-count">${fmt(job.tons)} t</strong><span class="inventory-item-tag">CONTRACT</span>`}))
     ];
-    const layout=equipment.inventoryLayout(state),tiles=new Map(inventoryTiles.map(tile=>[tile.key,tile]));
+    const layout=context?window.nativePrometheusLoadouts.layoutFor(state,context.key):equipment.inventoryLayout(state),tiles=new Map(inventoryTiles.map(tile=>[tile.key,tile]));
     const inventoryPageSize=pageSize();
     const displayCells=filter==='all'?Array.from({length:layout.cells.length},(_,i)=>i):layout.cells.map((key,index)=>tiles.get(key)?.kind===filter?index:null).filter(index=>index!==null);
     const matchingCount=displayCells.filter(index=>tiles.has(layout.cells[index])).length;
@@ -150,10 +152,11 @@
     const visibleTiles=Array.from({length:inventoryPageSize},(_,offset)=>{
       const index=displayCells[inventoryPage*inventoryPageSize+offset],key=layout.cells[index],tile=tiles.get(key),active=equipmentSelection?.key===key&&!!key;
       const attributes=tile?.kind==='equipment'?`data-equipment-kind="${tile.category}" data-equipment-place="locker" data-equipment-index="${tile.locker}"`:'';
-      return `<button type="button" class="inventory-item ${tile?(tile.kind==='equipment'?'inventory-weapon-tile':'inventory-cargo-tile'):'inventory-blank'}${active?' selected':''}" data-inventory-cell="${index}" data-item-key="${safe(key||'')}" data-focus-key="cell-${index}" ${attributes} ${tile?`draggable="true" data-kind="${tile.category||tile.kind}" aria-pressed="${active}" title="${safe(tile.name)} · Drag to move" aria-label="${tile.kind==='equipment'?'Stored ':''}${safe(tile.name)}"`:`aria-label="Empty inventory tile ${index+1}"`}>${tile?tile.html:'<span class="inventory-empty-mark">+</span>'}</button>`;
+      return window.nativeOutfittingView.inventoryCell(tile,{index,key:key||'',selected:active,attributes});
     });
     const fittedCount=Object.values(eq.slots).flat().filter(Boolean).length,totalSlots=Object.values(eq.slots).flat().length;
     root.dataset.view=view;root.dataset.rightPage=rightPage;
+    root.dataset.prometheus=String(!!context);root.dataset.prometheusTab=context?.key||'';
     root.dataset.dragging=String(mouseDragging||!!touchDrag?.ghost);
     root.dataset.details=equipmentSelection&&root.dataset.dragging!=='true'&&(innerWidth<=760||innerHeight<=650)?'overlay':'inline';
     root.style.setProperty('--inventory-columns',gridColumns);root.style.setProperty('--inventory-rows',gridRows);
@@ -162,10 +165,11 @@
       <nav class="inventory-view-tabs" aria-label="Inventory pages"><button type="button" data-focus-key="view-loadout" data-inventory-view="loadout" aria-pressed="${view==='loadout'}">Ship & loadout</button><button type="button" data-focus-key="view-cargo" data-inventory-view="cargo" aria-pressed="${view==='cargo'}">Cargo & deliveries</button></nav>
       <div class="inventory-body">
         <section class="inventory-loadout" aria-label="Ship equipment"><div class="inventory-section-title"><span><b>01</b> SHIP LOADOUT</span><strong>${fittedCount} / ${totalSlots} bays fitted</strong></div>
+          ${context?`<div class="inventory-prometheus"><nav class="inventory-prometheus-tabs" role="tablist" aria-label="Prometheus inventories">${window.nativePrometheusLoadouts.keys.map(key=>{const c=window.nativePrometheusLoadouts.context(state,key);return `<button type="button" role="tab" data-prometheus-tab="${key}" data-focus-key="prometheus-${key}" aria-selected="${key===context.key}" tabindex="${key===context.key?0:-1}"><strong>${safe(c.name)}</strong><small>${safe(c.status)}</small></button>`;}).join('')}</nav><div class="inventory-prometheus-pilot"><span>${safe(context.status)} &middot; Shared cargo and resources</span><button type="button" data-pilot-section="${context.type}" data-focus-key="pilot-section" ${context.canPilot?'':'disabled'}>${context.piloted?'Piloting '+safe(context.name):'Pilot '+safe(context.name)}</button></div><p class="inventory-prometheus-help">Weapon mounts are saved for this hull. Engines, shields and DOTs are managed from Combined ship.</p></div>`:''}
           ${bayView.html}
-          ${window.nativeOutfittingView.rig(state,ship,eq,{renderSlot:slot,bayWindow:{page:bayPage,rows:bayRows},hullSystems})}
+          ${window.nativeOutfittingView.rig(subject,ship,eq,{renderSlot:slot,bayWindow:{page:bayPage,rows:bayRows},hullSystems})}
           <div class="inventory-drone-controls"><div class="inventory-repair-mode" role="group" aria-label="Repair drone mode">${['manual','auto'].map(mode=>`<button type="button" data-repair-mode="${mode}" data-focus-key="repair-mode-${mode}" aria-pressed="${repairMode===mode}">${mode==='manual'?'Manual':'Auto'}</button>`).join('')}</div><button type="button" data-deploy-repair-drones data-focus-key="deploy-drones" aria-describedby="inventory-deploy-status" ${repairMode==='manual'?'':'hidden'} ${deployment.ok?'':'disabled'}>Deploy Repair Drones</button><button type="button" data-request-distress data-focus-key="request-distress" aria-label="${safe(distress.label||'Distress Call')}: ${safe(distress.message)}" ${distress.ok||distress.pending?'':'hidden'} ${distress.ok?'':'disabled'}>${safe(distress.label||'Distress Call')}</button><span id="inventory-deploy-status">${safe(distress.pending?distress.message:deployment.error||(repairMode==='auto'?'Auto repair ready':`${deployment.available} DOT${deployment.available===1?'':'s'} ready`)+' · Uses deuranium')}</span></div>
-          <div class="inventory-vitals"><div class="inventory-hull"><span>HULL</span><strong>${fmt(state.hull)} / ${fmt(hullMax)}</strong><div class="inventory-meter"><i style="--fill:${hullMax?Math.max(0,Math.min(100,qty(state.hull)/hullMax*100)):0}%"></i></div></div><div class="inventory-shield"><span>SHIELDS</span><strong>${fmt(state.shields)} / ${fmt(shieldMax)}</strong><div class="inventory-meter"><i style="--fill:${shieldMax?Math.max(0,Math.min(100,qty(state.shields)/shieldMax*100)):0}%"></i></div></div></div>
+          <div class="inventory-vitals"><div class="inventory-hull"><span>HULL</span><strong>${fmt(subject.hull)} / ${fmt(hullMax)}</strong><div class="inventory-meter"><i style="--fill:${hullMax?Math.max(0,Math.min(100,qty(subject.hull)/hullMax*100)):0}%"></i></div></div><div class="inventory-shield"><span>SHIELDS</span><strong>${fmt(subject.shields)} / ${fmt(shieldMax)}</strong><div class="inventory-meter"><i style="--fill:${shieldMax?Math.max(0,Math.min(100,qty(subject.shields)/shieldMax*100)):0}%"></i></div></div></div>
           ${equipmentNote?`<p class="inventory-hint" role="status">${safe(equipmentNote)}</p>`:''}
 
 
@@ -177,13 +181,25 @@
           <div class="inventory-deliveries-page" aria-label="Delivery contracts"><div class="inventory-deliveries-summary"><span>ACTIVE CONTRACTS</span><strong>${jobs.length} / 2</strong></div>${jobs.length?`<div class="inventory-contract-cards">${shownJobs.map((job,index)=>`<article class="inventory-contract-card"><div class="inventory-contract-main"><div class="inventory-contract-planet"><img src="${deliveryAddress(job).art}" alt="${safe(deliveryLabel(job))}"></div><div class="inventory-contract-details"><span class="inventory-contract-kicker">DELIVERY ${String(deliveryPage*deliverySize+index+1).padStart(2,'0')} / ${safe(deliveryLabel(job,'from'))} TO</span><strong class="inventory-contract-destination">${safe(deliveryLabel(job))}</strong><div class="inventory-contract-cargo"><img src="${goodIcons[job.good]||'assets/ui/freight.svg'}" alt=""><span>${fmt(job.tons)} t ${safe(window.nativeSolEconomy.goods[job.good]||'Cargo')} aboard</span></div></div><div class="inventory-contract-payment"><span>ON DELIVERY</span><strong>${fmt(job.pay)}</strong><small>LATINUM</small></div></div><div class="inventory-contract-actions"><button type="button" data-delivery-action="cruise" data-delivery-id="${safe(job.id)}" ${canPlotDelivery&&!deliveryHere(state,job)?'':'disabled'}>Cruise to ${safe(deliveryLabel(job))}</button><button type="button" data-delivery-action="select" data-delivery-id="${safe(job.id)}" aria-pressed="${deliveryHereSystem(state,job)&&Number(state.localNavTarget)===Number(job.to)}" ${canPlotDelivery?'':'disabled'}>${deliveryHereSystem(state,job)&&Number(state.localNavTarget)===Number(job.to)?'Navigation selected':'Select for navigation'}</button></div></article>`).join('')}</div>`:'<div class="inventory-deliveries-empty"><img src="assets/ui/freight.svg" alt=""><strong>No active deliveries</strong><span>Accept a shipping contract at a port to see its cargo, route, and payment here.</span></div>'}${deliveryPages>1?`<nav class="inventory-delivery-pages" aria-label="Delivery pages"><button type="button" data-delivery-page="previous" ${deliveryPage===0?'disabled':''}>&lsaquo;</button><span>${deliveryPage+1} / ${deliveryPages}</span><button type="button" data-delivery-page="next" ${deliveryPage>=deliveryPages-1?'disabled':''}>&rsaquo;</button></nav>`:''}${deliveryNote?`<p class="inventory-delivery-note" role="status">${safe(deliveryNote)}</p>`:''}</div>
           <div class="inventory-collectables-page" aria-label="Collectables album"><div class="inventory-deliveries-summary"><span>COLLECTION ARCHIVE</span><strong>${collectedCount} / ${album.length} collected</strong></div><div class="inventory-collectable-grid" aria-label="Collection slots" style="--collectable-columns:${collectableColumns};--collectable-rows:${collectableRows}">${shownCollectables.map(collectableSlot).join('')}</div><p class="inventory-collectables-hint">First six clues available. Each artifact found reveals one more.</p><nav class="inventory-delivery-pages inventory-collectable-pages" aria-label="Collectables pages"><button type="button" data-collectable-page="previous" data-focus-key="collectables-previous" aria-label="Previous collectables page" ${collectablePage===0?'disabled':''}>&lsaquo;</button><span role="status">Page ${collectablePage+1} / ${collectablePages}</span><button type="button" data-collectable-page="next" data-focus-key="collectables-next" aria-label="Next collectables page" ${collectablePage>=collectablePages-1?'disabled':''}>&rsaquo;</button></nav></div>
         </section>
-      </div>${inspector(state,ship,eq,tiles)}</div>`;
+      </div>${inspector(subject,ship,eq,tiles)}</div>`;
     root.querySelectorAll('button').forEach(button=>{
       const effect=document.createElement('span');
       effect.className='inventory-control-fx';effect.setAttribute('aria-hidden','true');
       button.append(effect);
     });
     root.querySelector('.inventory-close').onclick=close;
+    root.querySelectorAll('[data-prometheus-tab]').forEach(button=>{
+      button.onclick=()=>{prometheusTab=button.dataset.prometheusTab;equipmentSelection=null;equipmentNote='';bayPage=inventoryPage=0;render();root.querySelector(`[data-prometheus-tab="${prometheusTab}"]`)?.focus();};
+      button.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const keys=window.nativePrometheusLoadouts.keys,index=keys.indexOf(prometheusTab),next=event.key==='Home'?0:event.key==='End'?keys.length-1:(index+(event.key==='ArrowRight'?1:-1)+keys.length)%keys.length;root.querySelector(`[data-prometheus-tab="${keys[next]}"]`).click();};
+    });
+    root.querySelector('[data-pilot-section]')?.addEventListener('click',event=>{const result=bridge.pilotSection?.(Number(event.currentTarget.dataset.pilotSection));equipmentSelection=null;equipmentNote=result?.ok&&result.saved===false?'Pilot switched, but saving failed. Use Save to try again.':result?.message||result?.error||'';render();});
+    if(context&&context.key!=='combined'){
+      root.querySelectorAll('[data-equipment-place="slot"]:not([data-equipment-kind="weapon"])').forEach(button=>{button.disabled=true;button.title='Shared system - manage from Combined ship.';});
+      const selectedItem=eq.instances[equipmentSelection?.key?.slice(10)];
+      if(selectedItem&&selectedItem.category!=='weapon'){const fit=root.querySelector('[data-equipment-action="equip"]');if(fit){fit.disabled=true;fit.title='Fit shared systems from Combined ship.';}const repair=root.querySelector('[data-repair-device]');if(repair)repair.disabled=true;}
+      const dots=root.querySelector('.inventory-drone-bays .inventory-section-title span');if(dots)dots.textContent='COMMAND DOT REPAIR BAYS';
+      if(!context.piloted){const deploy=root.querySelector('[data-deploy-repair-drones]');if(deploy)deploy.disabled=true;const message=root.querySelector('#inventory-deploy-status');if(message)message.textContent='Pilot this section to repair it with command DOTs.';}
+    }
     root.querySelectorAll('[data-bay-page]').forEach(button=>button.onclick=()=>{bayPage+=button.dataset.bayPage==='next'?1:-1;render();});
     root.querySelectorAll('[data-delivery-page]').forEach(button=>button.onclick=()=>{deliveryPage+=button.dataset.deliveryPage==='next'?1:-1;render();});
     root.querySelectorAll('[data-collectable-page]').forEach(button=>button.onclick=()=>{collectablePage+=button.dataset.collectablePage==='next'?1:-1;render();});
@@ -216,7 +232,7 @@
     });
     fitLayout();
     if(focusKey){const target=[...root.querySelectorAll('[data-focus-key]')].find(node=>node.dataset.focusKey===focusKey);(target&&!target.disabled&&getComputedStyle(target).visibility!=='hidden'?target:root.dataset.details==='overlay'?root.querySelector('.inventory-inspector select,.inventory-inspector button'):root.querySelector('.inventory-close')).focus({preventScroll:true});}
-    preview(state,ship);
+    preview(subject,ship);
   }
   root.addEventListener('pointerdown',event=>{
     if(event.pointerType==='mouse')return;
@@ -251,7 +267,7 @@
   root.addEventListener('pointerup',event=>endTouch(event));root.addEventListener('pointercancel',event=>endTouch(event,true));
   root.addEventListener('wheel',event=>event.preventDefault(),{passive:false});
   root.addEventListener('keydown',event=>{if(event.key==='Tab'){const nodes=[...root.querySelectorAll('button:not(:disabled),select:not(:disabled)')].filter(node=>node.getClientRects().length&&getComputedStyle(node).visibility!=='hidden'),first=nodes[0],last=nodes[nodes.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}if(event.target.matches('select')&&event.code==='KeyI')event.stopPropagation();});
-  function open(options={}){if(!bridge?.getState?.()||!root.hidden)return;previousFocus=document.activeElement;equipmentSelection=null;equipmentNote='';inventoryPage=0;inventoryPageFloor=1;bayPage=0;deliveryPage=0;collectablePage=0;rightPage=options?.page==='collectables'?'collectables':'inventory';view=rightPage==='collectables'?'cargo':'loadout';deliveryNote='';filter='all';root.hidden=false;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:true,at:performance.now()}}));render();root.querySelector('.inventory-close')?.focus({preventScroll:true});}
+  function open(options={}){if(!bridge?.getState?.()||!root.hidden)return;previousFocus=document.activeElement;equipmentSelection=null;equipmentNote='';inventoryPage=0;inventoryPageFloor=1;bayPage=0;deliveryPage=0;collectablePage=0;rightPage=options?.page==='collectables'?'collectables':'inventory';view=rightPage==='collectables'?'cargo':'loadout';deliveryNote='';filter='all';if(window.nativePrometheusLoadouts?.supported(bridge.getState())){window.nativePrometheusLoadouts.initialize(bridge.getState());prometheusTab=window.nativePrometheusLoadouts.currentKey(bridge.getState());}root.hidden=false;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:true,at:performance.now()}}));render();root.querySelector('.inventory-close')?.focus({preventScroll:true});}
   function close(){if(root.hidden)return;root.hidden=true;dispatchEvent(new CustomEvent('native-inventorychange',{detail:{active:false,at:performance.now()}}));window.nativeOutfittingView.stopPreview(root);if(touchDrag)clearTimeout(touchDrag.timer);touchDrag=null;root.innerHTML='';equipmentSelection=null;previousFocus?.focus?.({preventScroll:true});}
   addEventListener('resize',()=>{if(!root.hidden)render();});
   window.nativeShipInventory={attach(value){bridge=value;window.nativeEquipmentPanel.attachActions(value);},open,close,refresh:render,get active(){return !root.hidden}};

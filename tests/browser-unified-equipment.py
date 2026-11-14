@@ -88,16 +88,17 @@ try:
           finally{window.nativeSimulation=clock;window.__equipmentState=original;}
         }""")
         assert repair['drones']==6
-        # Move the observer to another real shipyard without changing owned equipment.
+        # Remote hull exchanges retain their existing fitting/cargo contract; Sol procurement
+        # is covered by browser-ship-construction.py.
         page.evaluate("()=>{const s=__equipmentState;s.system=8;s.planet='Epsilon';nativeSaveStorage.write(s);resumeNativeGame('normal');}")
         purchase(57)
         inventory()
         assert page.locator('[data-equipment-kind="repairDrone"][data-equipment-place="slot"]').count()==2
         assert page.locator('[data-equipment-place="locker"][aria-label="Stored Basic Dot"]').count()==4
-        assert '450 t' in page.locator('.inventory-cargo .inventory-section-title').inner_text()
+        assert '450 t' in page.locator('#ship-inventory .inventory-cargo .inventory-section-title').inner_text()
         page.screenshot(path=str(OUTPUT/'inventory-cargo.png'))
         page.locator('.inventory-close').click()
-        page.evaluate("()=>{const s=__equipmentState;s.system=1;s.localBody=3;nativeSaveStorage.write(s);resumeNativeGame('normal');}")
+        page.evaluate("()=>{const s=__equipmentState;s.system=6;s.localBody=0;s.localPrestige[6]=100;nativeSaveStorage.write(s);resumeNativeGame('normal');}")
         page.evaluate("()=>{__equipmentState.solFreightHold={0:51};}")
         page.locator('#tradeBtn').click()
         page.locator('#system-hub [data-tab="shipyard"]').click()
@@ -111,7 +112,7 @@ try:
         purchase(7)
         inventory()
         assert page.locator('[data-equipment-kind="repairDrone"][data-equipment-place="slot"]').count()==1
-        assert '50 t' in page.locator('.inventory-cargo .inventory-section-title').inner_text()
+        assert '50 t' in page.locator('#ship-inventory .inventory-cargo .inventory-section-title').inner_text()
         assert page.locator('[data-equipment-place="locker"][aria-label="Stored Basic Dot"]').count()==5
         page.screenshot(path=str(OUTPUT/'inventory-small.png'))
         # Real HTML drag events remove every Danube component into an exact tile,
@@ -159,7 +160,7 @@ try:
         assert restored==saved
         assert page.evaluate("__equipmentState.inventoryLayout")==saved_layout
         # Upgrade purchase reads the fitted engine, rather than a stale legacy hull field.
-        page.evaluate("""()=>{const s=__equipmentState;nativeShipEquipment.changeHull(s,10);s.localBody=7;s.localNavTarget=7;vexedSolFlight.setTarget(7);s.tugEngineLevel=2;const eq=nativeShipEquipment.ensure(s);eq.instances[eq.slots.engineering[0]].upgrades.tugEngineLevel=0;}""")
+        page.evaluate("""()=>{const s=__equipmentState;s.system=1;s.localBodySystem=1;nativeShipEquipment.changeHull(s,10);s.localBody=7;s.localNavTarget=7;vexedSolFlight.setTarget(7);s.tugEngineLevel=2;const eq=nativeShipEquipment.ensure(s);eq.instances[eq.slots.engineering[0]].upgrades.tugEngineLevel=0;}""")
         page.locator('#tradeBtn').click()
         page.locator('#system-hub [data-tab="shipyard"]').click()
         upgrade=page.locator('#system-hub [data-upgrade-tug]')

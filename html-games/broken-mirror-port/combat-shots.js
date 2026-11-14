@@ -366,13 +366,23 @@
     const scale=.96/Math.hypot(lx/shape.rx,ly/shape.ry),length=Math.hypot(lx,ly),local={x:lx*scale,y:ly*scale};
     return {local,world:worldPoint(target,local),dx:-lx/length,dy:-ly/length,from:{...from},shielded,radii:shape,dimensions:{...d}};
   }
+  function projectileTrail(projectile,x,y,zoom){
+    const speed=Math.hypot(projectile.vx,projectile.vy);if(!(speed>0))return 0;
+    // Match the interpolated nose, not the newest physical step. A translating
+    // launcher cannot manufacture a wake before its own muzzle has cleared.
+    const lag=Math.max(0,((projectile.x-x)*projectile.vx+(projectile.y-y)*projectile.vy)/(speed*speed));
+    const age=Math.max(0,(Number(projectile.age)||0)-lag);
+    const motorAlong=speed-((Number(projectile.inheritedVx)||0)*projectile.vx+(Number(projectile.inheritedVy)||0)*projectile.vy)/speed;
+    return Math.max(0,motorAlong)*age*zoom;
+  }
   function paint(ctx,shot,{state,ship,cx,cy,zoom=1,now:time=performance.now(),w=Infinity,h=Infinity}){
     if(!isVisible(shot,time))return false;
     if(shot.projectile){const projectile=shot.projectile,a=window.nativeSimulationFrame?.alpha?.(state)??1,
       px=(projectile.previousX??projectile.x)*(1-a)+projectile.x*a,py=(projectile.previousY??projectile.y)*(1-a)+projectile.y*a,
       x=cx+(px-ship.x)*zoom,y=cy+(py-ship.y)*zoom;
       if(window.nativeEffectVisibility&&!window.nativeEffectVisibility.circle(x,y,Math.max(96,(projectile.radius||0)*zoom+64),{w,h}))return false;
-      window.paintShowcaseWeaponShot(ctx,shot,{screenPixels:true,x,y,angle:Math.atan2(projectile.vy,projectile.vx)},projectile.age*1000);return true;}
+      window.paintShowcaseWeaponShot(ctx,shot,{screenPixels:true,x,y,angle:Math.atan2(projectile.vy,projectile.vx),
+        ...(shot.event?{trailLength:projectileTrail(projectile,px,py,zoom)}:{})},projectile.age*1000);return true;}
     let from=source(shot,state,ship),to;
     if(shot.event&&shot.kind==='beam'){
       const firing=renderPose(state,shot.getSource?.()||shot.shooter||ship),origin=rules.emitter(firing,shot.event),radius=(shot.event.spec.range+64)*zoom;

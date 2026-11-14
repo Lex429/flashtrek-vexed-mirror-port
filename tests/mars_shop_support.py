@@ -45,7 +45,7 @@ def stats(page):
   n=page.locator(f'[data-ship-stat="{key}"]');assert n.is_visible()
   assert abs(float(n.locator('strong>b').inner_text().replace(',','').replace('t','').strip())-value)<.011
  assert page.locator('.mars-upgrade-detail,.mars-detail-back').count()==0
- assert page.locator('.mars-shop-card').count()==9
+ assert page.locator('.mars-upgrade-choice').count()==9
  assert page.locator('.yard-vessel').evaluate('n=>n.scrollHeight<=n.clientHeight+1')
 def fits(page,kind):
  return card(page,kind).evaluate("""card=>{const b=card.getBoundingClientRect(),fail=[];for(const n of card.querySelectorAll('h2,th,td,button,.mars-shop-change,.mars-shop-actions,.mars-shop-bay-note,.mars-tier-bars')){if(!n.getClientRects().length||getComputedStyle(n).visibility==='hidden')continue;const a=n.getBoundingClientRect();if(a.left<b.left-1||a.right>b.right+1||a.top<b.top-1||a.bottom>b.bottom+1||n.scrollWidth>n.clientWidth+1)fail.push({text:n.textContent,why:'box overflow'});}for(const n of card.querySelectorAll('h2,th>span,td b,td small,.mars-shop-change>span,.mars-shop-change>strong,.mars-shop-bay-note')){if(getComputedStyle(n).visibility==='hidden')continue;const r=document.createRange();r.selectNodeContents(n);const a=r.getBoundingClientRect();if(a.left<b.left+1||a.right>b.right-1||a.top<b.top+1||a.bottom>b.bottom-1)fail.push({text:n.textContent,why:'text overflow'});}return fail;}""")

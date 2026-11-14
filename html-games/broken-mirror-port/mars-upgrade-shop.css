@@ -1,77 +1,93 @@
 /* Mars's scrolling upgrade shop. Only the catalog scrolls; ship controls stay put. */
-#shipyard-services[data-screen="mars-services"][data-service-tab="upgrades"] .yard-catalog{overflow-y:auto!important;overflow-x:hidden!important;container-type:inline-size;scrollbar-gutter:stable;overscroll-behavior:contain;padding:14px 16px 20px;scrollbar-width:thin;scrollbar-color:#61858b #0b1922}
-#shipyard-services[data-screen="mars-services"] .mars-upgrade-shop{min-width:0}
-#shipyard-services[data-screen="mars-services"] .mars-shop-intro{margin:0 0 12px;font-size:13px;line-height:1.4;color:#d6e8e8}
-#shipyard-services[data-screen="mars-services"] .mars-shop-intro>span{display:block;font-size:10px;color:#819fac}
-#shipyard-services[data-screen="mars-services"] .mars-shop-list{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
-#shipyard-services[data-screen="mars-services"] .mars-shop-card{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr);gap:9px;min-width:0;min-height:0;margin:0;padding:15px;border:1px solid #49646d80;border-radius:6px;background:linear-gradient(125deg,#172c36,#0d1c27);line-height:1.2;text-align:left;transform:none;transition:border-color .2s,background-color .2s}
-#shipyard-services[data-screen="mars-services"] .mars-shop-card:is(:hover,:focus-visible,.previewing,.positioning){transform:none;border-color:#9bcebc;background:linear-gradient(125deg,#1c373d,#10242c)}
-#shipyard-services[data-screen="mars-services"] .mars-shop-card:focus-visible{outline:2px solid #9bdad9;outline-offset:2px}
-#shipyard-services[data-screen="mars-services"] .mars-shop-heading{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:38px}
-#shipyard-services[data-screen="mars-services"] .mars-shop-icon{display:grid;place-items:center;color:#a6c9c8}
-#shipyard-services[data-screen="mars-services"] .mars-shop-icon>svg{width:25px;height:25px}
-#shipyard-services[data-screen="mars-services"] .mars-shop-heading h2{margin:0;font-size:17px;font-weight:600;line-height:1.15;overflow-wrap:normal}
-#shipyard-services[data-screen="mars-services"] .mars-shop-heading .mars-tier-meter{width:72px;align-self:center}
-#shipyard-services[data-screen="mars-services"] .mars-shop-heading .mars-tier-bars{height:6px}
-#shipyard-services[data-screen="mars-services"] .mars-shop-change{display:flex;align-items:center;gap:9px;min-width:0;min-height:32px;padding-bottom:3px;font-size:19px;font-variant-numeric:tabular-nums;color:#87a8b7}
-#shipyard-services[data-screen="mars-services"] .yard-catalog .mars-shop-change strong{font:600 22px/1.2 system-ui;color:#c4f0d1}
-#shipyard-services[data-screen="mars-services"] .mars-shop-change i{font-size:17px;font-style:normal;color:#a4c6be}
-#shipyard-services[data-screen="mars-services"] .mars-shop-change small{margin-left:auto;font-size:10px;color:#c4f0d1}
-#shipyard-services[data-screen="mars-services"] .mars-shop-requirements{height:calc(22px + var(--shop-cost-rows)*40px);min-height:calc(22px + var(--shop-cost-rows)*40px);min-width:0}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs{width:100%;table-layout:fixed;border-spacing:0;border-collapse:separate;font-variant-numeric:tabular-nums}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs thead th{height:22px;padding:0 8px 5px;text-align:right;font-size:8px;font-weight:500;letter-spacing:.8px;color:#8eacb7;border-bottom:1px solid #53738144}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs thead th:first-child{width:44%;padding-left:0;text-align:left;letter-spacing:.3px}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs tbody tr{height:40px}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs tbody th{padding:4px 6px 4px 0;text-align:left;font-size:11px;font-weight:500;line-height:1.2;color:#9eb5c1;border-bottom:1px solid #52717d26;overflow-wrap:normal}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs tbody th .outfit-mineral-icon{display:inline-block;width:18px;height:18px;margin-right:6px;vertical-align:middle}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs tbody th>span{vertical-align:middle}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs td{padding:3px 8px;text-align:right;vertical-align:middle;border-bottom:1px solid #52717d26;line-height:1.2}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs td b{display:block;font-size:14px;line-height:1.2;font-weight:600;white-space:nowrap;color:#d6dcd7}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs td small{display:block;min-height:10px;margin-top:2px;font-size:8px;line-height:1.2;white-space:nowrap;color:#7e98a6}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs .mars-shop-need b{color:#f0d8ae}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs .ready{background:linear-gradient(90deg,transparent,#8ee4b512)}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs .ready .mars-shop-have b{color:#c3f5d0;text-shadow:0 0 10px #9cffbc45}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs .ready .mars-shop-have small{color:#a5e6be}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs .short .mars-shop-have b{color:#9bafba}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs .short .mars-resource-shortage{color:#ffc891}
-#shipyard-services[data-screen="mars-services"] .mars-shop-costs .mars-shop-covered{visibility:hidden}
-#shipyard-services[data-screen="mars-services"] .mars-shop-actions{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px;min-height:36px}
-#shipyard-services[data-screen="mars-services"] .mars-shop-actions button{padding:6px 8px;min-height:32px;font-size:10px}
-#shipyard-services[data-screen="mars-services"] .mars-shop-remove{border:0;background:none;color:#7e9ba9;padding-left:0}
-#shipyard-services[data-screen="mars-services"] .mars-shop-remove:disabled{visibility:hidden}
-#shipyard-services[data-screen="mars-services"] .mars-shop-position{justify-self:start;border:0;border-bottom:1px dashed #789f9f77;background:none;border-radius:0;color:#b1d7d0;white-space:normal;line-height:1.2;text-align:left}
-#shipyard-services[data-screen="mars-services"] .mars-shop-position[aria-pressed="true"]{color:#ffe1aa;border-color:#ffe1aa}
-#shipyard-services[data-screen="mars-services"] .mars-shop-status{min-width:0;font-size:10px;line-height:1.3;color:#8facb8}
-#shipyard-services[data-screen="mars-services"] .mars-shop-card[data-affordable="true"] .mars-shop-status{color:#b6e8c9}
-#shipyard-services[data-screen="mars-services"] .mars-shop-buy{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:128px;border-color:#cba66c;background:#d6ad75;color:#10282b}
-#shipyard-services[data-screen="mars-services"] .mars-shop-buy>span{font-size:15px;transition:transform .2s}
-#shipyard-services[data-screen="mars-services"] .mars-shop-buy:hover>span{transform:translate(2px,-2px)}
-#shipyard-services[data-screen="mars-services"] .mars-shop-buy:disabled{opacity:1;color:#8098a5;border-color:#415d6a;background:#20343f;transform:none}
-#shipyard-services[data-screen="mars-services"] .mars-shop-buy:disabled::before{display:none}
-#shipyard-services[data-screen="mars-services"] .mars-shop-bay-note{height:12px;margin:0;font-size:9px;line-height:1.2;color:#839fac}
-#shipyard-services[data-screen="mars-services"] .mars-shop-max{display:flex;align-items:center;justify-content:center;gap:9px;height:calc(22px + var(--shop-cost-rows)*40px);border-block:1px solid #7de7b033;color:#b9ebc8;font-size:12px;background:linear-gradient(110deg,#74d9a809,transparent)}
-#shipyard-services[data-screen="mars-services"] .mars-shop-max>span{font-size:23px;color:#caffd8}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""])[data-service-tab="upgrades"] .yard-catalog{overflow-y:auto!important;overflow-x:hidden!important;container-type:inline-size;scrollbar-gutter:stable;overscroll-behavior:contain;padding:14px 16px 20px;scrollbar-width:thin;scrollbar-color:#61858b #0b1922}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-upgrade-shop{min-width:0}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-intro{margin:0 0 12px;font-size:13px;line-height:1.4;color:#d6e8e8}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-intro>span{display:block;font-size:10px;color:#819fac}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-list{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-card{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr);gap:9px;min-width:0;min-height:0;margin:0;padding:15px;border:1px solid #49646d80;border-radius:6px;background:linear-gradient(125deg,#172c36,#0d1c27);line-height:1.2;text-align:left;transform:none;transition:border-color .2s,background-color .2s}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-card:is(:hover,:focus-visible,.previewing,.positioning){transform:none;border-color:#9bcebc;background:linear-gradient(125deg,#1c373d,#10242c)}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-card:focus-visible{outline:2px solid #9bdad9;outline-offset:2px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-heading{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:38px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-icon{display:grid;place-items:center;color:#a6c9c8}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-icon>svg{width:25px;height:25px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-heading h2{margin:0;font-size:17px;font-weight:600;line-height:1.15;overflow-wrap:normal}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-heading .mars-tier-meter{width:72px;align-self:center}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-heading .mars-tier-bars{height:6px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-change{display:flex;align-items:center;gap:9px;min-width:0;min-height:32px;padding-bottom:3px;font-size:19px;font-variant-numeric:tabular-nums;color:#87a8b7}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .yard-catalog .mars-shop-change strong{font:600 22px/1.2 system-ui;color:#c4f0d1}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-change i{font-size:17px;font-style:normal;color:#a4c6be}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-change small{margin-left:auto;font-size:10px;color:#c4f0d1}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-requirements{height:calc(22px + var(--shop-cost-rows)*40px);min-height:calc(22px + var(--shop-cost-rows)*40px);min-width:0}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs{width:100%;table-layout:fixed;border-spacing:0;border-collapse:separate;font-variant-numeric:tabular-nums}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs thead th{height:22px;padding:0 8px 5px;text-align:right;font-size:8px;font-weight:500;letter-spacing:.8px;color:#8eacb7;border-bottom:1px solid #53738144}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs thead th:first-child{width:44%;padding-left:0;text-align:left;letter-spacing:.3px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs tbody tr{height:40px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs tbody th{padding:4px 6px 4px 0;text-align:left;font-size:11px;font-weight:500;line-height:1.2;color:#9eb5c1;border-bottom:1px solid #52717d26;overflow-wrap:normal}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs tbody th .outfit-mineral-icon{display:inline-block;width:18px;height:18px;margin-right:6px;vertical-align:middle}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs tbody th>span{vertical-align:middle}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs td{padding:3px 8px;text-align:right;vertical-align:middle;border-bottom:1px solid #52717d26;line-height:1.2}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs td b{display:block;font-size:14px;line-height:1.2;font-weight:600;white-space:nowrap;color:#d6dcd7}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs td small{display:block;min-height:10px;margin-top:2px;font-size:8px;line-height:1.2;white-space:nowrap;color:#7e98a6}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs .mars-shop-need b{color:#f0d8ae}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs .ready{background:linear-gradient(90deg,transparent,#8ee4b512)}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs .ready .mars-shop-have b{color:#c3f5d0;text-shadow:0 0 10px #9cffbc45}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs .ready .mars-shop-have small{color:#a5e6be}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs .short .mars-shop-have b{color:#9bafba}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs .short .mars-resource-shortage{color:#ffc891}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs .mars-shop-covered{visibility:hidden}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-actions{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px;min-height:36px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-actions button{padding:6px 8px;min-height:32px;font-size:10px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-remove{border:0;background:none;color:#7e9ba9;padding-left:0}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-remove:disabled{visibility:hidden}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-position{justify-self:start;border:0;border-bottom:1px dashed #789f9f77;background:none;border-radius:0;color:#b1d7d0;white-space:normal;line-height:1.2;text-align:left}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-position[aria-pressed="true"]{color:#ffe1aa;border-color:#ffe1aa}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-status{min-width:0;font-size:10px;line-height:1.3;color:#8facb8}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-card[data-affordable="true"] .mars-shop-status{color:#b6e8c9}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-buy{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:128px;border-color:#cba66c;background:#d6ad75;color:#10282b}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-buy>span{font-size:15px;transition:transform .2s}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-buy:hover>span{transform:translate(2px,-2px)}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-buy:disabled{opacity:1;color:#8098a5;border-color:#415d6a;background:#20343f;transform:none}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-buy:disabled::before{display:none}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-bay-note{height:12px;margin:0;font-size:9px;line-height:1.2;color:#839fac}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-max{display:flex;align-items:center;justify-content:center;gap:9px;height:calc(22px + var(--shop-cost-rows)*40px);border-block:1px solid #7de7b033;color:#b9ebc8;font-size:12px;background:linear-gradient(110deg,#74d9a809,transparent)}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-max>span{font-size:23px;color:#caffd8}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-upgrade-jumps{display:flex;align-items:center;gap:7px;margin:0 0 13px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-upgrade-jumps>button{flex:1;min-width:0;padding:7px 9px;font-size:10px;color:#afd1d5;background:#122630;border-color:#51747a77}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-upgrade-jumps b{margin-left:3px;color:#d2f1df;font-weight:600}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-owned-section{margin-top:24px;padding-top:18px;border-top:1px solid #688c9366}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-owned-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-owned-heading h2{margin:0;font-size:20px;line-height:1.2;font-weight:600}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-owned-heading h2 small{font-size:11px;color:#8daeb4;margin-left:4px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-owned-heading button{padding:5px 7px;font-size:9px;background:transparent;color:#a9ced0;border-color:#52767a66}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-owned-intro{margin:8px 0 13px;font-size:10px;color:#8facb8}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-icon>img{width:25px;height:25px;object-fit:contain}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-owned-weapon .mars-shop-heading{min-height:50px}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-weapon-meta{display:flex;align-items:center;justify-content:space-between;gap:9px;min-height:16px;font-size:9px;color:#8eacb7}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-weapon-meta>span:last-child{color:#bbdfc7;white-space:nowrap}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-weapon-spec{min-height:15px;margin:0;font-size:10px;line-height:1.4;color:#9cb7c1}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-weapon-actions{grid-template-columns:minmax(0,1fr) auto}
+#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-no-weapons{margin:0;padding:22px 12px;border:1px dashed #668b9166;border-radius:5px;color:#a4bdc6;font-size:11px;line-height:1.5}
 @container mars-upgrades (max-width:420px){
- #shipyard-services[data-screen="mars-services"] .mars-shop-card{padding:11px;gap:8px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-heading{grid-template-columns:20px minmax(0,1fr) auto;gap:7px;min-height:38px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-heading h2{font-size:14px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-icon>svg{width:20px;height:20px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-heading .mars-tier-meter{width:49px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-change{font-size:17px}
- #shipyard-services[data-screen="mars-services"] .yard-catalog .mars-shop-change strong{font-size:20px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-costs tbody th{font-size:10px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-costs tbody th .outfit-mineral-icon{width:15px;height:15px;margin-right:4px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-costs td{padding-inline:5px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-costs td b{font-size:13px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-actions{gap:5px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-actions button{font-size:9px;padding-inline:6px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-buy{min-width:104px;gap:6px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-status{font-size:9px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-bay-note{font-size:8px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-card{padding:11px;gap:8px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-heading{grid-template-columns:20px minmax(0,1fr) auto;gap:7px;min-height:38px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-heading h2{font-size:14px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-icon>svg{width:20px;height:20px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-heading .mars-tier-meter{width:49px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-change{font-size:17px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .yard-catalog .mars-shop-change strong{font-size:20px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs tbody th{font-size:10px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs tbody th .outfit-mineral-icon{width:15px;height:15px;margin-right:4px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs td{padding-inline:5px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-costs td b{font-size:13px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-actions{gap:5px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-actions button{font-size:9px;padding-inline:6px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-buy{min-width:104px;gap:6px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-status{font-size:9px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-bay-note{font-size:8px}
 }
 @media(max-width:680px){
- #shipyard-services[data-screen="mars-services"][data-service-tab="upgrades"] .yard-catalog{padding:10px 10px 16px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-intro{font-size:11px;margin-bottom:10px}
- #shipyard-services[data-screen="mars-services"] .mars-shop-intro>span{display:none}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""])[data-service-tab="upgrades"] .yard-catalog{padding:10px 10px 16px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-intro{font-size:11px;margin-bottom:10px}
+ #shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-intro>span{display:none}
 }
-@media(prefers-reduced-motion:reduce){#shipyard-services[data-screen="mars-services"] .mars-shop-card,#shipyard-services[data-screen="mars-services"] .mars-shop-buy>span{transition:none}}
+@media(prefers-reduced-motion:reduce){#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-card,#shipyard-services:is([data-screen="mars-services"],[data-screen=""]) .mars-shop-buy>span{transition:none}}

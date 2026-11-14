@@ -12,7 +12,7 @@ function fixture({workerProfiles=false}={}){
  w.vexedSolFlight={shipPosition:s=>({x:s.x,y:s.y})};
  w.nativeShipEffects={hit(){},prepare:()=>Promise.resolve({assets:[{}]})};
  w.nativeCombatShots={contact:(d,from,size,shielded)=>({world:{x:d.x,y:d.y},local:{x:0,y:0},shielded})};
- load('broken-mirror-port','prometheus-effects');load('broken-mirror-port','prometheus-mvam');
+ load('broken-mirror-port','prometheus-loadouts');load('broken-mirror-port','prometheus-tactics');load('broken-mirror-port','prometheus-effects');load('broken-mirror-port','prometheus-mvam');
  const d=w.nativeShipDefinitions.get(37),s={system:2,shipType:37,x:100,y:200,angle:-Math.PI/2,hull:d.hull*.8,shields:d.shields*.6,phase:'flight',vx:0,vy:0,speed:0,civilianTraffic:{ships:[]},solEconomy:{freighters:[]}};
  w.nativeSimulation.ensure(s);w.nativeShipEquipment.ensure(s);w.nativeWeaponLoadout.refit(s,[1,10]);
  const step=seconds=>{for(let i=0;i<seconds*60;i++){w.nativeSimulation.advance(s,1/60);w.nativePrometheus.advance(s,1/60);}};
@@ -55,7 +55,7 @@ test('launch and recall preserve owned equipment, damaged hull and shields throu
  assert.equal(w.nativePrometheus.activate(s).ok,true);assert.equal(w.nativeShipDefinitions.describe(s).shipType,3702);
  assert.equal(s.prometheus.sections.length,2);
  assert.equal(w.nativeShipEquipment.canChangeHull(s,7).ok,false);assert.equal(w.nativePrometheus.blockedTravel(s).ok,false);
- for(const part of s.prometheus.sections)assert.equal(w.nativeWeaponLoadout.equipped(s,part).length,0);
+ const fitted=[...w.nativeWeaponLoadout.equipped(s),...s.prometheus.sections.flatMap(e=>w.nativeWeaponLoadout.equipped(s,e))];assert.equal(new Set(fitted.map(v=>v.instance.id)).size,fitted.length,'Separate ships cannot share an equipped weapon');assert.ok(fitted.every(v=>s.shipEquipment.instances[v.instance.id]===v.instance));
  step(9);assert.equal(s.prometheus.mode,'deployed');
  w.nativePrometheus.recall(s);step(40);
  assert.equal(s.prometheus.mode,'joined');assert.equal(w.nativeShipDefinitions.describe(s).shipType,37);
@@ -203,7 +203,7 @@ test('a returning section routes around a parked runabout and docks without cros
  const {w,s,step}=fixture(),dt=1/60;s.system=1;s.x=3000;s.y=-3000;
  vm.runInContext(fs.readFileSync(path.join(root,'broken-mirror-port/ship-traffic.js'),'utf8'),w);
  w.nativePrometheus.activate(s);step(9);
- const parked={id:'parked-test',system:1,shipType:7,x:2944,y:-3050,heading:-Math.PI/2,vx:0,vy:0,hull:100,phase:'flight'};
+ const parked={id:'parked-test',system:1,shipType:7,x:s.x-31,y:s.y+w.nativeShipDefinitions.get(37).dimensions.height*w.nativePrometheusDefinitions.part(3701).offset.y-20,heading:-Math.PI/2,vx:0,vy:0,hull:100,phase:'flight'};
  w.nativeShipSystems.register('civilian',{collect:()=>[w.nativeShipDefinitions.describe(s,parked,{category:'civilian'})],hit(){}});w.nativeShipSystems.invalidateShips(s);
  w.nativePrometheus.recall(s);let routed=false;
  for(let i=0;i<60*35&&s.prometheus.mode!=='joined';i++){
@@ -212,7 +212,7 @@ test('a returning section routes around a parked runabout and docks without cros
    const obstacle=w.nativeShipDefinitions.describe(s,parked,{category:'civilian'});
    assert.equal(w.nativeShipMotion.shipPairContact({...d,previousX:p.x,previousY:p.y},{...obstacle,previousX:parked.x,previousY:parked.y},dt),null,'The detour must clear the actual parked hull');}
  }
- assert.ok(routed,'The obstructed straight approach must choose a detour');assert.equal(s.prometheus.mode,'joined');assert.equal(parked.hull,100);
+ assert.ok(routed,'The obstructed straight approach must choose a detour '+JSON.stringify({mode:s.prometheus.mode,dockingAt:s.prometheus.dockingAt,sections:s.prometheus.sections.map(e=>({x:e.x,y:e.y,goal:e.approachTarget,avoid:e.actuatedAvoidance}))}));assert.equal(s.prometheus.mode,'joined');assert.equal(parked.hull,100);
 });
 
 test('Prometheus emergency propulsion retains manual steering and thrust at critical hull with failed main engines',()=>{

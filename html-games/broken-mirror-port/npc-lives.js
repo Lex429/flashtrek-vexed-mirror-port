@@ -316,7 +316,7 @@
     ledger=fleetLedger(life,fleet,true);const counts=new Map(),government=fleetGovernment(fleet),assignment=assignmentKey(fleet),duty=dutyKey(fleet);
     ledger.rosterVersion=fleet.rosterVersion;
     for(const type of ledger.pending)counts.set(type,(counts.get(type)||0)+1);
-    for(const ship of state.civilianTraffic.ships){if(ship.hull<=0||ship.phase==='destroyed')continue;
+    for(const ship of state.civilianTraffic.ships){if(ship.playerOwned||ship.hull<=0||ship.phase==='destroyed')continue;
       if(government!==1&&!(ship[assignment]?.governmentId===government||ship[duty]===fleet.version&&Number(ship.ownerGovernmentId)===government))continue;
       const type=ship[assignment]?.type??ship.shipType;counts.set(type,(counts.get(type)||0)+1);}
     // Reserve classes, not busy crews. Whichever eligible crew completes its
@@ -461,6 +461,8 @@
     try{
       for(const ship of state.civilianTraffic.ships){
         yield;
+        // Paid player fleet orders are military journeys, never civilian commerce.
+        if(ship.playerOwned)continue;
         // A claimed medical rescue may enter an empty or excluded system solely
         // to reach this casualty. It grants no residency, market or mining access.
         if(window.nativeShipRepairs?.claimed(state,ship)||medical(ship)&&ship.task?.status==='active'&&ship.task.requirements?.medicalReturn&&inhabited(state,ship.task.destination.system))continue;
@@ -1388,6 +1390,40 @@
     }
     value.cursor=(value.cursor+12)%local.length;window.nativeSimulationFrame?.count(state,'localSocialPasses');
   }
+  function playerFleetAction(state,ship,at){
+    const order=ship.fleetOrder||={mode:'hold',system:ship.system,x:ship.x,y:ship.y};
+    if(ship.journey){
+      const journey=ship.journey;if(at<journey.arrivalAt){schedule(state,ship,journey.arrivalAt);return;}
+      const old=ship.system;ship.system=journey.destination;Object.assign(ship,journey.to);
+      ship.heading=Math.atan2(journey.galaxyTo.y-journey.galaxyFrom.y,journey.galaxyTo.x-journey.galaxyFrom.x);
+      ship.lastJourney={...journey,progress:1,arrivedAt:at};delete ship.journey;delete ship.destinationSystem;
+      ship.phase='holding';ship.legs=finite(ship.legs)+1;indexMove(runtime.get(state),ship,old);
+    }
+    const destination=order.mode==='follow'?Number(state.system):Number(order.system);
+    const player=playerPosition(state),offset=160+(ship.id%5)*65,angle=(ship.id%8)*Math.PI/4;
+    const goal=order.mode==='follow'?{x:player.x+Math.cos(angle)*offset,y:player.y+Math.sin(angle)*offset}:
+      order.mode==='travel'?docking().center(destination,destination===1?3:0):{x:order.x,y:order.y};
+    if(!ship.task||ship.task.kind!=='player-fleet')task(state,ship,'player-fleet','Player fleet orders',
+      {system:ship.system,port:ship.port},{system:destination,port:destination===1?3:0},{},at);
+    ship.task.status='active';ship.task.destination={system:destination,port:destination===1?3:0};
+    if(ship.system!==destination){
+      delete ship.localLeg;docking().release(state,ship);const journey=createJourney(state,ship,destination,at);
+      ship.task.phase='fleet-transit';schedule(state,ship,journey.arrivalAt);return;
+    }
+    if(ship.localLeg){
+      if(order.mode==='follow'&&Math.hypot(ship.localLeg.goal.x-goal.x,ship.localLeg.goal.y-goal.y)>220){delete ship.localLeg;}
+      else if(!arriveLeg(state,ship,at)){if(order.mode==='follow')schedule(state,ship,Math.min(ship.nextActionAt,at+2));return;}
+      else {delete ship.localLeg;window.nativeShipMotion.stop(ship,{preserveImpulse:true});}
+    }
+    if(order.mode==='park'&&Math.hypot(goal.x-ship.x,goal.y-ship.y)<8){order.mode='hold';order.x=ship.x;order.y=ship.y;}
+    if(order.mode==='travel'){
+      // Travel orders hold at an unobstructed arrival stand-off, without inventing a port job.
+      order.mode='hold';order.x=ship.x;order.y=ship.y;
+    }
+    if(order.mode==='hold'||Math.hypot(goal.x-ship.x,goal.y-ship.y)<90){ship.phase='holding';ship.task.phase='fleet-hold';schedule(state,ship,at+(order.mode==='follow'?2:10));return;}
+    if(!localLeg(state,ship,goal,at,'fleet-follow',true)){ship.phase='holding';ship.task.phase='fleet-blocked';schedule(state,ship,at+5);return;}
+    if(order.mode==='follow')schedule(state,ship,Math.min(ship.nextActionAt,at+2));
+  }
   function action(state,ship,at){
     if(['destroyed','disabled'].includes(ship.phase)){interrupt(state,ship,ship.phase,at);return;}
     if(ship.scriptedDemo||ship.disputeId||ship.retaliationId||['fighting','ore-theft'].includes(ship.phase)){schedule(state,ship,now(state)+5);return;}
@@ -1399,6 +1435,7 @@
     if(ship.factionResponse&&!window.nativeFactionDefence?.engagement(state,ship)){resumeWork(state,ship,'System defence contact ended');return;}
     if(ship.navigationRequest){if(ship.navigationRequest.taskId===job?.id&&(job.status==='active'||ship.navigationRequest.phase==='parking'&&ship.dockingMove)){advanceNavigation(state,ship,at);return;}delete ship.navigationRequest;runtime.get(state)?.navigation?.delete(ship);}
     if(ship.factionResponse){const target=window.nativeFactionDefence?.engagement(state,ship);if(target)respondToThreat(state,ship,target,at);else resumeWork(state,ship,'System defence contact ended');return;}
+    if(ship.playerOwned){playerFleetAction(state,ship,at);return;}
     if(ship.travelResume){if(ship.localLeg&&!arriveLeg(state,ship,at))return;localTravelLeg(state,ship,at);return;}
     if(job?.phase==='mining-departure'){
       if(at<job.requirements.departureAt){schedule(state,ship,job.requirements.departureAt);return;}

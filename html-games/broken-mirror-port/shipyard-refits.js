@@ -129,7 +129,21 @@
  function buy(s,id,save){return atomic(s,()=>{
   const offer=models.get(String(id))||(id==='basic-dot'?window.nativeShipEquipment.model(id):null);if(!offer)return {ok:false,error:'Unknown Federation equipment.'};
   const paid=charge(s,offer);if(!paid.ok)return paid;const result=window.nativeShipEquipment.grant(s,offer.id);
-  return {...result,message:offer.name+' added to your locker. Fit it in Current Build.'};
+  return {...result,message:(window.nativeWeaponGrades?.model(offer)?.name||offer.name)+' added to your locker. Fit it in Equipment.'};
+ },save);}
+ function weaponQuote(s,id){
+  const entry=window.nativeShipEquipment.ownedWeapons(s).find(value=>value.instance.id===id);
+  if(!entry)return null;
+  const equipment=window.nativeShipEquipment,stage=equipment.weaponGrade(entry.instance),base=equipment.model(entry.instance.modelId),factor=stage===0?.5:1;
+  const materials=Object.keys(base.materials||{}).length?base.materials:{tritanium:Math.max(2,Math.ceil((base.price||1000)/2000)),dilithium:Math.max(1,Math.ceil((base.power||1)*2))};
+  return {...entry,level:stage+1,max:3,before:equipment.forInstance(entry.instance),after:equipment.forInstance(entry.instance,Math.min(2,stage+1)),price:Math.max(1,Math.round((base.price||1000)*factor)),materials:Object.fromEntries(Object.entries(materials).map(([key,n])=>[key,Math.max(1,Math.ceil(n*factor))])),allowed:stage<2};
+ }
+ function upgradeWeapon(s,id,save){return atomic(s,()=>{
+  const q=weaponQuote(s,id);if(!q)return {ok:false,error:'Choose a weapon you own.'};
+  if(!q.allowed)return {ok:false,error:'This weapon is fully upgraded.'};
+  const paid=charge(s,q);if(!paid.ok)return paid;
+  const result=window.nativeShipEquipment.advanceWeaponGrade(s,id);
+  return {...result,message:q.after.name+' installed. Recharge improved.'};
  },save);}
  function fit(s,id,slot,save){return atomic(s,()=>{
   const eq=window.nativeShipEquipment.ensure(s),item=eq.instances[id],index=eq.locker.indexOf(id);
@@ -153,6 +167,6 @@
   const adapted=shield.id==='fed-adaptive'&&family!=='unknown'&&previous?.family===family&&now-previous.lastHit<=8;
   s.shieldResponse={lastHit:now,family};return adapted?Math.max(0,amount-Math.min(amount,Math.max(0,Number(s.shields)||0)/.8)*.2):amount;
  }
- window.nativeShipyardRefits=Object.freeze({upgrades,weapons,shields,model:id=>models.get(String(id)),level,budget,slots,stats,quote,preview,validateFit,docked,upgrade,upgradeThrusters,remove,buy,fit,unfit,advance,shieldHit,
+ window.nativeShipyardRefits=Object.freeze({upgrades,weapons,shields,model:id=>models.get(String(id)),level,budget,slots,stats,quote,preview,validateFit,docked,upgrade,upgradeThrusters,remove,buy,weaponQuote,upgradeWeapon,fit,unfit,advance,shieldHit,
   canMineralUpgrade:()=>true});
 })();

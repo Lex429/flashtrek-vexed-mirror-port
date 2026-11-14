@@ -43,6 +43,44 @@ try:
   assert page.locator('#ship-loot [data-owner="player"] .loot-grid').is_visible()
   source=page.locator('#ship-loot .loot-owner[data-owner="source"]');player=page.locator('#ship-loot .loot-owner[data-owner="player"]')
   assert player.bounding_box()['x']<source.bounding_box()['x']
+  page.wait_for_function('()=>document.querySelectorAll("#ship-loot [data-ship-preview].ready").length===2',timeout=60000)
+  assert source.locator('.inventory-rig .inventory-slot.filled').count()>0 and player.locator('.inventory-rig .inventory-slot.filled').count()>0
+  assert source.locator('.inventory-drone-bays').is_visible() and player.locator('.inventory-drone-bays').is_visible()
+  assert page.evaluate('''()=>{const s=nativeNpcDev.getState(),cells=nativeShipEquipment.inventoryLayout(s).cells;return [...document.querySelectorAll('#ship-loot [data-owner="player"] .inventory-grid [data-inventory-cell]')].every(n=>n.dataset.itemKey===(cells[Number(n.dataset.inventoryCell)]||''));}''')
+  assert source.locator('.inventory-grid [data-equipment-place="slot"]').count()==0
+  source.locator('.inventory-rig .inventory-slot.filled').first.hover()
+  assert page.locator('#ship-loot .inventory-detail-heading').is_visible()
+  assert page.locator('#ship-loot [data-equipment-action],#ship-loot [data-repair-device]').count()==0
+  # Test the visible hit areas against every clipping ancestor, not just each
+  # grid's scrollHeight: a clipped parent previously hid the page buttons.
+  report['layoutSizes']=[]
+  for width,height in [(1366,768),(1280,720),(1024,600),(960,540),(800,600),(620,800),(1440,1000)]:
+   page.set_viewport_size({'width':width,'height':height})
+   page.wait_for_timeout(350)
+   clipping=page.evaluate('''()=>{
+    const panel=document.querySelector('#ship-loot'),failures=[];
+    for(const node of panel.querySelectorAll('.loot-page-nav,.loot-page-nav button,.loot-grid,.loot-grid .inventory-item,.inventory-bay-pages:not([hidden]),.inventory-rig .inventory-slot:not([hidden]),.inventory-drone-grid .inventory-slot:not([hidden])')){
+     const rect=node.getBoundingClientRect();let left=rect.left,right=rect.right,top=rect.top,bottom=rect.bottom;
+     for(let parent=node.parentElement;parent;parent=parent.parentElement){
+      const css=getComputedStyle(parent),bounds=parent.getBoundingClientRect();
+      if(/hidden|clip|auto|scroll/.test(css.overflowX)){left=Math.max(left,bounds.left);right=Math.min(right,bounds.right);}
+      if(/hidden|clip|auto|scroll/.test(css.overflowY)){top=Math.max(top,bounds.top);bottom=Math.min(bottom,bounds.bottom);}
+     }
+     if(rect.height<1||right-left<rect.width-2||bottom-top<rect.height-2)failures.push({owner:node.closest('[data-owner]').dataset.owner,classes:node.className,height:rect.height,visibleHeight:bottom-top});
+     if(node.matches('button:not(:disabled)')){const hit=document.elementFromPoint((rect.left+rect.right)/2,(rect.top+rect.bottom)/2);if(!node.contains(hit))failures.push({classes:node.className,coveredBy:hit?.className});}
+    }
+    return failures;
+   }''')
+   assert not clipping,(width,height,clipping)
+   page.screenshot(path=str(OUT/f'inventories-{width}x{height}.png'))
+   report['layoutSizes'].append([width,height])
+  # Hovering between details of different lengths must never resize the bag
+  # under the mouse or move its page controls.
+  source.locator('.inventory-rig .inventory-slot.filled').first.hover()
+  geometry=source.locator('.loot-grid').bounding_box()
+  source.locator('.loot-grid .loot-tile').first.hover()
+  assert source.locator('.loot-grid').bounding_box()==geometry
+  page.screenshot(path=str(OUT/'actual-inventory-pages.png'))
   page.evaluate('''()=>{window.__lootTransferWitness={ghost:false,delta:false};window.__lootTransferObserver=new MutationObserver(()=>{const w=__lootTransferWitness;w.ghost ||= !!document.querySelector('.loot-transfer-ghost');w.delta ||= !!document.querySelector('#ship-loot [data-owner="player"] .loot-received-delta');});__lootTransferObserver.observe(document.querySelector('#ship-loot'),{childList:true,subtree:true});}''')
   page.locator('#ship-loot .loot-tile[data-loot-key="cargo"]').click()
   page.wait_for_function('()=>__lootTransferWitness.ghost&&__lootTransferWitness.delta',timeout=3000)
@@ -58,9 +96,16 @@ try:
   assert player.locator('.loot-page-number').inner_text()==wheel_page
   assert page.locator('#ship-loot .loot-grid').evaluate_all('(nodes)=>nodes.every(n=>n.scrollTop===0&&n.scrollHeight<=n.clientHeight+1)')
   ids=page.evaluate('''()=>{const s=nativeNpcDev.getState(),e=nativeNpcLives.find(s,s.devLootDemo.ships[0].id);return {engine:e.shipEquipment.slots.engineering[0],weapon:e.shipEquipment.slots.weapon[0]};}''')
+  source.locator('[data-bay-page="next"]').click()
   source.locator('input').fill('engine')
+  assert source.locator('.inventory-bay-pages span').inner_text().startswith('Bays 1 /')
+  page.evaluate('''()=>{window.__lootStableControls={canvases:[...document.querySelectorAll('#ship-loot [data-ship-preview]')],weapon:document.querySelector('#ship-loot [data-owner="source"] [data-equipment-kind="weapon"][data-equipment-index="0"]'),pages:[...document.querySelectorAll('#ship-loot [data-bay-page]')]};}''')
   source.locator('.loot-tile[data-loot-key="equipment:'+ids['engine']+'"]').click()
+  assert page.evaluate('''()=>__lootStableControls.canvases.every(n=>n.isConnected&&n.classList.contains('ready'))&&__lootStableControls.weapon.isConnected&&__lootStableControls.pages.every(n=>n.isConnected)''')
   assert page.evaluate('''id=>{const s=nativeNpcDev.getState(),e=nativeNpcLives.find(s,s.devLootDemo.ships[0].id);return !e.shipEquipment.instances[id]&&s.shipEquipment.locker.some(k=>s.shipEquipment.instances[k].modelId==='standard-engine');}''',ids['engine'])
+  source.locator('input').fill('')
+  assert source.locator('.inventory-rig [data-equipment-kind="engineering"][data-equipment-index="0"]').get_attribute('data-item-key')==''
+  assert player.locator('.inventory-grid .inventory-weapon-tile.received').count()==1
   source.locator('input').fill('');source.locator('.loot-tile[data-loot-key="equipment:'+ids['weapon']+'"]').click()
   assert page.evaluate('''id=>!nativeNpcLives.find(nativeNpcDev.getState(),nativeNpcDev.getState().devLootDemo.ships[0].id).shipEquipment.instances[id]''',ids['weapon'])
   source.locator('input').press_sequentially('shield');assert page.evaluate('nativeShipLootView.active')
@@ -68,7 +113,7 @@ try:
   source.locator('input').fill('')
   # Put existing Dev locker items aboard through the shared owner so Take All
   # must traverse several pages; no fixture item is copied or fabricated.
-  page.evaluate('''()=>{const s=nativeNpcDev.getState(),e=nativeNpcLives.find(s,s.devLootDemo.ships[0].id);for(const id of s.shipEquipment.locker.filter(id=>s.shipEquipment.instances[id].category!=='repairDrone').slice(0,15)){const moved=nativeShipEquipment.transfer(s,{from:s,to:e,id});if(!moved.ok)throw Error(moved.error);}}''')
+  page.evaluate('''()=>{const s=nativeNpcDev.getState(),e=nativeNpcLives.find(s,s.devLootDemo.ships[0].id);for(const id of s.shipEquipment.locker.filter(id=>s.shipEquipment.instances[id].category!=='repairDrone').slice(0,document.querySelectorAll('#ship-loot [data-owner=source] [data-inventory-cell]').length+4)){const moved=nativeShipEquipment.transfer(s,{from:s,to:e,id});if(!moved.ok)throw Error(moved.error);}}''')
   source.locator('input').fill(' ');source.locator('input').fill('')
   assert source.locator('[data-loot-page="next"]').is_enabled()
   source.locator('[data-loot-page="next"]').click();assert not source.locator('.loot-page-number').inner_text().startswith('1 /')
@@ -102,7 +147,7 @@ try:
   neutral=page.evaluate('''()=>{const s=nativeNpcDev.getState();return {owners:s.devLootDemo.ships.map(r=>nativeNpcLives.find(s,r.id).ownerGovernmentId),solStanding:s.localPrestige[1],otherStanding:s.localPrestige[2],solAggressors:s.factionDefence.systems[1].aggressors,otherAggressors:s.factionDefence.systems[2].aggressors};}''')
   assert neutral['owners']==[0,0,0] and neutral['solStanding']==100 and not neutral['solAggressors'] and neutral['otherStanding']==25 and neutral['otherAggressors'][0]['id']=='player',neutral
   assert not report['errors'],report['errors']
-  report.update(passed=True,initial=initial,liveDots=True,actualLootPanel=True,realCargoTransfer=True,singleClick=True,transferAnimation=True,quantityIncrease=True,playerOnLeft=True,pagination=True,noScrollWheel=True,takeAllAcrossPages=True,failedTakeAllRollback=True,oneBulkSave=True,searchWorks=True,bothInventories=True,smallScreen=True,oldDevNeutrality=neutral,continuePreserved=True);browser.close()
+  report.update(passed=True,initial=initial,liveDots=True,actualLootPanel=True,realCargoTransfer=True,singleClick=True,transferAnimation=True,quantityIncrease=True,playerOnLeft=True,pagination=True,noScrollWheel=True,takeAllAcrossPages=True,failedTakeAllRollback=True,oneBulkSave=True,searchWorks=True,bothInventories=True,nativeInventoryPages=True,savedInventoryPositions=True,fittedGearInBays=True,foreignFitControlsHidden=True,smallScreen=True,oldDevNeutrality=neutral,continuePreserved=True);browser.close()
 finally:
  server.shutdown();(OUT/'browser.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
 print(json.dumps(report))

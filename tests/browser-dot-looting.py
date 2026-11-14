@@ -61,19 +61,23 @@ try:
         page.locator('.loot-close').click()
         # Exercise the existing controller dispatch, not only its menu helper.
         page.evaluate('''()=>{window.__lootPad={id:'Standard Gamepad',index:1,connected:true,mapping:'standard',axes:[0,0,0,0],buttons:Array.from({length:18},()=>({pressed:false,value:0}))};
-          window.__lootPadConnected=true;Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>__lootPadConnected?[null,__lootPad]:[]});}''')
+          window.__lootPadConnected=true;window.__lootPadSamples=[];Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>{if(__lootPadSamples.length<2000)__lootPadSamples.push({at:performance.now(),buttons:__lootPad.buttons.flatMap((b,i)=>b.pressed?[i]:[]),focused:document.activeElement?.dataset.itemKey||document.activeElement?.tagName});return __lootPadConnected?[null,__lootPad]:[];}});}''')
         def press_pad(index):
-            page.evaluate('i=>{__lootPad.buttons[i]={pressed:true,value:1};}',index);page.wait_for_timeout(140)
-            page.evaluate('i=>{__lootPad.buttons[i]={pressed:false,value:0};}',index);page.wait_for_timeout(140)
+            # Keep each hardware state until the real game loop samples it.
+            # A fixed sleep could press and release entirely between cold-art frames.
+            started=page.evaluate('i=>{__lootPad.buttons[i]={pressed:true,value:1};return performance.now();}',index)
+            page.wait_for_function('([i,at])=>__lootPadSamples.some(s=>s.at>=at&&s.buttons.includes(i))',arg=[index,started],timeout=5000)
+            released=page.evaluate('i=>{__lootPad.buttons[i]={pressed:false,value:0};return performance.now();}',index)
+            page.wait_for_function('([i,at])=>__lootPadSamples.some(s=>s.at>=at&&!s.buttons.includes(i))',arg=[index,released],timeout=5000)
         page.wait_for_function('()=>document.querySelector("#controller-status").dataset.state==="connected"&&document.hasFocus()',timeout=15000)
         page.wait_for_timeout(200);press_pad(0)
         assert page.evaluate('nativeShipLootView.active'),page.evaluate('''()=>({lock:nativeTargetingActions.snapshot().lock,notice:document.querySelector('#connection').textContent,pause:nativePause.active,inventory:nativeShipInventory.active,modal:!document.querySelector('#modal').hidden,menu:!document.querySelector('#menu-art').hidden,game:__lootState&&{landed:__lootState.landed,localCruise:__lootState.localCruise,hull:__lootState.hull},target:__lootState&&nativeCivilianTraffic.target(__lootState)?.phase})''')
         source=page.locator('#ship-loot [data-owner="source"]')
         source.locator('select').select_option('equipment');source.locator('select').focus();press_pad(13)
-        assert page.evaluate("document.activeElement?.matches('#ship-loot [data-owner=source] .loot-tile')")
+        assert page.evaluate("document.activeElement?.matches('#ship-loot [data-owner=source] .loot-tile')"),page.evaluate('''()=>({samples:__lootPadSamples.slice(-35),focused:document.activeElement?.outerHTML,active:nativeShipLootView.active,notice:document.querySelector('#connection').textContent})''')
         controller_item=page.evaluate('document.activeElement.dataset.itemKey')
         press_pad(0)
-        assert page.evaluate('(key)=>!__lootState.civilianTraffic.ships.find(e=>e.id===__victim).shipEquipment.instances[key.slice(10)]',controller_item)
+        assert page.evaluate('(key)=>!__lootState.civilianTraffic.ships.find(e=>e.id===__victim).shipEquipment.instances[key.slice(10)]',controller_item),page.evaluate('''key=>({key,samples:__lootPadSamples.slice(-35),focused:document.activeElement?.outerHTML,message:document.querySelector('#ship-loot .loot-message').textContent,notice:document.querySelector('#connection').textContent,active:nativeShipLootView.active,phase:__lootState.civilianTraffic.ships.find(e=>e.id===__victim).phase})''',controller_item)
         assert page.evaluate('__lootState.solFreightHold[5]')==8
         press_pad(1);assert not page.evaluate('nativeShipLootView.active||nativePause.active')
         page.evaluate('__lootPadConnected=false');page.wait_for_timeout(160)
@@ -101,7 +105,7 @@ try:
         page.keyboard.press('i');page.wait_for_selector('#ship-inventory canvas.ready',timeout=60000)
         locker_index=page.evaluate('(id)=>__lootState.shipEquipment.locker.indexOf(id)',stolen['id'])
         page.locator(f'#ship-inventory [data-equipment-kind="engineering"][data-equipment-place="locker"][data-equipment-index="{locker_index}"]').click()
-        assert page.locator('.inventory-detail-heading strong').inner_text()==fixture['itemName']
+        assert page.locator('#ship-inventory .inventory-detail-heading strong').inner_text()==fixture['itemName']
         page.screenshot(path=str(OUT/'stolen-equipment-inventory.png'));page.locator('.inventory-close').click()
         # Normal save/Continue keeps the same fleet, stolen belongings and destroyed DOTs.
         page.locator('#pauseBtn').click();page.locator('#pause-menu [data-save]').click();page.reload()

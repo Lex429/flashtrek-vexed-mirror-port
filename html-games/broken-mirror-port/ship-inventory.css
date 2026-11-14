@@ -1,4 +1,13 @@
 /* Vexed Mirror vessel console. Presentation reads the shared equipment owner. */
+.inventory-prometheus { display: grid; gap: 7px; flex: none; padding: 0 0 8px; }
+.inventory-prometheus-tabs { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
+#ship-inventory .inventory-prometheus-tabs button { min-width: 0; padding: 8px 6px; border: 1px solid #53818466; border-radius: 5px; background: #10252d; color: #b6cdd0; text-align: left; }
+#ship-inventory .inventory-prometheus-tabs button[aria-selected=true] { background: #1c4149; border-color: #9ae5e1; color: #efffff; box-shadow: inset 0 -2px #8cddd9; }
+.inventory-prometheus-tabs strong,.inventory-prometheus-tabs small { display: block; overflow: hidden; text-overflow: ellipsis; }
+.inventory-prometheus-tabs small { font-size: 9px; line-height: 1.3; opacity: .8; }
+.inventory-prometheus-pilot { display: flex; align-items: center; justify-content: space-between; gap: 7px; font-size: 10px; color: #a7c3c7; }
+#ship-inventory .inventory-prometheus-pilot button { padding: 6px 10px; border: 1px solid #8cddd977; border-radius: 4px; background: #23434c; color: #d9ffff; flex: none; }
+.inventory-prometheus-help { margin: 0; color: #91aeb4; font-size: 10px; }
 #ship-inventory[hidden] { display: none; }
 #ship-inventory {
   --ink: #edf5f5; --muted: #8ba6ad; --cyan: #8cddd9;

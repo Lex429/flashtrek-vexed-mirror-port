@@ -122,7 +122,22 @@ fitted tool. The explicit legacy ability model IDs are 20, 22, 23, 24 and 25. Mo
 engineering. Zero weapon damage alone does not classify equipment. This change
 provides saved ability ownership and independent fitting; it does not invent new
 activation effects for the original utility catalog. There is no reactor/energy
-resource. Fitted weapons keep the existing model recharge times.
+resource. Grade I weapons keep the existing model recharge times. Per-copy
+weapon grades use `instance.weaponGrade = {version:1,level:0|1|2}` for I, V and X.
+Older instances without that field read as I without losing their current stats.
+`weapon-catalog.js` owns the family names and recharge factors (1, .75, .5).
+`nativeShipEquipment.forInstance` supplies one cached effective model to firing,
+HUD, Inventory, shipyard, looting and separated-section loadouts. Damage, range,
+power, model IDs and visuals remain model-owned. Only subsequent cooldowns use
+the improved recharge; purchasing a grade retains the current `readyAt` deadline.
+
+`shipyard-refits.weaponQuote` and `upgradeWeapon` quote, charge and verify the
+save for one owned copy through the existing atomic transaction. V costs half
+the base purchase price and half its materials (rounded up); X costs the full base amounts.
+Legacy models without material prices use the shared quote's tritanium/dilithium
+requirements. Grades follow the same instance through fitting, storage, hull
+changes, transfers and JSON reload. The shop sells I; each shipyard's Upgrades
+page lists only equipped/stored copies owned by the player.
 
 Inventory shows every bay, installed item or Empty label, and cargo use/capacity.
 Drag an installed item into any inventory tile to unequip it, or drag stored
@@ -477,3 +492,47 @@ fitted engine/shield condition for free, retaining stored device condition.
 Checks: `shield-maintenance.test.cjs` and `browser-shield-maintenance.py`, plus
 the unified equipment and Inventory layout regressions. Browser evidence stays
 in ignored `test-results/shield-maintenance/`.
+
+Prometheus Inventory offers Combined ship, Alpha, Beta and Gamma views. Browsing
+a view changes only the inspected hull; Pilot transfers command to a living
+separated section at its existing pose, velocity, hull and shield energy. The
+previous pilot becomes an ordinary MVAM escort. Lost sections remain inspectable
+but cannot be piloted until reconstructed.
+
+`prometheus-loadouts.js` saves version-1 `prometheusLoadouts` plans and separate
+tile arrangements. Plans contain references to canonical `shipEquipment.instances`,
+never copies. Combined and one section may reference the same weapon because
+those modes are exclusive; equipping that weapon on another section moves its
+reference. The shared combat owner consumes its one existing recharge state.
+Each section keeps its firing cursor, and rejoining restores the combined
+configuration and cursor. Cargo, money, supplies, engineering, shield fittings
+and command DOT ownership remain shared; fit shared systems from Combined ship.
+Opening an older save assigns already-owned weapons to the section plans without
+granting equipment. The UI labels weapons assigned to another section.
+
+Checks: `prometheus-loadouts.test.cjs`, `prometheus-reconstruction.test.cjs` and
+`browser-prometheus-inventory.py`, alongside the existing Prometheus, survival
+and unified-equipment checks. Browser evidence is in ignored
+`test-results/prometheus-inventory/`.
+
+
+Prometheus combat intent lives in `prometheus-tactics.js`. The pilot's current
+ship lock selects one shared target; clearing it returns the escorts to formation.
+Section-specific fitted weapon ranges set their distances, opposing flanks spread
+the attack, and moving target prediction and bounded strafing keep those lanes
+active. Damaged sections withdraw while healthy sections maintain pressure.
+Shared movement, collision, firing arcs, recharge and damage remain authoritative.
+Blue MVAM exhaust is painted only while separating or recalling.
+
+Release reanchoring preserves the ongoing separation when command changes. Recall
+uses separate close approach lanes, including when Alpha or Gamma pilots both
+other sections. Closing speed reserves acceleration for the moving, rotating dock;
+shared vector avoidance releases obsolete detours and follows rotating obstacles.
+Each section latches independently; remaining sections route around both the pilot
+and already captured sections. Version-1 recalls migrate to the saved per-section
+capture stages without changing hull, inventory or pose.
+Tests include early recall, repeated requests, release-time command changes,
+normal/cruise turns for every pilot, parked hulls, missing sections and reloads.
+`prometheus-tactics.test.cjs` and `browser-prometheus-tactics.py` cover focus fire,
+retargeting, flanks, damaged-section recovery and exhaust gating. Evidence is in
+ignored `test-results/prometheus-tactics/`.

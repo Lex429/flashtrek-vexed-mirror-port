@@ -60,7 +60,7 @@
   canvas.addEventListener('pointermove', event => {
     const marker = pointedMarker(event);
     canvas.style.cursor = marker ? 'pointer' : 'zoom-in';
-    canvas.title = marker ? `Click to ${marker.kind === 'shipyard' ? 'contact' : marker.kind === 'planet' ? 'select' : 'target'} ${marker.name}; double-click to open map [M]` : 'Double-click to open map [M]';
+    canvas.title = marker ? `Click to ${['shipyard','heavy-shipyard'].includes(marker.kind) ? 'contact' : marker.kind === 'planet' ? 'select' : 'target'} ${marker.name}; double-click to open map [M]` : 'Double-click to open map [M]';
   });
   canvas.addEventListener('click', event => {
     clearTimeout(clickTimer);
@@ -69,7 +69,9 @@
     if (!marker) return;
     clickTimer = setTimeout(() => {
       if (canvas.hidden) return;
-      if (marker.kind === 'shipyard') {
+      if (marker.kind === 'heavy-shipyard') {
+        window.nativeShipConstructionUI?.open();
+      } else if (marker.kind === 'shipyard') {
         window.nativeShipyardServices?.select();
       } else if (marker.kind === 'planet') {
         window.nativeManualFlight?.clearTracking?.();
@@ -332,6 +334,8 @@
       ctx.fillStyle='#f5cd7c';ctx.fillRect(point.x-1,point.y-1,2,2);
       hitMarkers.push({kind:'shipyard',id:yard.id,name:yard.name,x:point.x,y:point.y});
     }
+    const heavy=window.nativeShipConstruction?.position(state);
+    if(heavy){const point=radarPoint(heavy.x-player.x,heavy.y-player.y);ctx.strokeStyle='#ffdc8e';ctx.lineWidth=1.5;ctx.strokeRect(point.x-4,point.y-4,8,8);hitMarkers.push({kind:'heavy-shipyard',id:'earth-heavy-shipyard',name:'Earth Heavy Shipyard',x:point.x,y:point.y});}
     const selectedShip = nearby.find(ship => shipTarget && ship.kind === targetKind && ship.id === shipTarget.id);
     for (const ship of nearby) if (ship !== selectedShip) shipMarker(ship, player, false);
     if (selectedShip) {

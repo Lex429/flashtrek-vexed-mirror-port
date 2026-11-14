@@ -1,5 +1,13 @@
 [
   {
+    "name": "Earth Heavy Shipyard construction, fleet purchases and saved command transfer",
+    "run": "python tests/browser-ship-construction.py"
+  },
+  {
+    "name": "Full construction visibility across desktop, phone and complete launch",
+    "run": "python tests/browser-construction-visibility.py"
+  },
+  {
     "name": "Flight, jobs, combat and showcase browser smoke",
     "run": "python tests/browser-smoke.py"
   },
@@ -40,6 +48,10 @@
     "run": "python tests/browser-mars-upgrade-effects.py"
   },
   {
+    "name": "Owned weapon stages, base-only purchases, Inventory and saved recharge upgrades",
+    "run": "python tests/browser-weapon-progression.py"
+  },
+  {
     "name": "Physical faction shipyards, saved docking and shared outfitting / tests/browser-shipyard-equipment.py",
     "run": "python tests/browser-shipyard-equipment.py"
   },
@@ -62,6 +74,10 @@
   {
     "name": "Full-roster weapon mounts, aligned damage frames and visible launches",
     "run": "python tests/browser-weapon-mounts.py"
+  },
+  {
+    "name": "Newborn projectile tails stay ahead of the launch plane in GPU and Canvas",
+    "run": "python tests/browser-projectile-tail.py"
   },
   {
     "name": "Retained GPU shield pixels, default gameplay, pause and context recovery",
