@@ -744,12 +744,15 @@
   const deferredPair=Object.freeze({paint(){}});
   function beginBatch(view){prepare();if(!program||lost||failed)return false;batch={view,draws:0};return true;}
   function endBatch(){
-    if(!batch)return null;const view=batch.view,draws=batch.draws;batch=null;gl.disable(gl.SCISSOR_TEST);gl.disable(gl.BLEND);
+    if(!batch)return null;const view=batch.view,draws=batch.draws,mode=batch.mode;batch=null;gl.disable(gl.SCISSOR_TEST);gl.disable(gl.BLEND);
     if(!draws)return null;
-    const w=pairWidth,h=pairHeight;for(let i=0;i<2;i++)blitLayer(i,w,h,i*w);
-    batchAtlas||=document.createElement('canvas');if(batchAtlas.width!==w*2||batchAtlas.height!==h){batchAtlas.width=w*2;batchAtlas.height=h;}
-    const ctx=batchAtlas.getContext('2d');ctx.globalCompositeOperation='copy';ctx.drawImage(output,0,0);ctx.globalCompositeOperation='source-over';stats.batchRenders=(stats.batchRenders||0)+1;
+    const w=pairWidth,h=pairHeight;if(mode==='gpu')retainGpuBatch(w,h);stats.batchRenders=(stats.batchRenders||0)+1;
     return {paint(ctx,pass){ctx.drawImage(batchAtlas,pass==='front'?w:0,0,w,h,0,0,view.w,view.h);}};
+  }
+  function retainGpuBatch(w,h){
+    for(let i=0;i<2;i++)blitLayer(i,w,h,i*w);
+    batchAtlas||=document.createElement('canvas');if(batchAtlas.width!==w*2||batchAtlas.height!==h){batchAtlas.width=w*2;batchAtlas.height=h;}
+    const ctx=batchAtlas.getContext('2d');ctx.globalCompositeOperation='copy';ctx.drawImage(output,0,0);ctx.globalCompositeOperation='source-over';
   }
   function releaseField(field){const bank=fieldUploads.get(field);if(!bank)return;for(const texture of bank.textures)gl?.deleteTexture(texture);fieldUploads.delete(field);if(uploadedField===field)uploadedField=null;stats.retainedFields=fieldUploads.size;}
   function selectField(field){
@@ -1121,12 +1124,23 @@
     gl.uniform4f(loc.u_tile,tile?.x||0,tile?.y||0,tile?.halfWidth||0,tile?.halfHeight||0);gl.uniform1f(loc.u_feather,tile?.feather||0);
     gl.uniform4f(loc.u_badlands,o?.x||0,o?.y||0,o?.rx||0,o?.ry||0);gl.uniform4f(loc.u_badlandsEnvelope,o?.supportRx||1,o?.supportRy||1,o?.spread||1,0);
     if(batch&&options.pair){
-      if(!batch.draws){gl.clearBufferfv(gl.COLOR,0,new Float32Array(4));gl.clearBufferfv(gl.COLOR,1,new Float32Array(4));}
-      gl.enable(gl.BLEND);if(tile)gl.blendFunc(gl.ONE,gl.ONE);else gl.blendFuncSeparate(gl.ONE,gl.ONE_MINUS_SRC_COLOR,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
-      const r=options.clip;if(r){const x=Math.round(r.x*w/view.w),right=Math.round((r.x+r.w)*w/view.w),top=Math.round(r.y*h/view.h),bottom=Math.round((r.y+r.h)*h/view.h);gl.enable(gl.SCISSOR_TEST);gl.scissor(x,h-bottom,right-x,bottom-top);}
+      if(tile&&batch.mode!=='canvas'){
+        batch.mode='gpu';if(!batch.draws){gl.clearBufferfv(gl.COLOR,0,new Float32Array(4));gl.clearBufferfv(gl.COLOR,1,new Float32Array(4));}
+        gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);const r=options.clip;if(r){const x=Math.round(r.x*w/view.w),right=Math.round((r.x+r.w)*w/view.w),top=Math.round(r.y*h/view.h),bottom=Math.round((r.y+r.h)*h/view.h);gl.enable(gl.SCISSOR_TEST);gl.scissor(x,h-bottom,right-x,bottom-top);}
+      }else{if(batch.mode==='gpu')retainGpuBatch(w,h);batch.mode='canvas';gl.bindFramebuffer(gl.FRAMEBUFFER,pairFramebuffer);}
     }
     gl.drawArrays(gl.TRIANGLES,0,3);
-    if(batch&&options.pair){batch.draws++;gl.disable(gl.SCISSOR_TEST);gl.disable(gl.BLEND);stats.pairRenders++;return deferredPair;}
+    if(batch&&options.pair){
+      if(batch.mode==='gpu'){batch.draws++;gl.disable(gl.SCISSOR_TEST);gl.disable(gl.BLEND);stats.pairRenders++;return deferredPair;}
+      // Cross the same premultiplied Canvas boundary as individual pairs before
+      // blending. GPU framebuffer screen blending rounded translucent edges
+      // differently on software drivers, changing the original painted pixels.
+      for(let i=0;i<2;i++)blitLayer(i,w,h,i*w);
+      batchAtlas||=document.createElement('canvas');if(batchAtlas.width!==w*2||batchAtlas.height!==h){batchAtlas.width=w*2;batchAtlas.height=h;}
+      const ctx=batchAtlas.getContext('2d');if(!batch.draws)ctx.clearRect(0,0,w*2,h);
+      for(let i=0;i<2;i++){ctx.save();ctx.globalCompositeOperation=tile?'lighter':'screen';const r=options.clip;if(r){ctx.beginPath();ctx.rect(i*w+r.x*w/view.w,r.y*h/view.h,r.w*w/view.w,r.h*h/view.h);ctx.clip();}ctx.drawImage(output,i*w,0,w,h,i*w,0,w,h);ctx.restore();}
+      batch.draws++;stats.batchCanvasComposites=(stats.batchCanvasComposites||0)+1;stats.pairRenders++;return deferredPair;
+    }
     if(options.pair){stats.pairRenders++;if(options.direct){
       // Both optical layers cross the WebGL/Canvas boundary together. Retain
       // one atlas before painting ships, so front-layer presentation cannot

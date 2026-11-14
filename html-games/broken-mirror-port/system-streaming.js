@@ -92,7 +92,9 @@
       const type=descriptor.shipType,stage=window.nativeShipDefinitions.stage(descriptor),category=descriptor.category;
       jobs.set('ship:'+type+':'+stage,async()=>{
         for(let attempt=0;attempt<240;attempt++){
-          check();const asset=await window.nativeShipEffects.request(type,category,{stage,prefetch:true});
+          // Keep required arrival plates in the visible working set through
+          // handoff, rather than admitting them as disposable prefetches.
+          check();const asset=await window.nativeShipEffects.request(type,category,{stage,visible:true});
           if(asset)return asset;await yieldFrame();
         }
         throw Error('Arrival ship artwork is still busy. Retry destination loading.');

@@ -44,7 +44,7 @@ try:
         assert report['live']['shipCount'] == 1 and report['live']['physicalShips'] == 1
         # Keep the real completed scene, but stop new game draws while testing
         # exact pixel/owner transitions. This is not a performance measurement.
-        page.evaluate('''()=>{const raf=requestAnimationFrame.bind(window);window.requestAnimationFrame=fn=>fn.name==='draw'?0:raf(fn);}''')
+        page.evaluate('''()=>{const raf=requestAnimationFrame.bind(window);window.requestAnimationFrame=fn=>fn.name==='draw'?0:raf(fn);window.nativeSimulation={...nativeSimulation,blocked:()=>true};nativeSimulationHost.checkpoint();}''')
         page.wait_for_timeout(100)
         report['transitions'] = page.evaluate('''async()=>{
           const s=nativeNpcDev.getState(),api=__rockApi,initial=nativeDevFog.material(),view={...__rockLive[0],ship:vexedSolFlight.shipPosition(s)};

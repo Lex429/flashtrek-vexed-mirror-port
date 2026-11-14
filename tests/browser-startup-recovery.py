@@ -112,6 +112,7 @@ def main():
                     fixture=page.evaluate('JSON.stringify(__npcPerfState)')
                     report['continueSaveSha256']=hashlib.sha256(fixture.encode()).hexdigest()
                 page.bring_to_front()
+                page.wait_for_function('()=>!nativeMenuTransition.snapshot().active&&document.querySelector("#modal").hidden',timeout=30000)
                 page.locator('#space').focus()
                 # Branded Brave can defer its first headless composited frame.
                 # Record that startup wait; send real flight input after paint.

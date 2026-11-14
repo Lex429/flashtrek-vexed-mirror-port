@@ -1,6 +1,16 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>
+if ('serviceWorker' in navigator && /^(www\.)?vexedmirror\.com$/.test(location.hostname)) {
+  if (!navigator.serviceWorker.controller) {
+    let refreshing=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!refreshing){refreshing=true;location.reload();}});
+  }
+  navigator.serviceWorker.register('/html-games/release-cache-worker.js',{scope:'/html-games/',updateViaCache:'none'}).catch(()=>{});
+}
+</script>
+
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vexed Mirror · Ship & Combat Showcase</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 36'%3E%3Cpath d='M16 2 29 32 16 24 3 32Z' fill='none' stroke='%23eb8c96' stroke-width='2'/%3E%3C/svg%3E">
@@ -50,8 +60,8 @@
 <script src="steamrunner-repair.js?v=text-encoding-1" defer></script>
 <script src="drone-battle.js?v=painted-torn-final-2" defer></script>
 <script src="cloak-effects.js?v=opening-recut-1"></script>
-<script src="damage-showcase.js?v=replacement-ships-20261112" defer></script>
-<link rel="stylesheet" href="showcase-workspace.css?v=workspace-2-publish-regressions-1">
+<script src="damage-showcase.js?v=replacement-ships-20261112-artwork-health-1" defer></script>
+<link rel="stylesheet" href="showcase-workspace.css?v=workspace-2-publish-regressions-1-short-info-2">
 <link rel="stylesheet" href="effect-lab-panel.css?v=lab-1">
 <script src="effect-lab-metrics.js?v=lab-1" defer></script>
 <script src="effect-lab-panel.js?v=cinematic-weapons-1" defer></script>

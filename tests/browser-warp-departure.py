@@ -33,9 +33,19 @@ try:
            }
           };
           const result=nativeNavigation.call('course',9);if(!result.ok)throw Error(result.error);
+          const s=nativeNpcDev.getState();window.__departurePhysical={state:s,seconds:nativeSimulation.seconds(s),pending:s.shipSimulation.schedule.pendingSeconds};
         }''')
-        page.wait_for_function('()=>!!window.__liveFlash||vexedWarp.phase==="error"',timeout=90000)
-        live=page.evaluate('__liveFlash');assert live and live['effect']['alpha']==0,live
+        # Departure first drains all previously accepted physical time. The
+        # cold software-rendered fleet can need longer than the warp animation.
+        try:
+            page.wait_for_function('()=>!!window.__liveFlash||vexedWarp.phase==="error"',timeout=180000)
+        except Exception:
+            diagnostic=page.evaluate('()=>({warp:vexedWarp.snapshot(),effect:vexedWarp.flightEffect,paused:nativeSimulation.blocked(),debt:nativeNpcDev.getState()?.shipSimulation?.schedule,draws:window.__departureDraws?.length,flash:window.__liveFlash})')
+            (OUT/'failure.json').write_text(json.dumps(diagnostic,indent=2),encoding='utf8')
+            raise
+        live=page.evaluate('window.__liveFlash');assert live and live['effect']['alpha']==0,page.evaluate('vexedWarp.snapshot()')
+        physical=page.evaluate('()=>{const b=__departurePhysical;return {accepted:b.seconds+b.pending,paid:nativeSimulation.seconds(b.state)+b.state.shipSimulation.schedule.pendingSeconds,pending:b.state.shipSimulation.schedule.pendingSeconds};}')
+        assert abs(physical['accepted']-physical['paid'])<1e-7 and physical['pending']<1/60,physical
         assert all(c>220 for c in live['pixel'][:3]),live
         x,y,r=live['flash']['x'],live['flash']['y'],live['flash']['radius'];assert r<x<live['viewport']['w']-r and r<y<live['viewport']['h']-r,live
         assert abs(x-(live['effect']['shipX']+live['viewport']['w']/2-300))<1e-6,live
@@ -70,10 +80,6 @@ try:
         (OUT/'report.json').write_text(json.dumps(report,indent=2),encoding='utf8');print(json.dumps(report),flush=True);browser.close()
 except Exception:
     if 'page' in locals():
-        try:
-            diagnostic=page.evaluate('()=>({warp:vexedWarp.snapshot(),effect:vexedWarp.flightEffect,paused:nativeSimulation.blocked(),shipType:nativeNpcDev.getState()?.shipType,gamePhase:nativeNpcDev.getState()?.phase,draws:window.__departureDraws?.length,flash:window.__liveFlash,errors:window.__warpErrors})')
-            (OUT/'failure.json').write_text(json.dumps(diagnostic,indent=2),encoding='utf8')
-        except Exception:pass
         try:page.screenshot(path=str(OUT/'failure.png'))
         except Exception:pass
     raise

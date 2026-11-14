@@ -36,7 +36,7 @@ server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Qui
 threading.Thread(target=server.serve_forever, daemon=True).start()
 try:
     with sync_playwright() as p:
-        channel = os.environ.get('BROWSER_CHANNEL', 'msedge')
+        channel = os.environ.get('BROWSER_CHANNEL', '')
         browser = p.chromium.launch(headless=True, **({'channel': channel} if channel else {}))
         page = browser.new_page(viewport=dict(width=1280, height=850))
         page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
@@ -44,6 +44,7 @@ try:
         page.evaluate('startNativeDevGame()')
         page.wait_for_function('()=>nativeNpcDev.getState()?.devMode', timeout=120000)
         page.locator('#devToolsBtn').click()
+        page.evaluate('()=>{window.nativeSimulation={...nativeSimulation,blocked:()=>true};nativeSimulationHost.checkpoint();window.requestAnimationFrame=()=>0;}')
         definitions = page.evaluate('nativeShipDefinitions.registered().map(d=>d.id)')
         masks = {}
         for index, ship_type in enumerate(definitions):

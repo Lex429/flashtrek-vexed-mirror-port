@@ -132,7 +132,7 @@ body.showcase-workspace { height:100dvh; margin:0; padding:10px; display:flex; f
 .showcase-workspace #repair-demo { margin:0; font-size:10px; padding:7px; }
 
 @container workspace-controls (max-height:600px) {
-  .showcase-workspace .workspace-info { padding:10px; gap:8px; }
+  .showcase-workspace .workspace-info { padding:8px; gap:6px; }
   .showcase-workspace .workspace-section { padding:9px; gap:7px; }
   .showcase-workspace .workspace-repair-summary { padding:8px 10px 3px; gap:3px; }
   .showcase-workspace .workspace-repair-summary h3 { font-size:12px; }

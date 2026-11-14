@@ -30,6 +30,9 @@ try:
         page = browser.new_page(viewport={'width': 1280, 'height': 850})
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
+        # This fixture advances RAF explicitly. Host admission uses that same
+        # clock, so a slow browser round trip cannot invent extra manual steps.
+        page.add_init_script("""Object.defineProperty(window,'nativeSimulationFrame',{configurable:true,set(api){delete window.nativeSimulationFrame;window.nativeSimulationFrame={...api,createHostTime:options=>api.createHostTime({...options,now:()=>window.__controlsClock??performance.now()})};}});""")
         page.add_init_script(path=str(ROOT/'tests/player-art-ready.js'));page.goto(f'http://127.0.0.1:{server.server_port}/html-games/broken-mirror-port/index.html')
         page.wait_for_function('() => nativeCombatShots.isReady() && document.querySelector("#startup").hidden', timeout=120000)
         page.evaluate("""() => {
@@ -47,13 +50,13 @@ try:
           let state=__controlsState;const clone=value=>JSON.parse(JSON.stringify(value)),template=clone(state.civilianTraffic.ships[0]);
           const weapon=VexedMirrorWeapons.find(model=>model.damage>0&&nativeCombatShots.weaponVisual(model).kind==='beam');
           const torpedo=VexedMirrorWeapons.find(model=>model.damage>0&&nativeCombatShots.weaponVisual(model).kind==='torpedo');
-          let time=performance.now();
-          const step=(seconds=1/60)=>{time=Math.max(time,performance.now())+seconds*1000;__controlsFrame(time);state=__controlsState;};
+          let time=performance.now();window.__controlsClock=time;
+          const step=(seconds=1/60)=>{time+=seconds*1000;window.__controlsClock=time;__controlsFrame(time);state=__controlsState;};
           const frames=(seconds)=>{for(let i=0;i<Math.ceil(seconds*60);i++)step(1/60);};
           // This fixture owns RAF. Slow native paints must not leave its next
           // timestamp behind real UI gate events. Rebinding at an explicit
           // fixture/reload boundary retains all previously accepted physics.
-          const rebind=()=>{time=performance.now();const debt=state.shipSimulation?.schedule?.pendingSeconds;nativeSimulationHost.reset(time);if(state.shipSimulation?.schedule?.pendingSeconds!==debt)throw Error('Fixture clock rebind changed saved debt');};
+          const rebind=()=>{time=performance.now();window.__controlsClock=time;const debt=state.shipSimulation?.schedule?.pendingSeconds;nativeSimulationHost.reset(time);if(state.shipSimulation?.schedule?.pendingSeconds!==debt)throw Error('Fixture clock rebind changed saved debt');};
           const fire=nativeCombatShots.fire,accepted=[];
           nativeCombatShots.fire=options=>{const result=fire(options);if(result.ok)accepted.push({at:nativeSimulation.seconds(state),target:result.event.targetId,instance:result.event.weaponInstanceId,readyAt:state.shipEquipment.instances[result.event.weaponInstanceId].readyAt,event:result.event.id});return result;};
           function fixture({distance=220,two=false,weapons=[weapon.id]}={}) {
@@ -144,12 +147,14 @@ try:
         page.evaluate('__controls.frames(.2)')
         before = page.evaluate('({speed:__controls.state.speed,angle:__controls.state.angle})')
         # Hit the actual painted ship while both flight controls remain down.
+        page.evaluate('()=>{window.__selectionSimulation=nativeSimulation;window.nativeSimulation={...nativeSimulation,blocked:()=>true};nativeSimulationHost.checkpoint();}')
         point = page.evaluate("""() => {
-          const target=__controls.state.civilianTraffic.ships[1],ship=vexedSolFlight.shipPosition(__controls.state),canvas=document.querySelector('#space'),rect=canvas.getBoundingClientRect(),view=nativeView.measure(canvas);
+          const s=__controls.state,target=nativeSimulationFrame.renderPose(s,nativeShipDefinitions.describe(s,s.civilianTraffic.ships[1],{category:'civilian'})),ship=nativeSimulationFrame.renderPose(s,nativeShipDefinitions.describe(s)),canvas=document.querySelector('#space'),rect=canvas.getBoundingClientRect(),view=nativeView.measure(canvas);
           return {x:rect.left+(view.w/2+target.x-ship.x)*rect.width/view.w,y:rect.top+(view.h/2+target.y-ship.y)*rect.height/view.h};
         }""")
         page.mouse.click(point['x'], point['y'])
         clicked = page.evaluate('nativeCivilianTraffic.target(__controls.state)?.id')
+        page.evaluate('()=>{window.nativeSimulation=__selectionSimulation;nativeSimulationHost.checkpoint();}')
         page.evaluate('__controls.frames(.3)')
         after = page.evaluate('({speed:__controls.state.speed,angle:__controls.state.angle})')
         page.keyboard.up('w')

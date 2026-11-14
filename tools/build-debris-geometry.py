@@ -90,7 +90,7 @@ def main():
     errors, ships = [], {}
     try:
         with sync_playwright() as p:
-            channel = os.environ.get('BROWSER_CHANNEL', 'msedge')
+            channel = os.environ.get('BROWSER_CHANNEL', '')
             browser = p.chromium.launch(headless=True, **({'channel': channel} if channel else {}))
             page = browser.new_page(viewport={'width': 1280, 'height': 850})
             page.set_default_timeout(300000)

@@ -44,7 +44,7 @@
     if(pending)return pending;
     if(typeof Worker!=='function'||!window.nativeSystemHub?.sol)return Promise.resolve(null);
     pending=new Promise(resolve=>{
-      let worker;try{worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-territorial-yards-1-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2');}catch(error){lastError=String(error);resolve(null);return;}
+      let worker;try{worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-territorial-yards-1-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1');}catch(error){lastError=String(error);resolve(null);return;}
       const timer=setTimeout(()=>{lastError='World preparation exceeded 30 seconds';worker.terminate();resolve(null);},30000);
       worker.onmessage=event=>{
         clearTimeout(timer);worker.terminate();
@@ -82,14 +82,16 @@
     if(typeof Worker!=='function')return Promise.resolve().then(()=>{if(signal?.aborted)throw Error('Travel preparation cancelled.');const planned=window.vexedTravelEvents.plan(state,journey);planned.calendar=window.nativeWorldTime.settleTransit(planned.next);return planned;});
     return new Promise((resolve,reject)=>{
       let worker,timer,capture,done=false;const rows=[];
+      const progress=()=>{if(done)return;clearTimeout(timer);timer=setTimeout(()=>finish(new Error('Travel preparation timed out.')),45000);};
       const finish=(error,value)=>{if(done)return;done=true;capture?.cancel();clearTimeout(timer);signal?.removeEventListener('abort',abort);worker?.terminate();if(error)reject(error);else resolve(value);};
       const abort=()=>finish(new Error('Travel preparation cancelled.'));
       if(signal?.aborted){abort();return;}
       try{
-        worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-warp-preparation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-territorial-yards-1-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2');signal?.addEventListener('abort',abort,{once:true});
-        timer=setTimeout(()=>finish(new Error('Travel preparation timed out.')),45000);
+        worker=new Worker('world-bootstrap-worker.js?v=free-flight-activity-2-warp-preparation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-territorial-yards-1-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1');signal?.addEventListener('abort',abort,{once:true});
+        progress();
         worker.onerror=event=>finish(new Error(event.message||'Travel preparation failed.'));
         worker.onmessage=event=>{
+          progress();if(event.data.progress)return;
           if(!event.data.ok){finish(new Error(event.data.error));return;}
           if(event.data.part){for(const row of event.data.part)rows[row.id]=row;return;}
           if(event.data.streamed){
@@ -105,8 +107,8 @@
         };
         if(window.nativeSaveSnapshot?.capture&&window.nativeSaveSnapshot.restoreAsync){
           capture=window.nativeSaveSnapshot.capture(state,{valid:()=>!done&&!signal?.aborted,
-            part:part=>worker.postMessage({action:'travel-part',rows:part}),
-            complete:root=>{if(!done)worker.postMessage({...message,root,streamed:true});},
+            part:part=>{progress();worker.postMessage({action:'travel-part',rows:part});},
+            complete:root=>{if(!done){progress();worker.postMessage({...message,root,streamed:true});}},
             failed:()=>{if(!done)try{direct();}catch(error){finish(error);}}
           });
         }else direct();

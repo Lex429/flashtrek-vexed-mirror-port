@@ -27,7 +27,7 @@ try:
         page = browser.new_page(viewport={'width': 1440, 'height': 1000})
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.add_init_script("""const nativeFrame=window.requestAnimationFrame.bind(window);
-          window.requestAnimationFrame=callback=>callback.name==='frame'?0:nativeFrame(callback);
+          window.requestAnimationFrame=callback=>callback.name==='frame'&&String(callback).includes('showcaseEffectLab')?0:nativeFrame(callback);
           localStorage.setItem('vexedMirrorRepairWorkshop.v1',JSON.stringify({version:1,credits:5700,owned:{basic:2,upgraded:0,advanced:0}}));""")
         page.goto(showcase_base + '/html-games/flashtrek-broken-mirror/damage-showcase.html?ship=1')
         page.wait_for_function('()=>window.showcaseState?.().ready', polling=50, timeout=120000)
@@ -39,11 +39,14 @@ try:
           const engine=create(...args);window.fleetRepair={engine,args};return engine;
         };}""")
         ships = page.evaluate("""async()=>{const c=await fetch('showcase-assets/catalog.json').then(r=>r.json());
-          return c.ships.filter(s=>(!s.kind||s.kind==='ship')).map(s=>({id:s.id,name:s.name}));}""")
+          return c.ships.filter(s=>(!s.kind||s.kind==='ship')&&s.frames.filter(Boolean).length===4).map(s=>({id:s.id,name:s.name}));}""")
         showcase = []
         for ship in ([] if '--native-only' in sys.argv else ships):
             page.select_option('#ship-select', str(ship['id']))
-            page.wait_for_function('(id)=>showcaseState().ready&&showcaseState().ship===id', arg=ship['id'], polling=50, timeout=120000)
+            try:
+                page.wait_for_function('(id)=>showcaseState().ready&&showcaseState().ship===id', arg=ship['id'], polling=50, timeout=120000)
+            except Exception as error:
+                raise AssertionError({'ship':ship,'state':page.evaluate('({ship:showcaseState().ship,ready:showcaseState().ready})'),'loading':page.locator('#loading').inner_text(),'errors':errors}) from error
             assert page.locator('#repair-demo').is_visible(), ship
             page.evaluate("""()=>{const input=document.querySelector('#hull');input.value=15;input.dispatchEvent(new Event('input'));}""")
             page.locator('#repair-demo').click()

@@ -7,7 +7,7 @@ onmessage=event=>{
   try{
     if(!context){
       const canvas=new OffscreenCanvas(1,1);context=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false});
-      if(!context)throw Error('Offscreen WebGL2 unavailable');renderer=nativeNebulaGas.createTextureRenderer(context);texture=context.createTexture();
+      if(!context)throw Error('Offscreen WebGL2 unavailable');renderer=nativeNebulaGas.createTextureRenderer(context,{flipY:false});texture=context.createTexture();
     }
     if(context.isContextLost())throw Error('Nebula seed GPU context lost');
     context.activeTexture(context.TEXTURE0);context.bindTexture(context.TEXTURE_2D,texture);
@@ -15,6 +15,11 @@ onmessage=event=>{
     renderer.draw(texture,w,h,description);
     const rgba=new Uint8Array(w*h*4);context.readPixels(0,0,w,h,context.RGBA,context.UNSIGNED_BYTE,rgba);
     if(context.getError()!==context.NO_ERROR)throw Error('Nebula seed GPU readback failed');
+    // Use the exact display shader coordinates, then reverse readback rows.
+    // Flipping interpolated UVs in the vertex shader changed seeded alpha by
+    // one byte on software GPUs because its float rounding differed.
+    const stride=w*4,row=new Uint8Array(stride);
+    for(let y=0;y<Math.floor(h/2);y++){const top=y*stride,bottom=(h-1-y)*stride;row.set(rgba.subarray(top,top+stride));rgba.copyWithin(top,bottom,bottom+stride);rgba.set(row,bottom);}
     postMessage({id,w,h,rgba},[rgba.buffer]);
   }catch(error){postMessage({id,error:String(error.message||error)});}
 };

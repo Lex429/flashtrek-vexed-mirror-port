@@ -224,7 +224,7 @@
     if(!program||lost||gpuFailed)return fallback(view,planes,style,time,seed,interaction);
     const maxWidth=software?192:384,ratio=Math.min(1,maxWidth/view.w,288/view.h),w=Math.max(1,Math.round(view.w*ratio)),h=Math.max(1,Math.round(view.h*ratio));
     if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}width=w;height=h;
-    gl.viewport(0,0,w,h);gl.disable(gl.BLEND);gl.disable(gl.DEPTH_TEST);gl.useProgram(program);gl.bindVertexArray(vao);
+    gl.viewport(0,0,w,h);gl.disable(gl.DITHER);gl.disable(gl.BLEND);gl.disable(gl.DEPTH_TEST);gl.useProgram(program);gl.bindVertexArray(vao);
     for(let i=0;i<3;i++){const p=planes[i];positions.set([p.x,p.y,p.width,p.height],i*4);layerData.set([p.alpha,p.angle,i*19.3,0],i*4);}
     gl.uniform2f(locations.u_view,view.w,view.h);gl.uniform4fv(locations['u_planes[0]'],positions);gl.uniform4fv(locations['u_layers[0]'],layerData);
     const palette=interaction.colourPreview>1?previewPalettes[interaction.colourPreview-2]:palettes[style];
@@ -239,7 +239,7 @@
     gl.drawArrays(gl.TRIANGLES,0,3);return canvas;
   }
   function metrics(){return {...counters,backend:program&&!lost&&!gpuFailed?'webgl2':'canvas-procedural',width,height,software,reason,contextLost:lost,imageRequests:0,textureBytes:0};}
-  function createTextureRenderer(context){
+  function createTextureRenderer(context,{flipY=true}={}){
     // The material renderer owns this context and target texture. Keep the same
     // gas shader/resolution, with texture row zero corresponding to world top.
     const debug=context.getExtension('WEBGL_debug_renderer_info'),device=debug?context.getParameter(debug.UNMASKED_RENDERER_WEBGL):'';
@@ -248,7 +248,7 @@
     try{
       const compile=(type,source)=>{const s=context.createShader(type);shaders.push(s);context.shaderSource(s,source);context.compileShader(s);
         if(!context.getShaderParameter(s,context.COMPILE_STATUS))throw Error(context.getShaderInfoLog(s)||'Gas texture shader failed');return s;};
-      const vs=compile(context.VERTEX_SHADER,vertex.replace('v_uv=p;','v_uv=vec2(p.x,1.0-p.y);')),fs=compile(context.FRAGMENT_SHADER,fragment);
+      const vs=compile(context.VERTEX_SHADER,flipY?vertex.replace('v_uv=p;','v_uv=vec2(p.x,1.0-p.y);'):vertex),fs=compile(context.FRAGMENT_SHADER,fragment);
       linked=context.createProgram();context.attachShader(linked,vs);context.attachShader(linked,fs);context.linkProgram(linked);
       if(!context.getProgramParameter(linked,context.LINK_STATUS))throw Error(context.getProgramInfoLog(linked)||'Gas texture link failed');
       const loc={};for(const name of ['u_view','u_planes[0]','u_layers[0]','u_shadow','u_light','u_time','u_seed','u_style','u_wakeCount','u_densityFloor','u_continuous','u_colourPreview','u_clearVolumeCount'])loc[name]=context.getUniformLocation(linked,name);
@@ -256,7 +256,7 @@
       return {
         draw(texture,w,h,{view,planes,style,time,seed,options={}}){
           context.bindFramebuffer(context.FRAMEBUFFER,target);context.framebufferTexture2D(context.FRAMEBUFFER,context.COLOR_ATTACHMENT0,context.TEXTURE_2D,texture,0);
-          context.viewport(0,0,w,h);context.disable(context.SCISSOR_TEST);context.disable(context.BLEND);context.disable(context.DEPTH_TEST);context.useProgram(linked);context.bindVertexArray(array);
+          context.viewport(0,0,w,h);context.disable(context.DITHER);context.disable(context.SCISSOR_TEST);context.disable(context.BLEND);context.disable(context.DEPTH_TEST);context.useProgram(linked);context.bindVertexArray(array);
           for(let i=0;i<3;i++){const p=planes[i];positions.set([p.x,p.y,p.width,p.height],i*4);layerData.set([p.alpha,p.angle,i*19.3,0],i*4);}
           const mode=previewMode(options.colourPreview),palette=mode>1?previewPalettes[mode-2]:palettes[style];
           context.uniform2f(loc.u_view,view.w,view.h);context.uniform4fv(loc['u_planes[0]'],positions);context.uniform4fv(loc['u_layers[0]'],layerData);

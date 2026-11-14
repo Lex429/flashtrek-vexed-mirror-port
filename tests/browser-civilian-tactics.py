@@ -88,7 +88,9 @@ try:
             detection = page.evaluate("""() => {
               // A close disruptor now arrives before an ordinary crew's saved
               // reaction delay. Use a longer torpedo approach to test awareness.
-              const h=__tactics,ship=h.fixture(),s=h.state(),shooter=h.copy(ship);Object.assign(shooter,{id:99002,name:'Projectile source',x:ship.x+1200,previousX:ship.x+1200,heading:Math.PI});h.fit(shooter,'torpedo');
+              // This source ID's saved aim error intersects the small target;
+              // other deterministic seeds legitimately miss and need no dodge.
+              const h=__tactics,ship=h.fixture(),s=h.state(),shooter=h.copy(ship);Object.assign(shooter,{id:99001,name:'Projectile source',x:ship.x+1200,previousX:ship.x+1200,heading:Math.PI});h.fit(shooter,'torpedo');
               s.civilianTraffic.ships.push(shooter);nativeNpcLives.initialize(s);ship.nextActionAt=shooter.nextActionAt=10000;
               h.putPlayer(ship.x-150,ship.y+300);
               h.fit(ship,'beam');const fired=nativeCombatShots.fireFor({state:s,shooter:nativeShipDefinitions.describe(s,shooter,{category:'civilian'}),target:nativeShipDefinitions.describe(s,ship,{category:'civilian'})});h.check(fired.ok,fired.error);

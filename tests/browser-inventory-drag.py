@@ -60,7 +60,7 @@ try:
         slot('engineering').drag_to(cell(store_index))
         assert cell(store_index).get_attribute('data-item-key') == engine
         assert page.locator('[data-item-key="supply:food"]').count() == 1
-        assert page.evaluate('nativeShipDefinitions.forEntity(__inventoryState).movement.maxSpeed') == 90
+        assert page.evaluate('()=>{const d=nativeShipDefinitions.forEntity(__inventoryState);return d.thrusterOnly&&d.movement.maxSpeed===d.thrusters.maxSpeed;}')
         assert page.evaluate('nativeShipDefinitions.forEntity(__inventoryState).movement.acceleration') > 0
         # Wrong-type drops cannot spend or duplicate an owned item.
         snapshot = page.evaluate('JSON.stringify(__inventoryState.shipEquipment)')
@@ -90,9 +90,10 @@ try:
         # Click/keyboard use the same operation as dragging, including between pages.
         page.locator('[data-item-key="supply:food"]').click()
         page.locator('[data-inventory-page="next"]').click()
-        cell(36).focus()
+        keyboard_index=int(page.locator('.inventory-blank').last.get_attribute('data-inventory-cell'))
+        cell(keyboard_index).focus()
         page.keyboard.press('Enter')
-        assert cell(36).get_attribute('data-item-key') == 'supply:food'
+        assert cell(keyboard_index).get_attribute('data-item-key') == 'supply:food'
         page.locator('[data-inventory-page="previous"]').click()
         page.locator('.inventory-close').focus()
         page.keyboard.press('Shift+Tab')

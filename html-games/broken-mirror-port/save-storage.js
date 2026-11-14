@@ -183,7 +183,11 @@
       if(signal?.aborted){abort();return;}
       try{
         encoder=new window.Worker(workerUrl);signal?.addEventListener('abort',abort,{once:true});
-        timer=setTimeout(()=>finish({ok:false,error:'Save encoding timed out.'}),30000);
+        // Snapshot chunks update cost.started as they reach the encoder. A
+        // progressing large save must not expire on an absolute wall deadline.
+        cost.started=milliseconds();
+        const watch=()=>{const idle=milliseconds()-cost.started;if(idle<30000)timer=setTimeout(watch,30000-idle);else finish({ok:false,error:'Save encoding timed out.'});};
+        timer=setTimeout(watch,30000);
         encoder.onerror=event=>{event.preventDefault?.();finish({ok:false,error:'Save failed: '+event.message});};
         encoder.onmessage=event=>{
           if(signal?.aborted||revisions.get(mode)!==revision){finish({ok:false,error:'Save superseded by a newer command.'});return;}

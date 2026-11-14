@@ -1,6 +1,16 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>
+if ('serviceWorker' in navigator && /^(www\.)?vexedmirror\.com$/.test(location.hostname)) {
+  if (!navigator.serviceWorker.controller) {
+    let refreshing=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!refreshing){refreshing=true;location.reload();}});
+  }
+  navigator.serviceWorker.register('/html-games/release-cache-worker.js',{scope:'/html-games/',updateViaCache:'none'}).catch(()=>{});
+}
+</script>
+
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'">
 <title>Flash Trek: Vexed Mirror &mdash; Browser Port</title>
@@ -115,13 +125,13 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="vexed-space-model.js?v=ship-speed-1-stable-speed-trails-1"></script>
 <script src="starfield-batch.js?v=ordered-stars-2"></script>
 <script src="regional-starfield.js?v=regional-colors-density-1-original-speed-trails-1-ordered-batch-2-badlands-1-approach-2-stable-speed-trails-1"></script>
-<script src="nebula-gas.js?v=galaxy-weather-2-badlands-1-work-reuse-1-cloud-texture-1"></script>
+<script src="nebula-gas.js?v=galaxy-weather-2-badlands-1-work-reuse-1-cloud-texture-1-exact-seed-1"></script>
 <script src="procedural-nebulae.js?v=galaxy-weather-2-badlands-1-approach-2-neighbor-sky-3-smooth-clouds-4-film-refresh-1"></script>
 <script src="nebula-flow.js?v=hull-transport-1-blade-wave-2"></script>
-<script src="nebula-hull-masks.js?v=all-hull-ready-2"></script>
+<script src="nebula-hull-masks.js?v=all-hull-ready-2-chromium-masks-1"></script>
 <script src="nebula-asteroid-masks.js?v=asteroid-gas-1"></script>
 <script src="nebula-flow-kernel.js?v=fog-response-4"></script>
-<script src="nebula-material.js?v=galaxy-weather-2-badlands-1-smooth-clouds-4-plasma-volume-4-work-reuse-1-cloud-texture-1-warm-plasma-1-fire-sheets-1-fluid-catchup-1-plasma-cells-3-coverage-reuse-1-asteroid-gas-1-lag-removal-1-turbulent-current-3"></script>
+<script src="nebula-material.js?v=galaxy-weather-2-badlands-1-smooth-clouds-4-plasma-volume-4-work-reuse-1-cloud-texture-1-warm-plasma-1-fire-sheets-1-fluid-catchup-1-plasma-cells-3-coverage-reuse-1-asteroid-gas-1-lag-removal-1-turbulent-current-3-publish-compositing-1"></script>
 <script src="nebula-asteroids.js?v=asteroid-gas-2"></script>
 <script src="badlands-weather.js?v=production-storms-2"></script>
 <script src="dev-nebula-storm.js?v=dev-badlands-lightning-4-continuous-alpha-production-storms-2"></script>
@@ -138,7 +148,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="hull-batch.js?v=lamp-gpu-1"></script>
 <script src="flight-assets.js?v=mirror-expansion-1-warp-render-2-warp-charge-1-warp-flash-1"></script>
 <script src="ship-motion.js?v=asteroid-identity-1-device-condition-1-stutter-2-engine-slowdown-1-hull-thrusters-1-route-priority-1-plasma-flow-1-lag-removal-1-mvam-moving-1-physical-mvam-1"></script>
-<script src="ship-debris-geometry.js?v=replacement-ships-20261112-mvam-1-prometheus-v2-physical-mvam-1-mvam-survival-1"></script>
+<script src="ship-debris-geometry.js?v=replacement-ships-20261112-mvam-1-prometheus-v2-physical-mvam-1-mvam-survival-1-chromium-geometry-1"></script>
 <script src="ship-scale-settings.js?v=atlas-scale-1-compact-scale-1-size-175-mvam-compact-1-prometheus-v2"></script>
 <script src="ship-weapon-mounts.js?v=weapon-mounts-2"></script>
 <script src="ship-definitions.js?v=replacement-ships-20261112-atlas-scale-1-compact-scale-1-mvam-1-weapon-mounts-2-mvam-survival-1"></script>
@@ -153,7 +163,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="ship-damage.js?v=shared-ships-1-device-condition-1-impact-console-1-game-sounds-1-damage-rumble-1"></script>
 <script src="weapon-loadout.js?v=engine-upgrades-1-device-condition-1-hull-thrusters-1-dot-loot-1-dev-loot-1-mvam-1"></script>
 <script src="travel-events.js?v=regional-belts-1-distance-navigation-1-badlands-1"></script>
-<script src="rebirth-warp.js?v=civilian-warp-1-seamless-warp-1-warp-charge-1-warp-flash-1-npc-warp-1"></script>
+<script src="rebirth-warp.js?v=civilian-warp-1-seamless-warp-1-warp-charge-1-warp-flash-1-npc-warp-1-flash-hold-1"></script>
 <script src="warp-starfield.js?v=widescreen-2-seamless-warp-1"></script>
 <script src="warp-transition.js?v=civilian-warp-1-seamless-warp-1-distance-navigation-1-warp-pacing-1-warp-render-2-warp-charge-1-warp-flash-1-npc-warp-1"></script>
 <script src="pause-menu.js?v=opening-film-20261025-3-game-sounds-1-earth-bonus-items-1-dualsense-7-player-destruction-1-dot-loot-1"></script>
@@ -189,7 +199,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="repair-visuals.js?v=dot-bay-flight-9-fog-hull-2-dot-loot-1"></script>
 <script src="world-time.js?v=asteroid-physics-1-seamless-warp-1"></script>
 <script src="simulation-metrics.js?v=stability-1"></script>
-<script src="world-bootstrap.js?v=territorial-yards-1-free-flight-activity-2-seamless-warp-1-distance-navigation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2"></script>
+<script src="world-bootstrap.js?v=territorial-yards-1-free-flight-activity-2-seamless-warp-1-distance-navigation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1"></script>
 <script src="outfitting-view.js?v=live-preview-lighting-1-device-condition-1-thruster-tile-1"></script>
 <script src="equipment-panel.js?v=shared-equipment-3"></script>
 <script src="ship-inventory.js?v=shield-maintenance-1-device-condition-1-hull-thrusters-1-thruster-tile-1-medical-distress-1-collectables-1-earth-bonus-items-1-collection-grid-1-interstellar-1-archive-clues-1-layered-leads-1-sequential-clues-1-shared-equipment-2"></script>
@@ -203,7 +213,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="explosion-impacts.js?v=hull-navigation-1"></script>
 <script src="save-codec.js?v=fleet-foundation-1"></script>
 <script src="save-snapshot.js?v=stutter-3-warp-charge-1-warp-latency-1"></script>
-<script src="save-storage.js?v=unified-equipment-1-seamless-warp-1-stutter-3-warp-latency-1-player-destruction-1-safe-timeline-2"></script>
+<script src="save-storage.js?v=unified-equipment-1-seamless-warp-1-stutter-3-warp-latency-1-player-destruction-1-safe-timeline-2-save-progress-1"></script>
 <script src="dev-repair-demo.js?v=travel-corridors-1-quiet-local-dev-1"></script>
 <script src="dev-loot-demo.js?v=dev-loot-1-inventory-loot-4"></script>
 <script src="shipyard-refits.js?v=mirror-expansion-1-hull-thrusters-1-territorial-yards-1-materials-review-2"></script>
@@ -216,7 +226,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="controller-haptics.js?v=damage-rumble-3"></script>
 <script src="player-combat-controls.js?v=combat-controls-1-distance-navigation-1-nose-intent-1-refined-intent-1-dualsense-5"></script>
 <script src="player-targeting.js?v=nose-intent-1-refined-intent-1-dot-loot-1"></script>
-<script src="system-streaming.js?v=system-entry-1-seamless-warp-1-stutter-2-warp-pacing-1-warp-render-2-warp-charge-1-warp-latency-1-badlands-1"></script>
+<script src="system-streaming.js?v=system-entry-1-seamless-warp-1-stutter-2-warp-pacing-1-warp-render-2-warp-charge-1-warp-latency-1-badlands-1-arrival-foreground-1"></script>
 <script src="reincarnation.js?v=safe-timeline-2"></script>
 <script src="player-destruction.js?v=player-destruction-faction-4-safe-timeline-2"></script>
 <script src="ship-looting.js?v=dot-loot-1-inventory-loot-4"></script>
@@ -224,7 +234,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <link rel="stylesheet" href="prometheus-mvam.css?v=mvam-1">
 <script src="prometheus-effects.js?v=mvam-blue-flames-1-physical-mvam-1-mvam-survival-1"></script>
 <script src="prometheus-mvam.js?v=mvam-escort-flight-1-physical-mvam-1-mvam-survival-1-weapon-mounts-2"></script>
-<script src="native-game.js?v=system-entry-1-shield-maintenance-3-device-condition-1-dev-neighborhood-1-seamless-warp-1-distance-navigation-1-stutter-2-warp-pacing-1-hull-thrusters-1-warp-render-2-impact-console-1-quiet-flight-1-warp-charge-1-game-sounds-1-console-feedback-2-warp-flash-1-quiet-flight-2-hull-recovery-1-medical-distress-1-critical-manual-flight-1-earth-bonus-items-1-background-suns-1-physical-collectables-1-animated-federation-1-interstellar-1-freight-permits-1-system-defence-2-dev-sol-fog-1-interstellar-targets-1-nose-intent-1-badlands-1-manual-fire-1-stable-speed-trails-1-dualsense-7-player-destruction-1-black-pc-1-starter-torpedo-1-safe-timeline-2-dot-loot-1-dev-loot-1-mvam-1-mvam-moving-1-mvam-survival-1"></script>
+<script src="native-game.js?v=system-entry-1-shield-maintenance-3-device-condition-1-dev-neighborhood-1-seamless-warp-1-distance-navigation-1-stutter-2-warp-pacing-1-hull-thrusters-1-warp-render-2-impact-console-1-quiet-flight-1-warp-charge-1-game-sounds-1-console-feedback-2-warp-flash-1-quiet-flight-2-hull-recovery-1-medical-distress-1-critical-manual-flight-1-earth-bonus-items-1-background-suns-1-physical-collectables-1-animated-federation-1-interstellar-1-freight-permits-1-system-defence-2-dev-sol-fog-1-interstellar-targets-1-nose-intent-1-badlands-1-manual-fire-1-stable-speed-trails-1-dualsense-7-player-destruction-1-black-pc-1-starter-torpedo-1-safe-timeline-2-dot-loot-1-dev-loot-1-mvam-1-mvam-moving-1-mvam-survival-1-warp-debt-1"></script>
 <script src="setup-ship-preview.js?v=showcase-exact-2"></script>
 <script src="native-setup.js?v=opening-film-20261025-3-film-refresh-1"></script>
 <script src="map-controls.js?v=cinematic-map-1"></script>

@@ -80,12 +80,12 @@ try:
           s.shipyardDock={version:1,station:nativeMarsShipyard.definitionFor(s).id,system:1,phase:'docked',plan};nativeShipyardServices.select();
         }''')
         yard_offer=page.evaluate('nativeShipThrusters.quote(__thrusterState)')
-        page.locator('[data-yard-action="upgrade-thrusters"]').click()
+        page.locator('[data-upgrade-card="thrusters"] .mars-shop-buy').click()
         station=page.evaluate('({level:nativeShipThrusters.level(__thrusterState),credits:__thrusterState.latinum,saved:nativeSaveStorage.read("normal").shipThrusters.level})')
         assert station['level']==station['saved']==2 and station['credits']==port['credits']-yard_offer['price'],station
         assert page.locator('[data-hull-thrusters] [data-yard-action="remove"]').count()==0
         page.screenshot(path=str(OUT/'station-upgrade.png'))
-        page.locator('[data-yard-action="upgrade-thrusters"]').click();assert page.locator('[data-yard-action="upgrade-thrusters"]').is_disabled()
+        page.locator('[data-upgrade-card="thrusters"] .mars-shop-buy').click();assert page.locator('[data-upgrade-card="thrusters"] .mars-shop-buy').is_disabled()
         assert page.evaluate('nativeShipThrusters.level(__thrusterState)')==3
         assert not errors,errors
         report={'passed':True,'port':port,'saveFailureRollback':rollback,'unfittedEngine':unfitted,'reloadRetainsHullUpgrade':True,'station':station,'maximumLevel':3,'noEquipmentSlot':True,'noRemoveControl':True,'inventoryTile':{'readOnly':True,'keyboardDetails':True,'desktopAndMobile':True,'persistsAcrossBayPages':True},'errors':errors}

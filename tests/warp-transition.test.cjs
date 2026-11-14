@@ -94,10 +94,11 @@ test('the departing ship vanishes into one bright flash at its final visible pos
  for(const view of [{w:600,h:450},{w:1200,h:450},{w:360,h:640}])for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2,.7,2.7]){
   const options={duration,cinematic:true,view},before=api.departure(vanish-.001,angle,options),peak=api.departure(vanish,angle,options);
   assert.ok(before.alpha>0);assert.equal(before.flash,null);assert.equal(peak.alpha,0);assert.equal(peak.flash.alpha,1);assert.equal(peak.ring,null);
+  assert.equal(api.departure(vanish+99,angle,options).flash.alpha,1,'A slow display must still receive the white vanish flash');
   assert.ok(Math.hypot(before.shipX-peak.shipX,before.shipY-peak.shipY)<.01);
   assert.equal(peak.flash.x,peak.shipX);assert.equal(peak.flash.y,peak.shipY);
   let alpha=1;
-  for(const elapsed of [700,800,950,1099]){
+  for(const elapsed of [750,800,950,1099]){
    const e=api.departure(elapsed,angle,options);assert.equal(e.alpha,0);assert.equal(e.flash.x,peak.flash.x);assert.equal(e.flash.y,peak.flash.y);assert.ok(e.flash.alpha<alpha);alpha=e.flash.alpha;
    const x=view.w/2+e.flash.x-300,y=view.h/2+e.flash.y-225,r=e.flash.radius;
    assert.ok(x-r>=0&&x+r<=view.w&&y-r>=0&&y+r<=view.h,'Vanish light was clipped by the viewport');
@@ -107,12 +108,26 @@ test('the departing ship vanishes into one bright flash at its final visible pos
  const reduced=api.departure(150,1,{duration:240,cinematic:true,reducedMotion:true});assert.equal(reduced.shipX,300);assert.equal(reduced.shipY,225);assert.ok(reduced.flash.alpha<.45);
  assert.deepEqual(api.departure(300,Math.PI/2),api.departure(300,Math.PI/2,{cinematic:true}));
 });
-function saving(){
+function saving({clock=performance,schedule=setTimeout,cancel=clearTimeout,snapshot}={}){
  const data=new Map(),workers=[];const storage={getItem:key=>data.get(key)||null,setItem:(key,value)=>data.set(key,value)};
  class Worker{constructor(){workers.push(this);}postMessage(message){this.message=message;}terminate(){this.terminated=true;}reply(){this.onmessage({data:{serialized:this.message.text,serializationMs:20}});}}
- const window={Worker,localStorage:storage,nativeSaveCodec:{stringify:JSON.stringify,parse:JSON.parse},performance};
- vm.runInNewContext(fs.readFileSync('html-games/broken-mirror-port/save-storage.js','utf8'),{window,setTimeout,clearTimeout,performance});return {api:window.nativeSaveStorage,workers,data,storage};
+ const window={Worker,localStorage:storage,nativeSaveCodec:{stringify:JSON.stringify,parse:JSON.parse},performance:clock,nativeSaveSnapshot:snapshot};
+ vm.runInNewContext(fs.readFileSync('html-games/broken-mirror-port/save-storage.js','utf8'),{window,setTimeout:schedule,clearTimeout:cancel,performance:clock});return {api:window.nativeSaveStorage,workers,data,storage};
 }
+
+test('progressing durable snapshots survive a long total duration while stalled encoders still time out',async()=>{
+ let now=0,next=0,hooks;const timers=new Map(),clock={now:()=>now};
+ const f=saving({clock,schedule:(fn,delay)=>{const id=++next;timers.set(id,{fn,at:now+delay});return id;},cancel:id=>timers.delete(id),snapshot:{capture(_state,callbacks){hooks=callbacks;return {cancel(){}};}}});
+ const run=at=>{now=at;for(const [id,timer]of [...timers])if(timer.at<=now){timers.delete(id);timer.fn();}};
+ const state={system:9},pending=f.api.writeAsync(state);
+ now=25000;hooks.part([{id:0,array:false,keys:['system'],values:[9]}]);run(30000);
+ assert.equal(f.workers[0].terminated,undefined,'An active snapshot expired at the absolute deadline');
+ now=50000;hooks.complete([0],{cpuMs:4,maxSliceMs:2,validationMs:1,patchedRows:0});run(55000);
+ assert.equal(f.workers[0].terminated,undefined,'The encoder lost the commit progress heartbeat');
+ f.workers[0].onmessage({data:{serialized:JSON.stringify(state)}});assert.equal((await pending).ok,true);
+ const stalled=f.api.writeAsync({system:2});run(85000);
+ assert.equal((await stalled).error,'Save encoding timed out.');assert.ok(f.workers[1].terminated);assert.equal(f.api.read('normal').system,9);
+});
 test('a durable asynchronous travel save waits for verified storage and suspends stale checkpoints',async()=>{
  const f=saving(),state={system:9,antimatter:70};f.api.schedule(state);const pending=f.api.writeAsync(state);
  assert.equal(f.data.size,0);assert.equal(f.api.flushDue(state,{now:10}).pending,true);assert.equal(f.workers.length,1);

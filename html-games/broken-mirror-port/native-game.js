@@ -247,7 +247,9 @@ function advanceSimulation(dt,now,transitDebt=false){
 }
 let preparingTravel=false;
 const hostTime=window.nativeSimulationHost=window.nativeSimulationFrame.createHostTime({getState:()=>game,active:()=>!window.nativeSimulation.blocked()&&!travelling()&&!preparingTravel});
-const simulationService=window.nativeSimulationFrame.createService({getState:()=>game,allowed:()=>!travelling(),advance(){advanceSimulation(0,window.nativeSimulation.now(game));if(game)reportSaveResult(window.nativeSaveStorage.flushDue(game));}});
+// Navigation closes wall-time admission, while the same bounded task owner
+// finishes accepted physics before departure can snapshot the fleet.
+const simulationService=window.nativeSimulationFrame.createService({getState:()=>game,allowed:()=>!travelling()||['alignment','charging'].includes(window.vexedWarp.phase),advance(){advanceSimulation(0,window.nativeSimulation.now(game),travelling());if(game)reportSaveResult(window.nativeSaveStorage.flushDue(game));}});
 // Returning from a hidden tab must not advance its suspended interval.
 const checkpointHost=event=>{hostTime.checkpoint(event?.detail?.at);if(window.nativeSimulation.blocked()){simulationService.cancel();clearFlightInput();}else simulationService.request(game);};
 addEventListener('native-pausechange',checkpointHost);addEventListener('native-inventorychange',checkpointHost);addEventListener('native-flightgatechange',checkpointHost);

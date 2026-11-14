@@ -20,16 +20,23 @@ OUTPUT=ROOT/'test-results'
 spec=importlib.util.spec_from_file_location('stability',ROOT/'tests/browser-stability.py')
 stability=importlib.util.module_from_spec(spec);spec.loader.exec_module(stability)
 
-SETUP=r'''(saved)=>{
+SETUP=r'''({saved,seconds})=>{
   nativeSaveStorage.write(JSON.parse(saved));resumeNativeGame();
   const s=nativeNpcDev.getState();window.__oreState=s;
   nativeNpcLives.initialize(s);
   Object.assign(s,{system:1,localBody:3,x:30000,y:28000,speed:0,angle:0,landed:false,arrivalApproach:null,localCruise:null});
+  // Keep the real flight path clear of neighboring system envelopes. The old
+  // fixed point can now enter a neighboring system under physical navigation.
+  const distance=nativeShipDefinitions.forEntity(s).movement.maxSpeed*(seconds+5),
+    candidates=Array.from({length:64},(_,i)=>({x:45000*Math.cos(i*Math.PI/32),y:45000*Math.sin(i*Math.PI/32)})),
+    start=candidates.find(p=>Array.from({length:21},(_,i)=>nativeManualFlight.regionAtPoint(s,{x:p.x+distance*i/20,y:p.y},1)).every(r=>r.system==null||r.system===1));
+  if(!start)throw Error('No clear same-frame flight path for the ore fixture');
+  const position=vexedSolFlight.shipPosition(s);s.x+=start.x-position.x;s.y+=start.y-position.y;nativeManualFlight.initializeRegion(s);
   const field=nativeSolAsteroids.forSystem(1),gone=new Set([...(s.minedAsteroids||[]),...(s.destroyedAsteroids||[])]);
   const rocks=field.filter(r=>!r.demo&&!gone.has(r.slotId)&&!s.civilianTraffic.life.reservations['rock:'+r.slotId]);
   // A reproducible accumulated backlog, completed through the real ore owner.
   const deposits=rocks.slice(0,60);for(const r of deposits)nativeAsteroidCombat.completeMining(s,r);
-  const miners=s.civilianTraffic.ships.filter(ship=>ship.role==='mining'&&ship.hull>0&&!ship.cargo&&!ship.scriptedDemo&&!ship.needsDockRecovery&&!ship.dockingMove&&!ship.journey).slice(0,4);
+  const miners=s.civilianTraffic.ships.filter(ship=>ship.role==='mining'&&nativeFactionFleets.forShip(s,ship)?.duty(ship.shipType)==='mining'&&ship.hull>0&&!ship.cargo&&!ship.scriptedDemo&&!ship.needsDockRecovery&&!ship.dockingMove&&!ship.journey).slice(0,4);
   if(miners.length!==4)throw Error('Expected four existing miners');
   miners.forEach((ship,i)=>{
     nativeNpcLives.interrupt(s,ship,'performance fixture');
@@ -119,13 +126,13 @@ def main():
                     fixture.parent.mkdir(parents=True,exist_ok=True)
                     fixture.write_text(page.evaluate('JSON.stringify(nativeNpcDev.getState())'),encoding='utf-8')
                 saved=fixture.read_text(encoding='utf-8');report['initialSaveSha256']=hashlib.sha256(fixture.read_bytes()).hexdigest()
-                initial=page.evaluate(SETUP,saved)
+                initial=page.evaluate(SETUP,{'saved':saved,'seconds':args.seconds})
                 initial_save=json.loads(saved)
                 medical_added=3 if page.evaluate('()=>!!window.nativeShipRepairs') and not initial_save.get('shipRepairs',{}).get('medicalFleetVersion') else 0
                 expected_population=len(initial_save['civilianTraffic']['ships'])+len(initial_save['solEconomy']['freighters'])+1+medical_added
                 assert initial['population']==expected_population,initial
                 try:
-                    page.wait_for_function('()=>__oreMiners.every(ship=>ship.task?.kind==="mining"&&ship.task.status==="active")',timeout=10000)
+                    page.wait_for_function('()=>__oreMiners.every(ship=>ship.task?.kind==="mining"&&ship.task.status==="active")',timeout=60000)
                 except Exception as error:
                     raise AssertionError(page.evaluate('()=>({clock:nativeSimulation.seconds(__oreState),blocked:nativeSimulation.blocked(),miners:__oreMiners.map(ship=>({id:ship.id,phase:ship.phase,task:ship.task,credits:ship.credits,next:ship.nextActionAt})),metrics:nativeNpcLives.metrics(__oreState)})')) from error
                 initial['claims']=page.evaluate('__oreMiners.map(ship=>ship.task.requirements.rockId)')

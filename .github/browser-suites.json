@@ -494,5 +494,9 @@
   {
     "name": "Prometheus separation animation",
     "run": "python tests/browser-prometheus-animation.py"
+  },
+  {
+    "name": "Published files revalidate after an ordinary reload",
+    "run": "python tests/browser-release-cache.py"
   }
 ]

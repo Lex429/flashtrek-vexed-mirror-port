@@ -66,6 +66,9 @@ def main():
     report={'scope':__doc__,'checks':{},'probes':{}}
     def check(name,value):report['checks'][name]=bool(value);assert value,name
     images={}
+    # The production capacity grew from 128 to 256. Pin this 100-ship comparison
+    # to 128 in both renderers while retaining every resource equality gate.
+    replay=(ROOT/'demos/shield-gpu/replay.js').read_text().replace('createVexedShieldGPU({canvas,assets})','createVexedShieldGPU({canvas,assets,maxShips:128})')
     try:
       with sync_playwright() as p:
        for variant,body in sources.items():
@@ -73,6 +76,7 @@ def main():
         page=browser.new_page(viewport={'width':1280,'height':850},device_scale_factor=1);page.set_default_timeout(180000)
         errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
         page.route('**/shield-gpu.js',lambda route,request,body=body:route.fulfill(status=200,content_type='text/javascript',body=body))
+        page.route('**/demos/shield-gpu/replay.js',lambda route:route.fulfill(status=200,content_type='text/javascript',body=replay))
         page.goto(f'http://127.0.0.1:{server.server_port}/demos/shield-gpu/index.html');page.wait_for_function('()=>window.shieldGPUReplay')
         page.evaluate("document.body.classList.add('timing')")
         if variant in ['baseline','revised']:report['probes'][variant]=page.evaluate(PROBE)

@@ -72,7 +72,7 @@ PACK=r'''async input=>{
   images[name]=[];modules[name]=[];plates[name]=[];
   for(const row of part.sources){
    const image=await load(row.url),full=create(1024,2048),g=full.getContext('2d');g.imageSmoothingQuality='high';g.setTransform(...row.registration.matrix);g.drawImage(image,0,0);images[name].push(full);
-   const [x,y,w,h]=part.crop,c=create(w/2,h/2);c.getContext('2d').drawImage(full,x,y,w,h,0,0,w/2,h/2);plates[name].push(c);modules[name].push(c.toDataURL().split(',')[1]);
+   const [x,y,w,h]=part.crop,c=create(w/2,h/2);c.getContext('2d').drawImage(full,x,y,w,h,0,0,w/2,h/2);const encoded=c.toDataURL();plates[name].push(await load(encoded));modules[name].push(encoded.split(',')[1]);
   }
  }
  const supplied=await load(input.assembled),joined=[],composite=create(1024,2048),cg=composite.getContext('2d',{willReadFrequently:true});

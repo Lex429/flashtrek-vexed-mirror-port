@@ -23,14 +23,17 @@ self.onmessage=async event=>{
       'ship-systems.js?v=stutter-2-engine-slowdown-1-hull-thrusters-1-system-defence-2-lag-removal-1','rebirth-warp.js?v=warp-charge-1-npc-warp-1','faction-standing.js?v=system-defence-2','faction-defence.js?v=system-defence-2-military-pursuit-2-ferengi-response-2-inventory-loot-4','port-docking.js?v=stutter-2','sol-economy.js?v=seamless-warp-1-dot-loot-1',
       'civilian-combat-ai.js?v=system-defence-2-military-pursuit-2-lag-removal-1','civilian-traffic.js?v=travel-corridors-1-federation-npcs-2-system-defence-2-military-pursuit-2-faction-fleets-1-orion-fleet-2-lag-removal-1-inventory-loot-4','sol-asteroids.js?v=travel-corridors-1-stutter-2-badlands-1','asteroid-combat.js','manual-flight.js?v=system-entry-1','travel-corridors.js?v=system-entry-1-stutter-2-badlands-1',
       'npc-lives.js?v=free-flight-activity-2-stutter-2-warp-charge-1-npc-warp-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-2-badlands-1-orion-fleet-2-dot-loot-1','../flashtrek-broken-mirror/repair-hull-work.js','ship-repair-sites.js',
-      'ship-repairs.js?v=activity-nearby-1-warp-charge-1-dot-loot-1','ship-traffic.js?v=lag-removal-1','world-bootstrap.js?v=blended-map-20261025-stutter-2-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-federation-expansion-1-faction-fleets-1-ferengi-response-2-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2');
+      'ship-repairs.js?v=activity-nearby-1-warp-charge-1-dot-loot-1','ship-traffic.js?v=lag-removal-1','world-bootstrap.js?v=blended-map-20261025-stutter-2-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-federation-expansion-1-faction-fleets-1-ferengi-response-2-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1');
     await Promise.all([self.nativeCombatShots.ready,self.nativeSolAsteroids.ready]);
     if(event.data.action==='travel'){
       importScripts('population-simulation.js','world-time.js?v=seamless-warp-1','travel-events.js?v=distance-navigation-1-badlands-1','save-codec.js?v=checkpoint-text-3','save-snapshot.js?v=warp-charge-1-warp-latency-1');
       const seed=event.data.streamed?self.nativeSaveSnapshot.restore(travelRows,event.data.root):typeof event.data.text==='string'?JSON.parse(event.data.text):event.data.seed;
       travelRows=[];
+      self.postMessage({ok:true,progress:'planning'});
       const planned=self.vexedTravelEvents.plan(seed,event.data.journey);
+      self.postMessage({ok:true,progress:'calendar'});
       planned.calendar=self.nativeWorldTime.settleTransit(planned.next);
+      self.postMessage({ok:true,progress:'snapshot'});
       if(event.data.streamed){
         self.nativeSaveSnapshot.capture(planned.next,{
           part:part=>self.postMessage({ok:true,part}),

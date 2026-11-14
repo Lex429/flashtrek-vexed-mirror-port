@@ -178,8 +178,8 @@ try:
         # Other working crews can continually request artwork. Await this
         # fixture's hull rather than a galaxy-wide empty preparation queue.
         page.wait_for_function('()=>nativeShipEffects.stageReady(35,1)', timeout=120000)
-        page.evaluate("()=>{nativeShipEffects.request(35,'civilian',{stage:2,visible:true});}")
-        page.wait_for_function('()=>nativeShipEffects.stageReady(35,2)', timeout=120000)
+        page.evaluate("()=>{for(const stage of [0,2])nativeShipEffects.request(35,'civilian',{stage,visible:true});}")
+        page.wait_for_function('()=>nativeShipEffects.stageReady(35,0)&&nativeShipEffects.stageReady(35,2)', timeout=120000)
 
         # Use the real shared damage boundary once plates are warm and confirm
         # the rendered stage follows actual hull health, including fragments.

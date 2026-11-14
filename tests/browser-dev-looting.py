@@ -43,9 +43,10 @@ try:
   assert page.locator('#ship-loot [data-owner="player"] .loot-grid').is_visible()
   source=page.locator('#ship-loot .loot-owner[data-owner="source"]');player=page.locator('#ship-loot .loot-owner[data-owner="player"]')
   assert player.bounding_box()['x']<source.bounding_box()['x']
+  page.evaluate('''()=>{window.__lootTransferWitness={ghost:false,delta:false};window.__lootTransferObserver=new MutationObserver(()=>{const w=__lootTransferWitness;w.ghost ||= !!document.querySelector('.loot-transfer-ghost');w.delta ||= !!document.querySelector('#ship-loot [data-owner="player"] .loot-received-delta');});__lootTransferObserver.observe(document.querySelector('#ship-loot'),{childList:true,subtree:true});}''')
   page.locator('#ship-loot .loot-tile[data-loot-key="cargo"]').click()
-  page.wait_for_selector('.loot-transfer-ghost',timeout=3000)
-  assert player.locator('.loot-received-delta').count()>0
+  page.wait_for_function('()=>__lootTransferWitness.ghost&&__lootTransferWitness.delta',timeout=3000)
+  page.evaluate('__lootTransferObserver.disconnect()')
   page.screenshot(path=str(OUT/'item-transfer-animation.png'))
   held=page.evaluate('''()=>{const s=nativeNpcDev.getState(),e=nativeNpcLives.find(s,s.devLootDemo.ships[0].id);return {id:e.id,remaining:e.cargo?.tons||0,player:s.solFreightHold[5],marker:JSON.parse(JSON.stringify(s.devLootDemo))};}''')
   assert held['remaining']==0 and held['player']==initial['playerFood']+initial['ships'][0]['cargo'],held

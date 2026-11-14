@@ -40,7 +40,7 @@ try:
           const material=nativeNebulaMaterial;window.__weatherMaterial=material;window.nativeNebulaMaterial=Object.create(material,{renderPair:{value:function(...args){if(args[4]?.vortices?.some(v=>v.id.startsWith('badlands-vortex:')))window.__weatherDraw=args;return material.renderPair(...args);}}});
           const restore=nativeCombatShots.restore;nativeCombatShots.restore=function(s){window.__weatherState=s;return restore(s);};startNativeDevGame();
         }''')
-        page.wait_for_function('()=>nativeDevFog.material()?.field.ready', timeout=120000)
+        page.wait_for_function('()=>nativeNpcDev.getState()?.civilianTraffic?.ships.length===1200', timeout=120000)
         report['fixture'] = page.evaluate('''()=>{
           const gate=nativeSimulation;window.nativeSimulation={...gate,blocked:()=>true};nativeSimulationHost.checkpoint();
           const s=JSON.parse(JSON.stringify(nativeNpcDev.getState()));nativeShipMotion.stop(s);Object.assign(s,{devMode:false,system:73,localBody:0,localBodySystem:73,localNavTarget:0,manualTargetSystem:0,localCruise:null,arrivalApproach:null,phase:'flight',landed:false});
