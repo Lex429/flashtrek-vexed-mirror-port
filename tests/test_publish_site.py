@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import unittest
 from unittest.mock import call, patch
+from urllib.error import HTTPError
 
 spec = importlib.util.spec_from_file_location('publish_site', Path(__file__).resolve().parents[1] / 'tools/publish_site.py')
 publish_site = importlib.util.module_from_spec(spec)
@@ -14,6 +15,22 @@ spec.loader.exec_module(publish_site)
 
 
 class PublishTests(unittest.TestCase):
+    def test_temporary_host_denial_waits_and_revalidates_a_fresh_url(self):
+        denied = HTTPError('https://example.invalid/a.js', 403, 'Forbidden', {}, None)
+        with patch.object(publish_site, 'urlopen', side_effect=[denied, io.BytesIO(b'actual bytes')]) as request, \
+                patch.object(publish_site.time, 'sleep') as sleep:
+            actual = publish_site.remote_digest('https://example.invalid', 'html-games/a.js', 'a' * 40)
+        self.assertEqual(actual, publish_site.digest(io.BytesIO(b'actual bytes')))
+        sleep.assert_called_once_with(2)
+        urls = [entry.args[0].full_url for entry in request.call_args_list]
+        self.assertNotEqual(urls[0], urls[1])
+
+    def test_persistent_host_denial_reports_the_failed_path(self):
+        denied = HTTPError('https://example.invalid/a.js', 403, 'Forbidden', {}, None)
+        with patch.object(publish_site, 'urlopen', side_effect=denied), patch.object(publish_site.time, 'sleep'):
+            with self.assertRaisesRegex(RuntimeError, r'html-games/a\.js.*HTTP 403'):
+                publish_site.remote_digest('https://example.invalid', 'html-games/a.js', 'a' * 40)
+
     def test_preparation_uses_committed_bytes_and_excludes_private_or_uncommitted_files(self):
         with tempfile.TemporaryDirectory() as work:
             repo, stage = Path(work) / 'repo', Path(work) / 'stage'

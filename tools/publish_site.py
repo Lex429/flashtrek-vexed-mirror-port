@@ -17,6 +17,7 @@ import time
 from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
+from uuid import uuid4
 
 REPOSITORY = 'https://github.com/Lex429/flashtrek-vexed-mirror-port'
 RECEIPT = 'deployment.json'
@@ -75,15 +76,33 @@ def prepare(repo, destination, ref='HEAD'):
 
 
 def remote_digest(base, name, commit):
-    # A unique query avoids an old edge cache during integrity verification.
-    url = base.rstrip('/') + '/' + quote(name, safe='/') + '?deployment=' + commit
-    request = Request(url, headers={'Cache-Control': 'no-cache', 'User-Agent': 'VexedMirror-Publisher/1'})
-    with urlopen(request, timeout=90) as response:
-        return digest(response)
+    # Separate comparison/verification requests also avoid a cached old body or
+    # temporary host denial under the same release query.
+    for attempt in range(7):
+        url = (base.rstrip('/') + '/' + quote(name, safe='/') + '?deployment=' + commit +
+               '&request=' + uuid4().hex)
+        request = Request(url, headers={'Cache-Control': 'no-cache', 'User-Agent': 'VexedMirror-Publisher/1'})
+        retry_after = 0
+        try:
+            with urlopen(request, timeout=90) as response:
+                return digest(response)
+        except HTTPError as error:
+            if error.code not in {403, 408, 429, 500, 502, 503, 504}:
+                raise
+            if attempt == 6:
+                raise RuntimeError(f'Public request failed for {name} (HTTP {error.code})') from error
+            try:
+                retry_after = float((error.headers or {}).get('Retry-After', '0'))
+            except ValueError:
+                pass
+        except OSError as error:
+            if attempt == 6:
+                raise RuntimeError(f'Public request failed for {name}: {error}') from error
+        time.sleep(min(60, max(min(30, 2 ** (attempt + 1)), retry_after)))
 
 
 class Publisher:
-    def __init__(self, stage, receipt, base, workers=6):
+    def __init__(self, stage, receipt, base, workers=2):
         self.stage, self.receipt, self.base = Path(stage), receipt, base
         self.workers, self.local = workers, threading.local()
         self.connections, self.lock = [], threading.Lock()
@@ -256,7 +275,7 @@ def main():
     parser.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--base', default='https://vexedmirror.com')
     parser.add_argument('--prepare', type=Path, help='Prepare an exact Git snapshot without connecting to hosting.')
-    parser.add_argument('--workers', type=int, default=6)
+    parser.add_argument('--workers', type=int, default=2)
     args = parser.parse_args()
     if args.prepare:
         receipt = prepare(args.repo, args.prepare)
