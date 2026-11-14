@@ -20,8 +20,8 @@ GitHub-to-website publishing.
 The public game and showcase register `html-games/release-cache-worker.js`.
 It revalidates hosted files on an ordinary reload, so the hosting service's
 30-day JavaScript cache cannot keep an earlier release after deployment.
-Unchanged files retain HTTP cache validation; the first registration reloads
-the page once to take control. Local development does not register this worker.
+Unchanged files retain HTTP cache validation; the first registration refreshes
+the menu once to take control, while an active game stays open. Local development does not register this worker.
 
 The publisher compares SHA-256 content hashes, uploads dependencies before entry
 pages, verifies the public code and changed assets, then writes

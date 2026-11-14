@@ -5,7 +5,7 @@
 if ('serviceWorker' in navigator && /^(www\.)?vexedmirror\.com$/.test(location.hostname)) {
   if (!navigator.serviceWorker.controller) {
     let refreshing=false;
-    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!refreshing){refreshing=true;location.reload();}});
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!refreshing){refreshing=true;if(!document.body?.classList.contains('playing'))location.reload();}});
   }
   navigator.serviceWorker.register('/html-games/release-cache-worker.js',{scope:'/html-games/',updateViaCache:'none'}).catch(()=>{});
 }
