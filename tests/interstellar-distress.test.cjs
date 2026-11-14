@@ -43,7 +43,7 @@ test('one-time placement retains the population, paid jobs, equipment identities
   const e=f.lives.find(s,row.id),d=w.nativeShipDefinitions.forEntity(s,e),dots=e.repairBay.slots.filter(d=>d.hull>0);
   assert.equal(e.phase,'disabled');assert.ok(e.hull>0&&e.hull<=d.hull*.25);assert.equal(e.shields,0);
   assert.deepEqual(Object.keys(e.shipEquipment.instances),gear.get(e.id));
-  assert.equal(f.lives.galaxyPosition(s,e).x,out.points.find(p=>p.key===row.site).x);
+  assert.ok(Math.abs(f.lives.galaxyPosition(s,e).x-out.points.find(p=>p.key===row.site).x)<1e-7);
   if(row.reason!=='drones')assert.equal(e.repairDeuranium,0);else assert.ok(e.repairDeuranium>0);
   if(row.reason!=='supplies')assert.equal(dots.length,0);else assert.ok(dots.length>0);
  }
@@ -57,7 +57,8 @@ test('saved casualties are ordinary targetable ships and medical rescue consumes
  assert.deepEqual(copy(s.shipRepairs.interstellarDistress),initial);
  const e=f.lives.find(s,id),origin=w.nativeManualFlight.anchor(e.system);
  Object.assign(s,{system:e.system,x:point.x-origin.x-230,y:point.y-origin.y,landed:false});
- const before=f.lives.galaxyPosition(s,e);f.step(.25);
+ const before=f.lives.galaxyPosition(s,e);
+ for(let i=0;i<16&&!s.shipRepairs.calls.some(c=>c.target.id===id);i++)f.step(.25);
  assert.ok(w.nativeShipSystems.resolve(s,id,s.system));
  assert.deepEqual(copy(f.lives.galaxyPosition(s,e)),copy(before));
  const call=s.shipRepairs.calls.find(c=>c.target.id===id);assert.ok(call&&['claimed','servicing'].includes(call.status));

@@ -46,7 +46,12 @@
   const repairs=window.nativeShipRepairs,definition=window.nativeShipDefinitions.forEntity(s,e,{category:'civilian'}),eq=window.nativeShipEquipment.ensure(s,e);
   // A drone-less casualty can retain supplies bought from a real berth before
   // its breakdown. This purchase uses owned credits and finite port stock.
-  if(point.reason==='drones'&&!(e.repairDeuranium>0))repairs.restock(s,e);
+  if(point.reason==='drones'&&!(e.repairDeuranium>0)){
+   const berth=window.nativePortDocking.request(s,e,e.system,e.port);
+   if(berth?.kind==='berth'){
+    Object.assign(e,{x:berth.x,y:berth.y});repairs.restock(s,e);
+   }
+  }
   const reason=point.reason==='drones'&&!(e.repairDeuranium>0)?'both':point.reason;
   // Release only this idle crew's berth through the existing life owner.
   window.nativeNpcLives.interrupt(s,e,'disabled');
