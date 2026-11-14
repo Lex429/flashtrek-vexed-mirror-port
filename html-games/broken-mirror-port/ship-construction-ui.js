@@ -1,10 +1,10 @@
-/* Earth Heavy Shipyard contact, construction monitor and player fleet orders. */
+/* Earth Heavy Shipyard contact, construction monitor and procurement. */
 (() => {
   'use strict';
   const owner=window.nativeShipConstruction,view=window.shipConstructionView;
   const root=document.createElement('section');root.id='ship-construction';root.hidden=true;
   root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','Earth Heavy Shipyard');
-  const button=document.createElement('button');button.id='fleet-shipyard-button';button.textContent='Fleet & Shipyard';button.hidden=true;
+  const button=document.createElement('button');button.id='fleet-shipyard-button';button.textContent='Shipyard';button.hidden=true;
   document.querySelector('#game').append(root,button);
   document.querySelector('#inventoryBtn')?.insertAdjacentElement('afterend',button);
   const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -26,7 +26,7 @@
     root.innerHTML=`<header><div><p class="build-eyebrow">SOL / FLEET PROCUREMENT</p><h1>Earth Heavy Shipyard</h1></div><button data-build-close aria-label="Close shipyard">&times;</button></header>
       <div class="build-workspace"><div class="build-visual"><canvas width="1000" height="680" aria-label="Ship construction at Earth Heavy Shipyard"></canvas><span class="build-view-mode" data-build-mode>CONSTRUCTION PREVIEW</span><div class="build-overlay"><strong data-build-phase>Preparing berth</strong><progress max="1" value="0" aria-label="Construction progress"></progress><small data-build-time></small></div></div>
       <section class="build-order"><p class="build-eyebrow">COMMISSION A VESSEL</p><label>Ship class<select data-build-class>${ships.map(h=>`<option value="${h.id}" ${h.id===selected?'selected':''}>${safe(h.name)}</option>`).join('')}</select></label><label>Ship name<input data-build-name maxlength="60" placeholder="Optional vessel name"></label><div class="build-specs" data-build-specs></div><p data-build-location></p><button class="build-primary" data-build-order>Order ship</button><p role="status" data-build-notice>Each completed vessel joins your fleet with its standard equipment.</p><h2>Construction queue</h2><div data-build-queue></div></section></div>
-      <section class="build-fleet"><div class="build-fleet-heading"><div><p class="build-eyebrow">YOUR COMMAND</p><h2>Fleet</h2></div><label>Travel destination<select data-fleet-system>${window.VexedMirrorWorld.systems.filter(s=>s.charted).map(s=>`<option value="${s.id}" ${s.id===state.system?'selected':''}>${safe(s.name)}</option>`).join('')}</select></label></div><div data-build-fleet></div></section>`;
+      <section class="build-fleet"><div class="build-fleet-heading"><div><p class="build-eyebrow">YOUR COMMAND</p><h2>Manage your ships in Inventory → Fleet</h2></div><button data-build-open-fleet>Open Fleet</button></div></section>`;
     root.hidden=false;lastUpdate=-1;choose(selected);view.loadYard().catch(e=>notice(e.message));
     root.querySelector('[data-build-close]').focus();cancelAnimationFrame(raf);raf=requestAnimationFrame(paint);return true;
   }
@@ -42,8 +42,6 @@
     const orders=owner.orders(state).filter(o=>o.status!=='cancelled'),queue=root.querySelector('[data-build-queue]');
     const markup=orders.slice(-20).map(o=>`<div class="build-queue-item"><button data-build-watch="${o.shipType}">${safe(o.name)}</button><small>${o.status==='commissioned'?'Launched':o.queued?'Queued · '+Math.ceil(o.wait)+' s':o.label+' · '+Math.round(o.progress*100)+'%'}</small>${o.queued?`<button data-build-cancel="${o.id}" aria-label="Cancel ${safe(o.name)}">Cancel</button>`:''}</div>`).join('')||'<p class="build-empty">No ships ordered yet.</p>';
     if(queue.innerHTML!==markup)queue.innerHTML=markup;
-    const fleet=root.querySelector('[data-build-fleet]'),fleetMarkup=owner.fleet(state).map(ship=>`<article class="build-fleet-row"><div><strong>${safe(ship.name)}</strong><small>${safe(window.VexedMirrorWorld.systems.find(s=>s.id===ship.system)?.name)} · ${ship.hull<=0?'Destroyed':ship.journey?'In transit':safe(ship.fleetOrder?.mode||'hold')} · Hull ${Math.round(ship.hull)}</small></div><div><button data-fleet-command="${ship.id}" ${ship.hull<=0?'disabled':''}>Take command</button>${['follow','hold','travel'].map(mode=>`<button data-fleet-order="${mode}" data-fleet-id="${ship.id}" ${ship.hull<=0?'disabled':''}>${mode==='follow'?'Follow flagship':mode==='hold'?'Hold position':'Travel'}</button>`).join('')}</div></article>`).join('')||'<p class="build-empty">Commission your first ship to begin building a fleet.</p>';
-    if(fleet.innerHTML!==fleetMarkup)fleet.innerHTML=fleetMarkup;
   }
   function paint(timestamp){
     if(root.hidden)return;update();const state=bridge?.getState(),canvas=root.querySelector('canvas');
@@ -82,12 +80,11 @@
   root.addEventListener('click',e=>{
     const target=e.target.closest('button');if(!target||target.disabled)return;
     if(target.hasAttribute('data-build-close')){close();return;}
+    if(target.hasAttribute('data-build-open-fleet')){close();window.nativeShipInventory?.open({page:'fleet'});return;}
     const state=bridge.getState();let result;
     if(target.hasAttribute('data-build-order'))result=owner.order(state,{shipType:selected,name:root.querySelector('[data-build-name]').value},bridge.save);
     else if(target.dataset.buildWatch){root.querySelector('[data-build-class]').value=target.dataset.buildWatch;choose(target.dataset.buildWatch);return;}
     else if(target.dataset.buildCancel)result=owner.cancel(state,target.dataset.buildCancel,bridge.save);
-    else if(target.dataset.fleetCommand)result=owner.takeCommand(state,target.dataset.fleetCommand,bridge.save);
-    else if(target.dataset.fleetOrder)result=owner.command(state,target.dataset.fleetId,target.dataset.fleetOrder,Number(root.querySelector('[data-fleet-system]').value),bridge.save);
     if(result){notice(result.message||result.error);update(true);bridge.refresh();}
   });
   root.addEventListener('keydown',e=>{

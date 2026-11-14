@@ -43,7 +43,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <link rel="stylesheet" href="planet-cargo.css?v=freight-distance-3-freight-permits-1">
 <link rel="stylesheet" href="population-display.css?v=1">
 <link rel="stylesheet" href="regional-mining.css?v=regional-belts-1">
-<link rel="stylesheet" href="ship-inventory.css?v=shield-maintenance-3-device-condition-1-thruster-tile-1-medical-distress-1-collectables-1-earth-bonus-items-1-collection-grid-1-archive-clues-1-sequential-clues-1-publish-regressions-1-section-inventories-1">
+<link rel="stylesheet" href="ship-inventory.css?v=shield-maintenance-3-device-condition-1-thruster-tile-1-medical-distress-1-collectables-1-earth-bonus-items-1-collection-grid-1-archive-clues-1-sequential-clues-1-publish-regressions-1-section-inventories-1-fleet-tab-1">
 <link rel="stylesheet" href="collectables.css?v=earth-bonus-items-1-plain-space-items-1-relic-scale-glow-1-expanded-bonus-1-transporter-materialize-1-hover-1-drift-1-galactic-relics-1-archive-clues-1-layered-leads-1-sequential-clues-1">
 <link rel="stylesheet" href="dev-ship-preview.css?v=dev-fleet-2">
 <link rel="stylesheet" href="dev-sol-fog.css?v=sol-colours-1-dev-storm-1">
@@ -204,7 +204,7 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="world-bootstrap.js?v=territorial-yards-1-free-flight-activity-2-seamless-warp-1-distance-navigation-1-stutter-2-engine-slowdown-1-warp-pacing-1-hull-thrusters-2-warp-charge-1-warp-latency-1-npc-warp-1-animated-federation-1-federation-npcs-2-federation-expansion-1-system-defence-2-military-pursuit-2-faction-fleets-1-ferengi-response-3-badlands-1-orion-fleet-2-approach-2-neighbor-sky-3-smooth-clouds-4-lag-removal-1-starter-torpedo-1-dot-loot-1-atlas-scale-1-compact-scale-1-inventory-loot-4-mvam-worker-profiles-1-weapon-mounts-2-save-progress-1-projectile-tail-1-loot-inventory-pages-2"></script>
 <script src="outfitting-view.js?v=live-preview-lighting-1-device-condition-1-thruster-tile-1-weapon-grades-1-loot-inventory-pages-2"></script>
 <script src="equipment-panel.js?v=shared-equipment-3-weapon-grades-1-loot-inventory-pages-2"></script>
-<script src="ship-inventory.js?v=shield-maintenance-1-device-condition-1-hull-thrusters-1-thruster-tile-1-medical-distress-1-collectables-1-earth-bonus-items-1-collection-grid-1-interstellar-1-archive-clues-1-layered-leads-1-sequential-clues-1-shared-equipment-2-section-inventories-1-weapon-grades-1-loot-inventory-pages-2"></script>
+<script src="ship-inventory.js?v=shield-maintenance-1-device-condition-1-hull-thrusters-1-thruster-tile-1-medical-distress-1-collectables-1-earth-bonus-items-1-collection-grid-1-interstellar-1-archive-clues-1-layered-leads-1-sequential-clues-1-shared-equipment-2-section-inventories-1-weapon-grades-1-loot-inventory-pages-2-fleet-tab-1"></script>
 <script src="collectable-sites.js?v=galactic-relics-1-archive-clues-1-layered-leads-1-sequential-clues-1"></script>
 <script src="collectables.js?v=galactic-relics-1-layered-leads-1-sequential-clues-1"></script>
 <script src="collectable-motion.js?v=physical-drift-2-settling-1-galactic-relics-1"></script>
@@ -240,8 +240,8 @@ body:not(.playing) .shell{grid-template-columns:minmax(0,900px);grid-template-ro
 <script src="../flashtrek-broken-mirror/ship-construction.js?v=materials-2"></script>
 <script src="../flashtrek-broken-mirror/ship-construction-view.js?v=fit-scene-3"></script>
 <script src="ship-construction.js?v=materials-2"></script>
-<script src="ship-construction-ui.js?v=materials-2"></script>
-<script src="native-game.js?v=system-entry-1-shield-maintenance-3-device-condition-1-dev-neighborhood-1-seamless-warp-1-distance-navigation-1-stutter-2-warp-pacing-1-hull-thrusters-1-warp-render-2-impact-console-1-quiet-flight-1-warp-charge-1-game-sounds-1-console-feedback-2-warp-flash-1-quiet-flight-2-hull-recovery-1-medical-distress-1-critical-manual-flight-1-earth-bonus-items-1-background-suns-1-physical-collectables-1-animated-federation-1-interstellar-1-freight-permits-1-system-defence-2-dev-sol-fog-1-interstellar-targets-1-nose-intent-1-badlands-1-manual-fire-1-stable-speed-trails-1-dualsense-7-player-destruction-1-black-pc-1-starter-torpedo-1-safe-timeline-2-dot-loot-1-dev-loot-1-mvam-1-mvam-moving-1-mvam-survival-1-warp-debt-1-section-inventories-1-loot-inventory-pages-2"></script>
+<script src="ship-construction-ui.js?v=materials-2-fleet-tab-1"></script>
+<script src="native-game.js?v=system-entry-1-shield-maintenance-3-device-condition-1-dev-neighborhood-1-seamless-warp-1-distance-navigation-1-stutter-2-warp-pacing-1-hull-thrusters-1-warp-render-2-impact-console-1-quiet-flight-1-warp-charge-1-game-sounds-1-console-feedback-2-warp-flash-1-quiet-flight-2-hull-recovery-1-medical-distress-1-critical-manual-flight-1-earth-bonus-items-1-background-suns-1-physical-collectables-1-animated-federation-1-interstellar-1-freight-permits-1-system-defence-2-dev-sol-fog-1-interstellar-targets-1-nose-intent-1-badlands-1-manual-fire-1-stable-speed-trails-1-dualsense-7-player-destruction-1-black-pc-1-starter-torpedo-1-safe-timeline-2-dot-loot-1-dev-loot-1-mvam-1-mvam-moving-1-mvam-survival-1-warp-debt-1-section-inventories-1-loot-inventory-pages-2-fleet-tab-1"></script>
 <script src="setup-ship-preview.js?v=showcase-exact-2"></script>
 <script src="native-setup.js?v=opening-film-20261025-3-film-refresh-1"></script>
 <script src="map-controls.js?v=cinematic-map-1"></script>

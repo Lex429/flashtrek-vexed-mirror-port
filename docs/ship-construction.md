@@ -1,6 +1,6 @@
 # Earth Heavy Shipyard and fleet construction
 
-Open **Fleet & Shipyard** during a game, or click the large gold shipyard marker
+Open **Shipyard** during a game, or click the large gold shipyard marker
 on Sol's radar. Earth Heavy Shipyard is artwork **278**, located 2,200 units east
 and 1,800 units north of Earth. Fly within 1,400 units to place an order. Mars
 Orbital Shipyard remains the existing docking and outfitting service.
@@ -67,6 +67,14 @@ orders do not receive civilian trading/mining jobs or civilian access relocation
 Their actual equipment, movement, collision, damage, repair and rendering owners
 remain shared. The normal galaxy map includes the owned fleet's current systems.
 
+Open **Inventory [I] ? Fleet** to see the flagship, owned ships, their systems,
+hull/shield condition and orders. The tabs are **Inventory ? Fleet ? Collectables
+? Deliveries**. Follow flagship, Hold position, Travel and Take command live here;
+ship purchasing and the assembly queue remain at Earth Heavy Shipyard. The yard's
+**Open Fleet** shortcut opens this same tab. The destination selection survives
+commands and tab changes; long rosters scroll within the Fleet page. Existing
+Inventory item arrangement, collectables and delivery pagination are retained.
+
 **Take command** exchanges the flagship and a nearby fleet vessel. Both hulls,
 names, fittings, damage and vessel identities remain owned, and the former
 flagship becomes a fleet vessel. Command transfer requires an operational vessel
@@ -80,6 +88,7 @@ Verification:
 node --test tests/ship-construction.test.cjs
 node --test tests/construction-assembly.test.cjs
 python tests/browser-ship-construction.py
+python tests/browser-inventory-fleet.py
 python tests/browser-construction-visibility.py
 python tests/browser-shipyard.py
 python tests/browser-unified-equipment.py

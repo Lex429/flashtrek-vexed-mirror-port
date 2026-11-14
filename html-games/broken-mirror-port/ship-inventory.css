@@ -158,8 +158,9 @@
 .inventory-right-tabs button[aria-pressed=true] { color: #e3eded; }
 .inventory-right-tabs button[aria-pressed=true]::after { content: ''; position: absolute; bottom: -4px; left: 12px; right: 12px; height: 2px; background: var(--cyan); }
 .inventory-right-tabs button > span:not(.inventory-control-fx) { margin-left: 4px; padding: 2px 4px; border-radius: 3px; background: #314b5555; color: #a3bfc6; font-size: 9px; font-variant-numeric: tabular-nums; }
-.inventory-items-page, .inventory-deliveries-page, .inventory-collectables-page { display: flex; flex-direction: column; gap: 15px; flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: #496a72 transparent; }
+.inventory-items-page, .inventory-deliveries-page, .inventory-collectables-page, .inventory-fleet-page { display: flex; flex-direction: column; gap: 15px; flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: #496a72 transparent; }
 #ship-inventory:not([data-right-page=inventory]) .inventory-items-page,
+#ship-inventory:not([data-right-page=fleet]) .inventory-fleet-page,
 #ship-inventory:not([data-right-page=deliveries]) .inventory-deliveries-page,
 #ship-inventory:not([data-right-page=collectables]) .inventory-collectables-page { display: none; }
 .inventory-collectables-page { overflow: clip; animation: inventory-collectables-enter .22s ease-out both; }
@@ -544,6 +545,32 @@
   #ship-inventory .inventory-right-tabs button { min-height: 34px; padding-block: 6px; }
   #ship-inventory .inventory-page-nav { padding-top: 16px; }
   #ship-inventory .inventory-ship-label strong { font-size: 12px; }
+}
+
+/* Fleet orders use the same saved vessels as the construction and life owners. */
+.inventory-fleet-page { overscroll-behavior: contain; padding: 4px 8px 12px 2px; }
+.inventory-fleet-page > * { flex-shrink: 0; }
+.inventory-fleet-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.inventory-fleet-heading span { color: var(--muted); font-size: 10px; letter-spacing: .12em; }
+.inventory-fleet-heading h3 { margin: 2px 0 0; font-size: 23px; }
+.inventory-fleet-flagship, .inventory-fleet-note { margin: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.inventory-fleet-flagship strong { color: var(--ink); }
+.inventory-fleet-destination { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; color: var(--muted); font-size: 12px; }
+#ship-inventory .inventory-fleet-destination select { flex: 1; min-width: 140px; max-width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 4px; background: #152a33; color: var(--ink); }
+.inventory-fleet-roster { display: grid; gap: 12px; }
+.inventory-fleet-row, .inventory-fleet-empty { padding: 14px; border: 1px solid var(--line); border-radius: 7px; background: #14283180; }
+.inventory-fleet-identity { display: grid; gap: 4px; overflow-wrap: anywhere; }
+.inventory-fleet-identity strong { font-size: 15px; color: var(--ink); }
+.inventory-fleet-identity span, .inventory-fleet-identity small { color: var(--muted); font-size: 11px; }
+.inventory-fleet-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin-top: 12px; }
+#ship-inventory .inventory-fleet-actions button, #ship-inventory [data-open-shipyard] { min-width: 0; min-height: 36px; padding: 7px 10px; border: 1px solid #72b7b443; border-radius: 4px; color: var(--ink); background: #1d3942; font-size: 12px; }
+#ship-inventory .inventory-fleet-actions button[aria-pressed=true] { color: var(--cyan); border-color: #8cddd988; background: #23474d; }
+.inventory-fleet-empty p { margin-bottom: 0; color: var(--muted); }
+@media (max-width: 460px) {
+  .inventory-right-tabs button { font-size: 10px !important; padding-inline: 2px; }
+  .inventory-right-tabs button > span:not(.inventory-control-fx) { margin-left: 2px; padding-inline: 2px; font-size: 8px; }
+  .inventory-fleet-heading { align-items: flex-start; }
+  #ship-inventory [data-open-shipyard] { max-width: 135px; }
 }
 
 /* Controls echo the hull scanner without covering labels or intercepting drags. */

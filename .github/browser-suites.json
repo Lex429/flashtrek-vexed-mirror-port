@@ -1,5 +1,9 @@
 [
   {
+    "name": "Inventory Fleet tab, saved orders, command transfer and narrow layouts",
+    "run": "python tests/browser-inventory-fleet.py"
+  },
+  {
     "name": "Earth Heavy Shipyard construction, fleet purchases and saved command transfer",
     "run": "python tests/browser-ship-construction.py"
   },

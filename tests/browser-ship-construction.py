@@ -130,7 +130,9 @@ try:
   assert page.evaluate('__buildTick(.1).commissioned')==0
   assert page.evaluate('()=>__buildState.civilianTraffic.ships.length')==initial['count']+2
   page.locator('#fleet-shipyard-button').click()
-  assert page.locator('.build-fleet-row').count()==2
+  page.locator('[data-build-open-fleet]').click()
+  assert page.locator('#ship-construction').is_hidden()
+  assert page.locator('.inventory-fleet-row').count()==2
   page.locator('[data-fleet-order="follow"]').first.click()
   assert page.evaluate('()=>nativeShipConstruction.fleet(__buildState)[0].fleetOrder.mode')=='follow'
   page.locator('[data-fleet-order="hold"]').first.click()
@@ -142,7 +144,7 @@ try:
   # Sol port catalogs expose the destination and have no direct hull purchase action.
   shop=page.evaluate('()=>nativePlanetServices.shop(__buildState,{id:3,name:"Earth",port:true},{},"",true)')
   assert 'data-buy-ship' not in shop and 'Earth Heavy Shipyard' in shop
-  page.locator('[data-build-close]').click()
+  page.locator('.inventory-close').click()
   page.evaluate('()=>nativeSaveStorage.write(__buildState)')
   page.reload();page.wait_for_function('()=>nativeCombatShots.isReady()&&document.querySelector("#startup").hidden',timeout=120000)
   observe();page.evaluate('resumeNativeGame("normal")')
