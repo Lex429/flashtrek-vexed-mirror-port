@@ -66,9 +66,11 @@ try:
         # Verify GPU lamp delivery in the initial reduced-motion scene while its
         # camera scale is stable, then sample the full-motion film below.
         page.locator('[data-film-action="pause"]').click()
-        page.wait_for_function('()=>nativeOpeningCinematic.snapshot().renderer.liveEffects?.shipLamps?.preparation.pending===0',timeout=90000)
+        # Worker idleness can occur between cooperative preparation slices.
+        # Repaint the fixed paused shot until the real GPU has submitted lamps;
+        # running the audio clock here could leave this shot before it is warm.
+        page.wait_for_function('(time)=>{nativeOpeningCinematic.seek(time);return nativeOpeningCinematic.snapshot().renderer.liveEffects?.shipLamps?.lamps>0;}',arg=war_start+4,polling=100,timeout=90000)
         page.locator('[data-film-action="pause"]').click()
-        page.wait_for_function('()=>nativeOpeningCinematic.snapshot().renderer.liveEffects?.shipLamps?.lamps>0',timeout=15000)
         page.emulate_media(reduced_motion='no-preference')
         # Measure the running shared effects and both audio clocks, including destruction.
         page.evaluate('''()=>{window.__filmDelivery={samples:[],raf:[],last:performance.now(),running:true};
@@ -171,12 +173,17 @@ try:
         cold.on('pageerror',lambda error:errors.append(str(error)))
         cold.goto(base+'index.html')
         cold.wait_for_function('()=>window.nativeOpeningCinematic&&document.querySelector("#startup").hidden',timeout=120000)
+        cold.evaluate('''()=>{const original=vexedFlightAssets,p=window.__coldPrepare={original,requested:[]};
+          const held=new Promise(resolve=>p.release=resolve);
+          window.vexedFlightAssets={...original,async loadShip(...args){p.requested.push(args[0]);await held;return original.loadShip(...args);}};}''')
         cold.locator('#menu-opening-film').click()
-        cold.wait_for_function('()=>nativeOpeningCinematic.active')
+        cold.wait_for_function('()=>nativeOpeningCinematic.active&&__coldPrepare.requested.length===3')
         cold.locator('[data-film-action="skip"]').click()
         assert cold.locator('#menu-art').is_visible()
         assert not cold.evaluate('document.body.classList.contains("playing")')
-        cold.wait_for_timeout(350)
+        cold.evaluate('()=>{__coldPrepare.release();window.vexedFlightAssets=__coldPrepare.original;}')
+        cold.wait_for_function('()=>nativeOpeningCinematic.snapshot().renderer.pending===0',timeout=120000)
+        assert cold.evaluate('__coldPrepare.requested.length')==3
         assert cold.evaluate('nativeOpeningCinematic.snapshot().renderer.prepared')<=3
         # Failure can be closed and retried; no failed request can launch a game.
         cold.route('**/assets/opening/cinematic.json',lambda route:route.fulfill(status=503,body='Unavailable'))

@@ -22,7 +22,8 @@ with shop('mars-material-clarity') as (page,report,out):
  assert tile.locator('[data-upgrade-cost="latinum"] .mars-shop-have b').get_attribute('title')=='1,000,000,000'
  assert not fits(page,'cargo');page.screenshot(path=str(out/'02-reported-cargo.png'))
  pane=page.locator('.yard-catalog');before=pane.evaluate('n=>n.scrollTop');ship=page.locator('.yard-vessel-title').bounding_box()
- pane.hover();page.mouse.wheel(0,500);page.wait_for_timeout(120);assert pane.evaluate('n=>n.scrollTop')>before
+ pane.hover();page.mouse.wheel(0,500)
+ page.wait_for_function('before=>document.querySelector(".yard-catalog").scrollTop>before',arg=before,timeout=10000)
  assert page.locator('.yard-vessel-title').bounding_box()==ship
  page.emulate_media(reduced_motion='reduce');card(page,'weapon').scroll_into_view_if_needed()
  assert card(page,'weapon').locator('.mars-resource-shortage').first.evaluate('n=>n.getAnimations().length')==0
